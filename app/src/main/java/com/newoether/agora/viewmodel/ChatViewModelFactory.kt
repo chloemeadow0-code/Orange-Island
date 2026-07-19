@@ -21,14 +21,18 @@ class ChatViewModelFactory(
     private val sandboxFactory: SandboxManagerFactory? = null,
     private val autoBackupManager: AutoBackupManager,
     private val conversationRepository: ConversationRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val pluginToolProvider: com.newoether.agora.plugin.PluginToolProvider? = null,
+    private val pluginLoader: com.newoether.agora.plugin.PluginLoader? = null,
+    private val pluginSandbox: com.newoether.agora.plugin.PluginSandbox? = null
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ChatViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
             return ChatViewModel(
                 application, chatDao, settingsManager, memoryManager, context, sandboxFactory,
-                autoBackupManager, conversationRepository, settingsRepository
+                autoBackupManager, conversationRepository, settingsRepository,
+                pluginToolProvider, pluginLoader, pluginSandbox
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

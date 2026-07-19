@@ -53,6 +53,7 @@ private val FiveBottom    = RoundedCornerShape(bottomStart = 5.dp, bottomEnd = 5
 fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val enabledModels by viewModel.settings.enabledModels.collectAsState()
     val availableModels by viewModel.settings.availableModels.collectAsState()
+    val manualModels by viewModel.settings.manualModels.collectAsState()
     val modelAliases by viewModel.settings.modelAliases.collectAsState()
     val selectedModel by viewModel.settings.selectedModel.collectAsState()
     var showActiveModelDialog by remember { mutableStateOf(false) }
@@ -62,7 +63,14 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
 
     val showDocFab by viewModel.settings.showDocumentationFab.collectAsState()
     val lastFingerprint by viewModel.settings.lastModelsFetchFingerprint.collectAsState()
-    val providers = availableModels.entries.filter { it.value.isNotEmpty() }
+    // Merge fetched (availableModels) and manually-added (manualModels) lists per provider,
+    // deduplicating so a manually-added ID that also appears in /models isn't shown twice.
+    val providers: Map<String, List<String>> = buildMap {
+        for (entry in availableModels.entries + manualModels.entries) {
+            val existing = getOrDefault(entry.key, emptyList())
+            put(entry.key, (existing + entry.value).distinct())
+        }
+    }.filterValues { it.isNotEmpty() }
 
     // Auto-fetch models when entering the page if provider config has changed
     LaunchedEffect(Unit) {
@@ -144,11 +152,11 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
             }
 
             // Providers
-            for ((providerIndex, entry) in providers.withIndex()) {
+            for ((providerIndex, entry) in providers.entries.withIndex()) {
                 val (name, models) = entry
                 val transitionState = expandedProviders.getOrPut(name) { MutableTransitionState(false) }
                 val isExpanded = transitionState.targetState
-                val isLastProvider = providerIndex == providers.lastIndex
+                val isLastProvider = providerIndex == providers.size - 1
 
                 // ── Provider header ──
                 item(key = "hdr_$name") {

@@ -97,6 +97,8 @@ class SettingsRepository(
     val shellConfirmEnabled: StateFlow<Boolean> = hot(settingsManager.shellConfirmEnabled, true)
     val shellDevices: StateFlow<List<ShellDeviceConfig>> = hot(settingsManager.shellDevices, emptyList())
     val sandboxEnabled: StateFlow<Boolean> = hot(settingsManager.sandboxEnabled, false)
+    val mcpServers: StateFlow<List<com.newoether.agora.data.McpServerConfig>> = hot(settingsManager.mcpServers, emptyList())
+    val enabledPluginIds: StateFlow<Set<String>> = hot(settingsManager.enabledPluginIds, emptySet())
     val defaultTemperature: StateFlow<Float?> = hot(settingsManager.defaultTemperature, null)
     val defaultMaxTokens: StateFlow<Int?> = hot(settingsManager.defaultMaxTokens, null)
     val defaultTopP: StateFlow<Float?> = hot(settingsManager.defaultTopP, null)
@@ -118,6 +120,7 @@ class SettingsRepository(
     val ragThreshold: StateFlow<Float> = hot(settingsManager.ragThreshold, 0.5f)
     val localChatModels: StateFlow<List<LocalChatModelConfig>> = hot(settingsManager.localChatModels, emptyList())
     val customProviders: StateFlow<List<CustomProviderConfig>> = hot(settingsManager.customProviders, emptyList())
+    val manualModels: StateFlow<Map<String, List<String>>> = hot(settingsManager.manualModels, emptyMap())
     val lastModelsFetchFingerprint: StateFlow<String> = hot(settingsManager.lastModelsFetchFingerprint, "")
     // ── Auto Backup ───────────────────────────────────────────
     val autoBackupEnabled: StateFlow<Boolean> = hot(settingsManager.autoBackupEnabled, true)
@@ -264,6 +267,10 @@ class SettingsRepository(
                 models[newName] = models.remove(oldName) ?: emptyList()
                 settingsManager.saveAvailableModels(newName, models[newName] ?: emptyList())
                 settingsManager.saveAvailableModels(oldName, emptyList())
+                val newManual = manualModels.value.toMutableMap()
+                newManual[newName] = (newManual.remove(oldName) ?: emptyList()).map { it.replace("$oldName:", "$newName:") }
+                settingsManager.saveManualModelsForProvider(newName, newManual[newName].orEmpty())
+                settingsManager.saveManualModelsForProvider(oldName, emptyList())
                 val newEnabled = enabledModels.value.map { if (it.startsWith("$oldName:")) it.replace("$oldName:", "$newName:") else it }.toSet()
                 settingsManager.saveEnabledModels(newEnabled)
                 val newAliases = modelAliases.value.mapKeys { if (it.key.startsWith("$oldName:")) it.key.replace("$oldName:", "$newName:") else it.key }
@@ -282,11 +289,37 @@ class SettingsRepository(
             settingsManager.saveCustomProviders(customProviders.value.filter { it.name != name })
             onProviderRemove(name)
             settingsManager.saveAvailableModels(name, emptyList())
+            settingsManager.saveManualModelsForProvider(name, emptyList())
             settingsManager.saveEnabledModels(enabledModels.value.filter { !it.startsWith("$name:") }.toSet())
             settingsManager.saveModelAliases(modelAliases.value.filterKeys { !it.startsWith("$name:") })
             settingsManager.saveProviderBaseUrl(name, "")
             settingsManager.saveApiKeys(apiKeys.value.filter { it.provider != name })
             settingsManager.setActiveApiKeyId(name, null)
+        }
+    }
+
+    // Manual model CRUD (custom providers only). Manual entries are stored separately
+    // from availableModels so the fetch pipeline can't overwrite them; they are merged
+    // with fetched lists at the UI layer (SettingsModelsPage).
+    fun addManualModel(provider: String, modelId: String) {
+        val id = modelId.trim()
+        if (id.isBlank()) return
+        scope.launch {
+            val current = manualModels.value[provider].orEmpty()
+            val prefixed = if (id.startsWith("$provider:")) id else "$provider:$id"
+            if (current.contains(prefixed)) return@launch
+            settingsManager.saveManualModelsForProvider(provider, current + prefixed)
+        }
+    }
+
+    fun removeManualModel(provider: String, modelId: String) {
+        val prefixed = if (modelId.startsWith("$provider:")) modelId else "$provider:$modelId"
+        scope.launch {
+            val current = manualModels.value[provider].orEmpty()
+            settingsManager.saveManualModelsForProvider(provider, current - prefixed)
+            // Clean up derived state so no dangling enabled/alias entries remain.
+            settingsManager.saveEnabledModels(enabledModels.value - prefixed)
+            settingsManager.saveModelAliases(modelAliases.value - prefixed)
         }
     }
 
@@ -337,6 +370,32 @@ class SettingsRepository(
     fun setProxyPassword(pass: String) = scope.launch { settingsManager.saveProxyPassword(pass) }
     fun setProxyBypass(bypass: String) = scope.launch { settingsManager.saveProxyBypass(bypass) }
     fun setSandboxEnabled(enabled: Boolean) = scope.launch { settingsManager.saveSandboxEnabled(enabled) }
+
+    // ── MCP servers ──────────────────────────────────────────
+    fun saveMcpServers(servers: List<com.newoether.agora.data.McpServerConfig>) =
+        scope.launch { settingsManager.saveMcpServers(servers) }
+
+    fun addMcpServer(server: com.newoether.agora.data.McpServerConfig) = scope.launch {
+        settingsManager.saveMcpServers(mcpServers.value + server)
+    }
+
+    fun updateMcpServer(server: com.newoether.agora.data.McpServerConfig) = scope.launch {
+        settingsManager.saveMcpServers(mcpServers.value.map { if (it.id == server.id) server else it })
+    }
+
+    fun deleteMcpServer(id: String) = scope.launch {
+        settingsManager.saveMcpServers(mcpServers.value.filter { it.id != id })
+    }
+
+    suspend fun getMcpServers(): List<com.newoether.agora.data.McpServerConfig> = settingsManager.mcpServers.first()
+
+    fun setPluginEnabled(pluginId: String, enabled: Boolean) = scope.launch {
+        val current = enabledPluginIds.value
+        val next = if (enabled) current + pluginId else current - pluginId
+        settingsManager.saveEnabledPluginIds(next)
+    }
+
+    suspend fun getEnabledPluginIds(): Set<String> = settingsManager.enabledPluginIds.first()
     fun setThinkingEnabled(enabled: Boolean) = scope.launch { settingsManager.saveThinkingEnabled(enabled) }
     fun setThinkingLevel(level: String) = scope.launch { settingsManager.saveThinkingLevel(level) }
     fun setThinkingBudgetEnabled(enabled: Boolean) = scope.launch { settingsManager.saveThinkingBudgetEnabled(enabled) }

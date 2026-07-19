@@ -115,6 +115,7 @@ class DataExporter(
         val shellEnabled: Boolean = false,
         val shellDevices: List<ShellDeviceConfig> = emptyList(),
         val customProviders: List<CustomProviderConfig> = emptyList(),
+        val manualModels: Map<String, List<String>> = emptyMap(),
         val localChatModels: List<LocalChatModelConfig>,
         @SerialName("active_system_prompt_id") val activeSystemPromptId: String?
     )
@@ -318,6 +319,7 @@ class DataExporter(
                         if (includeApiKeys) d else d.copy(apiKey = "")
                     },
                     customProviders = settingsManager.customProviders.first(),
+                    manualModels = settingsManager.manualModels.first(),
                     localChatModels = settingsManager.localChatModels.first().map { it.copy(localFilePath = "") },
                     activeSystemPromptId = settingsManager.activeSystemPromptId.first()
                 )

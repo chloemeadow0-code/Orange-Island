@@ -96,7 +96,9 @@ class GenerationRequestBuilder(
             thinkingBudgetEnabled = overrides.thinkingBudgetEnabled ?: settings.thinkingBudgetEnabled.value,
             thinkingBudgetTokens = overrides.thinkingBudgetTokens ?: settings.thinkingBudgetTokens.value,
             webSearchEnabled = if (settings.webSearchEnabled.value) (overrides.webSearchEnabled ?: true) else false,
-            shellEnabled = if (settings.shellEnabled.value) (overrides.shellEnabled ?: true) else false
+            shellEnabled = if (settings.shellEnabled.value) (overrides.shellEnabled ?: true) else false,
+            mcpServerIds = overrides.mcpServerIds,
+            pluginIds = overrides.pluginIds
         )
     }
 
@@ -162,7 +164,10 @@ class GenerationRequestBuilder(
             transcriptionProviderName = resolveTranscriptionProviderName(),
             transcriptionModelId = resolveTranscriptionModelId(),
             transcriptionApiKey = resolveTranscriptionApiKey(),
-            transcriptionBaseUrl = resolveTranscriptionBaseUrl()
+            transcriptionBaseUrl = resolveTranscriptionBaseUrl(),
+            mcpServers = settings.mcpServers.value,
+            mcpServerIds = effectiveSettings.mcpServerIds,
+            pluginIds = effectiveSettings.pluginIds
         )
         return Pair(config, genCtx)
     }

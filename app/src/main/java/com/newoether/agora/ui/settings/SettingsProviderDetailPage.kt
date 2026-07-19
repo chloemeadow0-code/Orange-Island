@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -55,6 +56,7 @@ fun SettingsProviderDetailPage(
     val providerBaseUrls by viewModel.settings.providerBaseUrls.collectAsState()
     val customProviders by viewModel.settings.customProviders.collectAsState()
     val localChatModels by viewModel.settings.localChatModels.collectAsState()
+    val manualModels by viewModel.settings.manualModels.collectAsState()
 
     val isLocal = providerName == Constants.PROVIDER_LOCAL
     val isCustom = customProviders.any { it.name == providerName }
@@ -75,6 +77,10 @@ fun SettingsProviderDetailPage(
     var showRenameProvider by remember { mutableStateOf(false) }
     var showDeleteProvider by remember { mutableStateOf(false) }
     var providerMenuExpanded by remember { mutableStateOf(false) }
+    var isTestingConnection by remember { mutableStateOf(false) }
+    var connectionStatus by remember { mutableStateOf<String?>(null) }
+    var showAddManualModel by remember { mutableStateOf(false) }
+    var manualModelToDelete by remember { mutableStateOf<String?>(null) }
 
     val filePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -165,6 +171,52 @@ fun SettingsProviderDetailPage(
                                 }
                             }
                         }
+                    }
+                )
+
+                // Test Connection
+                SettingsGroup(
+                    title = stringResource(R.string.provider_test_connection),
+                    items = listOf {
+                        SettingsItem(
+                            headlineContent = { Text(stringResource(R.string.provider_test_connection)) },
+                            supportingContent = {
+                                Column {
+                                    Text(stringResource(R.string.provider_test_connection_desc), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    connectionStatus?.let { status ->
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            status,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = if (status.startsWith("OK") || status.startsWith("成功") || status.startsWith("成功（"))
+                                                MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                            },
+                            leadingContent = {
+                                if (isTestingConnection) {
+                                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Icon(
+                                        Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
+                            modifier = Modifier.clickable {
+                                if (!isTestingConnection) {
+                                    isTestingConnection = true
+                                    connectionStatus = null
+                                    scope.launch {
+                                        connectionStatus = viewModel.testProviderConnection(providerName)
+                                        isTestingConnection = false
+                                    }
+                                }
+                            }
+                        )
                     }
                 )
             }
@@ -338,6 +390,54 @@ fun SettingsProviderDetailPage(
                     )
                 }
             }
+
+            // Manual models (custom providers only)
+            if (isCustom) {
+                val providerManualModels = manualModels[providerName].orEmpty()
+                SettingsGroup(
+                    title = stringResource(R.string.manual_models_title),
+                    items = buildList {
+                        if (providerManualModels.isEmpty()) {
+                            add {
+                                SettingsItem(
+                                    headlineContent = { Text(stringResource(R.string.manual_models_empty), color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                    supportingContent = { Text(stringResource(R.string.manual_models_desc), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                                    leadingContent = { Icon(Icons.Default.Chat, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
+                                    modifier = Modifier.heightIn(min = 64.dp)
+                                )
+                            }
+                        }
+                        providerManualModels.forEach { prefixedId ->
+                            val modelId = prefixedId.removePrefix("$providerName:")
+                            var showMenu by remember { mutableStateOf(false) }
+                            add {
+                                SettingsItem(
+                                    headlineContent = { Text(modelId, fontWeight = FontWeight.Medium) },
+                                    leadingContent = { Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp)) },
+                                    trailingContent = {
+                                        Box {
+                                            IconButton(onClick = { showMenu = true }, modifier = Modifier.size(24.dp)) { Icon(Icons.Default.MoreVert, stringResource(R.string.options), modifier = Modifier.size(18.dp)) }
+                                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 16.dp, shape = RoundedCornerShape(12.dp)) {
+                                                DropdownMenuItem(text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }, onClick = { showMenu = false; manualModelToDelete = prefixedId })
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.clickable { showMenu = true }
+                                )
+                            }
+                        }
+                        add {
+                            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { showAddManualModel = true }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(stringResource(R.string.manual_model_add), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                                }
+                            }
+                        }
+                    }
+                )
+            }
             }
     }
 
@@ -510,5 +610,60 @@ fun SettingsProviderDetailPage(
     // Delete custom provider
     if (showDeleteProvider) {
         AlertDialog(containerColor = MaterialTheme.colorScheme.surfaceContainer, onDismissRequest = { showDeleteProvider = false }, title = { Text(stringResource(R.string.custom_provider_delete_title), fontWeight = FontWeight.Bold) }, text = { Text(stringResource(R.string.custom_provider_delete_text, providerName)) }, confirmButton = { TextButton(onClick = { viewModel.deleteCustomProvider(providerName); showDeleteProvider = false; onBack() }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text(stringResource(R.string.provider_delete)) } }, dismissButton = { TextButton(onClick = { showDeleteProvider = false }) { Text(stringResource(R.string.cancel)) } })
+    }
+
+    // Add manual model dialog
+    if (showAddManualModel) {
+        var modelId by remember { mutableStateOf("") }
+        var idError by remember { mutableStateOf<String?>(null) }
+        val requiredErr = stringResource(R.string.manual_model_id_label)
+        val duplicateErr = stringResource(R.string.manual_model_id_error)
+        AlertDialog(
+            modifier = Modifier.clearFocusOnTap(),
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            onDismissRequest = { showAddManualModel = false },
+            title = { Text(stringResource(R.string.manual_model_add_title), fontWeight = FontWeight.Bold) },
+            text = {
+                Column(Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.manual_models_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Box(modifier = Modifier.noOpBringIntoView()) {
+                        OutlinedTextField(
+                            value = modelId,
+                            onValueChange = { modelId = it; idError = null },
+                            label = { Text(stringResource(R.string.manual_model_id_label)) },
+                            placeholder = { Text(stringResource(R.string.manual_model_id_hint)) },
+                            isError = idError != null,
+                            supportingText = if (idError != null) {{ Text(idError!!, color = MaterialTheme.colorScheme.error) }} else null,
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = {
+                val id = modelId.trim()
+                when {
+                    id.isBlank() -> idError = requiredErr
+                    viewModel.isManualModelTaken(providerName, id) -> idError = duplicateErr
+                    else -> { viewModel.addManualModel(providerName, id); showAddManualModel = false }
+                }
+            }) { Text(stringResource(R.string.add)) } },
+            dismissButton = { TextButton(onClick = { showAddManualModel = false }) { Text(stringResource(R.string.cancel)) } }
+        )
+    }
+
+    // Delete manual model confirm
+    manualModelToDelete?.let { prefixedId ->
+        val modelId = prefixedId.removePrefix("$providerName:")
+        AlertDialog(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            onDismissRequest = { manualModelToDelete = null },
+            title = { Text(stringResource(R.string.manual_model_delete_title), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.manual_model_delete_text, modelId)) },
+            confirmButton = { TextButton(onClick = { viewModel.removeManualModel(providerName, prefixedId); manualModelToDelete = null }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text(stringResource(R.string.delete)) } },
+            dismissButton = { TextButton(onClick = { manualModelToDelete = null }) { Text(stringResource(R.string.cancel)) } }
+        )
     }
 }

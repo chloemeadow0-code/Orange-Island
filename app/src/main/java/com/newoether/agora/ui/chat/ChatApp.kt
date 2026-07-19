@@ -127,6 +127,7 @@ fun ChatApp(
     val webSearchApiKeys by viewModel.settings.webSearchApiKeys.collectAsState()
     val globalShell by viewModel.settings.shellEnabled.collectAsState()
     val shellDevices by viewModel.settings.shellDevices.collectAsState()
+    val mcpServers by viewModel.settings.mcpServers.collectAsState()
     val toolCallDisplayMode by viewModel.settings.toolCallDisplayMode.collectAsState()
     val conversationSettings by viewModel.settings.conversationSettings.collectAsState()
     val pendingSettings by viewModel.pendingConversationSettings.collectAsState()
@@ -153,6 +154,7 @@ fun ChatApp(
     var showDeleteConfirmDialog by remember { mutableStateOf<String?>(null) }
     var showPromptDialog by remember { mutableStateOf(false) }
     var showAdvancedDialog by remember { mutableStateOf(false) }
+    var showMcpSheet by remember { mutableStateOf(false) }
     var isExpanded by remember { mutableStateOf(false) }
     var outerSpacerStartNanos by remember { mutableLongStateOf(0L) }
     var outerSpacerTickNanos by remember { mutableLongStateOf(0L) }
@@ -779,7 +781,11 @@ fun ChatApp(
                         onTogglePdfSelection = onTogglePdfSelection,
                         onInitPdfSelection = onInitPdfSelection,
                         fullScreenViewerUrls = fullScreenViewerUrls,
-                        onAdvancedClick = { showAdvancedDialog = true }
+                        onAdvancedClick = { showAdvancedDialog = true },
+                        showMcpEntry = mcpServers.any { it.enabled },
+                        mcpConversationActive = convOverride?.mcpServerIds != null &&
+                            convOverride.mcpServerIds.isNotEmpty(),
+                        onMcpClick = { haptics.action(); showMcpSheet = true }
                     )
                 }
             }
@@ -817,6 +823,28 @@ fun ChatApp(
 
     if (showAdvancedDialog) {
         ChatAdvancedSettingsDialog(viewModel = viewModel, onDismiss = { showAdvancedDialog = false })
+    }
+
+    if (showMcpSheet) {
+        McpConversationSheet(
+            servers = mcpServers.filter { it.enabled },
+            selectedIds = convOverride?.mcpServerIds,
+            onInherit = {
+                viewModel.updateConversationSetting(currentConversationId) { it.copy(mcpServerIds = null) }
+            },
+            onToggle = { id, on ->
+                viewModel.updateConversationSetting(currentConversationId) { settings ->
+                    // First toggle in inherit-mode seeds the explicit list with every enabled
+                    // server (so unchecking one doesn't silently drop all the others); subsequent
+                    // toggles just add/remove the one id.
+                    val seed = settings.mcpServerIds
+                        ?: mcpServers.filter { it.enabled }.map { s -> s.id }
+                    val next = if (on) (seed + id).distinct() else seed - id
+                    settings.copy(mcpServerIds = next)
+                }
+            },
+            onDismiss = { showMcpSheet = false }
+        )
     }
 }
 

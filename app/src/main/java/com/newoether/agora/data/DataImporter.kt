@@ -409,6 +409,9 @@ class DataImporter(
                         settingsManager.saveManualSearchMethod(s.manualSearchMethod)
                         // Skip embedding models — local GGUF/index, don't transfer across devices
                         settingsManager.saveCustomProviders(s.customProviders)
+                        for ((provider, models) in s.manualModels) {
+                            settingsManager.saveManualModelsForProvider(provider, models)
+                        }
                         settingsManager.saveAppLanguage(s.appLanguage)
                         settingsManager.saveWebSearchEnabled(s.webSearchEnabled)
                         settingsManager.saveWebSearchProvider(s.webSearchProvider)
@@ -597,6 +600,7 @@ class DataImporter(
         val shellEnabled: Boolean = false,
         val shellDevices: List<ShellDeviceConfig> = emptyList(),
         val customProviders: List<CustomProviderConfig> = emptyList(),
+        val manualModels: Map<String, List<String>> = emptyMap(),
         val localChatModels: List<LocalChatModelConfig> = emptyList(),
         @SerialName("active_system_prompt_id") val activeSystemPromptId: String? = null
     )

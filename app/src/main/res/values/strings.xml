@@ -271,6 +271,26 @@
     <string name="models_available">Available Models</string>
     <string name="models_sync">Sync from All Providers</string>
     <string name="models_sync_desc">Fetch the latest model list for all configured APIs</string>
+    <string name="provider_test_connection">Test Connection</string>
+    <string name="provider_test_connection_desc">Verify the Base URL and API key can reach the API</string>
+    <string name="provider_test_ok">OK (%1$d models)</string>
+    <string name="provider_test_empty">Connected, but no models returned</string>
+    <string name="provider_testing">Testing…</string>
+    <string name="provider_test_no_provider">Provider not found</string>
+    <string name="provider_test_no_url">No Base URL configured</string>
+    <string name="provider_test_timeout">Timed out — check the URL, network, or proxy</string>
+    <string name="provider_test_unknown_host">Unknown host — check the Base URL</string>
+    <string name="provider_test_connect_failed">Connection refused</string>
+    <string name="manual_models_title">Manual Models</string>
+    <string name="manual_models_empty">No manually added models</string>
+    <string name="manual_models_desc">Add models by ID for providers without a /models endpoint</string>
+    <string name="manual_model_add">Add Model</string>
+    <string name="manual_model_add_title">Add Model</string>
+    <string name="manual_model_id_label">Model ID</string>
+    <string name="manual_model_id_hint">e.g. gpt-4o</string>
+    <string name="manual_model_id_error">Already added</string>
+    <string name="manual_model_delete_title">Remove Model</string>
+    <string name="manual_model_delete_text">Remove \"%1$s\" from this provider?</string>
     <string name="models_count">%1$d models available</string>
     <string name="models_rename">Rename Model</string>
     <string name="models_rename_current">Current ID: %1$s</string>
@@ -366,6 +386,56 @@
     <string name="web_search_advanced">Advanced</string>
     <string name="web_search_searxng_url">SearXNG Base URL</string>
     <string name="web_search_searxng_url_hint">https://searx.be</string>
+
+    <!-- Settings - MCP Page -->
+    <string name="mcp_title">MCP Servers</string>
+    <string name="mcp_desc">External tools via Model Context Protocol</string>
+    <string name="mcp_add_server">Add server</string>
+    <string name="mcp_edit_server">Edit server</string>
+    <string name="mcp_server_name">Name</string>
+    <string name="mcp_server_url">Server URL</string>
+    <string name="mcp_server_url_hint">https://example.com/mcp</string>
+    <string name="mcp_transport">Transport</string>
+    <string name="mcp_transport_streamable">Streamable HTTP</string>
+    <string name="mcp_transport_sse">SSE (legacy)</string>
+    <string name="mcp_headers">Custom headers (JSON)</string>
+    <string name="mcp_headers_hint">{&quot;Authorization&quot;: &quot;Bearer …&quot;}</string>
+    <string name="mcp_enabled">Enabled</string>
+    <string name="mcp_no_servers">No MCP servers configured</string>
+    <string name="mcp_test_connection">Test</string>
+    <string name="mcp_test_ok">Connected (%1$d tools)</string>
+    <string name="mcp_test_no_tools">Connected, but no tools exposed</string>
+    <string name="mcp_test_timeout">Timed out — check the URL, network, or proxy</string>
+    <string name="mcp_test_connect_failed">Connection refused — check the URL</string>
+    <string name="mcp_test_error">Connection failed</string>
+    <string name="mcp_save">Save</string>
+    <string name="mcp_cancel">Cancel</string>
+    <string name="mcp_delete">Delete</string>
+    <string name="mcp_invalid_url">Enter a valid http(s) URL</string>
+    <string name="mcp_invalid_name">Enter a name</string>
+    <string name="mcp_invalid_headers">Headers must be a JSON object</string>
+    <string name="mcp_name_taken">A server with this name already exists</string>
+    <string name="mcp_conversation_select">MCP servers</string>
+    <string name="mcp_conversation_inherit">Use globally enabled servers</string>
+
+    <!-- Settings - Plugins Page -->
+    <string name="plugin_title">Plugins</string>
+    <string name="plugin_desc">JavaScript plugins (extra tools)</string>
+    <string name="plugin_import">Import plugin (.zip)</string>
+    <string name="plugin_install_sample">Install sample plugin</string>
+    <string name="plugin_no_plugins">No plugins installed</string>
+    <string name="plugin_enabled">Enabled</string>
+    <string name="plugin_version">v%1$s</string>
+    <string name="plugin_author">by %1$s</string>
+    <string name="plugin_tools_count">%1$d tool(s)</string>
+    <string name="plugin_delete">Uninstall</string>
+    <string name="plugin_delete_confirm">Uninstall this plugin?</string>
+    <string name="plugin_cancel">Cancel</string>
+    <string name="plugin_install_failed">Install failed: %1$s</string>
+    <string name="plugin_install_success">Installed: %1$s</string>
+    <string name="plugin_loading">Loading…</string>
+    <string name="plugin_conversation_select">Plugins</string>
+    <string name="plugin_conversation_inherit">Use globally enabled plugins</string>
 
     <!-- Settings - Shell Page -->
     <string name="shell_title">Shell</string>

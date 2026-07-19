@@ -196,6 +196,26 @@
     <string name="models_available">可用模型</string>
     <string name="models_sync">從所有服務商同步</string>
     <string name="models_sync_desc">取得所有已設定 API 的最新模型列表</string>
+    <string name="provider_test_connection">測試連線</string>
+    <string name="provider_test_connection_desc">驗證 Base URL 與 API Key 是否能存取 API</string>
+    <string name="provider_test_ok">成功（%1$d 個模型）</string>
+    <string name="provider_test_empty">已連線，但未回傳模型</string>
+    <string name="provider_testing">測試中…</string>
+    <string name="provider_test_no_provider">找不到服務商</string>
+    <string name="provider_test_no_url">未設定 Base URL</string>
+    <string name="provider_test_timeout">逾時 — 請檢查 URL、網路或代理</string>
+    <string name="provider_test_unknown_host">未知主機 — 請檢查 Base URL</string>
+    <string name="provider_test_connect_failed">連線被拒絕</string>
+    <string name="manual_models_title">手動模型</string>
+    <string name="manual_models_empty">沒有手動新增的模型</string>
+    <string name="manual_models_desc">為沒有 /models 端點的服務商依 ID 新增模型</string>
+    <string name="manual_model_add">新增模型</string>
+    <string name="manual_model_add_title">新增模型</string>
+    <string name="manual_model_id_label">模型 ID</string>
+    <string name="manual_model_id_hint">例如 gpt-4o</string>
+    <string name="manual_model_id_error">已新增</string>
+    <string name="manual_model_delete_title">移除模型</string>
+    <string name="manual_model_delete_text">從此服務商移除「%1$s」？</string>
     <string name="models_count">%1$d 個模型可用</string>
     <string name="models_rename">重新命名模型</string>
     <string name="models_rename_current">目前 ID：%1$s</string>
@@ -283,6 +303,56 @@
     <string name="web_search_searxng_url_hint">https://searx.be</string>
     <string name="web_search_searxng_fallback_desc">公用執行個體常有頻率限制，建議自行架設以獲得穩定體驗。</string>
     <string name="web_search_advanced">進階</string>
+
+    <!-- Settings - MCP Page -->
+    <string name="mcp_title">MCP 伺服器</string>
+    <string name="mcp_desc">透過 Model Context Protocol 接入外部工具</string>
+    <string name="mcp_add_server">新增伺服器</string>
+    <string name="mcp_edit_server">編輯伺服器</string>
+    <string name="mcp_server_name">名稱</string>
+    <string name="mcp_server_url">伺服器 URL</string>
+    <string name="mcp_server_url_hint">https://example.com/mcp</string>
+    <string name="mcp_transport">傳輸方式</string>
+    <string name="mcp_transport_streamable">Streamable HTTP</string>
+    <string name="mcp_transport_sse">SSE（舊版）</string>
+    <string name="mcp_headers">自訂請求標頭（JSON）</string>
+    <string name="mcp_headers_hint">{&quot;Authorization&quot;: &quot;Bearer …&quot;}</string>
+    <string name="mcp_enabled">啟用</string>
+    <string name="mcp_no_servers">尚未設定 MCP 伺服器</string>
+    <string name="mcp_test_connection">測試</string>
+    <string name="mcp_test_ok">已連線（%1$d 個工具）</string>
+    <string name="mcp_test_no_tools">已連線，但伺服器未暴露任何工具</string>
+    <string name="mcp_test_timeout">連線逾時 — 請檢查 URL、網路或代理</string>
+    <string name="mcp_test_connect_failed">連線被拒 — 請檢查 URL</string>
+    <string name="mcp_test_error">連線失敗</string>
+    <string name="mcp_save">儲存</string>
+    <string name="mcp_cancel">取消</string>
+    <string name="mcp_delete">刪除</string>
+    <string name="mcp_invalid_url">請輸入有效的 http(s) URL</string>
+    <string name="mcp_invalid_name">請輸入名稱</string>
+    <string name="mcp_invalid_headers">標頭必須是 JSON 物件</string>
+    <string name="mcp_name_taken">已存在同名伺服器</string>
+    <string name="mcp_conversation_select">MCP 伺服器</string>
+    <string name="mcp_conversation_inherit">使用全域啟用的伺服器</string>
+
+    <!-- Settings - Plugins Page -->
+    <string name="plugin_title">外掛</string>
+    <string name="plugin_desc">JavaScript 外掛（額外工具）</string>
+    <string name="plugin_import">匯入外掛（.zip）</string>
+    <string name="plugin_install_sample">安裝範例外掛</string>
+    <string name="plugin_no_plugins">尚未安裝外掛</string>
+    <string name="plugin_enabled">啟用</string>
+    <string name="plugin_version">v%1$s</string>
+    <string name="plugin_author">作者：%1$s</string>
+    <string name="plugin_tools_count">%1$d 個工具</string>
+    <string name="plugin_delete">解除安裝</string>
+    <string name="plugin_delete_confirm">確定解除安裝此外掛？</string>
+    <string name="plugin_cancel">取消</string>
+    <string name="plugin_install_failed">安裝失敗：%1$s</string>
+    <string name="plugin_install_success">已安裝：%1$s</string>
+    <string name="plugin_loading">載入中…</string>
+    <string name="plugin_conversation_select">外掛</string>
+    <string name="plugin_conversation_inherit">使用全域啟用的外掛</string>
 
     <!-- Settings - Shell Page -->
     <string name="shell_title">終端機</string>

@@ -82,7 +82,10 @@ class ChatViewModel(
     // All injected via AppContainer/ChatViewModelFactory — the single construction site.
     val autoBackupManager: AutoBackupManager,
     conversationRepository: ConversationRepository,
-    settingsRepository: SettingsRepository
+    settingsRepository: SettingsRepository,
+    private val pluginToolProvider: com.newoether.agora.plugin.PluginToolProvider? = null,
+    private val _pluginLoader: com.newoether.agora.plugin.PluginLoader? = null,
+    private val _pluginSandbox: com.newoether.agora.plugin.PluginSandbox? = null
 ) : AndroidViewModel(application) {
 
     companion object {
@@ -243,6 +246,14 @@ class ChatViewModel(
         }
         // Keep the provider map and cached model lists consistent with settings.
         providerRegistry.launchSyncJobs()
+        // Drop MCP pool connections for servers that were deleted.
+        viewModelScope.launch {
+            settings.mcpServers.collect { servers ->
+                if (mcpClientPoolLazy.isInitialized()) {
+                    mcpClientPool.retainOnly(servers.map { it.id }.toSet())
+                }
+            }
+        }
     }
 
     // Generation lifecycle (IO scope, current job, send gate, race-free stop/persist
@@ -256,7 +267,9 @@ class ChatViewModel(
             memoryManager = memoryManager,
             providers = providerRegistry.all,
             context = appContext,
-            sandboxFactory = sandboxFactory
+            sandboxFactory = sandboxFactory,
+            mcpPool = mcpClientPool,
+            pluginToolProvider = pluginToolProvider
         ).also { gm ->
             gm.onMessagePersisted = { messageId, text ->
                 if (settings.autoCacheEnabled.value && (settings.modelSearchMethod.value == Constants.SEARCH_METHOD_RAG || settings.manualSearchMethod.value == Constants.SEARCH_METHOD_RAG)) {
@@ -266,6 +279,14 @@ class ChatViewModel(
             gm.onConfirmShellCommand = { server, summary -> shellConfirmation.confirm(server, summary) }
         }
     }
+
+    /** MCP (Model Context Protocol) client pool — one connection per configured server.
+     *  Lazily created (only when first MCP tool is requested), eagerly closed in [onCleared].
+     *  Lives on viewModelScope so the background reconnect coroutines die with the ViewModel. */
+    private val mcpClientPoolLazy = lazy {
+        com.newoether.agora.mcp.McpClientPool(ioScope = viewModelScope)
+    }
+    val mcpClientPool: com.newoether.agora.mcp.McpClientPool get() = mcpClientPoolLazy.value
 
     val sandboxManager: SandboxManager? by lazy {
         sandboxFactory?.create()
@@ -278,7 +299,17 @@ class ChatViewModel(
         localProvider.close()
         session.cancelScope()
         autoBackupManager.destroy()
+        if (mcpClientPoolLazy.isInitialized()) mcpClientPool.closeAll()
+        pluginSandbox?.closeAll()
     }
+
+    /** JS-plugin filesystem scanner; null if plugin support wasn't injected. Exposed for the
+     *  settings page to install/uninstall .zip plugin packages. */
+    val pluginLoader: com.newoether.agora.plugin.PluginLoader? get() = _pluginLoader
+
+    /** JS-plugin runtime pool; null if plugin support wasn't injected. Exposed so the settings
+     *  page can ask the sandbox to reload a plugin after its main.js is replaced on disk. */
+    val pluginSandbox: com.newoether.agora.plugin.PluginSandbox? get() = _pluginSandbox
 
     fun getProviderInstance(name: String): LlmProvider = providerRegistry.getInstance(name)
 
@@ -619,6 +650,50 @@ class ChatViewModel(
     fun renameCustomProvider(oldName: String, newName: String) = providerRegistry.renameCustom(oldName, newName)
     fun deleteCustomProvider(name: String) = providerRegistry.deleteCustom(name)
 
+    // ── Manual models (custom providers only) ────────────────
+    fun addManualModel(provider: String, modelId: String) = settings.addManualModel(provider, modelId)
+    fun removeManualModel(provider: String, modelId: String) = settings.removeManualModel(provider, modelId)
+    fun isManualModelTaken(provider: String, modelId: String): Boolean {
+        val prefixed = if (modelId.startsWith("$provider:")) modelId else "$provider:$modelId"
+        return settings.manualModels.value[provider].orEmpty().contains(prefixed)
+    }
+
+    /**
+     * Verifies a provider's Base URL + active API key can reach its model list endpoint.
+     *
+     * Unlike [fetchModelsForProvider] this surfaces concrete failure reasons (timeout,
+     * unknown host, HTTP error) instead of silently returning an empty list. Returns a
+     * human-readable status string; "OK ..." indicates success.
+     */
+    suspend fun testProviderConnection(providerName: String): String = withContext(Dispatchers.IO) {
+        if (providerName == Constants.PROVIDER_LOCAL)
+            return@withContext appContext.getString(R.string.provider_test_empty)
+        providerRegistry.ensureCustomProvidersRegistered()
+        val provider = providerRegistry.all[providerName]
+            ?: return@withContext appContext.getString(R.string.provider_test_no_provider)
+        val apiKey = settings.resolveActiveKey(providerName).orEmpty()
+        val storedUrl = settings.providerBaseUrls.value[providerName]
+        val baseUrl = storedUrl?.takeIf { it.isNotBlank() }
+            ?: if (providerRegistry.isBuiltIn(providerName)) null else provider.defaultBaseUrl
+            ?: return@withContext appContext.getString(R.string.provider_test_no_url)
+
+        try {
+            val models = kotlinx.coroutines.withTimeout(Constants.MODEL_FETCH_TIMEOUT_MS) {
+                provider.fetchModels(apiKey, baseUrl)
+            }
+            if (models.isNotEmpty()) appContext.getString(R.string.provider_test_ok, models.size)
+            else appContext.getString(R.string.provider_test_empty)
+        } catch (e: java.net.SocketTimeoutException) {
+            appContext.getString(R.string.provider_test_timeout)
+        } catch (e: java.net.UnknownHostException) {
+            appContext.getString(R.string.provider_test_unknown_host)
+        } catch (e: java.net.ConnectException) {
+            appContext.getString(R.string.provider_test_connect_failed)
+        } catch (e: Exception) {
+            e.message ?: appContext.getString(R.string.provider_test_empty)
+        }
+    }
+
     fun getCurrentVersion(): String {
         return try { appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName ?: "?" } catch (_: Exception) { "?" }
     }
@@ -751,6 +826,26 @@ class ChatViewModel(
             } catch (e: Exception) {
                 e.message ?: "Error"
             }
+        }
+    }
+
+    /**
+     * Verifies an MCP server is reachable and reports its tool count. Like
+     * [testProviderConnection] it surfaces concrete failure reasons. Invalidates any stale
+     * cached connection first so the probe always reflects the current [config].
+     */
+    suspend fun testMcpConnection(config: com.newoether.agora.data.McpServerConfig): String = withContext(Dispatchers.IO) {
+        mcpClientPool.invalidate(config.id)
+        try {
+            val tools = mcpClientPool.listTools(config)
+            if (tools.isNotEmpty()) appContext.getString(R.string.mcp_test_ok, tools.size)
+            else appContext.getString(R.string.mcp_test_no_tools)
+        } catch (e: java.net.SocketTimeoutException) {
+            appContext.getString(R.string.mcp_test_timeout)
+        } catch (e: java.net.ConnectException) {
+            appContext.getString(R.string.mcp_test_connect_failed)
+        } catch (e: Exception) {
+            e.message ?: appContext.getString(R.string.mcp_test_error)
         }
     }
 

@@ -1,5 +1,5 @@
 [versions]
-agp = "9.2.1"
+agp = "9.1.1"
 coreKtx = "1.18.0"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
@@ -21,6 +21,9 @@ lottie = "6.6.2"
 work = "2.10.0"
 jsch = "0.2.23"
 commonsCompress = "1.27.1"
+mcpSdk = "0.14.0"
+ktor = "3.4.3"
+quickjsKt = "1.0.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -53,6 +56,10 @@ lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", versio
 work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
 jsch = { group = "com.github.mwiede", name = "jsch", version.ref = "jsch" }
 commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commonsCompress" }
+mcp-sdk-client = { group = "io.modelcontextprotocol", name = "kotlin-sdk-client", version.ref = "mcpSdk" }
+ktor-client-cio = { group = "io.ktor", name = "ktor-client-cio", version.ref = "ktor" }
+ktor-client-sse = { group = "io.ktor", name = "ktor-sse", version.ref = "ktor" }
+quickjs-kt = { group = "io.github.dokar3", name = "quickjs-kt", version.ref = "quickjsKt" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

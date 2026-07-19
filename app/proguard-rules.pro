@@ -24,3 +24,7 @@
 
 # Compose
 -dontwarn androidx.compose.**
+
+# quickjs-kt (JS engine for plugin sandbox)
+-keep class com.dokar.quickjs.** { *; }
+-dontwarn com.dokar.quickjs.**

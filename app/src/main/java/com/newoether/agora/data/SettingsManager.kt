@@ -87,13 +87,20 @@ data class ConversationSettings(
     val thinkingBudgetEnabled: Boolean? = null,
     val thinkingBudgetTokens: Int? = null,
     val webSearchEnabled: Boolean? = null,
-    val shellEnabled: Boolean? = null
+    val shellEnabled: Boolean? = null,
+    /** Per-conversation MCP server activation.
+     *  `null`  = inherit globally enabled servers (default).
+     *  empty   = MCP tools disabled for this conversation.
+     *  non-empty = activate exactly these server ids (regardless of global enabled flag). */
+    val mcpServerIds: List<String>? = null,
+    /** Per-conversation JS-plugin activation (same semantics as [mcpServerIds]). */
+    val pluginIds: List<String>? = null
 ) {
     fun isAllNull() = contextWindow == null && temperature == null && maxTokens == null && topP == null
         && frequencyPenalty == null && presencePenalty == null
         && codeExecutionEnabled == null && googleSearchEnabled == null && thinkingEnabled == null
         && thinkingLevel == null && thinkingBudgetEnabled == null && thinkingBudgetTokens == null
-        && webSearchEnabled == null && shellEnabled == null
+        && webSearchEnabled == null && shellEnabled == null && mcpServerIds == null && pluginIds == null
 }
 
 class SettingsManager(private val context: Context) {
@@ -152,6 +159,10 @@ class SettingsManager(private val context: Context) {
         val LAST_UPDATE_CHECK_TIME = longPreferencesKey("last_update_check_time")
         val LOCAL_CHAT_MODELS_JSON = stringPreferencesKey("local_chat_models_json")
         val CUSTOM_PROVIDERS_JSON = stringPreferencesKey("custom_providers_json")
+        // Manually-added model IDs per custom provider (provider -> [modelId, ...]).
+        // Stored separately from AVAILABLE_MODELS_JSON so the fetch/sync pipeline
+        // (which overwrites availableModels on success) cannot clobber user entries.
+        val MANUAL_MODELS_JSON = stringPreferencesKey("manual_models_json")
         val SHELL_ENABLED = booleanPreferencesKey("shell_enabled")
         val PROXY_ENABLED = booleanPreferencesKey("proxy_enabled")
         val PROXY_TYPE = stringPreferencesKey("proxy_type")
@@ -166,6 +177,8 @@ class SettingsManager(private val context: Context) {
         val SHELL_CONFIRM_ENABLED = booleanPreferencesKey("shell_confirm_enabled")
         val SHELL_DEVICES_JSON = stringPreferencesKey("shell_devices_json")
         val SANDBOX_ENABLED = booleanPreferencesKey("sandbox_enabled")
+        val MCP_SERVERS_JSON = stringPreferencesKey("mcp_servers_json")
+        val PLUGINS_ENABLED = stringSetPreferencesKey("plugins_enabled")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val COLOR_SCHEME = stringPreferencesKey("color_scheme")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
@@ -312,6 +325,10 @@ class SettingsManager(private val context: Context) {
         val jsonStr = pref[CUSTOM_PROVIDERS_JSON] ?: "[]"
         try { json.decodeFromString<List<CustomProviderConfig>>(jsonStr) } catch (e: Exception) { emptyList() }
     }
+    val manualModels: Flow<Map<String, List<String>>> = context.dataStore.data.map { pref ->
+        val jsonStr = pref[MANUAL_MODELS_JSON] ?: "{}"
+        try { json.decodeFromString<Map<String, List<String>>>(jsonStr) } catch (e: Exception) { DebugLog.e("SettingsManager", "Failed to decode manualModels", e); emptyMap() }
+    }
 
     val showDocumentationFab: Flow<Boolean> = context.dataStore.data.map { it[SHOW_DOCUMENTATION_FAB] ?: true }
 
@@ -330,6 +347,19 @@ class SettingsManager(private val context: Context) {
         try { json.decodeFromString<List<ShellDeviceConfig>>(jsonStr) } catch (e: Exception) { emptyList() }
     }
     val sandboxEnabled: Flow<Boolean> = context.dataStore.data.map { it[SANDBOX_ENABLED] ?: false }
+
+    // ── MCP servers ──────────────────────────────────────────
+    // Encrypted (headersJson commonly carries bearer tokens), same scheme as apiKeys/shellDevices.
+    val mcpServers: Flow<List<McpServerConfig>> = context.dataStore.data.map { pref ->
+        val jsonStr = com.newoether.agora.util.SecretCrypto.decrypt(pref[MCP_SERVERS_JSON] ?: "[]")
+        try { json.decodeFromString<List<McpServerConfig>>(jsonStr) } catch (e: Exception) { emptyList() }
+    }
+
+    // ── Plugins ──────────────────────────────────────────────
+    // Plugin *files* live in filesDir/plugins/<id>/ (managed by PluginLoader); this stores only
+    // the user's enable/disable preference (id set = enabled). Plugins installed but missing
+    // here are treated as disabled by default.
+    val enabledPluginIds: Flow<Set<String>> = context.dataStore.data.map { it[PLUGINS_ENABLED] ?: emptySet() }
 
     val themeMode: Flow<String> = context.dataStore.data.map { it[THEME_MODE] ?: "FOLLOW_DEVICE" }
     val colorScheme: Flow<String> = context.dataStore.data.map { it[COLOR_SCHEME] ?: "DEFAULT" }
@@ -631,6 +661,18 @@ class SettingsManager(private val context: Context) {
     suspend fun saveCustomProviders(providers: List<CustomProviderConfig>) {
         context.dataStore.edit { it[CUSTOM_PROVIDERS_JSON] = json.encodeToString(providers) }
     }
+    suspend fun saveManualModels(models: Map<String, List<String>>) {
+        context.dataStore.edit { it[MANUAL_MODELS_JSON] = json.encodeToString(models) }
+    }
+    /** Replaces the manual model list for a single provider (empty list removes the entry). */
+    suspend fun saveManualModelsForProvider(provider: String, models: List<String>) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[MANUAL_MODELS_JSON] ?: "{}"
+            val map = try { json.decodeFromString<MutableMap<String, List<String>>>(current) } catch (e: Exception) { mutableMapOf() }
+            if (models.isEmpty()) map.remove(provider) else map[provider] = models
+            prefs[MANUAL_MODELS_JSON] = json.encodeToString(map)
+        }
+    }
 
     suspend fun saveTitleGenerationModel(model: String?) {
         context.dataStore.edit {
@@ -689,6 +731,14 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveShellDevices(devices: List<ShellDeviceConfig>) {
         context.dataStore.edit { it[SHELL_DEVICES_JSON] = com.newoether.agora.util.SecretCrypto.encrypt(json.encodeToString(devices)) }
+    }
+
+    suspend fun saveMcpServers(servers: List<McpServerConfig>) {
+        context.dataStore.edit { it[MCP_SERVERS_JSON] = com.newoether.agora.util.SecretCrypto.encrypt(json.encodeToString(servers)) }
+    }
+
+    suspend fun saveEnabledPluginIds(ids: Set<String>) {
+        context.dataStore.edit { it[PLUGINS_ENABLED] = ids }
     }
 
     suspend fun saveSandboxEnabled(enabled: Boolean) {

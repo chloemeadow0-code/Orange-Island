@@ -25,6 +25,7 @@ import androidx.compose.foundation.text.input.*
 import androidx.compose.material.icons.Icons
 
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Image
 
 import androidx.compose.material.icons.filled.MoreVert
@@ -77,6 +78,8 @@ fun ChatBottomBar(
     thinkingBudgetTokens: Int = 4096,
     webSearchEnabled: Boolean = false,
     shellEnabled: Boolean = false,
+    showMcpEntry: Boolean = false,
+    mcpConversationActive: Boolean = false,
     onCodeExecutionToggle: (Boolean) -> Unit = {},
     onGoogleSearchToggle: (Boolean) -> Unit = {},
     onThinkingToggle: (Boolean) -> Unit = {},
@@ -85,6 +88,7 @@ fun ChatBottomBar(
     onThinkingBudgetTokensChange: (Int) -> Unit = {},
     onWebSearchToggle: (Boolean) -> Unit = {},
     onShellToggle: (Boolean) -> Unit = {},
+    onMcpClick: () -> Unit = {},
     onModelSelect: (String) -> Unit,
     onImageClick: (String) -> Unit = {},
     onAllMediaClick: ((urls: List<String>, index: Int) -> Unit)? = null,
@@ -504,6 +508,23 @@ fun ChatBottomBar(
                                     )
                                 },
                                 onClick = { onShellToggle(!shellEnabled) }
+                            )
+                        }
+                        if (showMcpEntry) {
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Extension, null, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(stringResource(R.string.mcp_title))
+                                    }
+                                },
+                                trailingIcon = {
+                                    if (mcpConversationActive) {
+                                        Badge(modifier = Modifier.size(8.dp)) {}
+                                    }
+                                },
+                                onClick = { onMcpClick() }
                             )
                         }
                         DropdownMenuItem(

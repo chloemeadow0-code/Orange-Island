@@ -174,6 +174,10 @@ dependencies {
     implementation(libs.work.runtime.ktx)
     implementation(libs.jsch)
     implementation(libs.commons.compress)
+    implementation(libs.mcp.sdk.client)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.sse)
+    implementation(libs.quickjs.kt)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Unit tests

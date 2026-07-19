@@ -82,11 +82,26 @@ class AppContainer(private val appContext: Context) {
         AutoBackupManager(appContext, settingsManager, chatDao, memoryManager)
     }
 
+    // ── JS Plugins ────────────────────────────────────────────
+    // Three singletons: the filesystem scanner, the QuickJS runtime pool, and the ToolProvider
+    // bridge. All app-lifetime; settings reads happen lazily so this is safe to construct early.
+
+    val pluginLoader: com.newoether.agora.plugin.PluginLoader by lazy {
+        com.newoether.agora.plugin.PluginLoader(appContext)
+    }
+    val pluginSandbox: com.newoether.agora.plugin.PluginSandbox by lazy {
+        com.newoether.agora.plugin.PluginSandbox(appScope)
+    }
+    val pluginToolProvider: com.newoether.agora.plugin.PluginToolProvider by lazy {
+        com.newoether.agora.plugin.PluginToolProvider(pluginLoader, pluginSandbox, settingsRepository)
+    }
+
     // ── ViewModel Factory ─────────────────────────────────────
 
     fun chatViewModelFactory(): ChatViewModelFactory =
         ChatViewModelFactory(
             application, chatDao, settingsManager, memoryManager, appContext, sandboxManagerFactory,
-            autoBackupManager, conversationRepository, settingsRepository
+            autoBackupManager, conversationRepository, settingsRepository,
+            pluginToolProvider, pluginLoader, pluginSandbox
         )
 }

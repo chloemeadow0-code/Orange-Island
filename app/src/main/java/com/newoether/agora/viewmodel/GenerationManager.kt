@@ -91,7 +91,16 @@ data class GenerationContext(
     val transcriptionProviderName: String = "",
     val transcriptionModelId: String = "",
     val transcriptionApiKey: String = "",
-    val transcriptionBaseUrl: String? = null
+    val transcriptionBaseUrl: String? = null,
+    /** All configured MCP servers (resolved at request-build time so the provider doesn't
+     *  read DataStore on the hot path). [McpToolProvider] filters these by [mcpServerIds]. */
+    val mcpServers: List<com.newoether.agora.data.McpServerConfig> = emptyList(),
+    /** Per-conversation MCP activation (null = use all globally enabled servers,
+     *  empty = disable MCP for this turn, non-empty = exactly these server ids). */
+    val mcpServerIds: List<String>? = null,
+    /** Per-conversation JS-plugin activation. Same semantics as [mcpServerIds] but for
+     *  locally-installed JS plugins (resolved by [PluginToolProvider]). */
+    val pluginIds: List<String>? = null
 )
 
 internal fun applyUserTemplateToMessages(
@@ -135,7 +144,12 @@ class GenerationManager(
     private val memoryManager: MemoryManager,
     private val providers: Map<String, LlmProvider>,
     private val context: android.content.Context,
-    private val sandboxFactory: com.newoether.agora.sandbox.SandboxManagerFactory? = null
+    private val sandboxFactory: com.newoether.agora.sandbox.SandboxManagerFactory? = null,
+    /** Optional MCP client pool. When null, MCP tools are disabled (e.g. during title
+     *  generation where external tools should not run). */
+    private val mcpPool: com.newoether.agora.mcp.McpClientPool? = null,
+    /** Optional JS-plugin tool provider. When null, plugin tools are disabled. */
+    private val pluginToolProvider: com.newoether.agora.plugin.PluginToolProvider? = null
 ) {
     var onMessagePersisted: ((messageId: String, text: String) -> Unit)? = null
 
@@ -151,9 +165,13 @@ class GenerationManager(
         // Forward to the ViewModel-provided gate at call time (read the var lazily).
         stp.confirm = { server, summary -> onConfirmShellCommand?.invoke(server, summary) ?: true }
     }
-    private val toolProviders: List<ToolProvider> = listOf(
-        memoryToolProvider, webSearchToolProvider, ragToolProvider, imageGenToolProvider, shellToolProvider
-    )
+    private val mcpToolProvider = mcpPool?.let { com.newoether.agora.tool.McpToolProvider(it) }
+    private val toolProviders: List<ToolProvider> = buildList {
+        add(memoryToolProvider); add(webSearchToolProvider); add(ragToolProvider)
+        add(imageGenToolProvider); add(shellToolProvider)
+        mcpToolProvider?.let { add(it) }
+        pluginToolProvider?.let { add(it) }
+    }
 
     fun buildImageGenTool(ctx: GenerationContext): List<ToolDefinition> =
         imageGenToolProvider.definitions(ctx)
@@ -193,6 +211,15 @@ class GenerationManager(
         val all = shellToolProvider.definitions(ctx)
         return all.filter { it.function.name in FILE_TOOL_NAMES }
     }
+
+    /** Tools exposed by active remote MCP servers. Empty when MCP is disabled or no servers
+     *  are configured/active for this conversation. */
+    fun buildMcpTools(ctx: GenerationContext): List<ToolDefinition> =
+        mcpToolProvider?.definitions(ctx) ?: emptyList()
+
+    /** Tools exposed by active JS plugins. Empty when no plugins are installed/active. */
+    fun buildPluginTools(ctx: GenerationContext): List<ToolDefinition> =
+        pluginToolProvider?.definitions(ctx) ?: emptyList()
 
 
     /** Semantic message search — delegates to [RagToolProvider], which owns the
@@ -357,7 +384,9 @@ class GenerationManager(
         val shellTool = buildShellTool(ctx)
         val fileTool = buildFileTool(ctx)
         val imageGenTool = buildImageGenTool(ctx)
-        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool
+        val mcpTools = buildMcpTools(ctx)
+        val pluginTools = buildPluginTools(ctx)
+        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools
         val providerConfig = ProviderConfig(
             apiKey = config.apiKey,
             modelId = config.modelId,
@@ -465,6 +494,9 @@ class GenerationManager(
             }
 
             if (currentStatus != MessageStatus.ERROR) {
+            // Re-scan the plugins directory so freshly-installed/uninstalled plugins are visible
+            // to this turn without an app restart. Cheap: reads manifest.json files only.
+            pluginToolProvider?.refreshPluginList()
             val (currentPath, rawProviderConfig) = buildApiPath(parentId, conversationId, isRegenerate, replaceMessageId, config, ctx)
             val providerConfig = if (transcriptionPerformed) rawProviderConfig.copy(includeImages = false) else rawProviderConfig
 
