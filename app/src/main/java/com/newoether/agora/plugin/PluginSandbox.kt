@@ -32,6 +32,8 @@ import java.util.concurrent.ConcurrentHashMap
  *  - `console.log/info/warn/error(msg)` → forwarded to [DebugLog]
  *  - `fetch(url, options?)` → OkHttp call, **enforced** against the plugin's
  *    `manifest.allowedHosts` whitelist, https required (except loopback/LAN)
+ *  - `__AGORA_USER_ID` → auto-injected per-install device id (stable UUID), refreshed per call
+ *  - `__AGORA_PLUGIN_CONFIG` → JSON of the plugin's user-filled config (manifest.config), per call
  *
  * The fetch binding is synchronous from JS's perspective (QuickJS `function {}`), but the
  * HTTP call itself is blocking I/O — so it runs on a worker thread inside [runBlocking],
@@ -45,7 +47,30 @@ import java.util.concurrent.ConcurrentHashMap
 class PluginSandbox(
     /** App-lifetime scope used to build the per-plugin single-thread dispatchers. */
     private val appScope: CoroutineScope,
+    /** Reads the auto-injected per-install device id. If null, [__AGORA_USER_ID] is empty. */
+    private val userIdentity: UserIdentityProvider? = null,
+    /** Reads a plugin's user-filled config as a JSON string, given its id. If null, the
+     *  [__AGORA_PLUGIN_CONFIG] global is emitted as `{}`. */
+    private val pluginConfig: PluginConfigProvider? = null,
 ) {
+    /**
+     * Lightweight accessor injected by the host so the sandbox doesn't depend on the full
+     * [com.newoether.agora.data.repository.SettingsRepository]. Suspend because the value lives
+     * in DataStore and may still be loading when a tool call first arrives.
+     */
+    fun interface UserIdentityProvider {
+        suspend fun get(): String
+    }
+
+    /** Resolves the user-filled config for one plugin as a JSON string (e.g. `'{"k":"v"}'`). */
+    fun interface PluginConfigProvider {
+        suspend fun get(pluginId: String): String
+    }
+
+    /** Exposed so the WebView bridge can resolve the same device id for plugin UI pages. */
+    val identityProvider: UserIdentityProvider? get() = userIdentity
+    /** Exposed so the WebView page can resolve the same per-plugin config as the JS tools. */
+    val configProvider: PluginConfigProvider? get() = pluginConfig
     companion object {
         private const val TAG = "PluginSandbox"
         private const val TOOL_TIMEOUT_MS = 30_000L
@@ -74,6 +99,11 @@ class PluginSandbox(
             return errorJson("plugin_init_failed", e.message ?: "init failed")
         }
         val args = argumentsJson.ifBlank { "{}" }
+        // Resolve the auto-injected device id once per call (cheap; reads from a hot StateFlow).
+        val deviceId = userIdentity?.let { runCatching { it.get() }.getOrNull() } ?: ""
+        // Resolve this plugin's user-filled config (JSON string). Falls back to "{}" so plugins
+        // can always JSON.parse it.
+        val configJson = pluginConfig?.let { runCatching { it.get(plugin.id) }.getOrNull() } ?: "{}"
         // Call the exported tool by name, passing the JSON-decoded args object. Tool name and
         // args are bound as JS globals before evaluation so neither can break out of the wrapper
         // via string interpolation (a tool name with `$ARGS` in it can't read the args literal).
@@ -90,10 +120,14 @@ class PluginSandbox(
         """.trimIndent()
         // Bind name+args via evaluate of two const statements first, then run the wrapper.
         // quickjs-kt evaluates globally, so globals set in one evaluate() are visible in the next.
+        // Also bind the read-only plugin user identity (__AGORA_USER_ID / __AGORA_USER_NICKNAME)
+        // before each call so plugins always see the latest values without re-initializing.
         runCatching {
             runtime.quickJs.evaluate<Any?>(
                 "globalThis.__AGORA_TOOL_NAME = ${jsonEncodeJsString(toolName)};\n" +
-                    "globalThis.__AGORA_TOOL_ARGS = ($args);",
+                    "globalThis.__AGORA_TOOL_ARGS = ($args);\n" +
+                    "globalThis.__AGORA_USER_ID = ${jsonEncodeJsString(deviceId)};\n" +
+                    "globalThis.__AGORA_PLUGIN_CONFIG = ($configJson);",
                 asModule = false,
             )
         }.getOrElse {

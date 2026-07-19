@@ -354,6 +354,11 @@
     <string name="plugin_loading">加载中…</string>
     <string name="plugin_conversation_select">插件</string>
     <string name="plugin_conversation_inherit">使用全局启用的插件</string>
+    <string name="plugin_config_title">配置 %1$s</string>
+    <string name="plugin_config_required">必填</string>
+    <string name="plugin_config_save">保存</string>
+    <string name="plugin_config_cancel">取消</string>
+    <string name="plugin_config_missing_required">请填写所有必填项。</string>
 
     <!-- Settings - Shell Page -->
     <string name="shell_title">终端</string>

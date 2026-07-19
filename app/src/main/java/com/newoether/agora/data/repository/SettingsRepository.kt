@@ -130,6 +130,11 @@ class SettingsRepository(
     val autoDeleteEnabled: StateFlow<Boolean> = hot(settingsManager.autoDeleteEnabled, true)
     val autoDeletePeriodHours: StateFlow<Int> = hot(settingsManager.autoDeletePeriodHours, 168)
     val lastBackupTimestamp: StateFlow<Long> = hot(settingsManager.lastBackupTimestamp, 0L)
+    // ── Plugin device id ──────────────────────────────────────
+    // Auto-injected per-install UUID (read-only — no UI, no setter).
+    val appUserId: StateFlow<String> = hot(settingsManager.appUserId, "")
+    // ── Plugin configs (per-plugin user-filled values) ────────
+    val pluginConfigs: StateFlow<Map<String, Map<String, String>>> = hot(settingsManager.pluginConfigs, emptyMap())
 
     // ── Write (fire-and-forget; read current state from own StateFlows) ──
     //
@@ -476,4 +481,28 @@ class SettingsRepository(
     suspend fun saveAutoBackupDirectory(path: String) = settingsManager.saveAutoBackupDirectory(path)
     suspend fun saveAutoDeleteEnabled(enabled: Boolean) = settingsManager.saveAutoDeleteEnabled(enabled)
     suspend fun saveAutoDeletePeriodHours(hours: Int) = settingsManager.saveAutoDeletePeriodHours(hours)
+
+    // ── Plugin user identity ──────────────────────────────────
+    // Identity is consumed by the sandbox (PluginSandbox) at tool-call time and by the
+    // WebView bridge's bootstrap. The suspend getters let those callers await the persisted
+    // value rather than the eagerly-shared `.value` (which is "" before DataStore loads).
+    // ── Plugin device id ──────────────────────────────────────
+    suspend fun getAppUserId(): String = settingsManager.appUserId.first()
+
+    // ── Plugin configs ────────────────────────────────────────
+    /** Returns the stored config map for [pluginId], or empty if the user hasn't filled it. */
+    fun getPluginConfig(pluginId: String): Map<String, String> = pluginConfigs.value[pluginId] ?: emptyMap()
+    suspend fun awaitPluginConfig(pluginId: String): Map<String, String> =
+        settingsManager.pluginConfigs.first()[pluginId] ?: emptyMap()
+    fun savePluginConfig(pluginId: String, values: Map<String, String>) =
+        scope.launch { settingsManager.savePluginConfig(pluginId, values) }
+    /** Suspending variant — callers that need the write committed before continuing (e.g.
+     *  navigating to a plugin UI that reads the config) should use this, not [savePluginConfig]. */
+    suspend fun savePluginConfigAwait(pluginId: String, values: Map<String, String>) =
+        settingsManager.savePluginConfig(pluginId, values)
+    /** Resolves the config for [pluginId] as a JSON string, ready to inject as a JS global. */
+    suspend fun pluginConfigJson(pluginId: String): String {
+        val cfg = awaitPluginConfig(pluginId)
+        return kotlinx.serialization.json.Json.encodeToString(cfg)
+    }
 }

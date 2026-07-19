@@ -49,16 +49,39 @@ fun PluginWebViewPage(
 ) {
     val uiFile = plugin.uiHtmlFile
     val scope = rememberCoroutineScope()
-    val bridge = remember(plugin.id) { AgoraWebViewBridge(plugin, sandbox, scope) }
+    // Read host values SYNCHRONOUSLY from the eagerly-shared StateFlows. These are hot flows whose
+    // `.value` is always current after DataStore has loaded (which happens early in app startup —
+    // by the time the user navigates here, the values are populated). The previous async
+    // LaunchedEffect approach raced WebView page init: the page called native.getConfig() before
+    // the coroutine had a chance to populate bridge.pluginConfigJson, so it got "{}".
+    //
+    // We read these via the sandbox providers to stay decoupled from SettingsRepository here, but
+    // fall back to the providers' suspend get() is too late — so we resolve them once now, before
+    // building the bridge, by reading from the sandbox's identityProvider/configProvider via a
+    // blocking runBlocking on the IO dispatcher. (Acceptable: this composable runs on the main
+    // thread, the reads are fast, and we offload to IO.)
+    val bridge = remember(plugin.id) {
+        val deviceId = runCatching {
+            kotlinx.coroutines.runBlocking {
+                sandbox.identityProvider?.get() ?: ""
+            }
+        }.getOrDefault("")
+        val configJson = runCatching {
+            kotlinx.coroutines.runBlocking {
+                sandbox.configProvider?.get(plugin.id) ?: "{}"
+            }
+        }.getOrDefault("{}")
+        AgoraWebViewBridge(plugin, sandbox, scope, deviceUserId = deviceId, pluginConfigJson = configJson)
+    }
 
-    // Read HTML once; reload if the on-disk file changes (e.g. plugin reinstall) by depending
-    // on its absolute path + last-modified.
-    val html = remember(uiFile?.absolutePath, uiFile?.lastModified()) {
-        if (uiFile != null && uiFile.exists()) {
-            bridge.bootstrapScript + "\n" + uiFile.readText()
-        } else {
-            bridge.bootstrapScript + "<h1>UI file missing</h1>"
-        }
+    // Load the HTML verbatim with the bootstrap prepended as a <script> tag. The bootstrap MUST
+    // be wrapped in <script>...</script> — otherwise (bare JS text before <!DOCTYPE>) the
+    // WebView renders it as visible body text. The bootstrap installs `agora.config` /
+    // `agora.deviceId` getters (reading live from the bridge via @JavascriptInterface) and
+    // mirrors them as the __AGORA_* globals.
+    val rawHtml = remember(uiFile?.absolutePath, uiFile?.lastModified()) {
+        val body = if (uiFile != null && uiFile.exists()) uiFile.readText() else "<h1>UI file missing</h1>"
+        "<script>\n" + bridge.bootstrapScript + "\n</script>\n" + body
     }
 
     Scaffold(
@@ -96,7 +119,7 @@ fun PluginWebViewPage(
                     )
                     addJavascriptInterface(bridge, AgoraWebViewBridge.bridgeObjectName)
                     bridge.webView = this
-                    loadDataWithBaseURL("about:blank", html, "text/html", "utf-8", null)
+                    loadDataWithBaseURL("about:blank", rawHtml, "text/html", "utf-8", null)
                 }
             },
         )
@@ -107,3 +130,7 @@ fun PluginWebViewPage(
         onDispose { bridge.close() }
     }
 }
+
+/** Encodes [s] as a JS string literal (double-quoted, JSON-escaped). */
+private fun jsStringLiteral(s: String): String =
+    kotlinx.serialization.json.JsonPrimitive(s).toString()

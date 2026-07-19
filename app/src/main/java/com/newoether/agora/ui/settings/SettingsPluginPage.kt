@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Web
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,6 +33,7 @@ import kotlinx.coroutines.withContext
 fun SettingsPluginPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val settings = viewModel.settings
     val enabledIds by settings.enabledPluginIds.collectAsState()
+    val pluginConfigs by settings.pluginConfigs.collectAsState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val loader = viewModel.pluginLoader
@@ -50,6 +52,23 @@ fun SettingsPluginPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     var deleteConfirmId by remember { mutableStateOf<String?>(null) }
     /** When non-null, renders [PluginWebViewPage] full-screen instead of the list. */
     var openUiFor by remember { mutableStateOf<InstalledPlugin?>(null) }
+    /** When non-null, opens the per-plugin config dialog. */
+    var configTarget by remember { mutableStateOf<InstalledPlugin?>(null) }
+
+    /**
+     * Opens the plugin's UI, gating on config first: if the plugin declares `config` fields and
+     * the user hasn't filled any of them yet, show the config dialog instead (the dialog's Save
+     * path then re-invokes this, at which point values exist and we proceed to the UI).
+     */
+    fun openPluginUiOrConfig(plugin: InstalledPlugin) {
+        val hasConfig = plugin.manifest.config.isNotEmpty()
+        val hasStored = pluginConfigs[plugin.id]?.isNotEmpty() == true
+        if (hasConfig && !hasStored) {
+            configTarget = plugin
+        } else {
+            openUiFor = plugin
+        }
+    }
 
     val zipPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null && loader != null) {
@@ -81,7 +100,7 @@ fun SettingsPluginPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     }
 
     CollapsingSettingsScaffold(
-        title = stringResource(R.string.plugin_title),
+        title = "插件【BUILD-X5】",
         onBack = onBack,
         scrollState = rememberScrollState(),
     ) {
@@ -110,7 +129,10 @@ fun SettingsPluginPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 plugin = plugin,
                                 onToggle = { on -> settings.setPluginEnabled(plugin.id, on) },
                                 onDelete = { deleteConfirmId = plugin.id },
-                                onOpenUi = plugin.uiHtmlFile?.let { { openUiFor = plugin } },
+                                onOpenUi = plugin.uiHtmlFile?.let { { openPluginUiOrConfig(plugin) } },
+                                onConfigure = if (plugin.manifest.config.isNotEmpty()) {
+                                    { configTarget = plugin }
+                                } else null,
                             )
                         }
                     }
@@ -173,6 +195,27 @@ fun SettingsPluginPage(viewModel: ChatViewModel, onBack: () -> Unit) {
             dismissButton = { TextButton(onClick = { deleteConfirmId = null }) { Text(stringResource(R.string.plugin_cancel)) } }
         )
     }
+
+    configTarget?.let { plugin ->
+        PluginConfigDialog(
+            pluginName = plugin.manifest.name.ifBlank { plugin.id },
+            fields = plugin.manifest.config,
+            initial = pluginConfigs[plugin.id] ?: emptyMap(),
+            onDismiss = { configTarget = null },
+            onSave = { values ->
+                // Await the persist before navigating: PluginWebViewPage reads the config
+                // synchronously on first compose, so if we navigate before the write commits
+                // the page sees an empty config and falls back to default nicknames.
+                scope.launch {
+                    viewModel.settings.savePluginConfigAwait(plugin.id, values)
+                    configTarget = null
+                    if (plugin.uiHtmlFile != null) {
+                        openUiFor = plugin
+                    }
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -181,6 +224,7 @@ private fun PluginRow(
     onToggle: (Boolean) -> Unit,
     onDelete: () -> Unit,
     onOpenUi: (() -> Unit)? = null,
+    onConfigure: (() -> Unit)? = null,
 ) {
     SettingsItem(
         headlineContent = {
@@ -212,6 +256,12 @@ private fun PluginRow(
         leadingContent = { Icon(Icons.Default.Extension, null, tint = MaterialTheme.colorScheme.primary) },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onConfigure != null) {
+                    IconButton(onClick = onConfigure) {
+                        Icon(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Spacer(Modifier.width(2.dp))
+                }
                 if (onOpenUi != null) {
                     IconButton(onClick = onOpenUi) {
                         Icon(Icons.Default.Web, null, tint = MaterialTheme.colorScheme.primary)

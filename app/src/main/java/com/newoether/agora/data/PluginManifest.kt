@@ -36,6 +36,30 @@ data class PluginManifest(
      * declared in [tools]. `null` = headless plugin (tools only, no UI).
      */
     val ui: String? = null,
+    /**
+     * Optional per-plugin configuration fields. When non-empty, the host renders a config form
+     * before the plugin's UI opens (and before its tools run with config-driven values). Stored
+     * values are injected into the sandbox / WebView as the JSON global `__AGORA_PLUGIN_CONFIG`,
+     * e.g. `{"user_nickname":"Alice","ai_nickname":"Bob"}`.
+     */
+    val config: List<PluginConfigField> = emptyList(),
+)
+
+/**
+ * One user-editable configuration field declared by a plugin manifest.
+ *
+ * Currently only `type = "string"` is supported (rendered as a text field); the field is kept
+ * open-ended so future types ("number", "boolean", "select") can be added without breaking
+ * existing manifests (unknown types fall back to a text field).
+ */
+@Serializable
+data class PluginConfigField(
+    val name: String,
+    val type: String = "string",
+    val label: String = "",
+    val description: String = "",
+    val required: Boolean = false,
+    val placeholder: String = "",
 )
 
 @Serializable

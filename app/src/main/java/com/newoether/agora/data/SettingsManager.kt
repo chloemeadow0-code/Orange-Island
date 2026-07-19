@@ -210,6 +210,15 @@ class SettingsManager(private val context: Context) {
         val AUTO_DELETE_PERIOD_HOURS = intPreferencesKey("auto_delete_period_hours")
         val LAST_BACKUP_TIMESTAMP = longPreferencesKey("last_backup_timestamp")
         val LAST_MODELS_FETCH_FINGERPRINT = stringPreferencesKey("last_models_fetch_fingerprint")
+        // ── Plugin device id ──────────────────────────────────────
+        // A stable per-install UUID auto-injected into every plugin sandbox / WebView as
+        // __AGORA_USER_ID so plugins can attribute actions to this device without learning
+        // anything else about the user. No UI — generated lazily on first read, never edited.
+        val APP_USER_ID = stringPreferencesKey("app_user_id")
+        // ── Plugin configs ────────────────────────────────────────
+        // Per-plugin config values keyed by plugin id. Outer JSON: { "<pluginId>": { "<field>": "<value>" } }.
+        // Plugins declare their fields in manifest.config; this only stores what the user filled in.
+        val PLUGIN_CONFIGS_JSON = stringPreferencesKey("plugin_configs_json")
     }
 
     val selectedModel: Flow<String> = context.dataStore.data.map { it[SELECTED_MODEL] ?: Constants.EXAMPLE_MODEL_ID }
@@ -386,6 +395,21 @@ class SettingsManager(private val context: Context) {
     val autoDeletePeriodHours: Flow<Int> = context.dataStore.data.map { it[AUTO_DELETE_PERIOD_HOURS] ?: 168 }
     val lastBackupTimestamp: Flow<Long> = context.dataStore.data.map { it[LAST_BACKUP_TIMESTAMP] ?: 0L }
     val lastModelsFetchFingerprint: Flow<String> = context.dataStore.data.map { it[LAST_MODELS_FETCH_FINGERPRINT] ?: "" }
+
+    // ── Plugin device id ──────────────────────────────────────
+    // Lazily minted per-install UUID, exposed to plugins as __AGORA_USER_ID. No setter: it is
+    // generated once on first read and never changes for the lifetime of the install.
+    val appUserId: Flow<String> = context.dataStore.data.map { pref ->
+        pref[APP_USER_ID] ?: UUID.randomUUID().toString().also { id ->
+            context.dataStore.edit { it[APP_USER_ID] = id }
+        }
+    }
+
+    /** Per-plugin config maps keyed by plugin id. Missing plugin id = no config stored yet. */
+    val pluginConfigs: Flow<Map<String, Map<String, String>>> = context.dataStore.data.map { pref ->
+        val jsonStr = pref[PLUGIN_CONFIGS_JSON] ?: "{}"
+        try { json.decodeFromString<Map<String, Map<String, String>>>(jsonStr) } catch (e: Exception) { emptyMap() }
+    }
 
     suspend fun saveProviderBaseUrl(provider: String, url: String) {
         context.dataStore.edit { prefs ->
@@ -826,5 +850,20 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveLastModelsFetchFingerprint(fingerprint: String) {
         context.dataStore.edit { it[LAST_MODELS_FETCH_FINGERPRINT] = fingerprint }
+    }
+
+    /**
+     * Stores the user-filled config values for one plugin. [values] is a map of field name → value;
+     * pass an empty map (or use [clearPluginConfig]) to wipe the plugin's config. Field-level
+     * validation (required/type) is the caller's responsibility — the store just persists what it's
+     * given so a partially-filled draft can be saved too.
+     */
+    suspend fun savePluginConfig(pluginId: String, values: Map<String, String>) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[PLUGIN_CONFIGS_JSON] ?: "{}"
+            val map = try { json.decodeFromString<MutableMap<String, Map<String, String>>>(current) } catch (e: Exception) { mutableMapOf() }
+            if (values.isEmpty()) map.remove(pluginId) else map[pluginId] = values
+            prefs[PLUGIN_CONFIGS_JSON] = json.encodeToString(map)
+        }
     }
 }

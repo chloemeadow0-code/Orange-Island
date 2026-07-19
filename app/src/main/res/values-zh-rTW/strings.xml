@@ -353,6 +353,11 @@
     <string name="plugin_loading">載入中…</string>
     <string name="plugin_conversation_select">外掛</string>
     <string name="plugin_conversation_inherit">使用全域啟用的外掛</string>
+    <string name="plugin_config_title">設定 %1$s</string>
+    <string name="plugin_config_required">必填</string>
+    <string name="plugin_config_save">儲存</string>
+    <string name="plugin_config_cancel">取消</string>
+    <string name="plugin_config_missing_required">請填寫所有必填欄位。</string>
 
     <!-- Settings - Shell Page -->
     <string name="shell_title">終端機</string>

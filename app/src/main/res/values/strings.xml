@@ -436,6 +436,12 @@
     <string name="plugin_loading">Loading…</string>
     <string name="plugin_conversation_select">Plugins</string>
     <string name="plugin_conversation_inherit">Use globally enabled plugins</string>
+    <!-- Plugin config dialog -->
+    <string name="plugin_config_title">Configure %1$s</string>
+    <string name="plugin_config_required">Required</string>
+    <string name="plugin_config_save">Save</string>
+    <string name="plugin_config_cancel">Cancel</string>
+    <string name="plugin_config_missing_required">Please fill in all required fields.</string>
 
     <!-- Settings - Shell Page -->
     <string name="shell_title">Shell</string>

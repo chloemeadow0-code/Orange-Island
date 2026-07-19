@@ -44,6 +44,10 @@ class AgoraWebViewBridge(
     private val sandbox: PluginSandbox,
     /** App-lifetime scope; the bridge gets a child supervisor under it. */
     parentScope: CoroutineScope,
+    /** Snapshot of host values exposed read-only to the page via [getConfig] / [getDeviceId].
+     *  Updated by the Compose host (PluginWebViewPage) as DataStore resolves them. */
+    @Volatile var deviceUserId: String = "",
+    @Volatile var pluginConfigJson: String = "{}",
 ) {
     companion object {
         private const val TAG = "AgoraWebViewBridge"
@@ -99,6 +103,21 @@ class AgoraWebViewBridge(
         queue.trySend(Call(callbackId, tool, argsJson))
     }
 
+    /**
+     * Synchronous read of the plugin's user-filled config as a JSON string (e.g.
+     * `{"user_nickname":"Alice"}`). Called from the page via `agora.getConfig()`.
+     *
+     * This is the reliable, race-free path for the page to read host values: @JavascriptInterface
+     * methods are invoked synchronously on the WebKit thread, so there's no timing dependency on
+     * when (or whether) host globals get injected via evaluateJavascript.
+     */
+    @JavascriptInterface
+    fun getConfig(): String = pluginConfigJson
+
+    /** Synchronous read of the per-install device id. Called via `agora.getDeviceId()`. */
+    @JavascriptInterface
+    fun getDeviceId(): String = deviceUserId
+
     /** Reserved for future host→page pushes (e.g. tool-call notifications). No-op in v1. */
     fun pushToPage(payload: String) {
         evaluate("if (typeof window.agora.onMessage === 'function') { window.agora.onMessage(${jsonEncodeJsString(payload)}); }")
@@ -140,8 +159,17 @@ class AgoraWebViewBridge(
             if (!native) { console.error('Agora bridge missing'); return; }
             var nextId = 0;
             var callbacks = {};
+            // Synchronous getters — read the host's current values via @JavascriptInterface.
+            // Always up-to-date because the bridge is a live Kotlin object the host mutates.
+            function readConfig() {
+                try { return JSON.parse(native.getConfig() || '{}') || {}; }
+                catch (e) { return {}; }
+            }
             window.agora = {
                 onMessage: null,
+                // Snapshot getters: read live from the host each time they're accessed.
+                get config() { return readConfig(); },
+                get deviceId() { return native.getDeviceId() || ''; },
                 call: function(tool, args, cb) {
                     var id = '__cb_' + (nextId++);
                     if (typeof cb === 'function') callbacks[id] = cb;
@@ -156,6 +184,12 @@ class AgoraWebViewBridge(
                     }
                 }
             };
+            // Also mirror them as plain globals (__AGORA_PLUGIN_CONFIG / __AGORA_USER_ID) for
+            // plugins written against the sandbox contract (QuickJS globals).
+            try {
+                Object.defineProperty(globalThis, '__AGORA_PLUGIN_CONFIG', { get: function() { return readConfig(); }, configurable: true });
+                Object.defineProperty(globalThis, '__AGORA_USER_ID', { get: function() { return native.getDeviceId() || ''; }, configurable: true });
+            } catch (e) { /* defineProperty may throw on some engines — page still has agora.config */ }
         })();
     """.trimIndent()
 

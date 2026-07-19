@@ -90,7 +90,19 @@ class AppContainer(private val appContext: Context) {
         com.newoether.agora.plugin.PluginLoader(appContext)
     }
     val pluginSandbox: com.newoether.agora.plugin.PluginSandbox by lazy {
-        com.newoether.agora.plugin.PluginSandbox(appScope)
+        com.newoether.agora.plugin.PluginSandbox(
+            appScope,
+            // Device id is resolved lazily per tool call (the provider only suspends when
+            // actually invoked), so it's safe to reference settingsRepository here even though
+            // it is also defined as a `by lazy` on this same container.
+            com.newoether.agora.plugin.PluginSandbox.UserIdentityProvider {
+                settingsRepository.getAppUserId()
+            },
+            // Per-plugin config (manifest-driven) resolved lazily per call.
+            com.newoether.agora.plugin.PluginSandbox.PluginConfigProvider { pluginId ->
+                settingsRepository.pluginConfigJson(pluginId)
+            },
+        )
     }
     val pluginToolProvider: com.newoether.agora.plugin.PluginToolProvider by lazy {
         com.newoether.agora.plugin.PluginToolProvider(pluginLoader, pluginSandbox, settingsRepository)

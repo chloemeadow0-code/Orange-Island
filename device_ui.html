@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>朋友圈</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Serif SC', 'Songti SC', 'SimSun', Georgia, serif;
+            background: #f6f1e7; color: #3a3226; padding: 0; min-height: 100vh;
+        }
+
+        .tab-bar {
+            display: flex; background: #e8dfd0; border-bottom: 1px solid #c9bfb0;
+            position: sticky; top: 0; z-index: 10;
+        }
+        .tab-btn {
+            flex: 1; padding: 14px 0; text-align: center; font-size: 15px;
+            font-family: inherit; letter-spacing: 2px; cursor: pointer;
+            border: none; background: none; color: #8a7e6e;
+            border-bottom: 2px solid transparent; transition: all 0.2s;
+        }
+        .tab-btn.active { color: #4a3f35; border-bottom-color: #6b5d4d; font-weight: 700; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .actions-bar {
+            display: flex; gap: 10px; padding: 12px 16px;
+            border-bottom: 1px solid #e0d8ca; background: #f0e9dc;
+        }
+        .btn {
+            padding: 8px 16px; border: 1px solid #bfb5a3; border-radius: 2px;
+            font-size: 13px; cursor: pointer; font-family: inherit;
+            background: #faf5eb; color: #5a4e3e; transition: all 0.2s; letter-spacing: 1px;
+        }
+        .btn:active { background: #e8dfd0; }
+        .btn-primary { background: #6b5d4d; color: #f6f1e7; border-color: #6b5d4d; }
+        .btn-primary:active { background: #5a4e3e; }
+
+        .status-line {
+            padding: 8px 16px; font-size: 11px; color: #9a8e7e;
+            border-bottom: 1px solid #e0d8ca; background: #f6f1e7;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .status-dot {
+            display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+            margin-right: 4px; vertical-align: middle;
+        }
+        .status-dot.ok { background: #7a9a6a; }
+        .status-dot.err { background: #b07060; }
+
+        .role-badge {
+            display: inline-block; padding: 1px 6px; border-radius: 2px;
+            font-size: 10px; font-weight: 700; letter-spacing: 1px; margin-left: 6px;
+            vertical-align: middle;
+        }
+        .role-badge.user { background: #d6e5d0; color: #4a6a3a; }
+        .role-badge.ai { background: #e0d8e8; color: #6a4a7a; }
+
+        .feed-list { padding: 0 0 20px 0; }
+        .moment-card {
+            padding: 16px; border-bottom: 1px solid #e0d8ca; background: #faf5eb;
+        }
+        .moment-card:nth-child(even) { background: #f6f1e7; }
+        .moment-nickname {
+            font-size: 14px; font-weight: 700; color: #5a4e3e;
+            display: flex; align-items: center; gap: 0; margin-bottom: 2px;
+        }
+        .moment-nickname .name-link {
+            cursor: pointer; border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .moment-nickname .name-link:hover { border-bottom-color: #8a7e6e; }
+        .moment-time { font-size: 11px; color: #9a8e7e; margin-bottom: 8px; }
+        .moment-content {
+            font-size: 14px; line-height: 1.8; color: #4a3f35;
+            margin-bottom: 10px; white-space: pre-wrap; word-break: break-word;
+        }
+
+        .moment-images { display: grid; gap: 4px; margin-bottom: 10px; }
+        .moment-images.cols-1 { grid-template-columns: 1fr; max-width: 200px; }
+        .moment-images.cols-2 { grid-template-columns: 1fr 1fr; max-width: 260px; }
+        .moment-images.cols-3 { grid-template-columns: 1fr 1fr 1fr; max-width: 300px; }
+        .moment-images.cols-4 { grid-template-columns: 1fr 1fr; max-width: 260px; }
+        .moment-images.cols-many { grid-template-columns: 1fr 1fr 1fr; max-width: 300px; }
+        .moment-images img {
+            width: 100%; aspect-ratio: 1; object-fit: cover;
+            border: 1px solid #d8d0c0; border-radius: 1px; background: #e8dfd0;
+        }
+        .img-preview-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .img-preview-item { position: relative; width: 60px; height: 60px; }
+        .img-preview-item img {
+            width: 100%; height: 100%; object-fit: cover;
+            border: 1px solid #c9bfb0; border-radius: 2px;
+        }
+        .img-preview-item .remove-img {
+            position: absolute; top: -4px; right: -4px;
+            width: 16px; height: 16px; border-radius: 50%;
+            background: #b07060; color: #fff; font-size: 10px;
+            border: none; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; line-height: 1;
+        }
+
+        .moment-actions {
+            display: flex; gap: 16px; font-size: 12px; color: #8a7e6e; margin-bottom: 8px;
+        }
+        .action-btn {
+            cursor: pointer; display: flex; align-items: center; gap: 4px;
+            border: none; background: none; font-family: inherit; font-size: 12px;
+            color: #8a7e6e; padding: 0; letter-spacing: 0.5px;
+        }
+        .action-btn:hover { color: #5a4e3e; }
+        .action-btn.liked { color: #b07060; }
+        .likes-section {
+            font-size: 12px; color: #8a7e6e; padding: 6px 0;
+            border-top: 1px solid #e8e0d0; line-height: 1.6;
+        }
+        .likes-section .heart { color: #b07060; }
+        .comment-section { font-size: 12px; line-height: 1.7; }
+        .comment-item { padding: 3px 0; border-bottom: 1px dotted #e0d8ca; }
+        .comment-item:last-child { border-bottom: none; }
+        .comment-nickname { font-weight: 700; color: #6b5d4d; }
+        .comment-nickname .name-link {
+            cursor: pointer; border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .comment-nickname .name-link:hover { border-bottom-color: #8a7e6e; }
+        .comment-input-row { display: flex; gap: 6px; margin-top: 8px; }
+        .comment-input-row input {
+            flex: 1; padding: 6px 10px; border: 1px solid #c9bfb0; border-radius: 2px;
+            font-size: 12px; font-family: inherit; background: #faf5eb; color: #3a3226; outline: none;
+        }
+        .comment-input-row input:focus { border-color: #8a7e6e; }
+        .comment-input-row button {
+            padding: 6px 12px; border: 1px solid #bfb5a3; border-radius: 2px;
+            font-size: 12px; cursor: pointer; font-family: inherit; background: #faf5eb; color: #5a4e3e;
+        }
+
+        .publish-area {
+            display: none; padding: 16px; border-bottom: 1px solid #e0d8ca; background: #f0e9dc;
+        }
+        .publish-area.show { display: block; }
+        .publish-area textarea {
+            width: 100%; min-height: 80px; padding: 10px; border: 1px solid #c9bfb0;
+            border-radius: 2px; font-size: 14px; font-family: inherit; background: #faf5eb;
+            color: #3a3226; resize: vertical; outline: none; line-height: 1.7;
+        }
+        .publish-area textarea:focus { border-color: #8a7e6e; }
+        .publish-area .field-label { font-size: 12px; color: #8a7e6e; margin-top: 8px; margin-bottom: 4px; }
+        .publish-area input[type="text"] {
+            width: 100%; padding: 6px 10px; border: 1px solid #c9bfb0; border-radius: 2px;
+            font-size: 13px; font-family: inherit; background: #faf5eb; color: #3a3226; outline: none;
+        }
+        .publish-area input[type="text"]:focus { border-color: #8a7e6e; }
+        .publish-actions { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; }
+
+        .couple-space { padding: 16px; }
+        .couple-header { text-align: center; padding: 20px 0 16px; }
+        .couple-header h2 { font-size: 18px; letter-spacing: 3px; color: #6b5d4d; margin-bottom: 4px; }
+        .couple-header .sub { font-size: 12px; color: #9a8e7e; font-style: italic; }
+        .couple-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .profile-card {
+            background: #faf5eb; border: 1px solid #d8d0c0; border-radius: 4px;
+            padding: 16px; text-align: center;
+        }
+        .profile-card .name { font-size: 16px; font-weight: 700; color: #4a3f35; margin-bottom: 4px; }
+        .profile-card .name .role-badge { font-size: 9px; }
+        .profile-card .stat-row { display: flex; justify-content: center; gap: 16px; margin-top: 10px; }
+        .profile-card .stat-item .num { font-size: 20px; font-weight: 700; color: #6b5d4d; }
+        .profile-card .stat-item .lbl { font-size: 11px; color: #9a8e7e; }
+        .profile-section-title {
+            font-size: 13px; color: #8a7e6e; letter-spacing: 1px;
+            margin: 16px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #e0d8ca;
+        }
+
+        .empty-state { text-align: center; padding: 48px 20px; color: #9a8e7e; font-style: italic; }
+        .empty-state .icon { font-size: 32px; margin-bottom: 12px; opacity: 0.5; }
+        .loading-state { text-align: center; padding: 40px; color: #9a8e7e; }
+    </style>
+</head>
+<body>
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('feed')">朋友圈</button>
+        <button class="tab-btn" onclick="switchTab('couple')">情侣空间</button>
+    </div>
+
+    <div class="tab-content active" id="tabFeed">
+        <div class="actions-bar">
+            <button class="btn btn-primary" onclick="togglePublish()">写动态</button>
+            <button class="btn" onclick="refreshFeed()">刷新</button>
+        </div>
+
+        <div class="publish-area" id="publishArea">
+            <textarea id="publishContent" placeholder="此刻的想法..."></textarea>
+            <div class="field-label">图片链接（多个用逗号分隔，可选）</div>
+            <input type="text" id="publishImages" placeholder="https://..., https://..." />
+            <div id="imagePreview" class="img-preview-row"></div>
+            <div class="publish-actions">
+                <button class="btn" onclick="togglePublish()">取消</button>
+                <button class="btn btn-primary" onclick="publishMoment()">发表</button>
+            </div>
+        </div>
+
+        <div class="status-line">
+            <span id="statusText"><span class="status-dot err"></span>未连接</span>
+            <span id="feedCount"></span>
+        </div>
+
+        <div class="feed-list" id="feedList">
+            <div class="loading-state">正在加载...</div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="tabCouple">
+        <div class="couple-space" id="coupleSpace">
+            <div class="loading-state">正在加载...</div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 配置（与 main.js 保持一致）=====
+        const supabaseUrl = 'https://nvkcztwjlbszvwkvbetf.supabase.co';
+        const supabaseKey = 'sb_publishable_UEd2Pn0kR2sau1Xsfk2TQw_oHC8pRhS';
+
+        // ===== 身份（来自插件配置弹窗）=====
+        // 优先用 host 暴露的同步 getter agora.config（通过 @JavascriptInterface，零时序竞态）；
+        // 兜底用全局 __AGORA_PLUGIN_CONFIG（host 也会注入）。
+        function readPluginConfig() {
+            try {
+                if (typeof agora !== 'undefined' && agora.config) return agora.config;
+            } catch (e) { /* fall through */ }
+            try {
+                if (typeof __AGORA_PLUGIN_CONFIG === 'string') return JSON.parse(__AGORA_PLUGIN_CONFIG);
+                if (typeof __AGORA_PLUGIN_CONFIG === 'object' && __AGORA_PLUGIN_CONFIG) return __AGORA_PLUGIN_CONFIG;
+            } catch (e2) { /* fall through */ }
+            return {};
+        }
+        const __cfg = readPluginConfig();
+        let userNickname = (__cfg.user_nickname && String(__cfg.user_nickname).trim()) || '用户';
+        let aiNickname = (__cfg.ai_nickname && String(__cfg.ai_nickname).trim()) || 'AI';
+        let userId = 'user_' + userNickname;
+        let aiId = 'ai_' + aiNickname;
+
+        // ===== Tab =====
+        let coupleLoaded = false;
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach((b, i) => {
+                b.classList.toggle('active', (tab === 'feed' && i === 0) || (tab === 'couple' && i === 1));
+            });
+            document.getElementById('tabFeed').classList.toggle('active', tab === 'feed');
+            document.getElementById('tabCouple').classList.toggle('active', tab === 'couple');
+            if (tab === 'couple' && !coupleLoaded) { loadCoupleSpace(); coupleLoaded = true; }
+        }
+
+        // ===== Supabase REST（WebView 原生 fetch，可 async/await）=====
+        async function sb(table, method, data, query) {
+            const url = `${supabaseUrl}/rest/v1/${table}${query || ''}`;
+            const headers = {
+                'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': ['POST','PATCH','DELETE'].includes(method) ? 'return=representation' : ''
+            };
+            const resp = await fetch(url, { method, headers, body: data ? JSON.stringify(data) : undefined });
+            if (!resp.ok) { const e = await resp.text(); throw new Error(`${resp.status}: ${e}`); }
+            const t = await resp.text();
+            return t ? JSON.parse(t) : null;
+        }
+
+        async function ensureUser(id, nickname) {
+            try {
+                const users = await sb('moment_users', 'GET', null, `?id=eq.${encodeURIComponent(id)}`);
+                if (!users || users.length === 0) {
+                    await sb('moment_users', 'POST', { id, nickname });
+                } else {
+                    await sb('moment_users', 'PATCH', { nickname }, `?id=eq.${encodeURIComponent(id)}`);
+                }
+            } catch (e) { console.error('ensureUser:', e); }
+        }
+
+        function getRole(uid) {
+            if (uid && uid.startsWith('ai_')) return 'ai';
+            return 'user';
+        }
+
+        function updateStatus(ok, count) {
+            document.getElementById('statusText').innerHTML = ok
+                ? '<span class="status-dot ok"></span>已连接'
+                : '<span class="status-dot err"></span>连接失败';
+            document.getElementById('feedCount').textContent = count > 0 ? `共 ${count} 条动态` : '';
+        }
+
+        // ===== 初始化（不再等待 Bridge；直接跑）=====
+        async function init() {
+            try {
+                await ensureUser(userId, userNickname);
+                await ensureUser(aiId, aiNickname);
+                await loadFeed();
+                setupScrollListener();
+            } catch (e) {
+                updateStatus(false, 0);
+                document.getElementById('feedList').innerHTML =
+                    `<div class="empty-state"><div class="icon">◐</div>${esc(e.message)}</div>`;
+            }
+        }
+
+        // ===== Feed 分页 =====
+        let feedOffset = 0;
+        let feedLoading = false;
+        let feedHasMore = true;
+        const FEED_PAGE_SIZE = 5;
+
+        async function loadFeed() {
+            feedOffset = 0;
+            feedHasMore = true;
+            const list = document.getElementById('feedList');
+            list.innerHTML = '<div class="loading-state">正在加载...</div>';
+            await loadMoreFeed(true);
+        }
+
+        async function loadMoreFeed(isInitial = false) {
+            if (feedLoading || !feedHasMore) return;
+            feedLoading = true;
+            const list = document.getElementById('feedList');
+            if (!isInitial) {
+                list.insertAdjacentHTML('beforeend', '<div class="loading-state" id="feedLoadingMore">正在加载更多...</div>');
+            }
+            try {
+                const moments = await sb('moments', 'GET', null,
+                    `?order=created_at.desc&limit=${FEED_PAGE_SIZE}&offset=${feedOffset}&select=*,moment_users(nickname,id)`);
+                if (!moments || !moments.length) {
+                    feedHasMore = false;
+                    if (isInitial) {
+                        updateStatus(true, 0);
+                        list.innerHTML = '<div class="empty-state"><div class="icon">◎</div>暂无动态<br>发表第一条朋友圈吧</div>';
+                    } else {
+                        document.getElementById('feedLoadingMore')?.remove();
+                    }
+                    feedLoading = false;
+                    return;
+                }
+                const enriched = [];
+                for (const m of moments) {
+                    const [likes, comments, images] = await Promise.all([
+                        sb('moment_likes', 'GET', null, `?moment_id=eq.${m.id}&select=*,moment_users(nickname,id)`),
+                        sb('moment_comments', 'GET', null, `?moment_id=eq.${m.id}&order=created_at.asc&select=*,moment_users(nickname,id)`),
+                        sb('moment_images', 'GET', null, `?moment_id=eq.${m.id}&order=sort_order.asc`)
+                    ]);
+                    enriched.push({
+                        id: m.id, content: m.content, createdAt: m.created_at, user: m.moment_users,
+                        images: images || [],
+                        likes: (likes || []).map(l => ({ user: l.moment_users })),
+                        likeCount: (likes || []).length,
+                        isLikedByMe: likes && likes.some(l => l.user_id === userId),
+                        comments: (comments || []).map(c => ({
+                            id: c.id, content: c.content, createdAt: c.created_at,
+                            user: c.moment_users, role: getRole(c.user_id)
+                        }))
+                    });
+                }
+                if (isInitial) {
+                    updateStatus(true, enriched.length);
+                    renderFeed(enriched);
+                } else {
+                    document.getElementById('feedLoadingMore')?.remove();
+                    appendFeed(enriched);
+                }
+                feedOffset += moments.length;
+                if (moments.length < FEED_PAGE_SIZE) feedHasMore = false;
+            } catch (e) {
+                updateStatus(false, 0);
+                if (isInitial) {
+                    list.innerHTML = `<div class="empty-state"><div class="icon">◐</div>${esc(e.message)}</div>`;
+                } else {
+                    document.getElementById('feedLoadingMore')?.remove();
+                }
+            } finally {
+                feedLoading = false;
+            }
+        }
+
+        function renderFeed(moments) {
+            document.getElementById('feedList').innerHTML = moments.map(renderMoment).join('');
+        }
+        function appendFeed(moments) {
+            document.getElementById('feedList').insertAdjacentHTML('beforeend', moments.map(renderMoment).join(''));
+        }
+
+        function setupScrollListener() {
+            const feedList = document.getElementById('feedList');
+            if (!feedList) return;
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => { if (entry.isIntersecting) loadMoreFeed(); });
+            }, { root: null, rootMargin: '0px 0px 100px 0px', threshold: 0 });
+            const sentinel = document.createElement('div');
+            sentinel.id = 'feedSentinel';
+            sentinel.style.height = '20px';
+            feedList.appendChild(sentinel);
+            observer.observe(sentinel);
+        }
+
+        function renderMoment(m) {
+            const time = fmtTime(m.createdAt);
+            const role = getRole(m.user && m.user.id);
+            const badge = role === 'ai' ? `<span class="role-badge ai">AI</span>` : `<span class="role-badge user">USER</span>`;
+            const nickname = esc((m.user && m.user.nickname) || '匿名');
+            const content = esc(m.content || '');
+
+            let imgHtml = '';
+            if (m.images && m.images.length > 0) {
+                const cols = m.images.length === 1 ? 'cols-1'
+                    : m.images.length === 2 ? 'cols-2'
+                    : m.images.length === 4 ? 'cols-4'
+                    : m.images.length >= 5 ? 'cols-many' : 'cols-3';
+                imgHtml = `<div class="moment-images ${cols}">` +
+                    m.images.map(i => `<img src="${esc(i.image_url)}" onerror="this.style.display='none'" />`).join('') +
+                    '</div>';
+            }
+            let likesHtml = '';
+            if (m.likes && m.likes.length > 0) {
+                const names = m.likes.map(l => esc((l.user && l.user.nickname) || '匿名')).join('、');
+                likesHtml = `<div class="likes-section"><span class="heart">♥</span> ${names}</div>`;
+            }
+            let commentsHtml = '';
+            if (m.comments && m.comments.length > 0) {
+                commentsHtml = '<div class="comment-section">' +
+                    m.comments.map(c => {
+                        const cBadge = c.role === 'ai' ? '<span class="role-badge ai">AI</span>' : '';
+                        return `<div class="comment-item"><span class="comment-nickname"><span class="name-link" onclick="goToCouple()">${esc((c.user && c.user.nickname) || '匿名')}</span>${cBadge}</span>：${esc(c.content)}</div>`;
+                    }).join('') + '</div>';
+            }
+            const likeClass = m.isLikedByMe ? 'action-btn liked' : 'action-btn';
+            const likeText = m.isLikedByMe ? '已赞' : '赞';
+            const likeCountHtml = m.likeCount > 0 ? ` (${m.likeCount})` : '';
+
+            return `
+                <div class="moment-card" data-id="${m.id}">
+                    <div class="moment-nickname"><span class="name-link" onclick="goToCouple()">${nickname}</span>${badge}</div>
+                    <div class="moment-time">${time}</div>
+                    <div class="moment-content">${content}</div>
+                    ${imgHtml}
+                    <div class="moment-actions">
+                        <button class="${likeClass}" onclick="toggleLike('${m.id}')">${likeText}${likeCountHtml}</button>
+                        <button class="action-btn" onclick="focusComment('${m.id}')">评</button>
+                    </div>
+                    ${likesHtml}
+                    ${commentsHtml}
+                    <div class="comment-input-row" id="comment-${m.id}" style="display:none">
+                        <input type="text" id="commentInput-${m.id}" placeholder="写评论..."
+                            onkeypress="if(event.key==='Enter')submitComment('${m.id}')" />
+                        <button onclick="submitComment('${m.id}')">发送</button>
+                    </div>
+                </div>`;
+        }
+
+        function togglePublish() {
+            const el = document.getElementById('publishArea');
+            el.classList.toggle('show');
+            if (el.classList.contains('show')) document.getElementById('publishContent').focus();
+        }
+
+        async function publishMoment() {
+            const content = document.getElementById('publishContent').value.trim();
+            if (!content) return;
+            const imagesVal = document.getElementById('publishImages').value.trim();
+            try {
+                await ensureUser(userId, userNickname);
+                const moment = await sb('moments', 'POST', { user_id: userId, content });
+                if (imagesVal) {
+                    const urls = imagesVal.split(',').map(u => u.trim()).filter(u => u);
+                    for (let i = 0; i < urls.length; i++) {
+                        await sb('moment_images', 'POST', { moment_id: moment[0].id, image_url: urls[i], sort_order: i });
+                    }
+                }
+                document.getElementById('publishContent').value = '';
+                document.getElementById('publishImages').value = '';
+                togglePublish();
+                coupleLoaded = false;
+                await loadFeed();
+            } catch (e) { alert('发布失败: ' + e.message); }
+        }
+
+        async function toggleLike(momentId) {
+            try {
+                await ensureUser(userId, userNickname);
+                const existing = await sb('moment_likes', 'GET', null,
+                    `?moment_id=eq.${momentId}&user_id=eq.${encodeURIComponent(userId)}`);
+                if (existing && existing.length > 0) {
+                    await sb('moment_likes', 'DELETE', null,
+                        `?moment_id=eq.${momentId}&user_id=eq.${encodeURIComponent(userId)}`);
+                } else {
+                    await sb('moment_likes', 'POST', { moment_id: momentId, user_id: userId });
+                }
+                await loadFeed();
+            } catch (e) { alert('操作失败: ' + e.message); }
+        }
+
+        function focusComment(momentId) {
+            const row = document.getElementById('comment-' + momentId);
+            if (row.style.display === 'none') {
+                row.style.display = 'flex';
+                document.getElementById('commentInput-' + momentId).focus();
+            } else { row.style.display = 'none'; }
+        }
+
+        async function submitComment(momentId) {
+            const input = document.getElementById('commentInput-' + momentId);
+            const content = input.value.trim();
+            if (!content) return;
+            try {
+                await ensureUser(userId, userNickname);
+                await sb('moment_comments', 'POST', { moment_id: momentId, user_id: userId, content });
+                input.value = '';
+                await loadFeed();
+            } catch (e) { alert('评论失败: ' + e.message); }
+        }
+
+        function goToCouple() {
+            switchTab('couple');
+            coupleLoaded = false;
+            loadCoupleSpace();
+        }
+
+        async function refreshFeed() { coupleLoaded = false; await loadFeed(); }
+
+        async function loadCoupleSpace() {
+            const el = document.getElementById('coupleSpace');
+            el.innerHTML = '<div class="loading-state">正在加载...</div>';
+            try {
+                const [userMoments, aiMoments] = await Promise.all([
+                    sb('moments', 'GET', null, `?user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=50&select=*,moment_users(nickname,id)`),
+                    sb('moments', 'GET', null, `?user_id=eq.${encodeURIComponent(aiId)}&order=created_at.desc&limit=50&select=*,moment_users(nickname,id)`)
+                ]);
+                const uCount = (userMoments || []).length;
+                const aCount = (aiMoments || []).length;
+                let html = `
+                    <div class="couple-header">
+                        <h2>情侣空间</h2>
+                        <div class="sub">together forever</div>
+                    </div>
+                    <div class="couple-cards">
+                        <div class="profile-card">
+                            <div class="name">${esc(userNickname)} <span class="role-badge user">USER</span></div>
+                            <div class="stat-row"><div class="stat-item"><div class="num">${uCount}</div><div class="lbl">动态</div></div></div>
+                        </div>
+                        <div class="profile-card">
+                            <div class="name">${esc(aiNickname)} <span class="role-badge ai">AI</span></div>
+                            <div class="stat-row"><div class="stat-item"><div class="num">${aCount}</div><div class="lbl">动态</div></div></div>
+                        </div>
+                    </div>`;
+                html += `<div class="profile-section-title">${esc(userNickname)} 的动态</div>`;
+                html += (userMoments && userMoments.length > 0)
+                    ? userMoments.map(m => renderMiniMoment(m)).join('')
+                    : '<div class="empty-state" style="padding:20px;font-size:13px;">还没有动态</div>';
+                html += `<div class="profile-section-title">${esc(aiNickname)} 的动态</div>`;
+                html += (aiMoments && aiMoments.length > 0)
+                    ? aiMoments.map(m => renderMiniMoment(m)).join('')
+                    : '<div class="empty-state" style="padding:20px;font-size:13px;">还没有动态</div>';
+                el.innerHTML = html;
+            } catch (e) {
+                el.innerHTML = `<div class="empty-state"><div class="icon">◐</div>${esc(e.message)}</div>`;
+            }
+        }
+
+        function renderMiniMoment(m) {
+            const time = fmtTime(m.created_at);
+            const content = esc(m.content || '');
+            return `<div class="moment-card"><div class="moment-time">${time}</div><div class="moment-content">${content}</div></div>`;
+        }
+
+        function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+        function fmtTime(ts) {
+            if (!ts) return '';
+            const d = new Date(ts), now = new Date(), diff = now - d;
+            if (diff < 60000) return '刚刚';
+            if (diff < 3600000) return Math.floor(diff / 60000) + ' 分钟前';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + ' 小时前';
+            if (diff < 172800000) return '昨天';
+            const mo = d.getMonth() + 1, day = d.getDate();
+            const h = String(d.getHours()).padStart(2, '0'), mi = String(d.getMinutes()).padStart(2, '0');
+            return d.getFullYear() === now.getFullYear()
+                ? `${mo}月${day}日 ${h}:${mi}`
+                : `${d.getFullYear()}年${mo}月${day}日`;
+        }
+
+        // ===== 启动 =====
+        // 配置由 host 在 HTML 里就注入好了（<head> 第一个 <script>），这里直接读即可。
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else { init(); }
+    </script>
+</body>
+</html>

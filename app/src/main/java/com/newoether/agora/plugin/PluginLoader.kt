@@ -174,6 +174,12 @@ class PluginLoader(private val appContext: Context) {
                 require(paramNames.add(p.name)) { "duplicate parameter '${p.name}' in tool '${tool.name}'" }
             }
         }
+        // Validate config field names (same JS-identifier rule as tool params) + uniqueness.
+        val configNames = mutableSetOf<String>()
+        m.config.forEach { f ->
+            require(TOOL_NAME_REGEX.matches(f.name)) { "invalid config field name '${f.name}'" }
+            require(configNames.add(f.name)) { "duplicate config field '${f.name}'" }
+        }
         // allowedHosts: lowercase + strip port, reject empty entries.
         val cleanedHosts = m.allowedHosts.mapNotNull { raw ->
             raw.trim().lowercase().substringBefore(':').takeIf { it.isNotEmpty() }
