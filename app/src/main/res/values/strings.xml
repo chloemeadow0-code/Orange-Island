@@ -307,6 +307,16 @@
     <string name="device_access_notification_desc">Read active notifications from other apps</string>
     <string name="device_access_usage_title">Screen Usage</string>
     <string name="device_access_usage_desc">Per-app usage time and last-opened timestamps</string>
+    <string name="device_access_navigation_title">Navigation</string>
+    <string name="device_access_navigation_desc">Open URLs, launch apps, system settings, and share text</string>
+    <string name="device_access_app_lock_title">App Lock</string>
+    <string name="device_access_app_lock_desc">AI locks/unlocks apps with a message the user must respect</string>
+    <string name="device_access_toast_title">Toast</string>
+    <string name="device_access_toast_desc">AI shows quick native Toast messages for non-blocking feedback</string>
+    <string name="app_lock_service_label">Orange Island App Lock</string>
+    <string name="app_lock_service_desc">Intercepts access to apps the AI has locked, covering them with a lock screen.</string>
+    <string name="app_lock_mask_subtitle">This app is locked by your assistant</string>
+    <string name="app_lock_mask_hint">Ask your assistant in Orange Island to unlock it</string>
     <string name="device_access_perm_not_required">No permission needed</string>
     <string name="device_access_perm_granted">Permission granted</string>
     <string name="device_access_perm_runtime_needed">Permission needed -- enable to grant</string>

@@ -36,3 +36,8 @@ AGENTS.md
 # Keystore / signing files — never commit these
 *.jks
 *.keystore
+
+# Debug APK / distribution artifacts
+orangeisland-debug.apk
+/usb_dist/
+moments-test-v3.apk

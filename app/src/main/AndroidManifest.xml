@@ -22,6 +22,16 @@
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- Package visibility for the Navigation tool: lets PackageManager see apps that
+         expose a launcher icon, so the AI can list and launch them. This is Android's
+         official <queries> mechanism (replaces the restricted QUERY_ALL_PACKAGES). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".OrangeIslandApplication"
         android:allowBackup="false"
@@ -40,10 +50,33 @@
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Deep-link / external app entry points -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="orangeisland" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
+
+        <!-- App Lock mask: shown over locked apps. Not exported (only launched by our own
+             accessibility service). Excluded from recents so it doesn't linger. -->
+        <activity
+            android:name=".tool.device.AppLockMaskActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/Theme.OrangeIsland"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -81,6 +114,22 @@
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
+        </service>
+
+        <!-- App Lock accessibility service: monitors window changes and intercepts locked apps.
+             Bound by the system only after the user enables it under Settings → Accessibility
+             (the app cannot enable it programmatically). -->
+        <service
+            android:name=".tool.device.AppLockAccessibilityService"
+            android:exported="false"
+            android:label="@string/app_lock_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/app_lock_accessibility_config" />
         </service>
     </application>
 

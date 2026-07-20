@@ -174,7 +174,10 @@ class GenerationRequestBuilder(
             amapApiKey = settings.amapApiKey.value,
             calendarEnabled = settings.calendarEnabled.value,
             notificationEnabled = settings.notificationEnabled.value,
-            usageStatsEnabled = settings.usageStatsEnabled.value
+            usageStatsEnabled = settings.usageStatsEnabled.value,
+            navigationEnabled = settings.navigationEnabled.value,
+            appLockEnabled = settings.appLockEnabled.value,
+            toastEnabled = settings.toastEnabled.value
         )
         return Pair(config, genCtx)
     }

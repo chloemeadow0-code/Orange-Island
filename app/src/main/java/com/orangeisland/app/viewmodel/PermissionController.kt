@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.provider.Settings
 import android.text.TextUtils
 import androidx.core.content.ContextCompat
+import com.orangeisland.app.tool.device.AppLockAccessibilityService
 import com.orangeisland.app.tool.device.DeviceNotificationListenerService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,7 +35,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class PermissionController(private val appContext: Context) {
 
     /** The Device Access tools that need a system permission. */
-    enum class Tool { LOCATION, CALENDAR, NOTIFICATION, USAGE_STATS }
+    enum class Tool { LOCATION, CALENDAR, NOTIFICATION, USAGE_STATS, ACCESSIBILITY }
 
     /** True iff the tool's required permission(s) are currently granted. Safe to call from any thread. */
     fun isGranted(tool: Tool): Boolean = when (tool) {
@@ -45,6 +46,7 @@ class PermissionController(private val appContext: Context) {
         // Special permissions — see [checkSpecialGranted] for the non-checkSelfPermission path.
         Tool.NOTIFICATION -> notificationListenerEnabled
         Tool.USAGE_STATS -> usageAccessEnabled
+        Tool.ACCESSIBILITY -> accessibilityEnabled
     }
 
     /** Launches the system Settings screen the user must visit to grant [tool]'s special permission.
@@ -53,6 +55,7 @@ class PermissionController(private val appContext: Context) {
         val intent = when (tool) {
             Tool.NOTIFICATION -> Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
             Tool.USAGE_STATS -> Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            Tool.ACCESSIBILITY -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
             // Runtime-permission tools shouldn't reach here; the settings page uses the launcher.
             else -> return
         }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -98,6 +101,18 @@ class PermissionController(private val appContext: Context) {
                 )
             mode == android.app.AppOpsManager.MODE_ALLOWED
         } catch (_: Exception) { false }
+
+    // Accessibility state — mirrors how the system tracks enabled services.
+    private val accessibilityEnabled: Boolean
+        get() = AppLockAccessibilityService.isEnabled(appContext)
+
+    private val _accessibilityEnabled = MutableStateFlow(accessibilityEnabled)
+    val accessibilityEnabledFlow: StateFlow<Boolean> = _accessibilityEnabled.asStateFlow()
+
+    /** Re-query accessibility state. Call from the settings page's onResume. */
+    fun refreshAccessibilityState() {
+        _accessibilityEnabled.value = accessibilityEnabled
+    }
 
     private fun hasPermission(perm: String): Boolean =
         ContextCompat.checkSelfPermission(appContext, perm) == PackageManager.PERMISSION_GRANTED

@@ -287,7 +287,7 @@ internal fun ChatDrawerContent(
                                             showMenu = true
                                         }
                                     ),
-                                color = (if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent).copy(alpha = drawerItemAlpha),
+                                color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = drawerItemAlpha) else Color.Transparent,
                                 shape = CircleShape
                             ) {
                                 Text(

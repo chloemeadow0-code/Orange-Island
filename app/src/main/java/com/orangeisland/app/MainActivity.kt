@@ -78,6 +78,10 @@ import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
 
+    /** Holds text received from an external app via SEND intent or deep-link.
+     *  Consumed by the Composable layer once the ViewModel is ready. */
+    private val externalTextState = mutableStateOf<String?>(null)
+
     override fun attachBaseContext(newBase: Context) {
         val langCode = kotlinx.coroutines.runBlocking {
             SettingsManager(newBase).appLanguage.first()
@@ -127,6 +131,9 @@ class MainActivity : ComponentActivity() {
         runBlocking(Dispatchers.IO) {
             settingsManager.initializeFirstInstallDefaults(locale = java.util.Locale.getDefault())
         }
+
+        // Parse external intent on cold start
+        parseExternalIntent(intent)
 
         enableEdgeToEdge()
         // Remove navigation bar scrim so it blends with app content
@@ -199,6 +206,40 @@ class MainActivity : ComponentActivity() {
                     }
 
                     MainNavigation(viewModel, settingsManager)
+
+                    // Process external text (from SHARE intent or deep-link) once the UI is ready.
+                    LaunchedEffect(externalTextState.value) {
+                        externalTextState.value?.let { text ->
+                            viewModel.sendMessage(text)
+                            externalTextState.value = null
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        parseExternalIntent(intent)
+    }
+
+    /** Extract text from ACTION_SEND or orangeisland:// deep-link intents. */
+    private fun parseExternalIntent(intent: Intent) {
+        when {
+            Intent.ACTION_SEND == intent.action && "text/plain" == intent.type -> {
+                val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+                if (!sharedText.isNullOrBlank()) {
+                    externalTextState.value = sharedText
+                }
+            }
+            Intent.ACTION_VIEW == intent.action -> {
+                val data = intent.data
+                if (data?.scheme == "orangeisland") {
+                    val text = data.getQueryParameter("text") ?: ""
+                    if (text.isNotBlank()) {
+                        externalTextState.value = text
+                    }
                 }
             }
         }
