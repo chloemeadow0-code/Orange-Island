@@ -661,7 +661,15 @@ class ChatViewModel(
     }
 
     /**
-     * Verifies a provider's Base URL + active API key can reach its model list endpoint.
+     * Verifies a provider can actually serve chat completions.
+     *
+     * Strategy:
+     *  - If the provider has manually-added models, send a minimal real chat/completions
+     *    request with the first manual model and wait for the first streamed chunk. This is
+     *    the only reliable way to validate providers that have no (or empty) /models endpoint —
+     *    the exact scenario manual models exist for. Returns OK as soon as a chunk arrives;
+     *    the request is cancelled immediately afterwards.
+     *  - Otherwise, fall back to GET /models (cheap, lists available models).
      *
      * Unlike [fetchModelsForProvider] this surfaces concrete failure reasons (timeout,
      * unknown host, HTTP error) instead of silently returning an empty list. Returns a
@@ -679,6 +687,15 @@ class ChatViewModel(
             ?: if (providerRegistry.isBuiltIn(providerName)) null else provider.defaultBaseUrl
             ?: return@withContext appContext.getString(R.string.provider_test_no_url)
 
+        // Manual models exist precisely because /models can't be trusted for this provider —
+        // probe chat directly with the first one rather than relying on the model list.
+        val firstManualModel = settings.manualModels.value[providerName]
+            ?.firstOrNull()
+            ?.substringAfter("$providerName:")
+        if (firstManualModel != null) {
+            return@withContext probeChatCompletion(provider, apiKey, baseUrl, firstManualModel)
+        }
+
         try {
             val models = kotlinx.coroutines.withTimeout(Constants.MODEL_FETCH_TIMEOUT_MS) {
                 provider.fetchModels(apiKey, baseUrl)
@@ -693,6 +710,63 @@ class ChatViewModel(
             appContext.getString(R.string.provider_test_connect_failed)
         } catch (e: Exception) {
             e.message ?: appContext.getString(R.string.provider_test_empty)
+        }
+    }
+
+    /**
+     * Sends a one-message chat completion to [provider] and waits for the first streamed event.
+     * Returns a localized status string. Any content/tool/usage event counts as success — we
+     * don't need the full response, just proof the endpoint is reachable and the model/key work.
+     *
+     * Uses `Flow.first { }` so upstream is cancelled the instant we see a usable event; a chatty
+     * reasoning model can't drag the probe out beyond its first token.
+     */
+    private suspend fun probeChatCompletion(
+        provider: LlmProvider,
+        apiKey: String,
+        baseUrl: String?,
+        modelId: String,
+    ): String {
+        val probeMessage = ChatMessage(text = "ping", participant = Participant.USER)
+        val config = ProviderConfig(
+            apiKey = apiKey,
+            modelId = modelId,
+            baseUrl = baseUrl,
+            // Keep the probe cheap: cap output, skip tools/thinking extras.
+            maxTokens = 1,
+            tools = null,
+            temperature = 0f,
+        )
+        val firstEvent = try {
+            kotlinx.coroutines.withTimeout(Constants.CHAT_PROBE_TIMEOUT_MS) {
+                provider.generateResponse(listOf(probeMessage), config).first { event ->
+                    event !is StreamEvent.Retrying
+                }
+            }
+        } catch (e: java.net.SocketTimeoutException) {
+            return appContext.getString(R.string.provider_test_timeout)
+        } catch (e: java.net.UnknownHostException) {
+            return appContext.getString(R.string.provider_test_unknown_host)
+        } catch (e: java.net.ConnectException) {
+            return appContext.getString(R.string.provider_test_connect_failed)
+        } catch (_: kotlinx.coroutines.TimeoutCancellationException) {
+            return appContext.getString(R.string.provider_test_timeout)
+        } catch (e: NoSuchElementException) {
+            // Flow ended without emitting a usable event (e.g. only retries, then EOF).
+            return appContext.getString(R.string.provider_test_empty)
+        } catch (e: Exception) {
+            return e.message ?: appContext.getString(R.string.provider_test_empty)
+        }
+        return when (firstEvent) {
+            is StreamEvent.TextChunk,
+            is StreamEvent.ThoughtChunk,
+            is StreamEvent.UsageUpdate,
+            is StreamEvent.ToolCallRequest,
+            is StreamEvent.ToolCallsRequest ->
+                appContext.getString(R.string.provider_test_chat_ok, modelId)
+            is StreamEvent.Error ->
+                firstEvent.message.ifBlank { appContext.getString(R.string.provider_test_empty) }
+            else -> appContext.getString(R.string.provider_test_empty)
         }
     }
 
