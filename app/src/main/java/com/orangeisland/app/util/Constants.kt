@@ -25,6 +25,11 @@ object Constants {
     const val MAX_TOOL_RESULT_LENGTH = 100_000
     /** Timeout for fetching available models from a single provider (ms) */
     const val MODEL_FETCH_TIMEOUT_MS = 10_000L
+    /** Timeout for the chat-completion connection probe used when a provider has
+     *  manually-added models (ms). Longer than the /models fetch because a real
+     *  completion — especially from a reasoning model — can take a while to emit
+     *  its first token. We only wait for the first chunk, then cancel. */
+    const val CHAT_PROBE_TIMEOUT_MS = 30_000L
     /** Search method identifier for RAG (vector/embedding) search */
     const val SEARCH_METHOD_RAG = "rag"
 

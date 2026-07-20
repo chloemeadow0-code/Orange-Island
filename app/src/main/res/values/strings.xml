@@ -278,6 +278,8 @@
     <string name="provider_testing">Testing…</string>
     <string name="provider_test_no_provider">Provider not found</string>
     <string name="provider_test_no_url">No Base URL configured</string>
+    <string name="provider_test_no_model">No manual model to probe — add one first</string>
+    <string name="provider_test_chat_ok">OK — \"%1$s\" responded</string>
     <string name="provider_test_timeout">Timed out — check the URL, network, or proxy</string>
     <string name="provider_test_unknown_host">Unknown host — check the Base URL</string>
     <string name="provider_test_connect_failed">Connection refused</string>
