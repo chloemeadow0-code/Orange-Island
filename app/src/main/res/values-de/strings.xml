@@ -516,6 +516,27 @@
     <!-- Appearance -->
     <string name="settings_appearance">Erscheinungsbild</string>
     <string name="settings_appearance_desc">Design, Farbschema und dynamische Farbe</string>
+    <string name="settings_custom_colors">Eigene Farben</string>
+    <string name="settings_custom_colors_desc">Blasen-, Hintergrund- und Akzentfarben</string>
+    <string name="color_picker_title">Farbe wählen</string>
+    <string name="color_picker_default">Standard</string>
+    <string name="color_picker_current">Aktuell</string>
+    <string name="color_picker_reset">Zurücksetzen</string>
+    <string name="color_picker_confirm">Bestätigen</string>
+    <string name="color_picker_recent">Zuletzt verwendet</string>
+    <string name="custom_colors_section_colors">Farben</string>
+    <string name="custom_colors_section_transparency">Transparenz</string>
+    <string name="custom_color_chat_text">Chat-Textfarbe</string>
+    <string name="custom_color_global_text">Globale Textfarbe</string>
+    <string name="custom_color_user_bubble">Farbe der Nutzerblase</string>
+    <string name="custom_color_assistant_bubble">Farbe der Assistentenblase</string>
+    <string name="custom_color_reasoning_panel">Farbe des Denkpanels</string>
+    <string name="custom_color_chat_background">Chat-Hintergrundfarbe</string>
+    <string name="custom_color_accent">Akzentfarbe</string>
+    <string name="custom_color_input_field">Farbe des Eingabefelds</string>
+    <string name="transparency_message_bubble">Nachrichtenblase</string>
+    <string name="transparency_reasoning_panel">Denkpanel</string>
+    <string name="transparency_drawer_item">Menüelement</string>
     <string name="appearance_title">Erscheinungsbild</string>
     <string name="theme_mode">Design-Modus</string>
     <string name="theme_mode_light">Hell</string>

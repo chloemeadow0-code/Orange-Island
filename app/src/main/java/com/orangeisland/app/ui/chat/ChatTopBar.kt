@@ -18,11 +18,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.orangeisland.app.R
 import com.orangeisland.app.model.ChatConversation
 import com.orangeisland.app.ui.theme.ChatType
+import coil.compose.AsyncImage
 
 /**
  * The chat screen's top bar: a title capsule (drawer menu + brand/conversation
@@ -38,6 +40,8 @@ internal fun ChatTopBar(
     onOpenDrawer: () -> Unit,
     onSystemPromptClick: () -> Unit,
     onNewChat: () -> Unit,
+    topBarBackgroundImagePath: String = "",
+    topBarAlpha: Float = 1f,
 ) {
     Column(
         modifier = Modifier
@@ -70,52 +74,68 @@ internal fun ChatTopBar(
                 // Title capsule: menu + title
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.surface,
+                    color = if (topBarBackgroundImagePath.isNotBlank()) Color.Transparent else MaterialTheme.colorScheme.surface.copy(alpha = topBarAlpha),
                     tonalElevation = 4.dp,
                     shadowElevation = 4.dp,
                     modifier = Modifier.fillMaxHeight().widthIn(max = 260.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxHeight(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Spacer(modifier = Modifier.width(5.dp))
-                        IconButton(
-                            onClick = onOpenDrawer,
-                            modifier = Modifier.size(44.dp)
-                        ) {
-                            Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu), modifier = Modifier.size(26.dp))
-                        }
-                        Spacer(modifier = Modifier.width(5.dp))
-                        if (showBrandTitle) {
-                            Text(
-                                text = stringResource(R.string.app_name),
-                                style = ChatType.brandTitle,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.widthIn(max = 180.dp)
+                    Box {
+                        if (topBarBackgroundImagePath.isNotBlank()) {
+                            AsyncImage(
+                                model = topBarBackgroundImagePath,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.matchParentSize(),
                             )
-                        } else {
-                            Column(modifier = Modifier.widthIn(max = 180.dp)) {
+                            // Mandatory scrim -- icons/title text must stay legible over any photo.
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f * topBarAlpha))
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxHeight(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Spacer(modifier = Modifier.width(5.dp))
+                            IconButton(
+                                onClick = onOpenDrawer,
+                                modifier = Modifier.size(44.dp)
+                            ) {
+                                Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu), modifier = Modifier.size(26.dp))
+                            }
+                            Spacer(modifier = Modifier.width(5.dp))
+                            if (showBrandTitle) {
                                 Text(
-                                    text = resolvedTitle,
-                                    // Single-line (no token subtitle) uses a slightly-smaller-than-brand
-                                    // solo size; with the token subtitle stacked below, the compact size.
-                                    style = if (totalTokens > 0) ChatType.conversationTitle else ChatType.conversationTitleSolo,
+                                    text = stringResource(R.string.app_name),
+                                    style = ChatType.brandTitle,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.widthIn(max = 180.dp)
                                 )
-                                if (totalTokens > 0) {
+                            } else {
+                                Column(modifier = Modifier.widthIn(max = 180.dp)) {
                                     Text(
-                                        text = stringResource(R.string.total_tokens, totalTokens),
-                                        style = ChatType.micro,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                        maxLines = 1
+                                        text = resolvedTitle,
+                                        // Single-line (no token subtitle) uses a slightly-smaller-than-brand
+                                        // solo size; with the token subtitle stacked below, the compact size.
+                                        style = if (totalTokens > 0) ChatType.conversationTitle else ChatType.conversationTitleSolo,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
+                                    if (totalTokens > 0) {
+                                        Text(
+                                            text = stringResource(R.string.total_tokens, totalTokens),
+                                            style = ChatType.micro,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                            maxLines = 1
+                                        )
+                                    }
                                 }
                             }
+                            Spacer(modifier = Modifier.width(20.dp))
                         }
-                        Spacer(modifier = Modifier.width(20.dp))
                     }
                 }
 
@@ -124,23 +144,39 @@ internal fun ChatTopBar(
                 // Actions capsule: system prompt + new chat
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.surface,
+                    color = if (topBarBackgroundImagePath.isNotBlank()) Color.Transparent else MaterialTheme.colorScheme.surface.copy(alpha = topBarAlpha),
                     tonalElevation = 4.dp,
                     shadowElevation = 4.dp,
                     modifier = Modifier.fillMaxHeight()
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxHeight(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Spacer(modifier = Modifier.width(5.dp))
-                        IconButton(onClick = onSystemPromptClick, modifier = Modifier.size(44.dp)) {
-                            Icon(Icons.Default.Psychology, contentDescription = stringResource(R.string.system_prompt), modifier = Modifier.size(26.dp))
+                    Box {
+                        if (topBarBackgroundImagePath.isNotBlank()) {
+                            AsyncImage(
+                                model = topBarBackgroundImagePath,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.matchParentSize(),
+                            )
+                            // Mandatory scrim -- icons must stay legible over any photo.
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f * topBarAlpha))
+                            )
                         }
-                        IconButton(onClick = onNewChat, modifier = Modifier.size(44.dp)) {
-                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_chat), modifier = Modifier.size(26.dp))
+                        Row(
+                            modifier = Modifier.fillMaxHeight(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Spacer(modifier = Modifier.width(5.dp))
+                            IconButton(onClick = onSystemPromptClick, modifier = Modifier.size(44.dp)) {
+                                Icon(Icons.Default.Psychology, contentDescription = stringResource(R.string.system_prompt), modifier = Modifier.size(26.dp))
+                            }
+                            IconButton(onClick = onNewChat, modifier = Modifier.size(44.dp)) {
+                                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_chat), modifier = Modifier.size(26.dp))
+                            }
+                            Spacer(modifier = Modifier.width(5.dp))
                         }
-                        Spacer(modifier = Modifier.width(5.dp))
                     }
                 }
             }

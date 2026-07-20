@@ -516,6 +516,27 @@
     <!-- Appearance -->
     <string name="settings_appearance">Apparence</string>
     <string name="settings_appearance_desc">Thème, schéma de couleurs et couleur dynamique</string>
+    <string name="settings_custom_colors">Couleurs personnalisées</string>
+    <string name="settings_custom_colors_desc">Couleurs des bulles, du fond et d\'accent</string>
+    <string name="color_picker_title">Choisir la couleur</string>
+    <string name="color_picker_default">Par défaut</string>
+    <string name="color_picker_current">Actuel</string>
+    <string name="color_picker_reset">Réinitialiser</string>
+    <string name="color_picker_confirm">Confirmer</string>
+    <string name="color_picker_recent">Récents</string>
+    <string name="custom_colors_section_colors">Couleurs</string>
+    <string name="custom_colors_section_transparency">Transparence</string>
+    <string name="custom_color_chat_text">Couleur du texte du chat</string>
+    <string name="custom_color_global_text">Couleur du texte global</string>
+    <string name="custom_color_user_bubble">Couleur de la bulle utilisateur</string>
+    <string name="custom_color_assistant_bubble">Couleur de la bulle de l\'assistant</string>
+    <string name="custom_color_reasoning_panel">Couleur du panneau de raisonnement</string>
+    <string name="custom_color_chat_background">Couleur d\'arrière-plan du chat</string>
+    <string name="custom_color_accent">Couleur d\'accent</string>
+    <string name="custom_color_input_field">Couleur du champ de saisie</string>
+    <string name="transparency_message_bubble">Bulle de message</string>
+    <string name="transparency_reasoning_panel">Panneau de raisonnement</string>
+    <string name="transparency_drawer_item">Élément du tiroir</string>
     <string name="appearance_title">Apparence</string>
     <string name="theme_mode">Mode du thème</string>
     <string name="theme_mode_light">Clair</string>

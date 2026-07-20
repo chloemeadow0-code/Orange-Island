@@ -29,8 +29,17 @@ private const val STREAMING_MARKDOWN_FLUSH_MS = 250L
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun MessageItem(
-    message: ChatMessage, 
-    onEdit: (String, String) -> Unit, 
+    message: ChatMessage,
+    onEdit: (String, String) -> Unit,
+    customUserBubbleColor: Long? = null,
+    userBubbleBackgroundImagePath: String = "",
+    userBubbleCornerRadiusOverride: Float? = null,
+    customAssistantBubbleColor: Long? = null,
+    customReasoningPanelColor: Long? = null,
+    customChatTextColor: Long? = null,
+    customGlobalTextColor: Long? = null,
+    messageBubbleAlpha: Float = 1f,
+    reasoningPanelAlpha: Float = 1f,
     isStreaming: Boolean = false,
     isLoading: Boolean = false,
     isEditingAllowed: Boolean = true,
@@ -124,14 +133,15 @@ fun MessageItem(
     }
 
     val backgroundColor = when (message.participant) {
-        Participant.USER -> MaterialTheme.colorScheme.primaryContainer
+        Participant.USER -> (customUserBubbleColor?.let { ColorMath.argbToColor(it) } ?: MaterialTheme.colorScheme.primaryContainer)
+            .let { it.copy(alpha = it.alpha * messageBubbleAlpha) }
         Participant.MODEL -> Color.Transparent
         Participant.ERROR -> MaterialTheme.colorScheme.errorContainer
     }
 
     val textColor = when (message.participant) {
-        Participant.USER -> MaterialTheme.colorScheme.onPrimaryContainer
-        Participant.MODEL -> MaterialTheme.colorScheme.onSurface
+        Participant.USER -> customChatTextColor?.let { ColorMath.argbToColor(it) } ?: customGlobalTextColor?.let { ColorMath.argbToColor(it) } ?: MaterialTheme.colorScheme.onPrimaryContainer
+        Participant.MODEL -> customChatTextColor?.let { ColorMath.argbToColor(it) } ?: customGlobalTextColor?.let { ColorMath.argbToColor(it) } ?: MaterialTheme.colorScheme.onSurface
         Participant.ERROR -> MaterialTheme.colorScheme.onErrorContainer
     }
 
@@ -184,10 +194,15 @@ fun MessageItem(
                 onPdfPagesClick = onPdfPagesClick,
                 onShowInfo = { showInfoDialog = true },
                 onShowDelete = { showDeleteConfirm = true },
+                bubbleBackgroundImagePath = userBubbleBackgroundImagePath,
+                bubbleCornerRadiusOverride = userBubbleCornerRadiusOverride,
             )
         } else {
             AssistantMessageContent(
                 message = message,
+                customAssistantBubbleColor = customAssistantBubbleColor,
+                customReasoningPanelColor = customReasoningPanelColor,
+                reasoningPanelAlpha = reasoningPanelAlpha,
                 contextAlpha = contextAlpha,
                 isStreaming = isStreaming,
                 isLoading = isLoading,

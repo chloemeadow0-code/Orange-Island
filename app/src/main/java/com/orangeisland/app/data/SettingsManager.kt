@@ -186,6 +186,29 @@ class SettingsManager(private val context: Context) {
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
         val TOOL_CALL_DISPLAY_MODE = stringPreferencesKey("tool_call_display_mode")
         val SCHEME_STYLE = stringPreferencesKey("scheme_style")
+        // ── Custom colors (nullable ARGB Long; null = follow theme default) ──────
+        val CUSTOM_COLOR_CHAT_TEXT = longPreferencesKey("custom_color_chat_text")
+        val CUSTOM_COLOR_GLOBAL_TEXT = longPreferencesKey("custom_color_global_text")
+        val CUSTOM_COLOR_USER_BUBBLE = longPreferencesKey("custom_color_user_bubble")
+        val CUSTOM_COLOR_ASSISTANT_BUBBLE = longPreferencesKey("custom_color_assistant_bubble")
+        val CUSTOM_COLOR_REASONING_PANEL = longPreferencesKey("custom_color_reasoning_panel")
+        val CUSTOM_COLOR_CHAT_BACKGROUND = longPreferencesKey("custom_color_chat_background")
+        val CUSTOM_COLOR_ACCENT = longPreferencesKey("custom_color_accent")
+        val CUSTOM_COLOR_INPUT_FIELD = longPreferencesKey("custom_color_input_field")
+        // ── Illustration backgrounds (local file paths; empty string = none) ──────
+        val ILLUSTRATION_CHAT_BACKGROUND_PATH = stringPreferencesKey("illustration_chat_background_path")
+        val ILLUSTRATION_INPUT_BACKGROUND_PATH = stringPreferencesKey("illustration_input_background_path")
+        val ILLUSTRATION_DRAWER_BACKGROUND_PATH = stringPreferencesKey("illustration_drawer_background_path")
+        val ILLUSTRATION_USER_BUBBLE_BACKGROUND_PATH = stringPreferencesKey("illustration_user_bubble_background_path")
+        val ILLUSTRATION_USER_BUBBLE_CORNER_RADIUS = stringPreferencesKey("illustration_user_bubble_corner_radius")
+        val ILLUSTRATION_TOPBAR_BACKGROUND_PATH = stringPreferencesKey("illustration_topbar_background_path")
+        val TRANSPARENCY_TOPBAR = stringPreferencesKey("transparency_topbar")
+        // ── Transparency (0f..1f) ──────────────────────────────────
+        val TRANSPARENCY_MESSAGE_BUBBLE = stringPreferencesKey("transparency_message_bubble")
+        val TRANSPARENCY_REASONING_PANEL = stringPreferencesKey("transparency_reasoning_panel")
+        val TRANSPARENCY_DRAWER_ITEM = stringPreferencesKey("transparency_drawer_item")
+        // ── Recent custom colors (comma-separated ARGB Long list, most-recent-first) ──
+        val RECENT_CUSTOM_COLORS = stringPreferencesKey("recent_custom_colors")
         val FONT_PREFERENCE = stringPreferencesKey("font_preference")
         val CUSTOM_FONT_PATH = stringPreferencesKey("custom_font_path")
         val CUSTOM_FONT_NAME = stringPreferencesKey("custom_font_name")
@@ -374,6 +397,27 @@ class SettingsManager(private val context: Context) {
     val colorScheme: Flow<String> = context.dataStore.data.map { it[COLOR_SCHEME] ?: "DEFAULT" }
     val dynamicColor: Flow<Boolean> = context.dataStore.data.map { it[DYNAMIC_COLOR] ?: true }
     val blurEffectsEnabled: Flow<Boolean> = context.dataStore.data.map { it[BLUR_EFFECTS_ENABLED] ?: true }
+    val customColorChatText: Flow<Long?> = context.dataStore.data.map { it[CUSTOM_COLOR_CHAT_TEXT] }
+    val customColorGlobalText: Flow<Long?> = context.dataStore.data.map { it[CUSTOM_COLOR_GLOBAL_TEXT] }
+    val customColorUserBubble: Flow<Long?> = context.dataStore.data.map { it[CUSTOM_COLOR_USER_BUBBLE] }
+    val customColorAssistantBubble: Flow<Long?> = context.dataStore.data.map { it[CUSTOM_COLOR_ASSISTANT_BUBBLE] }
+    val customColorReasoningPanel: Flow<Long?> = context.dataStore.data.map { it[CUSTOM_COLOR_REASONING_PANEL] }
+    val customColorChatBackground: Flow<Long?> = context.dataStore.data.map { it[CUSTOM_COLOR_CHAT_BACKGROUND] }
+    val customColorAccent: Flow<Long?> = context.dataStore.data.map { it[CUSTOM_COLOR_ACCENT] }
+    val customColorInputField: Flow<Long?> = context.dataStore.data.map { it[CUSTOM_COLOR_INPUT_FIELD] }
+    val illustrationChatBackgroundPath: Flow<String> = context.dataStore.data.map { it[ILLUSTRATION_CHAT_BACKGROUND_PATH] ?: "" }
+    val illustrationInputBackgroundPath: Flow<String> = context.dataStore.data.map { it[ILLUSTRATION_INPUT_BACKGROUND_PATH] ?: "" }
+    val illustrationDrawerBackgroundPath: Flow<String> = context.dataStore.data.map { it[ILLUSTRATION_DRAWER_BACKGROUND_PATH] ?: "" }
+    val illustrationUserBubbleBackgroundPath: Flow<String> = context.dataStore.data.map { it[ILLUSTRATION_USER_BUBBLE_BACKGROUND_PATH] ?: "" }
+    val illustrationUserBubbleCornerRadius: Flow<Float> = context.dataStore.data.map { it[ILLUSTRATION_USER_BUBBLE_CORNER_RADIUS]?.toFloatOrNull() ?: 20f }
+    val illustrationTopBarBackgroundPath: Flow<String> = context.dataStore.data.map { it[ILLUSTRATION_TOPBAR_BACKGROUND_PATH] ?: "" }
+    val transparencyTopBar: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_TOPBAR]?.toFloatOrNull() ?: 1f }
+    val transparencyMessageBubble: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_MESSAGE_BUBBLE]?.toFloatOrNull() ?: 1f }
+    val transparencyReasoningPanel: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_REASONING_PANEL]?.toFloatOrNull() ?: 1f }
+    val transparencyDrawerItem: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_DRAWER_ITEM]?.toFloatOrNull() ?: 1f }
+    val recentCustomColors: Flow<List<Long>> = context.dataStore.data.map { pref ->
+        (pref[RECENT_CUSTOM_COLORS] ?: "").split(",").mapNotNull { it.toLongOrNull() }
+    }
     val hapticsEnabled: Flow<Boolean> = context.dataStore.data.map { it[HAPTICS_ENABLED] ?: true }
     val toolCallDisplayMode: Flow<String> = context.dataStore.data.map { ToolCallDisplayModes.normalize(it[TOOL_CALL_DISPLAY_MODE]) }
     val schemeStyle: Flow<String> = context.dataStore.data.map { it[SCHEME_STYLE] ?: "TONAL_SPOT" }
@@ -781,6 +825,30 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveBlurEffectsEnabled(enabled: Boolean) {
         context.dataStore.edit { it[BLUR_EFFECTS_ENABLED] = enabled }
+    }
+
+    suspend fun saveCustomColorChatText(value: Long?) = context.dataStore.edit { if (value == null) it.remove(CUSTOM_COLOR_CHAT_TEXT) else it[CUSTOM_COLOR_CHAT_TEXT] = value }
+    suspend fun saveCustomColorGlobalText(value: Long?) = context.dataStore.edit { if (value == null) it.remove(CUSTOM_COLOR_GLOBAL_TEXT) else it[CUSTOM_COLOR_GLOBAL_TEXT] = value }
+    suspend fun saveCustomColorUserBubble(value: Long?) = context.dataStore.edit { if (value == null) it.remove(CUSTOM_COLOR_USER_BUBBLE) else it[CUSTOM_COLOR_USER_BUBBLE] = value }
+    suspend fun saveCustomColorAssistantBubble(value: Long?) = context.dataStore.edit { if (value == null) it.remove(CUSTOM_COLOR_ASSISTANT_BUBBLE) else it[CUSTOM_COLOR_ASSISTANT_BUBBLE] = value }
+    suspend fun saveCustomColorReasoningPanel(value: Long?) = context.dataStore.edit { if (value == null) it.remove(CUSTOM_COLOR_REASONING_PANEL) else it[CUSTOM_COLOR_REASONING_PANEL] = value }
+    suspend fun saveCustomColorChatBackground(value: Long?) = context.dataStore.edit { if (value == null) it.remove(CUSTOM_COLOR_CHAT_BACKGROUND) else it[CUSTOM_COLOR_CHAT_BACKGROUND] = value }
+    suspend fun saveCustomColorAccent(value: Long?) = context.dataStore.edit { if (value == null) it.remove(CUSTOM_COLOR_ACCENT) else it[CUSTOM_COLOR_ACCENT] = value }
+    suspend fun saveCustomColorInputField(value: Long?) = context.dataStore.edit { if (value == null) it.remove(CUSTOM_COLOR_INPUT_FIELD) else it[CUSTOM_COLOR_INPUT_FIELD] = value }
+    suspend fun saveIllustrationChatBackgroundPath(path: String) = context.dataStore.edit { it[ILLUSTRATION_CHAT_BACKGROUND_PATH] = path }
+    suspend fun saveIllustrationInputBackgroundPath(path: String) = context.dataStore.edit { it[ILLUSTRATION_INPUT_BACKGROUND_PATH] = path }
+    suspend fun saveIllustrationDrawerBackgroundPath(path: String) = context.dataStore.edit { it[ILLUSTRATION_DRAWER_BACKGROUND_PATH] = path }
+    suspend fun saveIllustrationUserBubbleBackgroundPath(path: String) = context.dataStore.edit { it[ILLUSTRATION_USER_BUBBLE_BACKGROUND_PATH] = path }
+    suspend fun saveIllustrationUserBubbleCornerRadius(radius: Float) = context.dataStore.edit { it[ILLUSTRATION_USER_BUBBLE_CORNER_RADIUS] = radius.coerceIn(0f, 32f).toString() }
+    suspend fun saveIllustrationTopBarBackgroundPath(path: String) = context.dataStore.edit { it[ILLUSTRATION_TOPBAR_BACKGROUND_PATH] = path }
+    suspend fun saveTransparencyTopBar(value: Float) = context.dataStore.edit { it[TRANSPARENCY_TOPBAR] = value.coerceIn(0f, 1f).toString() }
+
+    suspend fun saveTransparencyMessageBubble(value: Float) = context.dataStore.edit { it[TRANSPARENCY_MESSAGE_BUBBLE] = value.coerceIn(0f, 1f).toString() }
+    suspend fun saveTransparencyReasoningPanel(value: Float) = context.dataStore.edit { it[TRANSPARENCY_REASONING_PANEL] = value.coerceIn(0f, 1f).toString() }
+    suspend fun saveTransparencyDrawerItem(value: Float) = context.dataStore.edit { it[TRANSPARENCY_DRAWER_ITEM] = value.coerceIn(0f, 1f).toString() }
+
+    suspend fun saveRecentCustomColors(colors: List<Long>) = context.dataStore.edit {
+        it[RECENT_CUSTOM_COLORS] = colors.take(20).joinToString(",")
     }
 
     suspend fun saveHapticsEnabled(enabled: Boolean) {

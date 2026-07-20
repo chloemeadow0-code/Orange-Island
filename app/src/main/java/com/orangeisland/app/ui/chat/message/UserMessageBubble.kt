@@ -69,155 +69,65 @@ internal fun UserMessageBubble(
     onPdfPagesClick: ((pages: List<String>, startIndex: Int) -> Unit)?,
     onShowInfo: () -> Unit,
     onShowDelete: () -> Unit,
+    bubbleBackgroundImagePath: String = "",
+    bubbleCornerRadiusOverride: Float? = null,
 ) {
     @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
     val haptics = LocalOrangeIslandHaptics.current
     var showMenu by remember { mutableStateOf(false) }
 
+    val effectiveShape = bubbleCornerRadiusOverride?.let {
+        androidx.compose.foundation.shape.RoundedCornerShape(it.dp)
+    } ?: shape
+
     Column(horizontalAlignment = Alignment.End) {
         Surface(
-            shape = shape,
-            color = backgroundColor,
+            shape = effectiveShape,
+            color = if (bubbleBackgroundImagePath.isNotBlank()) Color.Transparent else backgroundColor,
             modifier = Modifier
                 .widthIn(max = 300.dp)
                 .then(contextAlpha)
                 .then(if (shouldAnimate) Modifier.animateContentSize(animationSpec = tween(500)) else Modifier)
         ) {
-            if (isEditing) {
-                val editState = rememberTextFieldState(message.text)
-                val editScrollState = rememberScrollState()
-                Column(modifier = Modifier.padding(8.dp)) {
-                    Box(modifier = Modifier.noOpBringIntoView()) {
-                        TextField(
-                            state = editState,
-                            scrollState = editScrollState,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent
-                            )
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = { onCancelEdit() }) { Text(stringResource(R.string.cancel)) }
-                        TextButton(onClick = { onEdit(message.id, editState.text.toString()) }, enabled = !isLoading) { Text(stringResource(R.string.send)) }
-                    }
+            if (bubbleBackgroundImagePath.isNotBlank()) {
+                Box {
+                    coil.compose.AsyncImage(
+                        model = bubbleBackgroundImagePath,
+                        contentDescription = null,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier.matchParentSize(),
+                    )
+                    // Mandatory scrim -- message text must stay legible over any photo.
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f))
+                    )
+                    UserMessageBubbleContent(
+                        message = message,
+                        textColor = textColor,
+                        isEditing = isEditing,
+                        isLoading = isLoading,
+                        onEdit = onEdit,
+                        onCancelEdit = onCancelEdit,
+                        onMediaClick = onMediaClick,
+                        onFileContentClick = onFileContentClick,
+                        onPdfPagesClick = onPdfPagesClick,
+                    )
                 }
             } else {
-                Column(
-                    modifier = Modifier.padding(16.dp).noOpBringIntoView(),
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    val hasMetaItems = message.attachmentMeta?.items?.isNotEmpty() == true
-                if (message.images.isNotEmpty() || hasMetaItems) {
-                        val ctx = LocalContext.current
-                        val meta = remember(message.attachmentMeta) {
-                            message.attachmentMeta
-                        }
-                        // Build display items: skip non-first video/PDF frames, add meta-only items
-                        val displayItems = remember(message.images, meta) {
-                            val skipIndices = mutableSetOf<Int>()
-                            if (meta != null) {
-                                for (item in meta.items) {
-                                    val count = item.pageCount ?: 1
-                                    if (item.imageIndex != null && count > 1 && (item.type == "video" || item.type == "pdf")) {
-                                        for (i in item.imageIndex + 1 until item.imageIndex + count) {
-                                            skipIndices.add(i)
-                                        }
-                                    }
-                                }
-                            }
-                            // Image-backed items
-                            val imageItems = message.images.mapIndexedNotNull { index, path ->
-                                if (index in skipIndices) null
-                                else {
-                                    val item = findMetaForIndex(meta, index)
-                                    Triple(index, path, item)
-                                }
-                            }
-                            // Meta-only items (file/PDF without image representation)
-                            val metaOnlyItems = meta?.items
-                                ?.filter { it.imageIndex == null && (it.type == "file" || it.type == "pdf" || it.type == "image") }
-                                ?.map { Triple(-1, "", it) }
-                                ?: emptyList()
-                            imageItems + metaOnlyItems
-                        }
-
-                        // Collect all image/video URLs for the pager
-                        val allMediaUrls = remember(displayItems) {
-                            displayItems.mapNotNull { (_, imagePath, metaItem) ->
-                                val t = resolveAttachmentType(imagePath, metaItem, ctx)
-                                when (t) {
-                                    "image" -> if (imagePath.isNotEmpty()) imagePath else null
-                                    "video" -> metaItem?.originalUri
-                                    else -> null
-                                }
-                            }
-                        }
-
-                        LazyRow(
-                            modifier = Modifier.padding(bottom = if (message.text.isNotEmpty()) 8.dp else 0.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            itemsIndexed(displayItems) { itemIdx, (index, imagePath, metaItem) ->
-                                val type = remember(imagePath, metaItem?.type) {
-                                    resolveAttachmentType(imagePath, metaItem, ctx)
-                                }
-                                val isVideo = type == "video"
-                                val isPdf = type == "pdf"
-                                val isFileType = type == "file"
-
-                                val fileName = metaItem?.fileName ?: imagePath.substringAfterLast("/")
-                                val pdfPages = if (type == "pdf") {
-                                    metaItem?.imageIndex?.let { start ->
-                                        val count = metaItem.pageCount ?: 1
-                                        val end = (start + count).coerceAtMost(message.images.size)
-                                        if (start in 0 until message.images.size) message.images.subList(start, end) else emptyList()
-                                    } ?: emptyList()
-                                } else emptyList()
-
-                                val mediaIndex = allMediaUrls.indexOf(
-                                    when (type) {
-                                        "video" -> metaItem?.originalUri
-                                        else -> imagePath
-                                    }
-                                ).coerceAtLeast(0)
-
-                                AttachmentThumbnailItem(
-                                    type = type,
-                                    imagePath = imagePath,
-                                    fileName = fileName,
-                                    originalUri = metaItem?.originalUri,
-                                    textContent = metaItem?.textContent,
-                                    pdfPages = pdfPages,
-                                    allMediaUrls = allMediaUrls,
-                                    mediaIndex = mediaIndex,
-                                    handlers = ThumbnailClickHandlers(
-                                        onMediaClick = onMediaClick,
-                                        onFileClick = onFileContentClick,
-                                        onPdfClick = onPdfPagesClick
-                                    )
-                                )
-                                if (type == "pdf" && metaItem?.warning != null) {
-                                    Text(metaItem.warning, style = MaterialTheme.typography.labelSmall, color = Color(0xFFE53935), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
-                            }
-                        }
-                    }
-                    if (message.text.isNotEmpty()) {
-                        SelectionContainer {
-                            Text(
-                                text = message.text,
-                                style = ChatType.userBody,
-                                color = textColor
-                            )
-                        }
-                    }
-                }
+                UserMessageBubbleContent(
+                    message = message,
+                    textColor = textColor,
+                    isEditing = isEditing,
+                    isLoading = isLoading,
+                    onEdit = onEdit,
+                    onCancelEdit = onCancelEdit,
+                    onMediaClick = onMediaClick,
+                    onFileContentClick = onFileContentClick,
+                    onPdfPagesClick = onPdfPagesClick,
+                )
             }
         }
 
@@ -275,6 +185,159 @@ internal fun UserMessageBubble(
                             leadingIcon = { Icon(Icons.Default.Delete, null, tint = if (!isLoading) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.error.copy(alpha = 0.5f)) }
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The inner content of [UserMessageBubble]: inline editor or attachment thumbnails + text.
+ * Extracted verbatim so the bubble can be rendered once over a photo background and once plain.
+ */
+@Composable
+private fun UserMessageBubbleContent(
+    message: ChatMessage,
+    textColor: Color,
+    isEditing: Boolean,
+    isLoading: Boolean,
+    onEdit: (String, String) -> Unit,
+    onCancelEdit: () -> Unit,
+    onMediaClick: (List<String>, Int) -> Unit,
+    onFileContentClick: ((fileName: String, content: String) -> Unit)?,
+    onPdfPagesClick: ((pages: List<String>, startIndex: Int) -> Unit)?,
+) {
+    if (isEditing) {
+        val editState = rememberTextFieldState(message.text)
+        val editScrollState = rememberScrollState()
+        Column(modifier = Modifier.padding(8.dp)) {
+            Box(modifier = Modifier.noOpBringIntoView()) {
+                TextField(
+                    state = editState,
+                    scrollState = editScrollState,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = { onCancelEdit() }) { Text(stringResource(R.string.cancel)) }
+                TextButton(onClick = { onEdit(message.id, editState.text.toString()) }, enabled = !isLoading) { Text(stringResource(R.string.send)) }
+            }
+        }
+    } else {
+        Column(
+            modifier = Modifier.padding(16.dp).noOpBringIntoView(),
+            horizontalAlignment = Alignment.Start
+        ) {
+            val hasMetaItems = message.attachmentMeta?.items?.isNotEmpty() == true
+            if (message.images.isNotEmpty() || hasMetaItems) {
+                val ctx = LocalContext.current
+                val meta = remember(message.attachmentMeta) {
+                    message.attachmentMeta
+                }
+                // Build display items: skip non-first video/PDF frames, add meta-only items
+                val displayItems = remember(message.images, meta) {
+                    val skipIndices = mutableSetOf<Int>()
+                    if (meta != null) {
+                        for (item in meta.items) {
+                            val count = item.pageCount ?: 1
+                            if (item.imageIndex != null && count > 1 && (item.type == "video" || item.type == "pdf")) {
+                                for (i in item.imageIndex + 1 until item.imageIndex + count) {
+                                    skipIndices.add(i)
+                                }
+                            }
+                        }
+                    }
+                    // Image-backed items
+                    val imageItems = message.images.mapIndexedNotNull { index, path ->
+                        if (index in skipIndices) null
+                        else {
+                            val item = findMetaForIndex(meta, index)
+                            Triple(index, path, item)
+                        }
+                    }
+                    // Meta-only items (file/PDF without image representation)
+                    val metaOnlyItems = meta?.items
+                        ?.filter { it.imageIndex == null && (it.type == "file" || it.type == "pdf" || it.type == "image") }
+                        ?.map { Triple(-1, "", it) }
+                        ?: emptyList()
+                    imageItems + metaOnlyItems
+                }
+
+                // Collect all image/video URLs for the pager
+                val allMediaUrls = remember(displayItems) {
+                    displayItems.mapNotNull { (_, imagePath, metaItem) ->
+                        val t = resolveAttachmentType(imagePath, metaItem, ctx)
+                        when (t) {
+                            "image" -> if (imagePath.isNotEmpty()) imagePath else null
+                            "video" -> metaItem?.originalUri
+                            else -> null
+                        }
+                    }
+                }
+
+                LazyRow(
+                    modifier = Modifier.padding(bottom = if (message.text.isNotEmpty()) 8.dp else 0.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    itemsIndexed(displayItems) { itemIdx, (index, imagePath, metaItem) ->
+                        val type = remember(imagePath, metaItem?.type) {
+                            resolveAttachmentType(imagePath, metaItem, ctx)
+                        }
+                        val isVideo = type == "video"
+                        val isPdf = type == "pdf"
+                        val isFileType = type == "file"
+
+                        val fileName = metaItem?.fileName ?: imagePath.substringAfterLast("/")
+                        val pdfPages = if (type == "pdf") {
+                            metaItem?.imageIndex?.let { start ->
+                                val count = metaItem.pageCount ?: 1
+                                val end = (start + count).coerceAtMost(message.images.size)
+                                if (start in 0 until message.images.size) message.images.subList(start, end) else emptyList()
+                            } ?: emptyList()
+                        } else emptyList()
+
+                        val mediaIndex = allMediaUrls.indexOf(
+                            when (type) {
+                                "video" -> metaItem?.originalUri
+                                else -> imagePath
+                            }
+                        ).coerceAtLeast(0)
+
+                        AttachmentThumbnailItem(
+                            type = type,
+                            imagePath = imagePath,
+                            fileName = fileName,
+                            originalUri = metaItem?.originalUri,
+                            textContent = metaItem?.textContent,
+                            pdfPages = pdfPages,
+                            allMediaUrls = allMediaUrls,
+                            mediaIndex = mediaIndex,
+                            handlers = ThumbnailClickHandlers(
+                                onMediaClick = onMediaClick,
+                                onFileClick = onFileContentClick,
+                                onPdfClick = onPdfPagesClick
+                            )
+                        )
+                        if (type == "pdf" && metaItem?.warning != null) {
+                            Text(metaItem.warning, style = MaterialTheme.typography.labelSmall, color = Color(0xFFE53935), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
+            }
+            if (message.text.isNotEmpty()) {
+                SelectionContainer {
+                    Text(
+                        text = message.text,
+                        style = ChatType.userBody,
+                        color = textColor
+                    )
                 }
             }
         }

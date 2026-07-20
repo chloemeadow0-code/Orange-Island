@@ -516,6 +516,27 @@
     <!-- Appearance -->
     <string name="settings_appearance">Оформление</string>
     <string name="settings_appearance_desc">Тема, цветовая схема и динамические цвета</string>
+    <string name="settings_custom_colors">Пользовательские цвета</string>
+    <string name="settings_custom_colors_desc">Цвета пузырей, фона и акцентов</string>
+    <string name="color_picker_title">Выбрать цвет</string>
+    <string name="color_picker_default">По умолчанию</string>
+    <string name="color_picker_current">Текущий</string>
+    <string name="color_picker_reset">Сбросить</string>
+    <string name="color_picker_confirm">Подтвердить</string>
+    <string name="color_picker_recent">Недавние</string>
+    <string name="custom_colors_section_colors">Цвета</string>
+    <string name="custom_colors_section_transparency">Прозрачность</string>
+    <string name="custom_color_chat_text">Цвет текста чата</string>
+    <string name="custom_color_global_text">Глобальный цвет текста</string>
+    <string name="custom_color_user_bubble">Цвет пузыря пользователя</string>
+    <string name="custom_color_assistant_bubble">Цвет пузыря ассистента</string>
+    <string name="custom_color_reasoning_panel">Цвет панели рассуждений</string>
+    <string name="custom_color_chat_background">Цвет фона чата</string>
+    <string name="custom_color_accent">Акцентный цвет</string>
+    <string name="custom_color_input_field">Цвет поля ввода</string>
+    <string name="transparency_message_bubble">Пузырь сообщения</string>
+    <string name="transparency_reasoning_panel">Панель рассуждений</string>
+    <string name="transparency_drawer_item">Элемент бокового меню</string>
     <string name="appearance_title">Оформление</string>
     <string name="theme_mode">Режим темы</string>
     <string name="theme_mode_light">Светлая</string>

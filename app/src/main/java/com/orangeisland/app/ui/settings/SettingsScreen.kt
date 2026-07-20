@@ -190,6 +190,8 @@ private val settingsGroups = listOf(
     )),
     SettingsGroupData(titleRes = R.string.settings_group_appearance_language, items = listOf(
         SettingsCategory("appearance", R.string.settings_appearance, R.string.settings_appearance_desc, Icons.Default.Palette),
+        SettingsCategory("customcolors", R.string.settings_custom_colors, R.string.settings_custom_colors_desc, Icons.Default.ColorLens),
+        SettingsCategory("illustrations", R.string.illustrations_title, R.string.illustration_chat_background, Icons.Default.Wallpaper),
         SettingsCategory("language", R.string.language_title, R.string.language_desc, Icons.Default.Translate),
     )),
     SettingsGroupData(titleRes = R.string.settings_group_about, items = listOf(
@@ -242,6 +244,8 @@ fun SettingsScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
                 "memory" -> SettingsMemoryPage(viewModel, onBack = { selectedCategory = null })
                 "datacontrol" -> SettingsDataControlPage(viewModel, onBack = { selectedCategory = null })
                 "appearance" -> SettingsAppearancePage(viewModel, onBack = { selectedCategory = null })
+                "customcolors" -> SettingsCustomColorsPage(viewModel, onBack = { selectedCategory = null })
+                "illustrations" -> SettingsIllustrationsPage(viewModel, onBack = { selectedCategory = null })
                 "about" -> SettingsAboutPage(viewModel, onBack = { selectedCategory = null })
                 else -> {
                     CollapsingSettingsLazyScaffold(
