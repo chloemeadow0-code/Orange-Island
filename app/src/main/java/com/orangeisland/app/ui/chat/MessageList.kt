@@ -41,6 +41,15 @@ fun MessageList(
     toolCallDisplayMode: String = ToolCallDisplayModes.DEFAULT,
     maxContextWindow: Int = 20,
     modelAliases: Map<String, String> = emptyMap(),
+    customUserBubbleColor: Long? = null,
+    userBubbleBackgroundImagePath: String = "",
+    userBubbleCornerRadiusOverride: Float? = null,
+    customAssistantBubbleColor: Long? = null,
+    customReasoningPanelColor: Long? = null,
+    customChatTextColor: Long? = null,
+    customGlobalTextColor: Long? = null,
+    messageBubbleAlpha: Float = 1f,
+    reasoningPanelAlpha: Float = 1f,
     bottomBarHeight: androidx.compose.ui.unit.Dp = 0.dp,
     viewportHeight: Int = 0,
     messageHeights: SnapshotStateMap<String, Int> = remember { mutableStateMapOf() },
@@ -113,6 +122,15 @@ fun MessageList(
                         onEditMessage(id, text)
                         editingMessageId = null
                     },
+                    customUserBubbleColor = customUserBubbleColor,
+                    userBubbleBackgroundImagePath = userBubbleBackgroundImagePath,
+                    userBubbleCornerRadiusOverride = userBubbleCornerRadiusOverride,
+                    customAssistantBubbleColor = customAssistantBubbleColor,
+                    customReasoningPanelColor = customReasoningPanelColor,
+                    customChatTextColor = customChatTextColor,
+                    customGlobalTextColor = customGlobalTextColor,
+                    messageBubbleAlpha = messageBubbleAlpha,
+                    reasoningPanelAlpha = reasoningPanelAlpha,
                     // isStreaming driven by message status, not isLoading flag
                     isStreaming = isLastMessage && message.participant == Participant.MODEL
                         && message.status in setOf(MessageStatus.SENDING, MessageStatus.THINKING, MessageStatus.TOOL_CALLING, MessageStatus.TRANSCRIBING),

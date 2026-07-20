@@ -516,6 +516,27 @@
     <!-- Appearance -->
     <string name="settings_appearance">모양</string>
     <string name="settings_appearance_desc">테마, 색 구성표 및 동적 색상</string>
+    <string name="settings_custom_colors">사용자 정의 색상</string>
+    <string name="settings_custom_colors_desc">말풍선, 배경 및 강조 색상</string>
+    <string name="color_picker_title">색상 선택</string>
+    <string name="color_picker_default">기본값</string>
+    <string name="color_picker_current">현재</string>
+    <string name="color_picker_reset">재설정</string>
+    <string name="color_picker_confirm">확인</string>
+    <string name="color_picker_recent">최근</string>
+    <string name="custom_colors_section_colors">색상</string>
+    <string name="custom_colors_section_transparency">투명도</string>
+    <string name="custom_color_chat_text">채팅 텍스트 색상</string>
+    <string name="custom_color_global_text">전역 텍스트 색상</string>
+    <string name="custom_color_user_bubble">사용자 말풍선 색상</string>
+    <string name="custom_color_assistant_bubble">어시스턴트 말풍선 색상</string>
+    <string name="custom_color_reasoning_panel">추론 패널 색상</string>
+    <string name="custom_color_chat_background">채팅 배경색</string>
+    <string name="custom_color_accent">강조 색상</string>
+    <string name="custom_color_input_field">입력창 색상</string>
+    <string name="transparency_message_bubble">메시지 말풍선</string>
+    <string name="transparency_reasoning_panel">추론 패널</string>
+    <string name="transparency_drawer_item">드로어 항목</string>
     <string name="appearance_title">모양</string>
     <string name="theme_mode">테마 모드</string>
     <string name="theme_mode_light">밝게</string>

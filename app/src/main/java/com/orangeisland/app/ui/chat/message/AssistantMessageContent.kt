@@ -57,6 +57,7 @@ import com.orangeisland.app.model.Participant
 import com.orangeisland.app.model.ToolCallDisplayModes
 import com.orangeisland.app.ui.common.LocalOrangeIslandHaptics
 import com.orangeisland.app.ui.theme.ChatType
+import com.orangeisland.app.ui.components.ColorMath
 import org.intellij.markdown.flavours.MarkdownFlavourDescriptor
 import kotlinx.coroutines.launch
 
@@ -75,6 +76,9 @@ private const val STREAMING_MARKDOWN_FLUSH_MS = 250L
 @Composable
 internal fun AssistantMessageContent(
     message: ChatMessage,
+    customAssistantBubbleColor: Long? = null,
+    customReasoningPanelColor: Long? = null,
+    reasoningPanelAlpha: Float = 1f,
     contextAlpha: Modifier,
     isStreaming: Boolean,
     isLoading: Boolean,
@@ -116,8 +120,15 @@ internal fun AssistantMessageContent(
             .padding(horizontal = 8.dp)
             .then(contextAlpha)
             .then(if (isStreaming) Modifier.nestedScroll(horizontalScrollEater) else Modifier)
+            .then(
+                customAssistantBubbleColor?.let { argb ->
+                    Modifier
+                        .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 20.dp))
+                        .background(ColorMath.argbToColor(argb))
+                } ?: Modifier
+            )
     ) {
-        Column {
+        Column(modifier = if (customAssistantBubbleColor != null) Modifier.padding(12.dp) else Modifier) {
             // Status Header
             if (message.participant == Participant.MODEL) {
                 val thinkingStatus = stringResource(R.string.thinking_ellipsis)
@@ -347,6 +358,8 @@ internal fun AssistantMessageContent(
                     )
                     Surface(
                         tonalElevation = 2.dp,
+                        color = (customReasoningPanelColor?.let { ColorMath.argbToColor(it) } ?: MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp))
+                            .copy(alpha = reasoningPanelAlpha),
                         shape = RoundedCornerShape(18.dp),
                         modifier = Modifier
                             .fillMaxWidth()

@@ -147,6 +147,21 @@ fun ChatApp(
     val blurEffectsEnabled by viewModel.settings.blurEffectsEnabled.collectAsState()
     val hapticsEnabled by viewModel.settings.hapticsEnabled.collectAsState()
     val haptics = rememberOrangeIslandHaptics(hapticsEnabled)
+    val customChatBackground by viewModel.settings.customColorChatBackground.collectAsState()
+    val chatBackgroundImagePath by viewModel.settings.illustrationChatBackgroundPath.collectAsState()
+    val inputBackgroundImagePath by viewModel.settings.illustrationInputBackgroundPath.collectAsState()
+    val topBarBackgroundImagePath by viewModel.settings.illustrationTopBarBackgroundPath.collectAsState()
+    val topBarAlpha by viewModel.settings.transparencyTopBar.collectAsState()
+    val customInputFieldColor by viewModel.settings.customColorInputField.collectAsState()
+    val customUserBubbleColor by viewModel.settings.customColorUserBubble.collectAsState()
+    val userBubbleBackgroundImagePath by viewModel.settings.illustrationUserBubbleBackgroundPath.collectAsState()
+    val userBubbleCornerRadius by viewModel.settings.illustrationUserBubbleCornerRadius.collectAsState()
+    val customAssistantBubbleColor by viewModel.settings.customColorAssistantBubble.collectAsState()
+    val customReasoningPanelColor by viewModel.settings.customColorReasoningPanel.collectAsState()
+    val customChatTextColor by viewModel.settings.customColorChatText.collectAsState()
+    val customGlobalTextColor by viewModel.settings.customColorGlobalText.collectAsState()
+    val messageBubbleAlpha by viewModel.settings.transparencyMessageBubble.collectAsState()
+    val reasoningPanelAlpha by viewModel.settings.transparencyReasoningPanel.collectAsState()
 
 
     var showRenameDialog by remember { mutableStateOf<String?>(null) }
@@ -467,9 +482,24 @@ fun ChatApp(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .then(
+                    if (chatBackgroundImagePath.isBlank()) {
+                        customChatBackground?.let { argb ->
+                            Modifier.background(com.orangeisland.app.ui.components.ColorMath.argbToColor(argb))
+                        } ?: Modifier
+                    } else Modifier
+                )
                 .clearFocusOnTap()
                 .onSizeChanged { viewportHeightPx = it.height }
         ) {
+            if (chatBackgroundImagePath.isNotBlank()) {
+                coil.compose.AsyncImage(
+                    model = chatBackgroundImagePath,
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
             val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
             val (targetCa, targetQa) = if (!dark) {
                 0.00f to 0.00f
@@ -499,6 +529,8 @@ fun ChatApp(
                             viewModel.createNewChat()
                             inputFocusRequester.requestFocus()
                         },
+                        topBarBackgroundImagePath = topBarBackgroundImagePath,
+                        topBarAlpha = topBarAlpha,
                     )
                 }
             ) { padding ->
@@ -553,6 +585,15 @@ fun ChatApp(
                                 toolCallDisplayMode = toolCallDisplayMode,
                                 maxContextWindow = contextWindow,
                                 modelAliases = modelAliases,
+                                customUserBubbleColor = customUserBubbleColor,
+                                userBubbleBackgroundImagePath = userBubbleBackgroundImagePath,
+                                userBubbleCornerRadiusOverride = userBubbleCornerRadius,
+                                customAssistantBubbleColor = customAssistantBubbleColor,
+                                customReasoningPanelColor = customReasoningPanelColor,
+                                customChatTextColor = customChatTextColor,
+                                customGlobalTextColor = customGlobalTextColor,
+                                messageBubbleAlpha = messageBubbleAlpha,
+                                reasoningPanelAlpha = reasoningPanelAlpha,
                                 bottomBarHeight = bottomBarHeight,
                                 viewportHeight = viewportHeightPx,
                                 messageHeights = messageHeights,
@@ -717,7 +758,11 @@ fun ChatApp(
                         .navigationBarsPadding()
                         .imePadding()
                         .padding(8.dp),
-                    color = MaterialTheme.colorScheme.surface,
+                    color = if (inputBackgroundImagePath.isNotBlank()) {
+                        Color.Transparent
+                    } else {
+                        customInputFieldColor?.let { com.orangeisland.app.ui.components.ColorMath.argbToColor(it) } ?: MaterialTheme.colorScheme.surface
+                    },
                     tonalElevation = 2.dp,
                     shadowElevation = 8.dp,
                     shape = RoundedCornerShape(28.dp)
@@ -725,6 +770,20 @@ fun ChatApp(
                     Box(
                         contentAlignment = Alignment.BottomCenter
                     ) {
+                        if (inputBackgroundImagePath.isNotBlank()) {
+                            coil.compose.AsyncImage(
+                                model = inputBackgroundImagePath,
+                                contentDescription = null,
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                modifier = Modifier.matchParentSize(),
+                            )
+                            // Mandatory scrim -- input text must stay legible over any photo.
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
+                            )
+                        }
                         ChatBottomBar(
                         onSendMessage = { text, attachments ->
                             viewModel.sendMessage(text, attachments = attachments).also { sent ->

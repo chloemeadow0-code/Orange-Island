@@ -110,10 +110,12 @@ internal fun ChatDrawerContent(
     val isNewChatMode by viewModel.isNewChatMode.collectAsState()
     val isSwitching by viewModel.isSwitching.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val drawerItemAlpha by viewModel.settings.transparencyDrawerItem.collectAsState()
+    val drawerBackgroundImagePath by viewModel.settings.illustrationDrawerBackgroundPath.collectAsState()
 
     ModalDrawerSheet(
         drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
-        drawerContainerColor = MaterialTheme.colorScheme.surface,
+        drawerContainerColor = if (drawerBackgroundImagePath.isNotBlank()) Color.Transparent else MaterialTheme.colorScheme.surface,
         drawerTonalElevation = 1.dp,
         modifier = Modifier
             .width(drawerWidth)
@@ -127,6 +129,21 @@ internal fun ChatDrawerContent(
                 clip = true
             }
     ) {
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+            if (drawerBackgroundImagePath.isNotBlank()) {
+                coil.compose.AsyncImage(
+                    model = drawerBackgroundImagePath,
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                // Mandatory scrim -- conversation titles must stay legible.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+                )
+            }
         val drawerListState = rememberLazyListState()
         val atTop = drawerListState.firstVisibleItemIndex == 0 && drawerListState.firstVisibleItemScrollOffset == 0
         val atBottom by remember {
@@ -270,7 +287,7 @@ internal fun ChatDrawerContent(
                                             showMenu = true
                                         }
                                     ),
-                                color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                                color = (if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent).copy(alpha = drawerItemAlpha),
                                 shape = CircleShape
                             ) {
                                 Text(
@@ -278,7 +295,7 @@ internal fun ChatDrawerContent(
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                                     maxLines = 1,
                                     style = MaterialTheme.typography.bodyLarge,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+                                    color = (if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface).copy(alpha = drawerItemAlpha.coerceAtLeast(0.4f))
                                 )
                             }
 
@@ -348,6 +365,7 @@ internal fun ChatDrawerContent(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.settings), style = ChatType.drawerButton)
             }
+        }
         }
     }
 }
