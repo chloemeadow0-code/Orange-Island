@@ -49,7 +49,9 @@ fun SettingsDeviceAccessPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val calendarEnabled by settings.calendarEnabled.collectAsState()
     val notificationEnabled by settings.notificationEnabled.collectAsState()
     val usageStatsEnabled by settings.usageStatsEnabled.collectAsState()
+    val amapApiKey by settings.amapApiKey.collectAsState()
     val pc = viewModel.permissionController
+    var amapKeyDraft by remember(amapApiKey) { mutableStateOf(amapApiKey) }
 
     // Re-query special-permission state whenever this page comes back to the foreground
     // (the user may have just toggled the listener / usage-access in system Settings).
@@ -160,6 +162,32 @@ fun SettingsDeviceAccessPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     )
                 }
             })
+
+            // Amap key — only relevant when location is enabled.
+            if (locationEnabled) {
+                SettingsGroup(title = stringResource(R.string.device_access_amap_key_title), items = listOf {
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+                        Text(
+                            stringResource(R.string.device_access_amap_key_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = amapKeyDraft,
+                            onValueChange = { amapKeyDraft = it },
+                            singleLine = true,
+                            placeholder = { Text(stringResource(R.string.device_access_amap_key_hint)) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Button(
+                            onClick = { settings.setAmapApiKey(amapKeyDraft.trim()) },
+                            enabled = amapKeyDraft.trim() != amapApiKey,
+                        ) { Text(stringResource(R.string.save)) }
+                    }
+                })
+            }
         }
     }
 }

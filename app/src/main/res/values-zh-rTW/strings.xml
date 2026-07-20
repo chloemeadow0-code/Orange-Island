@@ -235,6 +235,9 @@
     <string name="device_access_perm_granted">權限已授予</string>
     <string name="device_access_perm_runtime_needed">需要權限 - 開啟開關以授權</string>
     <string name="device_access_perm_open_settings">開啟系統設定…</string>
+    <string name="device_access_amap_key_title">高德 Web 服務 API Key</string>
+    <string name="device_access_amap_key_desc">逆地理編碼與周邊搜尋必備。可至 lbs.amap.com 免費申請</string>
+    <string name="device_access_amap_key_hint">貼上你的高德 Key</string>
     <string name="models_count">%1$d 個模型可用</string>
     <string name="models_rename">重新命名模型</string>
     <string name="models_rename_current">目前 ID：%1$s</string>

@@ -271,7 +271,8 @@ class ChatViewModel(
             context = appContext,
             sandboxFactory = sandboxFactory,
             mcpPool = mcpClientPool,
-            pluginToolProvider = pluginToolProvider
+            pluginToolProvider = pluginToolProvider,
+            permissionController = permissionController
         ).also { gm ->
             gm.onMessagePersisted = { messageId, text ->
                 if (settings.autoCacheEnabled.value && (settings.modelSearchMethod.value == Constants.SEARCH_METHOD_RAG || settings.manualSearchMethod.value == Constants.SEARCH_METHOD_RAG)) {

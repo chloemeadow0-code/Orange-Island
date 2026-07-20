@@ -309,6 +309,9 @@
     <string name="device_access_perm_granted">Permission granted</string>
     <string name="device_access_perm_runtime_needed">Permission needed -- enable to grant</string>
     <string name="device_access_perm_open_settings">Open system settings...</string>
+    <string name="device_access_amap_key_title">Amap (高德) Web Service API Key</string>
+    <string name="device_access_amap_key_desc">Required for reverse geocoding + nearby search. Get one free at lbs.amap.com</string>
+    <string name="device_access_amap_key_hint">Paste your Amap key</string>
     <string name="models_count">%1$d models available</string>
     <string name="models_rename">Rename Model</string>
     <string name="models_rename_current">Current ID: %1$s</string>
