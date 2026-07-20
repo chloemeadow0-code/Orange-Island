@@ -1,13 +1,13 @@
 # Agentische Tools
 
-Agoras Modelle können autonom Tools verwenden — sie entscheiden, was sie suchen, ausführen, lesen oder sich merken, ohne dass Sie jede Aktion manuell auslösen müssen. Tools arbeiten in **mehrstufigen Schleifen**: Das Modell kann ein Tool aufrufen, das Ergebnis lesen und dann entscheiden, ein weiteres Tool aufzurufen oder zu antworten.
+橘子岛s Modelle können autonom Tools verwenden — sie entscheiden, was sie suchen, ausführen, lesen oder sich merken, ohne dass Sie jede Aktion manuell auslösen müssen. Tools arbeiten in **mehrstufigen Schleifen**: Das Modell kann ein Tool aufrufen, das Ergebnis lesen und dann entscheiden, ein weiteres Tool aufzurufen oder zu antworten.
 
 ## Wie Tool-Aufrufe funktionieren
 
 1. Sie senden eine Nachricht
 2. Das Modell entscheidet, dass es externe Informationen oder Aktionen benötigt
 3. Es emittiert einen **Tool-Aufruf** — eine strukturierte Anfrage mit einem Tool-Namen und Argumenten
-4. Agora führt das Tool auf dem Gerät oder auf einem entfernten Server aus
+4. 橘子岛 führt das Tool auf dem Gerät oder auf einem entfernten Server aus
 5. Das Ergebnis wird an das Modell zurückgegeben
 6. Das Modell kann ein weiteres Tool aufrufen oder eine endgültige Antwort produzieren
 
@@ -40,7 +40,7 @@ Code in einer isolierten Umgebung ausführen:
 
 ### Remote Shell
 
-Befehle auf entfernten Rechnern über das [Conch](https://github.com/newo-ether/conch)-Protokoll ausführen. Das Modell kann Serverstatus prüfen, Dateien verwalten oder Skripte ausführen.
+Befehle auf entfernten Rechnern über das [Conch](https://github.com/orangeisland/conch)-Protokoll ausführen. Das Modell kann Serverstatus prüfen, Dateien verwalten oder Skripte ausführen.
 
 - **Protokoll**: Ende-zu-Ende-verschlüsselt (ECDH + AES-256-GCM)
 - **Konfiguration**: Einstellungen → Shell

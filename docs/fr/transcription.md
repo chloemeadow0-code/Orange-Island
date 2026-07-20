@@ -4,7 +4,7 @@ Permettez à un modèle de vision de décrire des images pour que les modèles t
 
 ## Ce Que Cela Fait
 
-Lorsque vous envoyez une image à un modèle texte seul, Agora peut utiliser un modèle de vision séparé pour générer d'abord une description textuelle de l'image. Cette description est ensuite incluse dans le prompt envoyé à votre modèle principal.
+Lorsque vous envoyez une image à un modèle texte seul, 橘子岛 peut utiliser un modèle de vision séparé pour générer d'abord une description textuelle de l'image. Cette description est ensuite incluse dans le prompt envoyé à votre modèle principal.
 
 Cela vous permet d'utiliser des images avec n'importe quel modèle, même ceux qui ne prennent pas nativement en charge la vision.
 
@@ -21,7 +21,7 @@ Cela vous permet d'utiliser des images avec n'importe quel modèle, même ceux q
 ## Comment Ça Marche
 
 1. Vous joignez une image à votre message
-2. Agora détecte que votre modèle actuel ne prend pas en charge la vision
+2. 橘子岛 détecte que votre modèle actuel ne prend pas en charge la vision
 3. L'image est d'abord envoyée au modèle de transcription
 4. Le modèle de transcription génère une description textuelle
 5. Cette description est ajoutée avant le texte de votre message

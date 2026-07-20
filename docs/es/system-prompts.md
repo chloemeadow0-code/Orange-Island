@@ -1,6 +1,6 @@
 # Prompts del Sistema
 
-Los prompts del sistema definen la personalidad, el comportamiento y las reglas básicas del modelo. Agora te da un control detallado sobre cómo se ensamblan y envían las instrucciones al modelo.
+Los prompts del sistema definen la personalidad, el comportamiento y las reglas básicas del modelo. 橘子岛 te da un control detallado sobre cómo se ensamblan y envían las instrucciones al modelo.
 
 ## Editor de Tres Secciones
 
@@ -31,10 +31,10 @@ Estos envuelven cada mensaje que envías:
 - **Prefijo de Usuario** — añadido antes del texto de tu mensaje. Útil para recordatorios o etiquetas de contexto.
 - **Sufijo de Usuario** — añadido después del texto de tu mensaje. Útil para instrucciones de cierre.
 
-**Ejemplo**: Si tu prefijo es `[Contexto: trabajando en documentos de Agora]` y el sufijo es `\n\nPor favor responde en Markdown.`, el modelo recibe:
+**Ejemplo**: Si tu prefijo es `[Contexto: trabajando en documentos de 橘子岛]` y el sufijo es `\n\nPor favor responde en Markdown.`, el modelo recibe:
 
 ```text
-[Contexto: trabajando en documentos de Agora]
+[Contexto: trabajando en documentos de 橘子岛]
 ¿Cómo configuro la búsqueda web?
 Por favor responde en Markdown.
 ```
@@ -123,7 +123,7 @@ Para no usar ningún prompt, selecciona **Ninguno** de la lista de prompts.
 
 ## Generación Automática de Títulos
 
-Agora puede generar automáticamente títulos de conversación después de la primera respuesta:
+橘子岛 puede generar automáticamente títulos de conversación después de la primera respuesta:
 
 1. Ve a **Configuración → Generación de Títulos**
 2. Habilita **Auto-Generar Título**

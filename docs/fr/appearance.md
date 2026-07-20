@@ -1,6 +1,6 @@
 # Apparence
 
-Personnalisez l'apparence d'Agora — mode thème, schéma de couleurs et style.
+Personnalisez l'apparence d'橘子岛 — mode thème, schéma de couleurs et style.
 
 ## Mode Thème
 
@@ -59,7 +59,7 @@ Activez **Activer les Effets de Flou** pour contrôler le flou d'arrière-plan e
 
 ## Couleur Dynamique (Android 12+)
 
-Lorsqu'elle est activée sur les appareils fonctionnant sous Android 12 ou supérieur, Agora extrait une palette de couleurs de votre fond d'écran système et l'applique automatiquement.
+Lorsqu'elle est activée sur les appareils fonctionnant sous Android 12 ou supérieur, 橘子岛 extrait une palette de couleurs de votre fond d'écran système et l'applique automatiquement.
 
 Cela remplace la sélection manuelle du **Schéma de Couleurs**. Désactivez-la pour utiliser un schéma personnalisé.
 

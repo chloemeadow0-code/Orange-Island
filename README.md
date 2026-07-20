@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="app/src/main/assets/agora_transparent_large.png" alt="Agora Logo" width="120" />
+  <img src="app/src/main/assets/orangeisland_transparent_large.png" alt="橘子岛 Logo" width="120" />
 
-  # Agora
+  # 橘子岛 (Orange Island)
 
   **BYOK LLM client with multi-provider access, agentic workflows, and remote device control.**
 
@@ -10,25 +10,20 @@
   [![Kotlin](https://img.shields.io/badge/Kotlin-Native-blue.svg)](https://kotlinlang.org/)
   <br/>**English** | [中文](README_CN.md)
 
-  <img src="assets/feature_graphic.png" alt="Agora — A BYOK AI App that takes back your data sovereignty." width="100%" />
+  <img src="assets/feature_graphic.png" alt="橘子岛 — A BYOK AI App that takes back your data sovereignty." width="100%" />
 </div>
 
 ## Download
 
-[![F-Droid](https://img.shields.io/badge/F--Droid-Install-blue?logo=fdroid)](https://f-droid.org/packages/com.newoether.agora/)
-&nbsp;&nbsp;
-[![Google Play](https://img.shields.io/badge/Google_Play-Install-blue?logo=google-play)](https://play.google.com/store/apps/details?id=com.newoether.agora)
-&nbsp;&nbsp;
-[![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-blue?logo=github)](https://github.com/newo-ether/Agora/releases)
+> Distribution channels are being set up. Replace the placeholder links below before public release.
 
-- **F-Droid (Recommended)** — Install via [F-Droid](https://f-droid.org/), search for **Agora**.
-- **Google Play** — Install from [Google Play Store](https://play.google.com/store/apps/details?id=com.newoether.agora).
-- **GitHub Releases** — Download the latest `.apk` from the [Releases page](https://github.com/newo-ether/Agora/releases).
 - **Build from Source** — Clone and build with Android Studio (see [Getting Started](#getting-started)).
 
 ---
 
-**Agora** — a BYOK Android client for AI power users. Connect to 8+ built-in providers (plus unlimited custom endpoints) with your own keys, branch conversations non-linearly, run models locally via llama.cpp, and control remote machines through encrypted shell. Everything stored on-device, nothing logged elsewhere. Open source, MIT licensed.
+**橘子岛** — a BYOK Android client for AI power users. Connect to 8+ built-in providers (plus unlimited custom endpoints) with your own keys, branch conversations non-linearly, run models locally via llama.cpp, and control remote machines through encrypted shell. Everything stored on-device, nothing logged elsewhere.
+
+> ℹ️ This project is a fork of [newo-ether/Agora](https://github.com/newo-ether/Agora) (MIT). See [NOTICE](NOTICE) for attribution. Branding has been changed to "橘子岛 / Orange Island" and is no longer affiliated with the upstream project.
 
 ## Screenshots
 
@@ -40,12 +35,12 @@
 </tr>
 </table>
 
-## Why Agora?
+## Why 橘子岛?
 
 - **No Middlemen:** Direct API connections. No telemetry, no tracking, no corporate servers logging your conversations. Everything lives locally in a Room database.
 - **Non-Linear Thought:** A tree-structured message database lets you edit any past message, regenerate responses, and explore alternative branches without losing context.
 - **Agentic by Default:** Multi-round tool calling with web search, code execution, remote file operations, memory management, and semantic conversation search.
-- **Remote Control:** Manage servers, edit files, and search code on remote machines via the [Conch](https://github.com/newo-ether/conch) protocol — end-to-end encrypted with ECDH + AES-256-GCM.
+- **Remote Control:** Manage servers, edit files, and search code on remote machines via encrypted shell — end-to-end encrypted with ECDH + AES-256-GCM.
 
 ## Features
 
@@ -60,7 +55,7 @@
 - **Web Search** — DuckDuckGo Lite (anonymous, no key), Brave, Serper, Tavily, and SearXNG integration
 - **Code Execution** — Gemini code execution for running and testing code inline; Alpine Linux sandbox via PRoot with SAF file access
 - **Image Generation** — BYOK text-to-image via OpenAI-compatible `/v1/images/generations`, rendered inline in chat
-- **Remote Shell & File I/O** — Execute commands, read/write/edit/glob/grep files on remote servers via [Conch](https://github.com/newo-ether/conch)
+- **Remote Shell & File I/O** — Execute commands, read/write/edit/glob/grep files on remote servers via the Conch protocol
 - **Memory** — Persistent active memory and saved memory files across conversations
 - **Conversation Search** — RAG-powered semantic search over chat history
 
@@ -88,7 +83,7 @@
 - Visual context rollout indicator dims messages outside the active window
 
 ### Data Portability
-- **.agora Export/Import:** Conversations, memories, prompts, settings, and API keys in one portable file
+- **.oi Export/Import:** Conversations, memories, prompts, settings, and API keys in one portable file
 - **Merge, Replace, and Skip** import strategies
 - **Auto Backup** — periodic WorkManager-based backup with configurable period, categories, and retention
 - **Third-Party Import:** Claude and ChatGPT export formats (.zip / .json)
@@ -117,7 +112,7 @@
 
 ## Documentation
 
-📖 **[Browse the User Manual](https://newo-ether.github.io/Agora/)** — 24 pages covering installation, providers, tools, search, memory, shell, and more.
+📖 **User Manual** — 24 pages covering installation, providers, tools, search, memory, shell, and more. (Documentation site link to be added.)
 
 🏗️ **[Architecture Guide](ARCHITECTURE.md)** — complete codebase walkthrough: data layer, API providers, JNI, UI, and data flows.
 
@@ -132,7 +127,7 @@
 
 <table>
 <tr>
-<td width="20%"><b>① Launch</b><br/>Open Agora on your device.</td>
+<td width="20%"><b>① Launch</b><br/>Open 橘子岛 on your device.</td>
 <td width="20%"><b>② Settings</b><br/>Open <b>Settings</b> from the nav bar.</td>
 <td width="20%"><b>③ API Key</b><br/>Select a <b>Provider</b> and add your <b>API Key</b>.</td>
 <td width="20%"><b>④ Models</b><br/><b>Models</b> → "Sync from All Providers."</td>
@@ -155,7 +150,7 @@
 
 <table>
 <tr>
-<td width="33%"><b>① Deploy</b><br/>Deploy the <a href="https://github.com/newo-ether/conch">Conch server</a> on your target machine.</td>
+<td width="33%"><b>① Deploy</b><br/>Deploy the Conch server on your target machine.</td>
 <td width="33%"><b>② Add Device</b><br/>Settings → Shell Devices → add URL and API key.</td>
 <td width="33%"><b>③ Use</b><br/>The model auto-discovers shell devices for commands, files, and search.</td>
 </tr>
@@ -174,14 +169,10 @@
 - **Markdown:** Multiplatform Markdown Renderer M3
 - **Math:** JLaTeXMath-Android
 
-## Contributing
-
-Contributions are welcome! Feel free to fork the repository, submit pull requests, or open an issue.
-
 ## Privacy
 
-Agora does not collect, store, or transmit any personal data. All conversations, API keys, and settings are stored locally on your device. Messages are sent directly from your device to the AI provider you configure — no intermediary servers, no telemetry, no tracking. See the full [Privacy Policy](PRIVACY.md).
+橘子岛 does not collect, store, or transmit any personal data. All conversations, API keys, and settings are stored locally on your device. Messages are sent directly from your device to the AI provider you configure — no intermediary servers, no telemetry, no tracking. See the full [Privacy Policy](PRIVACY.md).
 
 ## License
 
-This project is open-source under the [MIT License](LICENSE).
+This project includes code originally licensed under the [MIT License](LICENSE) by newo-ether. See [NOTICE](NOTICE) for details.

@@ -1,13 +1,13 @@
 # PDF Import
 
-Agora can extract and send selected pages from PDF files as images to vision-capable models.
+橘子岛 can extract and send selected pages from PDF files as images to vision-capable models.
 
 ## How It Works
 
 1. Attach a PDF file in chat
 2. A dialog opens showing all pages as thumbnails
 3. Select which pages to send
-4. Confirm — Agora extracts the pages as images and sends them to the model
+4. Confirm — 橘子岛 extracts the pages as images and sends them to the model
 
 The model receives the pages as vision input, letting it read and analyze PDF content.
 
@@ -40,7 +40,7 @@ The preview lets you inspect pages before deciding which to send.
 
 ## Sending Pages
 
-After selecting pages, tap the confirm button. Agora:
+After selecting pages, tap the confirm button. 橘子岛:
 
 1. Renders each selected PDF page as a high-resolution image
 2. Attaches the images to your message

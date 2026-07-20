@@ -1,10 +1,10 @@
 # Portabilidade de Dados
 
-O Agora armazena todos os seus dados no dispositivo e oferece capacidades completas de importação/exportação. Você é dono dos seus dados — mova-os para dentro, mova-os para fora, faça backup.
+O 橘子岛 armazena todos os seus dados no dispositivo e oferece capacidades completas de importação/exportação. Você é dono dos seus dados — mova-os para dentro, mova-os para fora, faça backup.
 
 ## Exportação
 
-Exporte seus dados para um único arquivo `.agora` — um arquivo portátil que contém tudo que o Agora armazena.
+Exporte seus dados para um único arquivo `.橘子岛` — um arquivo portátil que contém tudo que o 橘子岛 armazena.
 
 ### O Que É Exportado
 
@@ -19,7 +19,7 @@ Você escolhe o que incluir:
 | **Chaves de API** | Todas as chaves de API configuradas |
 
 !!! danger "Aviso sobre Chaves de API"
-    As chaves de API são exportadas em **texto puro**. Qualquer pessoa com o arquivo `.agora` pode ler suas chaves. Ative a exportação de chaves de API apenas se você confiar no destino e manusear o arquivo com segurança.
+    As chaves de API são exportadas em **texto puro**. Qualquer pessoa com o arquivo `.橘子岛` pode ler suas chaves. Ative a exportação de chaves de API apenas se você confiar no destino e manusear o arquivo com segurança.
 
 ### Como Exportar
 
@@ -27,17 +27,17 @@ Você escolhe o que incluir:
 2. Toque em **Exportar Dados**
 3. Selecione quais categorias incluir
 4. Toque em **Exportar**
-5. Escolha onde salvar o arquivo `.agora`
+5. Escolha onde salvar o arquivo `.橘子岛`
 
 ---
 
 ## Importação
 
-Restaure dados de uma exportação `.agora` anterior.
+Restaure dados de uma exportação `.橘子岛` anterior.
 
 ### Estratégias de Importação
 
-Ao importar, você escolhe como o Agora lida com dados que já existem no seu dispositivo:
+Ao importar, você escolhe como o 橘子岛 lida com dados que já existem no seu dispositivo:
 
 | Estratégia | Comportamento |
 |------------|---------------|
@@ -52,13 +52,13 @@ Ao importar, você escolhe como o Agora lida com dados que já existem no seu di
 
 1. Vá em **Configurações → Controle de Dados**
 2. Toque em **Importar Dados**
-3. Selecione um arquivo `.agora`
+3. Selecione um arquivo `.橘子岛`
 4. Revise a prévia da importação — veja o que está no arquivo (data de exportação, versão, contagens de conteúdo)
 5. Escolha uma estratégia de importação
 6. Toque em **Importar**
 
 !!! danger "Aviso sobre Chaves de API"
-    Se o arquivo de exportação contiver chaves de API, o Agora avisa antes de importar. As chaves são importadas em texto puro. Prossiga apenas se você confiar na origem do arquivo.
+    Se o arquivo de exportação contiver chaves de API, o 橘子岛 avisa antes de importar. As chaves são importadas em texto puro. Prossiga apenas se você confiar na origem do arquivo.
 
 ---
 
@@ -66,7 +66,7 @@ Ao importar, você escolhe como o Agora lida com dados que já existem no seu di
 
 Importe conversas de outras plataformas de chat com IA.
 
-Tanto o Claude quanto o ChatGPT exportam seus dados como um arquivo **`.zip`**. O Agora importa esse `.zip` diretamente — não é necessário descompactá-lo primeiro, e o Agora **não** aceita arquivos `.json` soltos.
+Tanto o Claude quanto o ChatGPT exportam seus dados como um arquivo **`.zip`**. O 橘子岛 importa esse `.zip` diretamente — não é necessário descompactá-lo primeiro, e o 橘子岛 **não** aceita arquivos `.json` soltos.
 
 ### Importar do Claude
 
@@ -75,7 +75,7 @@ Tanto o Claude quanto o ChatGPT exportam seus dados como um arquivo **`.zip`**. 
 !!! warning "Baixe rapidamente"
     O link de download do Claude **expira rapidamente**. Pegue o `.zip` assim que o e-mail chegar — se você esperar muito, o link fica inválido e você terá que solicitar uma nova exportação.
 
-**2. Importar para o Agora.**
+**2. Importar para o 橘子岛.**
 
 1. Vá em **Configurações → Controle de Dados → Terceiros → Importar do Claude**
 2. Selecione o arquivo `.zip` exportado
@@ -84,7 +84,7 @@ Tanto o Claude quanto o ChatGPT exportam seus dados como um arquivo **`.zip`**. 
 5. Toque em **Importar**
 
 !!! note
-    O Agora lê os dados da conversa diretamente do arquivo `.zip` de exportação do Claude. Os anexos são detectados e mostrados na prévia, mas apenas o texto da mensagem é importado — os arquivos de anexo em si não são.
+    O 橘子岛 lê os dados da conversa diretamente do arquivo `.zip` de exportação do Claude. Os anexos são detectados e mostrados na prévia, mas apenas o texto da mensagem é importado — os arquivos de anexo em si não são.
 
 ### Importar do ChatGPT
 
@@ -93,7 +93,7 @@ Tanto o Claude quanto o ChatGPT exportam seus dados como um arquivo **`.zip`**. 
 !!! info "Seja paciente"
     A exportação do ChatGPT normalmente leva **1–2 dias** para chegar. Isso é normal — aguarde o e-mail em vez de solicitar novamente.
 
-**2. Importar para o Agora.**
+**2. Importar para o 橘子岛.**
 
 1. Vá em **Configurações → Controle de Dados → Terceiros → Importar do ChatGPT**
 2. Selecione o arquivo `.zip` baixado
@@ -108,18 +108,18 @@ Tanto o Claude quanto o ChatGPT exportam seus dados como um arquivo **`.zip`**. 
 
 ## Formato de Arquivo
 
-O arquivo `.agora` é um arquivo baseado em JSON. Se você tem inclinação técnica, pode inspecioná-lo ou processá-lo com ferramentas padrão. O formato é projetado para compatibilidade futura e retroativa.
+O arquivo `.橘子岛` é um arquivo baseado em JSON. Se você tem inclinação técnica, pode inspecioná-lo ou processá-lo com ferramentas padrão. O formato é projetado para compatibilidade futura e retroativa.
 
 ---
 
 ## Backup Automático
 
-O Agora pode fazer backup automático dos seus dados em uma programação. Você não precisa lembrar de exportar — o Agora cuida disso para você.
+O 橘子岛 pode fazer backup automático dos seus dados em uma programação. Você não precisa lembrar de exportar — o 橘子岛 cuida disso para você.
 
 ### Como Funciona
 
 - O backup automático é executado periodicamente em segundo plano usando o Android WorkManager
-- Quando um backup é devido, o Agora exporta suas categorias selecionadas para o diretório configurado
+- Quando um backup é devido, o 橘子岛 exporta suas categorias selecionadas para o diretório configurado
 - Uma notificação aparece apenas se um backup falhar — backups bem-sucedidos são silenciosos
 - Backups antigos são excluídos automaticamente com base nas suas configurações de retenção
 
@@ -129,7 +129,7 @@ O Agora pode fazer backup automático dos seus dados em uma programação. Você
 2. Alterne **Backup Automático** ligado/desligado
 3. Defina **Fazer backup a cada** — escolha 1 dia, 3 dias, 5 dias, 1 semana ou 1 mês
 4. Escolha **Conteúdo da exportação** — selecione quais categorias incluir. Chaves de API **podem** ser incluídas (um aviso é mostrado ao marcar essa caixa) — só ative se o local do backup for privado e seguro. Chaves de API **não** são incluídas por padrão.
-5. Defina **Local do backup** — toque para escolher uma pasta (padrão: `Download/Agora/Backup`)
+5. Defina **Local do backup** — toque para escolher uma pasta (padrão: `Download/橘子岛/Backup`)
 6. Alterne **Excluir backups antigos automaticamente** ligado/desligado e defina o período **Excluir após**
 
 !!! info "Restrição de Exclusão Automática"

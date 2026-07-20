@@ -1,20 +1,20 @@
 # Pour Commencer
 
-Ce guide vous accompagne dans l'installation d'Agora, l'ajout de votre première clé API et l'envoi de votre premier message.
+Ce guide vous accompagne dans l'installation d'橘子岛, l'ajout de votre première clé API et l'envoi de votre premier message.
 
 ## Installation
 
 ### Depuis F-Droid (Recommandé)
 
-Agora est disponible sur F-Droid, le magasin d'applications Android open source.
+橘子岛 est disponible sur F-Droid, le magasin d'applications Android open source.
 
 1. Installez [F-Droid](https://f-droid.org/) sur votre appareil
-2. Ouvrez F-Droid, recherchez **Agora**
+2. Ouvrez F-Droid, recherchez **橘子岛**
 3. Appuyez sur **Installer**
 
 ### Depuis les Versions GitHub
 
-1. Visitez la [page des Versions](https://github.com/newo-ether/Agora/releases)
+1. Visitez la [page des Versions](https://github.com/orangeisland/app/releases)
 2. Téléchargez le dernier fichier `.apk`
 3. Ouvrez le fichier sur votre appareil et confirmez l'installation quand demandé
 
@@ -24,7 +24,7 @@ Si vous préférez compiler vous-même :
 
 1. Clonez le dépôt :
    ```
-   git clone https://github.com/newo-ether/Agora.git
+   git clone https://github.com/orangeisland/app.git
    ```
 2. Ouvrez le projet dans [Android Studio](https://developer.android.com/studio) (Ladybug ou plus récent)
 3. Synchronisez Gradle et compilez
@@ -35,7 +35,7 @@ Prérequis : Android SDK 34+, JDK 17+.
 
 ## Premier Lancement
 
-Lorsque vous ouvrez Agora pour la première fois, vous verrez un écran d'accueil avec une zone de texte. Avant de pouvoir discuter, vous devez configurer un fournisseur et une clé API.
+Lorsque vous ouvrez 橘子岛 pour la première fois, vous verrez un écran d'accueil avec une zone de texte. Avant de pouvoir discuter, vous devez configurer un fournisseur et une clé API.
 
 ### Étape 1 : Ajouter une Clé API
 
@@ -59,7 +59,7 @@ Lorsque vous ouvrez Agora pour la première fois, vous verrez un écran d'accuei
 
 1. Retournez dans Paramètres et appuyez sur **Modèles** (sous **Services**)
 2. Appuyez sur **Synchroniser depuis Tous les Fournisseurs**
-3. Agora récupère la dernière liste de modèles pour tous les fournisseurs configurés
+3. 橘子岛 récupère la dernière liste de modèles pour tous les fournisseurs configurés
 4. Une fois synchronisé, appuyez sur un modèle pour le définir comme **Modèle par Défaut**
 
 ### Étape 3 : Envoyer Votre Premier Message
@@ -74,7 +74,7 @@ Le modèle diffusera sa réponse en temps réel.
 
 ## Disposition de l'Application
 
-Agora a une disposition épurée centrée autour de l'écran de chat :
+橘子岛 a une disposition épurée centrée autour de l'écran de chat :
 
 ### Barre Supérieure
 

@@ -1,11 +1,11 @@
 # الطرفية البعيدة (Conch)
 
-يمكن لـ Agora تنفيذ أوامر على أجهزة بعيدة عبر بروتوكول [Conch](https://github.com/newo-ether/conch) — طرفية آمنة مشفرة من الطرف إلى الطرف مصممة لوكلاء الذكاء الاصطناعي.
+يمكن لـ 橘子岛 تنفيذ أوامر على أجهزة بعيدة عبر بروتوكول [Conch](https://github.com/orangeisland/conch) — طرفية آمنة مشفرة من الطرف إلى الطرف مصممة لوكلاء الذكاء الاصطناعي.
 
 ## كيف يعمل
 
 ```text
-Agora (Android)  ──ECDH + AES-256-GCM──▶  خادم Conch (Linux/macOS/Windows)
+橘子岛 (Android)  ──ECDH + AES-256-GCM──▶  خادم Conch (Linux/macOS/Windows)
                                            │
                                            ├── تنفيذ الأوامر
                                            ├── قراءة/كتابة/تعديل الملفات
@@ -34,9 +34,9 @@ Conch يستخدم تشفيرًا قويًا وحمايات ضد الإساءة:
 
 ### الخطوة 1: نشر خادم Conch
 
-انشر خادم Conch على جهازك المستهدف. راجع [مستودع Conch](https://github.com/newo-ether/conch) لتعليمات الإعداد.
+انشر خادم Conch على جهازك المستهدف. راجع [مستودع Conch](https://github.com/orangeisland/conch) لتعليمات الإعداد.
 
-### الخطوة 2: إضافة جهاز في Agora
+### الخطوة 2: إضافة جهاز في 橘子岛
 
 1. اذهب إلى **الإعدادات → الطرفية**
 2. فعّل **أداة الطرفية**
@@ -109,7 +109,7 @@ Conch يستخدم تشفيرًا قويًا وحمايات ضد الإساءة:
 
 يمكن لـ Conch أيضًا العمل **كخادم MCP لـ Claude Desktop**. إذا كنت تستخدم Claude Code أو عميل MCP آخر، يمكنك إعداد Conch كمزود أدوات للوصول إلى الملفات والطرفية عن بُعد من سطح مكتبك.
 
-راجع [توثيق Conch](https://github.com/newo-ether/conch) لتعليمات إعداد MCP.
+راجع [توثيق Conch](https://github.com/orangeisland/conch) لتعليمات إعداد MCP.
 
 ---
 

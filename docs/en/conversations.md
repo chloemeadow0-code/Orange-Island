@@ -1,6 +1,6 @@
 # Conversations
 
-Agora's conversation system is built around **non-linear branching** — unlike most chat apps, you can edit any past message and explore alternative response paths without losing the original conversation.
+橘子岛's conversation system is built around **non-linear branching** — unlike most chat apps, you can edit any past message and explore alternative response paths without losing the original conversation.
 
 ## Creating Conversations
 
@@ -30,14 +30,14 @@ Open the **conversations drawer** (hamburger menu :material-menu: or swipe right
 
 ## Non-Linear Branching
 
-This is Agora's signature feature. Every message can be a branching point.
+This is 橘子岛's signature feature. Every message can be a branching point.
 
 ### Editing a Past Message
 
 1. Long-press any message bubble (user or model)
 2. Tap **Edit**
 3. Modify the message content
-4. Send — Agora creates a **new branch** from this point
+4. Send — 橘子岛 creates a **new branch** from this point
 
 The original branch is preserved. You can switch between branches at any time.
 
@@ -113,7 +113,7 @@ Type your message and tap **Send** (:material-send:). The model streams its resp
 
 ### Real-Time Streaming
 
-Responses appear word-by-word as the model generates them. Agora auto-scrolls to keep the latest content visible. Tap the **scroll-to-bottom** button (appears when you scroll up) to jump back to the live response.
+Responses appear word-by-word as the model generates them. 橘子岛 auto-scrolls to keep the latest content visible. Tap the **scroll-to-bottom** button (appears when you scroll up) to jump back to the live response.
 
 ### Markdown Rendering
 
@@ -156,6 +156,6 @@ These overrides are set from the conversation's overflow menu in the top bar.
 
 ## Context Window
 
-Agora tracks token usage in real time. When a conversation exceeds the model's context window, older messages are visually **dimmed** to indicate they are outside the active context. The model no longer "sees" dimmed messages, but they remain visible in your UI.
+橘子岛 tracks token usage in real time. When a conversation exceeds the model's context window, older messages are visually **dimmed** to indicate they are outside the active context. The model no longer "sees" dimmed messages, but they remain visible in your UI.
 
 Adjust the context window size in **Settings → Generation → Context Window**.

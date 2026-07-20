@@ -1,20 +1,20 @@
 # 快速开始
 
-本指南将带你完成安装 Agora、添加第一个 API 密钥并发送第一条消息。
+本指南将带你完成安装 橘子岛、添加第一个 API 密钥并发送第一条消息。
 
 ## 安装
 
 ### 通过 F-Droid（推荐）
 
-Agora 已上架 F-Droid 开源应用商店。
+橘子岛 已上架 F-Droid 开源应用商店。
 
 1. 在设备上安装 [F-Droid](https://f-droid.org/)
-2. 打开 F-Droid，搜索 **Agora**
+2. 打开 F-Droid，搜索 **橘子岛**
 3. 点按 **安装**
 
 ### 通过 GitHub Releases
 
-1. 访问 [Releases 页面](https://github.com/newo-ether/Agora/releases)
+1. 访问 [Releases 页面](https://github.com/orangeisland/app/releases)
 2. 下载最新的 `.apk` 文件
 3. 在设备上打开文件，按提示确认安装
 
@@ -24,7 +24,7 @@ Agora 已上架 F-Droid 开源应用商店。
 
 1. 克隆仓库：
    ```
-   git clone https://github.com/newo-ether/Agora.git
+   git clone https://github.com/orangeisland/app.git
    ```
 2. 在 [Android Studio](https://developer.android.com/studio)（Ladybug 或更新版本）中打开项目
 3. 同步 Gradle 并构建
@@ -35,7 +35,7 @@ Agora 已上架 F-Droid 开源应用商店。
 
 ## 首次启动
 
-首次打开 Agora 时，你会看到一个带有文本输入框的欢迎界面。在开始聊天之前，需要先配置提供商和 API 密钥。
+首次打开 橘子岛 时，你会看到一个带有文本输入框的欢迎界面。在开始聊天之前，需要先配置提供商和 API 密钥。
 
 ### 第一步：添加 API 密钥
 
@@ -59,7 +59,7 @@ Agora 已上架 F-Droid 开源应用商店。
 
 1. 返回设置，点按 **模型**（在 **服务** 下）
 2. 点按 **从所有提供商同步**
-3. Agora 获取所有已配置提供商的最新模型列表
+3. 橘子岛 获取所有已配置提供商的最新模型列表
 4. 同步完成后，点按某个模型将其设为 **默认模型**
 
 ### 第三步：发送第一条消息
@@ -74,7 +74,7 @@ Agora 已上架 F-Droid 开源应用商店。
 
 ## 应用布局
 
-Agora 以聊天界面为中心，布局简洁：
+橘子岛 以聊天界面为中心，布局简洁：
 
 ### 顶部栏
 

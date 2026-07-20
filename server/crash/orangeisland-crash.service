@@ -1,0 +1,27 @@
+[Unit]
+Description=橘子岛 anonymous crash-report receiver
+After=network.target
+
+[Service]
+Type=simple
+User=orangeisland
+Group=orangeisland
+ExecStart=/usr/bin/python3 /opt/orangeisland-crash/orangeisland-crash.py
+Restart=on-failure
+RestartSec=2
+
+# Sandboxing — the service only needs to bind loopback and write its data dir.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/orangeisland-crash
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

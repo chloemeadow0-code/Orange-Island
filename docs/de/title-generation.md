@@ -4,7 +4,7 @@ Konversationstitel automatisch basierend auf dem ersten Austausch generieren.
 
 ## Was es macht
 
-Wenn Sie eine neue Konversation starten, kann Agora automatisch einen kurzen, aussagekräftigen Titel basierend auf Ihrer ersten Nachricht und der Antwort des Modells generieren. Dies ersetzt den generischen Titel "Neuer Chat".
+Wenn Sie eine neue Konversation starten, kann 橘子岛 automatisch einen kurzen, aussagekräftigen Titel basierend auf Ihrer ersten Nachricht und der Antwort des Modells generieren. Dies ersetzt den generischen Titel "Neuer Chat".
 
 ## Einrichtung
 
@@ -19,7 +19,7 @@ Wenn Sie eine neue Konversation starten, kann Agora automatisch einen kurzen, au
 
 1. Sie senden Ihre erste Nachricht in einer neuen Konversation
 2. Das Modell antwortet (wie gewohnt)
-3. Nach Abschluss der Antwort sendet Agora eine separate, kleine Anfrage zur Titelgenerierung
+3. Nach Abschluss der Antwort sendet 橘子岛 eine separate, kleine Anfrage zur Titelgenerierung
 4. Der generierte Titel wird gespeichert und in der Konversationsliste angezeigt
 
 Die Titelgenerierung läuft nur einmal pro Konversation, beim ersten Austausch.

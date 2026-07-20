@@ -1,6 +1,6 @@
 # Konversationen
 
-Agoras Konversationssystem basiert auf **nicht-linearer Verzweigung** — im Gegensatz zu den meisten Chat-Apps können Sie jede vergangene Nachricht bearbeiten und alternative Antwortpfade erkunden, ohne die ursprüngliche Konversation zu verlieren.
+橘子岛s Konversationssystem basiert auf **nicht-linearer Verzweigung** — im Gegensatz zu den meisten Chat-Apps können Sie jede vergangene Nachricht bearbeiten und alternative Antwortpfade erkunden, ohne die ursprüngliche Konversation zu verlieren.
 
 ## Konversationen erstellen
 
@@ -30,14 +30,14 @@ Konversationen werden nach der ersten Antwort automatisch betitelt (wenn [Titelg
 
 ## Nicht-lineare Verzweigung
 
-Dies ist Agoras Signatur-Feature. Jede Nachricht kann ein Verzweigungspunkt sein.
+Dies ist 橘子岛s Signatur-Feature. Jede Nachricht kann ein Verzweigungspunkt sein.
 
 ### Eine vergangene Nachricht bearbeiten
 
 1. Langer Druck auf eine beliebige Nachrichtenblase (Benutzer oder Modell)
 2. Tippen Sie auf **Bearbeiten**
 3. Ändern Sie den Nachrichteninhalt
-4. Senden — Agora erstellt einen **neuen Zweig** von diesem Punkt aus
+4. Senden — 橘子岛 erstellt einen **neuen Zweig** von diesem Punkt aus
 
 Der ursprüngliche Zweig bleibt erhalten. Sie können jederzeit zwischen Zweigen wechseln.
 
@@ -112,7 +112,7 @@ Geben Sie Ihre Nachricht ein und tippen Sie auf **Senden** (:material-send:). Da
 
 ### Echtzeit-Streaming
 
-Antworten erscheinen Wort für Wort, während das Modell sie generiert. Agora scrollt automatisch, um den neuesten Inhalt sichtbar zu halten. Tippen Sie auf den **Zum Ende scrollen**-Button (erscheint, wenn Sie nach oben scrollen), um zur Live-Antwort zurückzuspringen.
+Antworten erscheinen Wort für Wort, während das Modell sie generiert. 橘子岛 scrollt automatisch, um den neuesten Inhalt sichtbar zu halten. Tippen Sie auf den **Zum Ende scrollen**-Button (erscheint, wenn Sie nach oben scrollen), um zur Live-Antwort zurückzuspringen.
 
 ### Markdown-Darstellung
 
@@ -148,6 +148,6 @@ Diese Überschreibungen werden über das Overflow-Menü der Konversation in der 
 
 ## Kontextfenster
 
-Agora verfolgt die Token-Nutzung in Echtzeit. Wenn eine Konversation das Kontextfenster des Modells überschreitet, werden ältere Nachrichten visuell **abgedunkelt**, um anzuzeigen, dass sie außerhalb des aktiven Kontexts liegen. Das Modell "sieht" abgedunkelte Nachrichten nicht mehr, aber sie bleiben in Ihrer Benutzeroberfläche sichtbar.
+橘子岛 verfolgt die Token-Nutzung in Echtzeit. Wenn eine Konversation das Kontextfenster des Modells überschreitet, werden ältere Nachrichten visuell **abgedunkelt**, um anzuzeigen, dass sie außerhalb des aktiven Kontexts liegen. Das Modell "sieht" abgedunkelte Nachrichten nicht mehr, aber sie bleiben in Ihrer Benutzeroberfläche sichtbar.
 
 Passen Sie die Kontextfenstergröße in **Einstellungen → Generierung → Kontextfenster** an.

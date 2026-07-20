@@ -1,0 +1,25 @@
+NOTICE — 橘子岛 (Orange Island)
+================================
+
+This product, "橘子岛 / Orange Island", includes software originally developed
+by **newo-ether** in the project **Agora**
+(https://github.com/newo-ether/Agora) and distributed under the MIT License.
+
+Modifications made in this fork include, but are not limited to:
+  - Renaming the application and all related identifiers (package, classes,
+    native libraries, resources, themes) from "Agora" to "橘子岛 / Orange Island".
+  - Rebranding the user-facing strings, documentation, and metadata.
+  - Replacing upstream telemetry/update endpoints with placeholders.
+
+Original copyright notice (preserved as required by the MIT License):
+
+    Copyright (c) 2026 newo-ether
+
+The full text of the MIT License is available in the [LICENSE](LICENSE) file
+accompanying this distribution.
+
+The "橘子岛" and "Orange Island" names, logos, and other branding used in this
+distribution are NOT affiliated with, endorsed by, or derived from the upstream
+"Agora" project or its author. All third-party trademarks, service marks, and
+brand names referenced in the source code or documentation are the property of
+their respective owners and are used here for identification purposes only.

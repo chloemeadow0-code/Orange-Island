@@ -18,7 +18,7 @@ Lassen Sie das Modell das Internet durchsuchen und Webseiten in Echtzeit abrufen
 
 DuckDuckGo Lite ist der **Standard**-Suchprovider — kein API-Key erforderlich, funktioniert sofort.
 
-1. Gehen Sie in Agora zu **Einstellungen → Websuche**
+1. Gehen Sie in 橘子岛 zu **Einstellungen → Websuche**
 2. Wählen Sie **DuckDuckGo Lite** als Suchprovider
 3. Kein Key oder URL nötig — sofort mit der Suche beginnen
 
@@ -28,28 +28,28 @@ DuckDuckGo Lite ist der **Standard**-Suchprovider — kein API-Key erforderlich,
 ### Brave
 
 1. Holen Sie sich einen API-Key von [Brave Search API](https://api.search.brave.com/)
-2. Gehen Sie in Agora zu **Einstellungen → Websuche**
+2. Gehen Sie in 橘子岛 zu **Einstellungen → Websuche**
 3. Wählen Sie **Brave** als Suchprovider
 4. Fügen Sie Ihren API-Key ein
 
 ### Serper
 
 1. Holen Sie sich einen API-Key von [serper.dev](https://serper.dev)
-2. Gehen Sie in Agora zu **Einstellungen → Websuche**
+2. Gehen Sie in 橘子岛 zu **Einstellungen → Websuche**
 3. Wählen Sie **Serper**
 4. Fügen Sie Ihren API-Key ein
 
 ### Tavily
 
 1. Holen Sie sich einen API-Key von [tavily.com](https://tavily.com)
-2. Gehen Sie in Agora zu **Einstellungen → Websuche**
+2. Gehen Sie in 橘子岛 zu **Einstellungen → Websuche**
 3. Wählen Sie **Tavily**
 4. Fügen Sie Ihren API-Key ein
 
 ### SearXNG
 
 1. Richten Sie eine SearXNG-Instanz ein (selbst gehostet) oder verwenden Sie eine öffentliche Instanz
-2. Gehen Sie in Agora zu **Einstellungen → Websuche**
+2. Gehen Sie in 橘子岛 zu **Einstellungen → Websuche**
 3. Wählen Sie **SearXNG**
 4. Geben Sie die **Basis-URL** Ihrer Instanz ein (z.B. `https://searx.be`)
 5. API-Key ist optional (nur erforderlich, wenn Ihre Instanz Authentifizierung verlangt)
@@ -106,6 +106,6 @@ Modell: [Sucht "neueste Python-Version 2026"]
 
 Bei der Nutzung der Websuche:
 
-- Ihre Anfragen gehen an den Suchprovider (Brave, Serper, etc.), nicht an Agora
-- Agora protokolliert oder speichert Ihre Suchanfragen nicht (außer in der Konversation selbst)
+- Ihre Anfragen gehen an den Suchprovider (Brave, Serper, etc.), nicht an 橘子岛
+- 橘子岛 protokolliert oder speichert Ihre Suchanfragen nicht (außer in der Konversation selbst)
 - SearXNG-Selbst-Hosting bietet den größten Datenschutz — Anfragen bleiben auf Ihrer Infrastruktur

@@ -1,20 +1,20 @@
 # Getting Started
 
-This guide walks you through installing Agora, adding your first API key, and sending your first message.
+This guide walks you through installing 橘子岛, adding your first API key, and sending your first message.
 
 ## Installation
 
 ### From F-Droid (Recommended)
 
-Agora is available on F-Droid, the open-source Android app store.
+橘子岛 is available on F-Droid, the open-source Android app store.
 
 1. Install [F-Droid](https://f-droid.org/) on your device
-2. Open F-Droid, search for **Agora**
+2. Open F-Droid, search for **橘子岛**
 3. Tap **Install**
 
 ### From GitHub Releases
 
-1. Visit the [Releases page](https://github.com/newo-ether/Agora/releases)
+1. Visit the [Releases page](https://github.com/orangeisland/app/releases)
 2. Download the latest `.apk` file
 3. Open the file on your device and confirm installation when prompted
 
@@ -24,7 +24,7 @@ If you prefer building yourself:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/newo-ether/Agora.git
+   git clone https://github.com/orangeisland/app.git
    ```
 2. Open the project in [Android Studio](https://developer.android.com/studio) (Ladybug or newer)
 3. Sync Gradle and build
@@ -35,7 +35,7 @@ Requirements: Android SDK 34+, JDK 17+.
 
 ## First Launch
 
-When you open Agora for the first time, you'll see a welcome screen with a text input. Before you can chat, you need to configure a provider and an API key.
+When you open 橘子岛 for the first time, you'll see a welcome screen with a text input. Before you can chat, you need to configure a provider and an API key.
 
 ### Step 1: Add an API Key
 
@@ -59,7 +59,7 @@ When you open Agora for the first time, you'll see a welcome screen with a text 
 
 1. Go back to Settings and tap **Models** (under **Services**)
 2. Tap **Sync from All Providers**
-3. Agora fetches the latest model list for all configured providers
+3. 橘子岛 fetches the latest model list for all configured providers
 4. Once synced, tap a model to set it as your **Default Model**
 
 ### Step 3: Send Your First Message
@@ -74,7 +74,7 @@ The model will stream its response in real time.
 
 ## App Layout
 
-Agora has a clean layout centered around the chat screen:
+橘子岛 has a clean layout centered around the chat screen:
 
 ### Top Bar
 

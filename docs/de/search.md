@@ -1,6 +1,6 @@
 # Konversationssuche
 
-Agora kann Ihre gesamte Konversationshistorie durchsuchen — entweder durch Schlüsselwortabgleich oder semantische (bedeutungsbasierte) Suche mit Embedding-Modellen.
+橘子岛 kann Ihre gesamte Konversationshistorie durchsuchen — entweder durch Schlüsselwortabgleich oder semantische (bedeutungsbasierte) Suche mit Embedding-Modellen.
 
 ## Suchmethoden
 

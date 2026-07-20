@@ -4,7 +4,7 @@ Exécutez des LLM directement sur votre appareil Android en utilisant des fichie
 
 ## Comment Ça Marche
 
-Agora intègre llama.cpp via Android NDK (CMake). Lorsque vous importez un fichier GGUF, le modèle s'exécute entièrement sur le CPU de votre appareil — aucune donnée ne quitte l'appareil.
+橘子岛 intègre llama.cpp via Android NDK (CMake). Lorsque vous importez un fichier GGUF, le modèle s'exécute entièrement sur le CPU de votre appareil — aucune donnée ne quitte l'appareil.
 
 ## Prérequis
 
@@ -76,7 +76,7 @@ Appuyez sur un modèle pour changer son alias ou ajuster les paramètres (tempé
 
 ### Supprimer
 
-Appui long sur un modèle et appuyez sur **Supprimer**. Cela retire le modèle d'Agora et supprime le fichier GGUF du stockage.
+Appui long sur un modèle et appuyez sur **Supprimer**. Cela retire le modèle d'橘子岛 et supprime le fichier GGUF du stockage.
 
 ---
 

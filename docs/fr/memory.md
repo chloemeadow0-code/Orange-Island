@@ -1,6 +1,6 @@
 # Mémoire & Cache
 
-Agora dispose d'un système de mémoire persistante qui permet au modèle de se souvenir d'informations à travers les conversations. Combiné à la mise en cache automatique basée sur les embeddings, il fournit une base de connaissances qui grandit avec votre utilisation.
+橘子岛 dispose d'un système de mémoire persistante qui permet au modèle de se souvenir d'informations à travers les conversations. Combiné à la mise en cache automatique basée sur les embeddings, il fournit une base de connaissances qui grandit avec votre utilisation.
 
 ## Types de Mémoire
 
@@ -18,7 +18,7 @@ Un contexte de mémoire unique et toujours actif qui est inclus dans **chaque ap
 ```text
 Utilisateur : Newo Ether
 Préférences : Préfère le chinois pour le chat informel, l'anglais pour les sujets techniques.
-Projet : Construction d'Agora — un client LLM Android BYOK.
+Projet : Construction d'橘子岛 — un client LLM Android BYOK.
 Style de codage : Kotlin, Jetpack Compose, architecture MVVM.
 ```
 

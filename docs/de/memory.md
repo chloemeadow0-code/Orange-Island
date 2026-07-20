@@ -1,6 +1,6 @@
 # Speicher & Cache
 
-Agora verfügt über ein persistentes Speichersystem, das es dem Modell ermöglicht, sich Informationen über Konversationen hinweg zu merken. Kombiniert mit automatischem Embedding-basiertem Caching bietet es eine Wissensbasis, die mit Ihrer Nutzung wächst.
+橘子岛 verfügt über ein persistentes Speichersystem, das es dem Modell ermöglicht, sich Informationen über Konversationen hinweg zu merken. Kombiniert mit automatischem Embedding-basiertem Caching bietet es eine Wissensbasis, die mit Ihrer Nutzung wächst.
 
 ## Speichertypen
 
@@ -18,7 +18,7 @@ Ein einzelner, ständig aktiver Speicherkontext, der bei **jedem API-Aufruf** an
 ```text
 Benutzer: Newo Ether
 Präferenzen: Bevorzugt Chinesisch für lockere Chats, Englisch für technische Themen.
-Projekt: Entwicklung von Agora — einem BYOK Android LLM-Client.
+Projekt: Entwicklung von 橘子岛 — einem BYOK Android LLM-Client.
 Codierungsstil: Kotlin, Jetpack Compose, MVVM-Architektur.
 ```
 

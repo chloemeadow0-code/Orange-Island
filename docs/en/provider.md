@@ -1,6 +1,6 @@
 # API Providers
 
-Agora connects directly to AI providers — no middleman, no subscription, no telemetry. You bring your own API keys, and everything runs from your device.
+橘子岛 connects directly to AI providers — no middleman, no subscription, no telemetry. You bring your own API keys, and everything runs from your device.
 
 ## Built-in Providers
 
@@ -48,7 +48,7 @@ Tap the radio button to set the active key. Long-press a key to **Edit** or **De
 ### Key Safety
 
 !!! warning
-    API keys are stored locally in an encrypted Room database. They are never sent to Agora servers (there are none). However, they are exported in plain text if you include them in a `.agora` export file.
+    API keys are stored locally in an encrypted Room database. They are never sent to 橘子岛 servers (there are none). However, they are exported in plain text if you include them in a `.橘子岛` export file.
 
 ---
 
@@ -63,7 +63,7 @@ Add any OpenAI-compatible API endpoint:
     - **Base URL** — the API endpoint
 4. Tap **Add**
 
-Agora fetches the model list from `{base_url}/v1/models`. Once added, custom providers work exactly like built-in ones: add API keys, sync models, and chat.
+橘子岛 fetches the model list from `{base_url}/v1/models`. Once added, custom providers work exactly like built-in ones: add API keys, sync models, and chat.
 
 ### Use Cases
 
@@ -96,7 +96,7 @@ After adding API keys, sync the model list:
 
 1. Go to **Settings → Models**
 2. Tap **Sync from All Providers**
-3. Agora fetches available models from every configured provider
+3. 橘子岛 fetches available models from every configured provider
 
 A snackbar shows sync progress and results. You can then enable/disable individual models and set a default.
 

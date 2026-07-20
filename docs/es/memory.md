@@ -1,6 +1,6 @@
 # Memoria y Caché
 
-Agora tiene un sistema de memoria persistente que permite al modelo recordar información a través de las conversaciones. Combinado con el almacenamiento en caché automático basado en embeddings, proporciona una base de conocimiento que crece con tu uso.
+橘子岛 tiene un sistema de memoria persistente que permite al modelo recordar información a través de las conversaciones. Combinado con el almacenamiento en caché automático basado en embeddings, proporciona una base de conocimiento que crece con tu uso.
 
 ## Tipos de Memoria
 
@@ -18,7 +18,7 @@ Un único contexto de memoria siempre activo que se incluye con **cada llamada A
 ```text
 Usuario: Newo Ether
 Preferencias: Prefiere chino para chat informal, inglés para temas técnicos.
-Proyecto: Construyendo Agora — un cliente LLM Android BYOK.
+Proyecto: Construyendo 橘子岛 — un cliente LLM Android BYOK.
 Estilo de código: Kotlin, Jetpack Compose, arquitectura MVVM.
 ```
 

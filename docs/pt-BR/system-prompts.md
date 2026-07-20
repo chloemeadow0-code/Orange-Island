@@ -1,6 +1,6 @@
 # Prompts de Sistema
 
-Os prompts de sistema definem a persona, o comportamento e as regras básicas do modelo. O Agora oferece controle refinado sobre como as instruções são montadas e enviadas ao modelo.
+Os prompts de sistema definem a persona, o comportamento e as regras básicas do modelo. O 橘子岛 oferece controle refinado sobre como as instruções são montadas e enviadas ao modelo.
 
 ## Editor de Três Seções
 
@@ -31,10 +31,10 @@ Estes envolvem cada mensagem que você envia:
 - **Prefixo do Usuário** — adicionado antes do texto da sua mensagem. Útil para lembretes ou tags de contexto.
 - **Sufixo do Usuário** — adicionado após o texto da sua mensagem. Útil para instruções de fechamento.
 
-**Exemplo**: Se seu prefixo for `[Contexto: trabalhando na documentação do Agora]` e o sufixo for `\n\nPor favor, responda em Markdown.`, o modelo recebe:
+**Exemplo**: Se seu prefixo for `[Contexto: trabalhando na documentação do 橘子岛]` e o sufixo for `\n\nPor favor, responda em Markdown.`, o modelo recebe:
 
 ```text
-[Contexto: trabalhando na documentação do Agora]
+[Contexto: trabalhando na documentação do 橘子岛]
 Como configuro a busca na web?
 Por favor, responda em Markdown.
 ```
@@ -123,7 +123,7 @@ Para não usar nenhum prompt, selecione **Nenhum** na lista de prompts.
 
 ## Geração Automática de Títulos
 
-O Agora pode gerar automaticamente títulos de conversa após a primeira resposta:
+O 橘子岛 pode gerar automaticamente títulos de conversa após a primeira resposta:
 
 1. Vá em **Configurações → Geração de Títulos**
 2. Ative **Gerar Título Automaticamente**

@@ -1,6 +1,6 @@
 # Sandbox
 
-Agora 可以在您的裝置上本機執行輕量級的 Alpine Linux 環境 — 不需要網際網路連線。Sandbox 讓模型能夠在隔離的 root 檔案系統中安裝套件並執行指令。
+橘子岛 可以在您的裝置上本機執行輕量級的 Alpine Linux 環境 — 不需要網際網路連線。Sandbox 讓模型能夠在隔離的 root 檔案系統中安裝套件並執行指令。
 
 !!! note "可用性"
     Sandbox 在所有版本中皆可用。可從 **設定 → Shell → Sandbox 管理** 存取，或直接透過 **設定 → Sandbox** 存取。

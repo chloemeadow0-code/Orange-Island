@@ -1,20 +1,20 @@
 # Primeiros Passos
 
-Este guia orienta você na instalação do Agora, adição da sua primeira chave de API e envio da sua primeira mensagem.
+Este guia orienta você na instalação do 橘子岛, adição da sua primeira chave de API e envio da sua primeira mensagem.
 
 ## Instalação
 
 ### Pelo F-Droid (Recomendado)
 
-O Agora está disponível no F-Droid, a loja de aplicativos Android de código aberto.
+O 橘子岛 está disponível no F-Droid, a loja de aplicativos Android de código aberto.
 
 1. Instale o [F-Droid](https://f-droid.org/) no seu dispositivo
-2. Abra o F-Droid, pesquise por **Agora**
+2. Abra o F-Droid, pesquise por **橘子岛**
 3. Toque em **Instalar**
 
 ### Pelas Releases do GitHub
 
-1. Visite a [página de Releases](https://github.com/newo-ether/Agora/releases)
+1. Visite a [página de Releases](https://github.com/orangeisland/app/releases)
 2. Baixe o arquivo `.apk` mais recente
 3. Abra o arquivo no seu dispositivo e confirme a instalação quando solicitado
 
@@ -24,7 +24,7 @@ Se preferir compilar você mesmo:
 
 1. Clone o repositório:
    ```
-   git clone https://github.com/newo-ether/Agora.git
+   git clone https://github.com/orangeisland/app.git
    ```
 2. Abra o projeto no [Android Studio](https://developer.android.com/studio) (Ladybug ou mais recente)
 3. Sincronize o Gradle e compile
@@ -35,7 +35,7 @@ Requisitos: Android SDK 34+, JDK 17+.
 
 ## Primeira Execução
 
-Ao abrir o Agora pela primeira vez, você verá uma tela de boas-vindas com um campo de texto. Antes de poder conversar, você precisa configurar um provedor e uma chave de API.
+Ao abrir o 橘子岛 pela primeira vez, você verá uma tela de boas-vindas com um campo de texto. Antes de poder conversar, você precisa configurar um provedor e uma chave de API.
 
 ### Passo 1: Adicionar uma Chave de API
 
@@ -59,7 +59,7 @@ Ao abrir o Agora pela primeira vez, você verá uma tela de boas-vindas com um c
 
 1. Volte para Configurações e toque em **Modelos** (em **Serviços**)
 2. Toque em **Sincronizar de Todos os Provedores**
-3. O Agora busca a lista mais recente de modelos para todos os provedores configurados
+3. O 橘子岛 busca a lista mais recente de modelos para todos os provedores configurados
 4. Após sincronizar, toque em um modelo para defini-lo como seu **Modelo Padrão**
 
 ### Passo 3: Enviar Sua Primeira Mensagem
@@ -74,7 +74,7 @@ O modelo transmitirá sua resposta em tempo real.
 
 ## Layout do Aplicativo
 
-O Agora tem um layout limpo centrado na tela de chat:
+O 橘子岛 tem um layout limpo centrado na tela de chat:
 
 ### Barra Superior
 

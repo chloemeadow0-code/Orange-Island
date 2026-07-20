@@ -1,11 +1,11 @@
 # Shell Remoto (Conch)
 
-O Agora pode executar comandos em máquinas remotas através do protocolo [Conch](https://github.com/newo-ether/conch) — um shell seguro criptografado de ponta a ponta projetado para agentes de IA.
+O 橘子岛 pode executar comandos em máquinas remotas através do protocolo [Conch](https://github.com/orangeisland/conch) — um shell seguro criptografado de ponta a ponta projetado para agentes de IA.
 
 ## Como Funciona
 
 ```text
-Agora (Android)  ──ECDH + AES-256-GCM──▶  Servidor Conch (Linux/macOS/Windows)
+橘子岛 (Android)  ──ECDH + AES-256-GCM──▶  Servidor Conch (Linux/macOS/Windows)
                                            │
                                            ├── Executar comandos
                                            ├── Ler/escrever/editar arquivos
@@ -34,9 +34,9 @@ O Conch usa criptografia forte e proteções anti-abuso:
 
 ### Passo 1: Implantar o Servidor Conch
 
-Implante o servidor Conch na sua máquina de destino. Consulte o [repositório Conch](https://github.com/newo-ether/conch) para instruções de configuração.
+Implante o servidor Conch na sua máquina de destino. Consulte o [repositório Conch](https://github.com/orangeisland/conch) para instruções de configuração.
 
-### Passo 2: Adicionar Dispositivo no Agora
+### Passo 2: Adicionar Dispositivo no 橘子岛
 
 1. Vá em **Configurações → Shell**
 2. Ative **Ferramenta Shell**
@@ -109,7 +109,7 @@ Todas as operações de arquivo passam pelo canal criptografado Conch.
 
 O Conch também pode servir como um **servidor MCP para Claude Desktop**. Se você usa o Claude Code ou outro cliente MCP, pode configurar o Conch como um provedor de ferramentas para acesso remoto a arquivos e shell a partir do seu desktop.
 
-Consulte a [documentação do Conch](https://github.com/newo-ether/conch) para instruções de configuração MCP.
+Consulte a [documentação do Conch](https://github.com/orangeisland/conch) para instruções de configuração MCP.
 
 ---
 

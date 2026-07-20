@@ -4,7 +4,7 @@ Générez des images à partir de prompts textuels en utilisant un modèle texte
 
 ## Ce Que Cela Fait
 
-Lorsque la génération d'images est activée, Agora peut transformer vos prompts en images en utilisant un modèle texte-image dédié (tel que DALL·E, GPT-Image, Imagen, FLUX, Stable Diffusion, Seedream, Qwen-Image et bien d'autres). L'image générée est retournée dans la conversation, vous permettant d'itérer dessus comme n'importe quelle autre réponse.
+Lorsque la génération d'images est activée, 橘子岛 peut transformer vos prompts en images en utilisant un modèle texte-image dédié (tel que DALL·E, GPT-Image, Imagen, FLUX, Stable Diffusion, Seedream, Qwen-Image et bien d'autres). L'image générée est retournée dans la conversation, vous permettant d'itérer dessus comme n'importe quelle autre réponse.
 
 La génération d'images utilise sa **propre sélection de modèle**, indépendante du modèle avec lequel vous discutez — vous pouvez donc discuter avec un modèle et générer des images avec un autre.
 
@@ -37,7 +37,7 @@ Définit les dimensions de sortie par défaut, saisies en **largeur × hauteur**
 
 1. Activez la génération d'images et sélectionnez un modèle d'image
 2. Dans une conversation, demandez à l'assistant de créer une image
-3. Agora achemine la requête vers le modèle d'image configuré en utilisant les identifiants de ce fournisseur
+3. 橘子岛 achemine la requête vers le modèle d'image configuré en utilisant les identifiants de ce fournisseur
 4. L'image générée est retournée dans la conversation
 
 !!! tip

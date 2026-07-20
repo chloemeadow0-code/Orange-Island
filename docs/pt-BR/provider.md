@@ -1,6 +1,6 @@
 # Provedores de API
 
-O Agora conecta-se diretamente aos provedores de IA — sem intermediários, sem assinatura, sem telemetria. Você traz suas próprias chaves de API e tudo roda a partir do seu dispositivo.
+O 橘子岛 conecta-se diretamente aos provedores de IA — sem intermediários, sem assinatura, sem telemetria. Você traz suas próprias chaves de API e tudo roda a partir do seu dispositivo.
 
 ## Provedores Integrados
 
@@ -48,7 +48,7 @@ Toque no botão de rádio para definir a chave ativa. Pressione longamente uma c
 ### Segurança das Chaves
 
 !!! warning
-    As chaves de API são armazenadas localmente em um banco de dados Room criptografado. Elas nunca são enviadas para servidores do Agora (não existem servidores). No entanto, elas são exportadas em texto puro se você incluí-las em um arquivo de exportação `.agora`.
+    As chaves de API são armazenadas localmente em um banco de dados Room criptografado. Elas nunca são enviadas para servidores do 橘子岛 (não existem servidores). No entanto, elas são exportadas em texto puro se você incluí-las em um arquivo de exportação `.橘子岛`.
 
 ---
 
@@ -63,7 +63,7 @@ Adicione qualquer endpoint de API compatível com OpenAI:
     - **URL Base** — o endpoint da API
 4. Toque em **Adicionar**
 
-O Agora busca a lista de modelos em `{base_url}/v1/models`. Uma vez adicionados, os provedores personalizados funcionam exatamente como os integrados: adicione chaves de API, sincronize modelos e converse.
+O 橘子岛 busca a lista de modelos em `{base_url}/v1/models`. Uma vez adicionados, os provedores personalizados funcionam exatamente como os integrados: adicione chaves de API, sincronize modelos e converse.
 
 ### Casos de Uso
 
@@ -96,7 +96,7 @@ Após adicionar chaves de API, sincronize a lista de modelos:
 
 1. Vá em **Configurações → Modelos**
 2. Toque em **Sincronizar de Todos os Provedores**
-3. O Agora busca os modelos disponíveis de cada provedor configurado
+3. O 橘子岛 busca os modelos disponíveis de cada provedor configurado
 
 Uma snackbar mostra o progresso e os resultados da sincronização. Você pode então ativar/desativar modelos individuais e definir um padrão.
 

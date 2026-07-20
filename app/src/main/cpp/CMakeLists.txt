@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project("agora_llama" LANGUAGES C CXX)
+project("orangeisland_llama" LANGUAGES C CXX)
 
 set(LLAMA_CPP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../thirdparty/llama.cpp" CACHE PATH "llama.cpp source directory")
 get_filename_component(LLAMA_CPP_DIR "${LLAMA_CPP_DIR}" REALPATH)
@@ -45,10 +45,10 @@ endif()
 target_compile_definitions(ggml-base PRIVATE GGML_COMMIT="unknown")
 
 # Build llama JNI wrapper
-add_library(agora_llama SHARED llama_jni.cpp llama_chat_jni.cpp)
-target_link_libraries(agora_llama llama mtmd log)
-target_include_directories(agora_llama PRIVATE ${LLAMA_CPP_DIR}/include ${LLAMA_CPP_DIR}/tools/mtmd)
-target_link_options(agora_llama PRIVATE
+add_library(orangeisland_llama SHARED llama_jni.cpp llama_chat_jni.cpp)
+target_link_libraries(orangeisland_llama llama mtmd log)
+target_include_directories(orangeisland_llama PRIVATE ${LLAMA_CPP_DIR}/include ${LLAMA_CPP_DIR}/tools/mtmd)
+target_link_options(orangeisland_llama PRIVATE
     -Wl,--build-id=none -Wl,--hash-style=gnu -Wl,--icf=all -Wl,--threads=1
 )
 
@@ -58,10 +58,10 @@ find_program(LLVM_OBJCOPY llvm-objcopy
 )
 
 # ── Minimal JNI stub for proot ───────────────────────────
-# System.loadLibrary("agora_proot") triggers APK extraction of native libs.
+# System.loadLibrary("orangeisland_proot") triggers APK extraction of native libs.
 # Actual proot execution uses ProcessBuilder on libproot_exec.so (GNUmakefile-built).
-add_library(agora_proot SHARED proot_jni.cpp)
-target_link_options(agora_proot PRIVATE
+add_library(orangeisland_proot SHARED proot_jni.cpp)
+target_link_options(orangeisland_proot PRIVATE
     -Wl,--build-id=none -Wl,--hash-style=gnu -Wl,--icf=all
 )
 
@@ -70,10 +70,10 @@ if(DEFINED ENV{SOURCE_DATE_EPOCH})
     add_definitions(-DSOURCE_DATE_EPOCH=$ENV{SOURCE_DATE_EPOCH})
 endif()
 if(LLVM_OBJCOPY)
-    add_custom_command(TARGET agora_llama POST_BUILD
-        COMMAND ${LLVM_OBJCOPY} --remove-section .comment $<TARGET_FILE:agora_llama>
+    add_custom_command(TARGET orangeisland_llama POST_BUILD
+        COMMAND ${LLVM_OBJCOPY} --remove-section .comment $<TARGET_FILE:orangeisland_llama>
     )
-    add_custom_command(TARGET agora_proot POST_BUILD
-        COMMAND ${LLVM_OBJCOPY} --remove-section .comment $<TARGET_FILE:agora_proot>
+    add_custom_command(TARGET orangeisland_proot POST_BUILD
+        COMMAND ${LLVM_OBJCOPY} --remove-section .comment $<TARGET_FILE:orangeisland_proot>
     )
 endif()

@@ -25,7 +25,7 @@
 
 ### 哪些 GGUF 模型可用？
 
-Agora 支持 GGUF 格式的聊天和嵌入模型。聊天模型需要能装入设备内存（1–8B 参数量，取决于 RAM）。嵌入模型更小（100–500 MB）。详见 [本地模型](local-model.md)。
+橘子岛 支持 GGUF 格式的聊天和嵌入模型。聊天模型需要能装入设备内存（1–8B 参数量，取决于 RAM）。嵌入模型更小（100–500 MB）。详见 [本地模型](local-model.md)。
 
 ### 如何离线运行模型？
 
@@ -56,7 +56,7 @@ Agora 支持 GGUF 格式的聊天和嵌入模型。聊天模型需要能装入�
 
 1. 在机器上安装 Ollama
 2. 拉取嵌入模型：`ollama pull qwen3-embedding:8b`
-3. 在 Agora 中，用 **Ollama** 预设添加远程嵌入模型
+3. 在 橘子岛 中，用 **Ollama** 预设添加远程嵌入模型
 4. Base URL：`http://<host>:11434/v1`
 5. 输入包含标签的精确模型名称（如 `qwen3-embedding:8b`）
 6. API 密钥留空
@@ -79,7 +79,7 @@ Agora 支持 GGUF 格式的聊天和嵌入模型。聊天模型需要能装入�
 
 ### 如何设置远程 Shell 访问？
 
-在目标机器上部署 [Conch](https://github.com/newo-ether/conch) 服务器，然后在 设置 → Shell 中添加设备，填入 URL 和 API 密钥。详见 [远程 Shell](shell.md)。
+在目标机器上部署 [Conch](https://github.com/orangeisland/conch) 服务器，然后在 设置 → Shell 中添加设备，填入 URL 和 API 密钥。详见 [远程 Shell](shell.md)。
 
 ### 可以不用 API 密钥搜索网络吗？
 
@@ -87,7 +87,7 @@ Agora 支持 GGUF 格式的聊天和嵌入模型。聊天模型需要能装入�
 
 ### Shell 连接是加密的吗？
 
-是的。Conch 使用 ECDH 密钥交换 + AES-256-GCM 加密 + HMAC-SHA256 签名。Agora 与 Conch 服务器之间的所有流量均为端到端加密。
+是的。Conch 使用 ECDH 密钥交换 + AES-256-GCM 加密 + HMAC-SHA256 签名。橘子岛 与 Conch 服务器之间的所有流量均为端到端加密。
 
 ---
 
@@ -95,7 +95,7 @@ Agora 支持 GGUF 格式的聊天和嵌入模型。聊天模型需要能装入�
 
 ### 如何备份数据？
 
-创建手动 `.agora` 备份。如需免手动保护，在 设置 → 数据控制 → 自动备份 中启用**自动备份** — 它会在后台定期备份你的数据。详见 [数据迁移](import-export.md)。
+创建手动 `.橘子岛` 备份。如需免手动保护，在 设置 → 数据控制 → 自动备份 中启用**自动备份** — 它会在后台定期备份你的数据。详见 [数据迁移](import-export.md)。
 
 ### 能从 ChatGPT 或 Claude 导入吗？
 
@@ -103,7 +103,7 @@ Agora 支持 GGUF 格式的聊天和嵌入模型。聊天模型需要能装入�
 
 ### API 密钥会包含在导出文件中吗？
 
-可选。导出界面允许你切换是否包含 API 密钥。启用时会有警告提示。密钥以明文形式存储在 `.agora` 文件中，因此仅在完全设备迁移且信任目标时包含。
+可选。导出界面允许你切换是否包含 API 密钥。启用时会有警告提示。密钥以明文形式存储在 `.橘子岛` 文件中，因此仅在完全设备迁移且信任目标时包含。
 
 ---
 
@@ -111,12 +111,12 @@ Agora 支持 GGUF 格式的聊天和嵌入模型。聊天模型需要能装入�
 
 ### 数据存储在哪里？
 
-所有数据存储在 Android 设备的 Room 数据库中。Agora 没有服务器、没有云同步、没有遥测。消息直接从你的设备发送到你配置的 AI 提供商。
+所有数据存储在 Android 设备的 Room 数据库中。橘子岛 没有服务器、没有云同步、没有遥测。消息直接从你的设备发送到你配置的 AI 提供商。
 
-### Agora 支持多语言吗？
+### 橘子岛 支持多语言吗？
 
 支持。应用 UI 支持 **English**、**中文** 和 **繁體中文（繁体中文）**。设置 → 语言。切换后需要重启。
 
 ### 如何反馈问题或请求功能？
 
-在 [GitHub](https://github.com/newo-ether/Agora/issues) 上提交 issue。贡献方式见 README 的 [Contributing](https://github.com/newo-ether/Agora#contributing) 部分。
+在 [GitHub](https://github.com/orangeisland/app/issues) 上提交 issue。贡献方式见 README 的 [Contributing](https://github.com/orangeisland/app#contributing) 部分。

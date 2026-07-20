@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Agora</string>
-    <string name="agora_responded">Agora가 응답했습니다</string>
+    <string name="app_name">橘子岛</string>
+    <string name="oi_responded">橘子岛가 응답했습니다</string>
 
     <!-- Chat Bottom Bar -->
     <string name="add_attachment">첨부 추가</string>
@@ -17,7 +17,7 @@
     <string name="google_search">Google 검색</string>
     <string name="thinking">사고</string>
     <string name="web_search">웹 검색</string>
-    <string name="ask_agora">Agora에게 무엇이든 물어보세요...</string>
+    <string name="ask_orange_island">橘子岛에게 무엇이든 물어보세요...</string>
     <string name="send">보내기</string>
 
     <!-- Tool Display -->
@@ -238,7 +238,7 @@
     <string name="prompts_template_blank">빈 항목</string>
     <string name="prompts_template_blank_desc">비어 있는 편집 가능한 시스템 프롬프트로 시작합니다.</string>
     <string name="prompts_template_default">기본</string>
-    <string name="prompts_template_default_desc">런타임 컨텍스트, 메모리, 웹 검색, 셸, 기기 파일 접근 규칙이 포함된 Agora 기본 프롬프트를 사용합니다.</string>
+    <string name="prompts_template_default_desc">런타임 컨텍스트, 메모리, 웹 검색, 셸, 기기 파일 접근 규칙이 포함된 橘子岛 기본 프롬프트를 사용합니다.</string>
     <string name="prompts_duplicate">복제</string>
     <string name="prompts_duplicate_title">%1$s 사본</string>
     <string name="prompts_empty_preview">빈 프롬프트</string>
@@ -648,9 +648,9 @@
     <string name="play">재생</string>
     <string name="video_preview">동영상 미리보기</string>
     <string name="total_tokens">합계: %1$d 토큰</string>
-    <string name="welcome_to_agora">Agora에 오신 것을 환영합니다.</string>
+    <string name="welcome_to_orange_island">橘子岛에 오신 것을 환영합니다.</string>
     <string name="database_incompatible">데이터베이스 비호환</string>
-    <string name="database_incompatible_desc">데이터베이스가 이 버전의 Agora와 호환되지 않습니다. 데이터베이스를 지우고 앱을 다시 시작하세요.</string>
+    <string name="database_incompatible_desc">데이터베이스가 이 버전의 橘子岛와 호환되지 않습니다. 데이터베이스를 지우고 앱을 다시 시작하세요.</string>
     <string name="quit">종료</string>
     <string name="clear_database">데이터베이스 지우기</string>
     <string name="generate_title">제목 생성</string>
@@ -725,10 +725,10 @@
     <string name="about_update_available">업데이트 사용 가능: v%1$s</string>
     <string name="about_up_to_date">최신 상태입니다(v%1$s)</string>
     <string name="about_checking">확인 중...</string>
-    <string name="about_available_body">Agora의 새 버전이 GitHub에 있습니다.</string>
+    <string name="about_available_body">橘子岛의 새 버전이 GitHub에 있습니다.</string>
     <string name="about_view_release">릴리스 보기</string>
     <string name="about_later">나중에</string>
-    <string name="rating_title">Agora 평가</string>
+    <string name="rating_title">橘子岛 평가</string>
     <string name="rating_star">별 %1$d개</string>
     <string name="rating_your_name">이름(선택 사항)</string>
     <string name="rating_your_email">이메일(선택 사항)</string>
@@ -737,7 +737,7 @@
     <string name="rating_submitting">제출 중…</string>
     <string name="rating_success">피드백 감사합니다!</string>
     <string name="rating_failed">제출에 실패했습니다. 다시 시도해 주세요.</string>
-    <string name="rating_privacy">평가는 newoether.space에 익명으로 업로드됩니다. 입력한 항목만 전송됩니다. 다른 데이터는 수집되지 않습니다.</string>
+    <string name="rating_privacy">평가는 rating.orangeisland.app에 익명으로 업로드됩니다. 입력한 항목만 전송됩니다. 다른 데이터는 수집되지 않습니다.</string>
 
     <!-- Data Control -->
     <string name="settings_data_control">데이터 관리</string>
@@ -745,7 +745,7 @@
     <string name="data_export_title">데이터 내보내기</string>
     <string name="data_export_subtitle">대화, 메모리, 프롬프트 및 설정을 파일로 저장합니다.</string>
     <string name="data_import_title">데이터 가져오기</string>
-    <string name="data_import_subtitle">이전 .agora 내보내기 파일에서 복원합니다.</string>
+    <string name="data_import_subtitle">이전 .oi 내보내기 파일에서 복원합니다.</string>
     <string name="export_category_conversations">대화 및 메시지</string>
     <string name="export_category_memories">메모리</string>
     <string name="export_category_system_prompts">시스템 프롬프트</string>
@@ -758,7 +758,7 @@
 
     <string name="export_failed">내보내기 실패: %1$s</string>
     <string name="import_preview_title">데이터 가져오기</string>
-    <string name="import_from">%1$s에 내보냄\nAgora v%2$s에서</string>
+    <string name="import_from">%1$s에 내보냄\n橘子岛 v%2$s에서</string>
     <string name="import_strategy_merge">병합</string>
     <string name="import_strategy_replace">교체</string>
     <string name="import_strategy_skip">건너뛰기</string>
@@ -767,7 +767,7 @@
     <string name="importing_label">가져오는 중…</string>
     <string name="import_success">가져오기 완료: %1$s</string>
     <string name="import_failed">가져오기 실패: %1$s</string>
-    <string name="import_invalid_file">잘못된 .agora 파일입니다. 유효한 내보내기를 선택하세요.</string>
+    <string name="import_invalid_file">잘못된 .oi 파일입니다. 유효한 내보내기를 선택하세요.</string>
     <string name="import_no_data">이 내보내기 파일에는 가져올 수 있는 데이터가 없습니다.</string>
 
     <!-- Claude Chat Import -->
@@ -844,7 +844,7 @@
     <string name="show_documentation_links_desc">설정 페이지에 문서 버튼 표시</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_welcome_title">Agora에 오신 것을 환영합니다</string>
+    <string name="onboarding_welcome_title">橘子岛에 오신 것을 환영합니다</string>
     <string name="onboarding_welcome_desc">데이터 주권을 되찾아 주는 BYOK 앱입니다.</string>
     <string name="onboarding_byok_title">자신의 키를 사용하세요</string>
     <string name="onboarding_byok_desc">API 키를 설정하거나 GGUF 모델을 가져와 온디바이스 추론을 사용하세요.</string>
@@ -929,11 +929,11 @@
     <string name="shell_confirm_setting_desc">어시스턴트가 원격 SSH/Conch 서버에서 명령을 실행하거나 파일을 쓰기 전에 확인</string>
 
     <!-- Crash reporting -->
-    <string name="crash_title">Agora가 예기치 않게 종료되었습니다</string>
+    <string name="crash_title">橘子岛가 예기치 않게 종료되었습니다</string>
     <string name="crash_message">불편을 드려 죄송합니다. 익명 크래시 보고서를 보내 문제 해결에 도움을 주실 수 있습니다.</string>
     <string name="crash_submit">보고서 보내기</string>
     <string name="crash_dismiss">보내지 않기</string>
-    <string name="crash_privacy_note">크래시 로그만 newoether.space로 전송됩니다. 다른 정보는 수집되지 않습니다.</string>
+    <string name="crash_privacy_note">크래시 로그만 rating.orangeisland.app로 전송됩니다. 다른 정보는 수집되지 않습니다.</string>
     <string name="crash_submitted">크래시 보고서를 보냈습니다. 감사합니다!</string>
     <string name="settings_group_network">네트워크</string>
     <string name="settings_proxy">프록시</string>

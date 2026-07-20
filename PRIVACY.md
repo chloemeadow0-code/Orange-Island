@@ -2,19 +2,19 @@
 
 **Last updated: May 29, 2026**
 
-Agora is an AI chat client that communicates directly with API providers you configure. This policy explains how your data is handled.
+橘子岛 is an AI chat client that communicates directly with API providers you configure. This policy explains how your data is handled.
 
 ## Data Collection
 
-**Agora does not collect, store, or transmit any personal data to its developer.**
+**橘子岛 does not collect, store, or transmit any personal data to its developer.**
 
-- All conversation data is stored **locally on your device** and is never sent to Agora's servers (we have none).
+- All conversation data is stored **locally on your device** and is never sent to 橘子岛's servers (we have none).
 - API keys and model credentials are stored **locally on your device** and are only used to authenticate requests to the AI providers you configure.
-- Messages you send are transmitted directly from your device to the AI provider's API (e.g., Google Gemini, OpenAI, Ollama). Agora does not intermediate or log these requests.
+- Messages you send are transmitted directly from your device to the AI provider's API (e.g., Google Gemini, OpenAI, Ollama). 橘子岛 does not intermediate or log these requests.
 
 ## Third-Party Services
 
-When you use Agora, your messages and attached files are sent to the AI provider(s) you select. Each provider has its own privacy policy:
+When you use 橘子岛, your messages and attached files are sent to the AI provider(s) you select. Each provider has its own privacy policy:
 
 - [Google Gemini API](https://ai.google.dev/gemini-api/terms)
 - [OpenAI API](https://openai.com/policies/privacy-policy)
@@ -35,7 +35,7 @@ All chat history is stored locally in an on-device database. You can delete conv
 
 ## Children's Privacy
 
-Agora is not directed to children under the age of 13.
+橘子岛 is not directed to children under the age of 13.
 
 ## Changes
 
@@ -43,7 +43,7 @@ This policy may be updated from time to time. Changes will be posted on this pag
 
 ## Contact
 
-If you have questions about this policy, open an issue at [github.com/newo-ether/Agora](https://github.com/newo-ether/Agora).
+If you have questions about this policy, open an issue at [github.com/orangeisland/app](https://github.com/orangeisland/app).
 
 ---
 
@@ -51,19 +51,19 @@ If you have questions about this policy, open an issue at [github.com/newo-ether
 
 **最后更新：2026年5月29日**
 
-Agora 是一款 AI 聊天客户端，直接与你配置的 API 提供商通信。本政策说明你的数据如何处理。
+橘子岛 是一款 AI 聊天客户端，直接与你配置的 API 提供商通信。本政策说明你的数据如何处理。
 
 ## 数据收集
 
-**Agora 不会收集、存储或传输任何个人数据给开发者。**
+**橘子岛 不会收集、存储或传输任何个人数据给开发者。**
 
-- 所有对话数据**仅存储在你的设备本地**，不会发送到 Agora 的服务器（我们没有服务器）。
+- 所有对话数据**仅存储在你的设备本地**，不会发送到 橘子岛 的服务器（我们没有服务器）。
 - API 密钥和模型凭证**仅存储在你的设备本地**，仅用于向你选择的 AI 提供商认证请求。
-- 你发送的消息从你的设备直接传输到 AI 提供商的 API。Agora 不会中转或记录这些请求。
+- 你发送的消息从你的设备直接传输到 AI 提供商的 API。橘子岛 不会中转或记录这些请求。
 
 ## 第三方服务
 
-使用 Agora 时，你的消息和附件会发送到你选择的 AI 提供商。每个提供商有自己的隐私政策，请自行查阅。
+使用 橘子岛 时，你的消息和附件会发送到你选择的 AI 提供商。每个提供商有自己的隐私政策，请自行查阅。
 
 ## 权限
 
@@ -77,7 +77,7 @@ Agora 是一款 AI 聊天客户端，直接与你配置的 API 提供商通信�
 
 ## 儿童隐私
 
-Agora 不面向 13 岁以下儿童。
+橘子岛 不面向 13 岁以下儿童。
 
 ## 变更
 
@@ -85,4 +85,4 @@ Agora 不面向 13 岁以下儿童。
 
 ## 联系
 
-如有问题，请在 [github.com/newo-ether/Agora](https://github.com/newo-ether/Agora) 提交 issue。
+如有问题，请在 [github.com/orangeisland/app](https://github.com/orangeisland/app) 提交 issue。

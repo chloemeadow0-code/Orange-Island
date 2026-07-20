@@ -1,6 +1,6 @@
 # Fournisseurs API
 
-Agora se connecte directement aux fournisseurs d'IA — sans intermédiaire, sans abonnement, sans télémétrie. Vous apportez vos propres clés API et tout fonctionne depuis votre appareil.
+橘子岛 se connecte directement aux fournisseurs d'IA — sans intermédiaire, sans abonnement, sans télémétrie. Vous apportez vos propres clés API et tout fonctionne depuis votre appareil.
 
 ## Fournisseurs Intégrés
 
@@ -48,7 +48,7 @@ Appuyez sur le bouton radio pour définir la clé active. Appui long sur une cl�
 ### Sécurité des Clés
 
 !!! warning
-    Les clés API sont stockées localement dans une base de données Room chiffrée. Elles ne sont jamais envoyées aux serveurs Agora (il n'y en a pas). Cependant, elles sont exportées en texte brut si vous les incluez dans un fichier d'export `.agora`.
+    Les clés API sont stockées localement dans une base de données Room chiffrée. Elles ne sont jamais envoyées aux serveurs 橘子岛 (il n'y en a pas). Cependant, elles sont exportées en texte brut si vous les incluez dans un fichier d'export `.橘子岛`.
 
 ---
 
@@ -63,7 +63,7 @@ Ajoutez n'importe quel point de terminaison compatible OpenAI :
     - **URL de Base** — le point de terminaison API
 4. Appuyez sur **Ajouter**
 
-Agora récupère la liste des modèles depuis `{url_de_base}/v1/models`. Une fois ajoutés, les fournisseurs personnalisés fonctionnent exactement comme les fournisseurs intégrés : ajoutez des clés API, synchronisez les modèles et discutez.
+橘子岛 récupère la liste des modèles depuis `{url_de_base}/v1/models`. Une fois ajoutés, les fournisseurs personnalisés fonctionnent exactement comme les fournisseurs intégrés : ajoutez des clés API, synchronisez les modèles et discutez.
 
 ### Cas d'Utilisation
 
@@ -96,7 +96,7 @@ Après avoir ajouté des clés API, synchronisez la liste des modèles :
 
 1. Allez dans **Paramètres → Modèles**
 2. Appuyez sur **Synchroniser depuis Tous les Fournisseurs**
-3. Agora récupère les modèles disponibles de chaque fournisseur configuré
+3. 橘子岛 récupère les modèles disponibles de chaque fournisseur configuré
 
 Une barre de notification montre la progression et les résultats de la synchronisation. Vous pouvez ensuite activer/désactiver des modèles individuels et définir un modèle par défaut.
 

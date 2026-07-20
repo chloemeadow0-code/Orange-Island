@@ -3,9 +3,9 @@
 -dontnote kotlinx.serialization.AnnotationsKt
 -keepclassmembers class kotlinx.serialization.json.** { *** Companion; }
 -keepclasseswithmembers class kotlinx.serialization.json.** { kotlinx.serialization.KSerializer serializer(...); }
--keep,includedescriptorclasses class com.newoether.agora.**$$serializer { *; }
--keepclassmembers class com.newoether.agora.** { *** Companion; }
--keepclasseswithmembers class com.newoether.agora.** { kotlinx.serialization.KSerializer serializer(...); }
+-keep,includedescriptorclasses class com.orangeisland.app.**$serializer { *; }
+-keepclassmembers class com.orangeisland.app.** { *** Companion; }
+-keepclasseswithmembers class com.orangeisland.app.** { kotlinx.serialization.KSerializer serializer(...); }
 
 # Room
 -keep class * extends androidx.room.RoomDatabase

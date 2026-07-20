@@ -4,7 +4,7 @@
 
 ## 工作原理
 
-Agora 通过 Android NDK (CMake) 捆绑 llama.cpp。当你导入 GGUF 文件时，模型完全在设备 CPU 上运行——数据不会离开设备。
+橘子岛 通过 Android NDK (CMake) 捆绑 llama.cpp。当你导入 GGUF 文件时，模型完全在设备 CPU 上运行——数据不会离开设备。
 
 ## 要求
 
@@ -76,7 +76,7 @@ Agora 通过 Android NDK (CMake) 捆绑 llama.cpp。当你导入 GGUF 文件时�
 
 ### 删除
 
-长按模型并点按**删除**。这会从 Agora 中移除模型并从存储中删除 GGUF 文件。
+长按模型并点按**删除**。这会从 橘子岛 中移除模型并从存储中删除 GGUF 文件。
 
 ---
 

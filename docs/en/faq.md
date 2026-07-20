@@ -25,7 +25,7 @@ Go to Settings → Provider → **+ Add Custom Provider**. Enter a name and base
 
 ### What GGUF models work?
 
-Agora supports GGUF format for both chat and embedding. Chat models should fit in device memory (1–8B parameters depending on RAM). Embedding models are much smaller (100–500 MB). See [Local Models](local-model.md).
+橘子岛 supports GGUF format for both chat and embedding. Chat models should fit in device memory (1–8B parameters depending on RAM). Embedding models are much smaller (100–500 MB). See [Local Models](local-model.md).
 
 ### How do I run models offline?
 
@@ -56,7 +56,7 @@ Keyword search matches exact text. RAG (semantic search) matches by meaning — 
 
 1. Install Ollama on a machine
 2. Pull an embedding model: `ollama pull qwen3-embedding:8b`
-3. In Agora, add a remote embedding model with the **Ollama** preset
+3. In 橘子岛, add a remote embedding model with the **Ollama** preset
 4. Use `http://<host>:11434/v1` as base URL
 5. Enter the exact model name including the tag (e.g., `qwen3-embedding:8b`)
 6. Leave API key blank
@@ -79,7 +79,7 @@ Yes, if you enable **Access Saved Memories** and/or **Access Active Memory** in 
 
 ### How do I set up remote shell access?
 
-Deploy the [Conch](https://github.com/newo-ether/conch) server on your target machine, then add the device in Settings → Shell with its URL and API key. Both Conch and SSH devices are supported. See [Remote Shell](shell.md).
+Deploy the [Conch](https://github.com/orangeisland/conch) server on your target machine, then add the device in Settings → Shell with its URL and API key. Both Conch and SSH devices are supported. See [Remote Shell](shell.md).
 
 ### Can I search the web without an API key?
 
@@ -87,7 +87,7 @@ Yes. **DuckDuckGo Lite** is the default web search provider and requires no API 
 
 ### Is the shell connection encrypted?
 
-Yes. Conch uses ECDH key exchange + AES-256-GCM encryption + HMAC-SHA256 signing. All traffic between Agora and the Conch server is end-to-end encrypted.
+Yes. Conch uses ECDH key exchange + AES-256-GCM encryption + HMAC-SHA256 signing. All traffic between 橘子岛 and the Conch server is end-to-end encrypted.
 
 ---
 
@@ -95,7 +95,7 @@ Yes. Conch uses ECDH key exchange + AES-256-GCM encryption + HMAC-SHA256 signing
 
 ### How do I back up my data?
 
-Go to Settings → Data Control → **Export Data** to create a manual `.agora` backup. For hands-off protection, enable **Auto Backup** in Settings → Data Control → Auto Backup — it periodically backs up your data in the background. See [Data Portability](import-export.md).
+Go to Settings → Data Control → **Export Data** to create a manual `.橘子岛` backup. For hands-off protection, enable **Auto Backup** in Settings → Data Control → Auto Backup — it periodically backs up your data in the background. See [Data Portability](import-export.md).
 
 ### Can I import from ChatGPT or Claude?
 
@@ -103,7 +103,7 @@ Yes. Export your data from ChatGPT or Claude (they provide `.zip` files), then i
 
 ### Are my API keys included in exports?
 
-They can be, but it's optional. The export screen lets you toggle API key inclusion. A warning is shown when you enable it. Keys are stored in plain text within the `.agora` file, so only include them for full device migrations to trusted destinations.
+They can be, but it's optional. The export screen lets you toggle API key inclusion. A warning is shown when you enable it. Keys are stored in plain text within the `.橘子岛` file, so only include them for full device migrations to trusted destinations.
 
 ---
 
@@ -111,12 +111,12 @@ They can be, but it's optional. The export screen lets you toggle API key inclus
 
 ### Where is my data stored?
 
-Everything is stored locally on your Android device in a Room database. Agora has no servers, no cloud sync, no telemetry. Messages are sent directly from your device to the AI provider you configure.
+Everything is stored locally on your Android device in a Room database. 橘子岛 has no servers, no cloud sync, no telemetry. Messages are sent directly from your device to the AI provider you configure.
 
-### Does Agora support multiple languages?
+### Does 橘子岛 support multiple languages?
 
 Yes. The app UI supports **English**, **中文 (Chinese)**, and **繁體中文 (Traditional Chinese)**. Settings → Language. A restart is required after switching.
 
 ### How do I report a bug or request a feature?
 
-Open an issue on [GitHub](https://github.com/newo-ether/Agora/issues). For contributions, see the [Contributing](https://github.com/newo-ether/Agora#contributing) section of the README.
+Open an issue on [GitHub](https://github.com/orangeisland/app/issues). For contributions, see the [Contributing](https://github.com/orangeisland/app#contributing) section of the README.

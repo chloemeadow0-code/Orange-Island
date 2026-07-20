@@ -93,7 +93,7 @@ static jstring utf8_to_jstring(JNIEnv * env, const char * data, size_t len) {
 extern "C" {
 
 JNIEXPORT jlong JNICALL
-Java_com_newoether_agora_api_LlamaChatEngine_nativeChatLoadModel(
+Java_com_orangeisland_app_api_LlamaChatEngine_nativeChatLoadModel(
     JNIEnv * env, jclass /*clazz*/, jstring path, jint n_ctx) {
 
     const char * path_str = env->GetStringUTFChars(path, nullptr);
@@ -142,7 +142,7 @@ Java_com_newoether_agora_api_LlamaChatEngine_nativeChatLoadModel(
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_newoether_agora_api_LlamaChatEngine_nativeChatGetTemplate(
+Java_com_orangeisland_app_api_LlamaChatEngine_nativeChatGetTemplate(
     JNIEnv * env, jclass /*clazz*/, jlong handle_ptr) {
 
     if (!handle_ptr) return nullptr;
@@ -155,7 +155,7 @@ Java_com_newoether_agora_api_LlamaChatEngine_nativeChatGetTemplate(
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_newoether_agora_api_LlamaChatEngine_nativeChatApplyTemplate(
+Java_com_orangeisland_app_api_LlamaChatEngine_nativeChatApplyTemplate(
     JNIEnv * env, jclass /*clazz*/, jlong handle_ptr,
     jobjectArray messages, jboolean add_ass) {
 
@@ -236,7 +236,7 @@ Java_com_newoether_agora_api_LlamaChatEngine_nativeChatApplyTemplate(
 }
 
 JNIEXPORT jint JNICALL
-Java_com_newoether_agora_api_LlamaChatEngine_nativeChatGenerate(
+Java_com_orangeisland_app_api_LlamaChatEngine_nativeChatGenerate(
     JNIEnv * env, jclass /*clazz*/, jlong handle_ptr,
     jstring prompt, jfloat temperature, jfloat top_p, jint max_tokens,
     jobject callback) {
@@ -412,7 +412,7 @@ Java_com_newoether_agora_api_LlamaChatEngine_nativeChatGenerate(
 }
 
 JNIEXPORT void JNICALL
-Java_com_newoether_agora_api_LlamaChatEngine_nativeChatReset(
+Java_com_orangeisland_app_api_LlamaChatEngine_nativeChatReset(
     JNIEnv * /*env*/, jclass /*clazz*/, jlong handle_ptr) {
 
     if (!handle_ptr) return;
@@ -424,7 +424,7 @@ Java_com_newoether_agora_api_LlamaChatEngine_nativeChatReset(
 }
 
 JNIEXPORT jboolean JNICALL
-Java_com_newoether_agora_api_LlamaChatEngine_nativeChatLoadMmproj(
+Java_com_orangeisland_app_api_LlamaChatEngine_nativeChatLoadMmproj(
     JNIEnv * env, jclass /*clazz*/, jlong handle_ptr, jstring mmproj_path) {
 
     if (!handle_ptr) return JNI_FALSE;
@@ -459,7 +459,7 @@ Java_com_newoether_agora_api_LlamaChatEngine_nativeChatLoadMmproj(
 }
 
 JNIEXPORT void JNICALL
-Java_com_newoether_agora_api_LlamaChatEngine_nativeChatUnloadMmproj(
+Java_com_orangeisland_app_api_LlamaChatEngine_nativeChatUnloadMmproj(
     JNIEnv * /*env*/, jclass /*clazz*/, jlong handle_ptr) {
 
     if (!handle_ptr) return;
@@ -472,7 +472,7 @@ Java_com_newoether_agora_api_LlamaChatEngine_nativeChatUnloadMmproj(
 }
 
 JNIEXPORT jboolean JNICALL
-Java_com_newoether_agora_api_LlamaChatEngine_nativeChatHasMmproj(
+Java_com_orangeisland_app_api_LlamaChatEngine_nativeChatHasMmproj(
     JNIEnv * /*env*/, jclass /*clazz*/, jlong handle_ptr) {
 
     if (!handle_ptr) return JNI_FALSE;
@@ -481,7 +481,7 @@ Java_com_newoether_agora_api_LlamaChatEngine_nativeChatHasMmproj(
 }
 
 JNIEXPORT jint JNICALL
-Java_com_newoether_agora_api_LlamaChatEngine_nativeChatGenerateWithImages(
+Java_com_orangeisland_app_api_LlamaChatEngine_nativeChatGenerateWithImages(
     JNIEnv * env, jclass /*clazz*/, jlong handle_ptr,
     jstring prompt, jobjectArray image_paths,
     jfloat temperature, jfloat top_p, jint max_tokens,
@@ -628,7 +628,7 @@ Java_com_newoether_agora_api_LlamaChatEngine_nativeChatGenerateWithImages(
 }
 
 JNIEXPORT void JNICALL
-Java_com_newoether_agora_api_LlamaChatEngine_nativeChatFreeModel(
+Java_com_orangeisland_app_api_LlamaChatEngine_nativeChatFreeModel(
     JNIEnv * /*env*/, jclass /*clazz*/, jlong handle_ptr) {
 
     if (!handle_ptr) return;
@@ -643,7 +643,7 @@ Java_com_newoether_agora_api_LlamaChatEngine_nativeChatFreeModel(
 }
 
 JNIEXPORT void JNICALL
-Java_com_newoether_agora_api_LlamaChatEngine_nativeChatCancel(
+Java_com_orangeisland_app_api_LlamaChatEngine_nativeChatCancel(
     JNIEnv * /*env*/, jclass /*clazz*/, jlong handle_ptr) {
 
     if (!handle_ptr) return;

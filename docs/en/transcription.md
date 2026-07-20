@@ -4,7 +4,7 @@ Let a vision model describe images so that text-only models can understand them.
 
 ## What It Does
 
-When you send an image to a text-only model, Agora can use a separate vision model to generate a text description of the image first. This description is then included in the prompt sent to your main model.
+When you send an image to a text-only model, 橘子岛 can use a separate vision model to generate a text description of the image first. This description is then included in the prompt sent to your main model.
 
 This lets you use images with any model, even ones that don't natively support vision.
 
@@ -21,7 +21,7 @@ This lets you use images with any model, even ones that don't natively support v
 ## How It Works
 
 1. You attach an image to your message
-2. Agora detects that your current model doesn't support vision
+2. 橘子岛 detects that your current model doesn't support vision
 3. The image is sent to the transcription model first
 4. The transcription model generates a text description
 5. This description is prepended to your message text

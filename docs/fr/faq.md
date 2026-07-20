@@ -25,7 +25,7 @@ Allez dans Paramètres → Fournisseur → **+ Ajouter un Fournisseur Personnali
 
 ### Quels modèles GGUF fonctionnent ?
 
-Agora prend en charge le format GGUF pour le chat et l'embedding. Les modèles de chat doivent tenir dans la mémoire de l'appareil (1–8B paramètres selon la RAM). Les modèles d'embedding sont beaucoup plus petits (100–500 Mo). Voir [Modèles Locaux](local-model.md).
+橘子岛 prend en charge le format GGUF pour le chat et l'embedding. Les modèles de chat doivent tenir dans la mémoire de l'appareil (1–8B paramètres selon la RAM). Les modèles d'embedding sont beaucoup plus petits (100–500 Mo). Voir [Modèles Locaux](local-model.md).
 
 ### Comment exécuter des modèles hors ligne ?
 
@@ -56,7 +56,7 @@ La recherche par mot-clé correspond au texte exact. La recherche RAG (sémantiq
 
 1. Installez Ollama sur une machine
 2. Téléchargez un modèle d'embedding : `ollama pull qwen3-embedding:8b`
-3. Dans Agora, ajoutez un modèle d'embedding distant avec le préréglage **Ollama**
+3. Dans 橘子岛, ajoutez un modèle d'embedding distant avec le préréglage **Ollama**
 4. Utilisez `http://<hôte>:11434/v1` comme URL de base
 5. Saisissez le nom exact du modèle, tag inclus (par ex., `qwen3-embedding:8b`)
 6. Laissez la clé API vide
@@ -79,7 +79,7 @@ Oui, si vous activez **Accéder aux Mémoires Sauvegardées** et/ou **Accéder �
 
 ### Comment configurer l'accès shell distant ?
 
-Déployez le serveur [Conch](https://github.com/newo-ether/conch) sur votre machine cible, puis ajoutez l'appareil dans Paramètres → Shell avec son URL et sa clé API. Voir [Shell Distant](shell.md).
+Déployez le serveur [Conch](https://github.com/orangeisland/conch) sur votre machine cible, puis ajoutez l'appareil dans Paramètres → Shell avec son URL et sa clé API. Voir [Shell Distant](shell.md).
 
 ### Puis-je rechercher sur le web sans clé API ?
 
@@ -87,7 +87,7 @@ Oui. **DuckDuckGo Lite** est le fournisseur de recherche web par défaut et ne n
 
 ### La connexion shell est-elle chiffrée ?
 
-Oui. Conch utilise l'échange de clés ECDH + chiffrement AES-256-GCM + signature HMAC-SHA256. Tout le trafic entre Agora et le serveur Conch est chiffré de bout en bout.
+Oui. Conch utilise l'échange de clés ECDH + chiffrement AES-256-GCM + signature HMAC-SHA256. Tout le trafic entre 橘子岛 et le serveur Conch est chiffré de bout en bout.
 
 ---
 
@@ -95,7 +95,7 @@ Oui. Conch utilise l'échange de clés ECDH + chiffrement AES-256-GCM + signatur
 
 ### Comment sauvegarder mes données ?
 
-Allez dans Paramètres → Contrôle des Données → **Exporter les Données** pour créer une sauvegarde manuelle dans un fichier `.agora`. Pour une protection sans intervention, activez **Sauvegarde Automatique** dans Paramètres → Contrôle des Données → Sauvegarde Automatique — elle sauvegarde périodiquement vos données en arrière-plan. Voir [Portabilité des Données](import-export.md).
+Allez dans Paramètres → Contrôle des Données → **Exporter les Données** pour créer une sauvegarde manuelle dans un fichier `.橘子岛`. Pour une protection sans intervention, activez **Sauvegarde Automatique** dans Paramètres → Contrôle des Données → Sauvegarde Automatique — elle sauvegarde périodiquement vos données en arrière-plan. Voir [Portabilité des Données](import-export.md).
 
 ### Puis-je importer depuis ChatGPT ou Claude ?
 
@@ -103,7 +103,7 @@ Oui. Exportez vos données depuis ChatGPT ou Claude (ils fournissent des fichier
 
 ### Mes clés API sont-elles incluses dans les exports ?
 
-Elles peuvent l'être, mais c'est optionnel. L'écran d'export vous permet d'activer l'inclusion des clés API. Un avertissement s'affiche lorsque vous l'activez. Les clés sont stockées en texte brut dans le fichier `.agora`, donc ne les incluez que pour des migrations complètes d'appareil vers des destinations de confiance.
+Elles peuvent l'être, mais c'est optionnel. L'écran d'export vous permet d'activer l'inclusion des clés API. Un avertissement s'affiche lorsque vous l'activez. Les clés sont stockées en texte brut dans le fichier `.橘子岛`, donc ne les incluez que pour des migrations complètes d'appareil vers des destinations de confiance.
 
 ---
 
@@ -111,12 +111,12 @@ Elles peuvent l'être, mais c'est optionnel. L'écran d'export vous permet d'act
 
 ### Où sont stockées mes données ?
 
-Tout est stocké localement sur votre appareil Android dans une base de données Room. Agora n'a pas de serveurs, pas de synchronisation cloud, pas de télémétrie. Les messages sont envoyés directement de votre appareil au fournisseur d'IA que vous configurez.
+Tout est stocké localement sur votre appareil Android dans une base de données Room. 橘子岛 n'a pas de serveurs, pas de synchronisation cloud, pas de télémétrie. Les messages sont envoyés directement de votre appareil au fournisseur d'IA que vous configurez.
 
-### Agora prend-il en charge plusieurs langues ?
+### 橘子岛 prend-il en charge plusieurs langues ?
 
 Oui. L'interface de l'application prend en charge **l'anglais**, **le chinois (中文)** et **le chinois traditionnel (繁體中文)**. Paramètres → Langue. Un redémarrage est nécessaire après le changement.
 
 ### Comment signaler un bug ou demander une fonctionnalité ?
 
-Ouvrez une issue sur [GitHub](https://github.com/newo-ether/Agora/issues). Pour les contributions, consultez la section [Contributing](https://github.com/newo-ether/Agora#contributing) du README.
+Ouvrez une issue sur [GitHub](https://github.com/orangeisland/app/issues). Pour les contributions, consultez la section [Contributing](https://github.com/orangeisland/app#contributing) du README.

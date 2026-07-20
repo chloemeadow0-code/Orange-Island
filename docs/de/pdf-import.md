@@ -1,13 +1,13 @@
 # PDF-Import
 
-Agora kann ausgewählte Seiten aus PDF-Dateien extrahieren und als Bilder an vision-fähige Modelle senden.
+橘子岛 kann ausgewählte Seiten aus PDF-Dateien extrahieren und als Bilder an vision-fähige Modelle senden.
 
 ## Wie es funktioniert
 
 1. Hängen Sie eine PDF-Datei im Chat an
 2. Ein Dialog öffnet sich und zeigt alle Seiten als Miniaturansichten
 3. Wählen Sie aus, welche Seiten gesendet werden sollen
-4. Bestätigen — Agora extrahiert die Seiten als Bilder und sendet sie an das Modell
+4. Bestätigen — 橘子岛 extrahiert die Seiten als Bilder und sendet sie an das Modell
 
 Das Modell empfängt die Seiten als Vision-Eingabe, sodass es PDF-Inhalte lesen und analysieren kann.
 
@@ -40,7 +40,7 @@ Die Vorschau ermöglicht es Ihnen, Seiten zu inspizieren, bevor Sie entscheiden,
 
 ## Seiten senden
 
-Nach der Auswahl der Seiten tippen Sie auf den Bestätigungsbutton. Agora:
+Nach der Auswahl der Seiten tippen Sie auf den Bestätigungsbutton. 橘子岛:
 
 1. Rendert jede ausgewählte PDF-Seite als hochauflösendes Bild
 2. Hängt die Bilder an Ihre Nachricht an

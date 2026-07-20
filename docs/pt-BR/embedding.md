@@ -1,13 +1,13 @@
 # Embedding / RAG
 
-Modelos de embedding convertem texto em vetores numéricos que capturam significado. O Agora usa esses vetores para busca semântica (RAG) no seu histórico de conversas — encontrando mensagens pelo que elas significam, não apenas pelas palavras que contêm.
+Modelos de embedding convertem texto em vetores numéricos que capturam significado. O 橘子岛 usa esses vetores para busca semântica (RAG) no seu histórico de conversas — encontrando mensagens pelo que elas significam, não apenas pelas palavras que contêm.
 
 ## Como Funciona
 
 1. Cada mensagem é enviada a um modelo de embedding
 2. O modelo retorna um vetor (uma lista de números) representando o significado da mensagem
 3. Quando você busca, sua consulta também é convertida em embedding
-4. O Agora calcula a **similaridade de cosseno** entre o vetor da consulta e todos os vetores de mensagens
+4. O 橘子岛 calcula a **similaridade de cosseno** entre o vetor da consulta e todos os vetores de mensagens
 5. As mensagens com similaridade acima do seu limiar são retornadas como correspondências
 
 ## Provedores Suportados
@@ -43,7 +43,7 @@ Modelos de embedding convertem texto em vetores numéricos que capturam signific
 4. Toque em **Adicionar** — um teste de conexão é executado antes de salvar
 
 !!! tip
-    O campo de chave de API é opcional se você já configurou o mesmo provedor para chat. Deixe em branco e o Agora resolve sua chave de API de chat automaticamente.
+    O campo de chave de API é opcional se você já configurou o mesmo provedor para chat. Deixe em branco e o 橘子岛 resolve sua chave de API de chat automaticamente.
 
 ### Local (GGUF)
 
@@ -59,7 +59,7 @@ Modelos de embedding são tipicamente muito menores que modelos de chat — no m
 
 1. Instale o Ollama em uma máquina
 2. Baixe um modelo de embedding: `ollama pull qwen3-embedding:8b`
-3. No Agora, adicione um modelo remoto:
+3. No 橘子岛, adicione um modelo remoto:
     - Provedor: **Ollama**
     - URL Base: `http://<host>:11434/v1`
     - Nome do modelo: `qwen3-embedding:8b` (inclua a `:tag`)
@@ -76,7 +76,7 @@ Modelos de embedding são tipicamente muito menores que modelos de chat — no m
 Após adicionar um modelo, você precisa armazenar suas mensagens em cache (gerar embeddings):
 
 1. Toque em **Cache** no modelo de embedding
-2. O Agora processa todas as mensagens não armazenadas em lotes
+2. O 橘子岛 processa todas as mensagens não armazenadas em lotes
 3. Um indicador de progresso circular mostra o progresso atual
 4. Conclusão: "Todas as N mensagens em cache"
 
@@ -110,7 +110,7 @@ Comece com o padrão e ajuste se encontrar timeouts (diminua) ou quiser cache ma
 
 ## Testando Sua Configuração
 
-Quando você adiciona um modelo remoto, o Agora executa um teste de conexão automático. Se falhar:
+Quando você adiciona um modelo remoto, o 橘子岛 executa um teste de conexão automático. Se falhar:
 
 1. Verifique o nome do modelo — inclua tags para Ollama (`:8b`, `:latest`)
 2. Verifique se a URL base é alcançável do seu dispositivo

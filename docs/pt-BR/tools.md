@@ -1,13 +1,13 @@
 # Ferramentas Agênticas
 
-Os modelos do Agora podem usar ferramentas de forma autônoma — eles decidem o que buscar, executar, ler ou lembrar sem que você precise acionar manualmente cada ação. As ferramentas operam em **loops de múltiplas rodadas**: o modelo pode chamar uma ferramenta, ler o resultado e depois decidir chamar outra ferramenta ou responder.
+Os modelos do 橘子岛 podem usar ferramentas de forma autônoma — eles decidem o que buscar, executar, ler ou lembrar sem que você precise acionar manualmente cada ação. As ferramentas operam em **loops de múltiplas rodadas**: o modelo pode chamar uma ferramenta, ler o resultado e depois decidir chamar outra ferramenta ou responder.
 
 ## Como a Chamada de Ferramentas Funciona
 
 1. Você envia uma mensagem
 2. O modelo decide que precisa de informação ou ação externa
 3. Ele emite uma **chamada de ferramenta** — uma requisição estruturada com nome da ferramenta e argumentos
-4. O Agora executa a ferramenta no dispositivo ou em um servidor remoto
+4. O 橘子岛 executa a ferramenta no dispositivo ou em um servidor remoto
 5. O resultado é enviado de volta ao modelo
 6. O modelo pode chamar outra ferramenta ou produzir uma resposta final
 
@@ -40,7 +40,7 @@ Execute código em um ambiente isolado:
 
 ### Shell Remoto
 
-Execute comandos em máquinas remotas via o protocolo [Conch](https://github.com/newo-ether/conch). O modelo pode verificar status do servidor, gerenciar arquivos ou executar scripts.
+Execute comandos em máquinas remotas via o protocolo [Conch](https://github.com/orangeisland/conch). O modelo pode verificar status do servidor, gerenciar arquivos ou executar scripts.
 
 - **Protocolo**: Criptografado de ponta a ponta (ECDH + AES-256-GCM)
 - **Configuração**: Configurações → Shell

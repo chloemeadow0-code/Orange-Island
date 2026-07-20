@@ -1,5 +1,5 @@
-﻿<resources>
-    <string name="app_name">Agora</string>
+<resources>
+    <string name="app_name">橘子岛</string>
 
     <!-- Chat Bottom Bar -->
     <string name="add_attachment">新增附件</string>
@@ -16,7 +16,7 @@
     <string name="google_search">Google 搜尋</string>
     <string name="thinking">思考</string>
     <string name="web_search">網頁搜尋</string>
-    <string name="ask_agora">向 Agora 提問…</string>
+    <string name="ask_orange_island">向 橘子岛 提問…</string>
     <string name="send">傳送</string>
 
     <!-- Tool Display -->
@@ -70,7 +70,7 @@
     <string name="thought_for_seconds_called_tools">思考了 %1$d 秒，呼叫 %2$d 個工具</string>
     <string name="thought_for_minutes_called_tools">思考了 %1$d 分 %2$d 秒，呼叫 %3$d 個工具</string>
     <string name="called_n_tools">呼叫 %1$d 個工具</string>
-    <string name="welcome_to_agora">歡迎使用 Agora。</string>
+    <string name="welcome_to_orange_island">歡迎使用 橘子岛。</string>
     <string name="failed_to_generate">生成失敗。</string>
     <string name="generation_stopped">生成已停止。</string>
     <string name="import_invalid_gguf_title">無效的 GGUF 檔案</string>
@@ -163,7 +163,7 @@
     <string name="prompts_template_blank">空白</string>
     <string name="prompts_template_blank_desc">從空白的可編輯系統指令開始。</string>
     <string name="prompts_template_default">預設</string>
-    <string name="prompts_template_default_desc">使用 Agora 預設指令，包含執行階段上下文、記憶、網頁搜尋、Shell 和裝置檔案存取規則。</string>
+    <string name="prompts_template_default_desc">使用 橘子岛 預設指令，包含執行階段上下文、記憶、網頁搜尋、Shell 和裝置檔案存取規則。</string>
     <string name="prompts_duplicate">複製</string>
     <string name="prompts_duplicate_title">%1$s 副本</string>
     <string name="prompts_empty_preview">空指令</string>
@@ -824,10 +824,10 @@
     <string name="about_update_available">有新版本：v%1$s</string>
     <string name="about_up_to_date">已是最新版本 (v%1$s)</string>
     <string name="about_checking">檢查中…</string>
-    <string name="about_available_body">Agora 的新版本已在 GitHub 上發布。</string>
+    <string name="about_available_body">橘子岛 的新版本已在 GitHub 上發布。</string>
     <string name="about_view_release">檢視版本</string>
     <string name="about_later">稍後</string>
-    <string name="rating_title">評價 Agora</string>
+    <string name="rating_title">評價 橘子岛</string>
     <string name="rating_star">%1$d 星</string>
     <string name="rating_your_name">您的姓名（選用）</string>
     <string name="rating_your_email">您的電子郵件（選用）</string>
@@ -836,7 +836,7 @@
     <string name="rating_submitting">提交中…</string>
     <string name="rating_success">感謝您的回饋！</string>
     <string name="rating_failed">提交失敗，請重試。</string>
-    <string name="rating_privacy">您的評分將以匿名方式上傳至 newoether.space。僅上傳您填寫的欄位，不會收集其他資料。</string>
+    <string name="rating_privacy">您的評分將以匿名方式上傳至 rating.orangeisland.app。僅上傳您填寫的欄位，不會收集其他資料。</string>
 
     <!-- Data Control -->
     <string name="settings_data_control">資料控制</string>
@@ -844,7 +844,7 @@
     <string name="data_export_title">匯出資料</string>
     <string name="data_export_subtitle">將對話、記憶、提示詞和設定儲存到檔案。</string>
     <string name="data_import_title">匯入資料</string>
-    <string name="data_import_subtitle">從之前的 .agora 匯出檔案還原。</string>
+    <string name="data_import_subtitle">從之前的 .oi 匯出檔案還原。</string>
     <string name="export_category_conversations">對話與訊息</string>
     <string name="export_category_memories">記憶</string>
     <string name="export_category_system_prompts">系統提示詞</string>
@@ -856,12 +856,12 @@
     <string name="export_success">資料匯出成功。</string>
     <string name="export_failed">匯出失敗: %1$s</string>
     <string name="import_preview_title">匯入資料</string>
-    <string name="import_from">匯出時間 %1$s\n來自 Agora v%2$s</string>
+    <string name="import_from">匯出時間 %1$s\n來自 橘子岛 v%2$s</string>
     <string name="import_button">匯入</string>
     <string name="importing_label">匯入中…</string>
     <string name="import_success">匯入完成: %1$s</string>
     <string name="import_failed">匯入失敗: %1$s</string>
-    <string name="import_invalid_file">無效的 .agora 檔案。請選擇有效的匯出檔案。</string>
+    <string name="import_invalid_file">無效的 .oi 檔案。請選擇有效的匯出檔案。</string>
     <string name="import_no_data">此匯出檔案不包含可匯入資料。</string>
     <string name="import_strategy_merge">合併</string>
     <string name="import_strategy_replace">取代</string>
@@ -926,7 +926,7 @@
     <string name="show_documentation_links_desc">在設定頁面顯示文件按鈕</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_welcome_title">歡迎來到 Agora</string>
+    <string name="onboarding_welcome_title">歡迎來到 橘子岛</string>
     <string name="onboarding_welcome_desc">一款 BYOK 應用程式，協助您奪回資料主權。</string>
     <string name="onboarding_byok_title">自帶金鑰</string>
     <string name="onboarding_byok_desc">設定 API 金鑰或匯入 GGUF 模型，解鎖本機推理。</string>
@@ -1011,11 +1011,11 @@
     <string name="shell_confirm_setting_desc">在助手於遠端 SSH/Conch 伺服器上執行命令或寫入檔案前詢問</string>
 
     <!-- Crash reporting -->
-    <string name="crash_title">Agora 意外退出</string>
+    <string name="crash_title">橘子岛 意外退出</string>
     <string name="crash_message">很抱歉。您可以透過傳送匿名崩潰報告來協助修復此問題。</string>
     <string name="crash_submit">提交報告</string>
     <string name="crash_dismiss">不傳送</string>
-    <string name="crash_privacy_note">僅向 newoether.space 傳送崩潰記錄，不收集任何其他資訊。</string>
+    <string name="crash_privacy_note">僅向 rating.orangeisland.app 傳送崩潰記錄，不收集任何其他資訊。</string>
     <string name="crash_submitted">崩潰報告已傳送，謝謝！</string>
     <string name="settings_group_network">網路</string>
     <string name="settings_proxy">代理</string>

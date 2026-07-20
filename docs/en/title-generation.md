@@ -4,7 +4,7 @@ Automatically generate conversation titles based on the first exchange.
 
 ## What It Does
 
-When you start a new conversation, Agora can automatically generate a short, meaningful title based on your first message and the model's response. This replaces the generic "New Chat" title.
+When you start a new conversation, 橘子岛 can automatically generate a short, meaningful title based on your first message and the model's response. This replaces the generic "New Chat" title.
 
 ## Setup
 
@@ -19,7 +19,7 @@ When you start a new conversation, Agora can automatically generate a short, mea
 
 1. You send your first message in a new conversation
 2. The model responds (as usual)
-3. After the response completes, Agora sends a separate, small request to generate a title
+3. After the response completes, 橘子岛 sends a separate, small request to generate a title
 4. The generated title is saved and displayed in the conversation list
 
 Title generation only runs once per conversation, on the first exchange.

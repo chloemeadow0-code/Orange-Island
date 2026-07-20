@@ -4,7 +4,7 @@ Genera automáticamente títulos de conversación basados en el primer intercamb
 
 ## Qué Hace
 
-Cuando inicias una nueva conversación, Agora puede generar automáticamente un título corto y significativo basado en tu primer mensaje y la respuesta del modelo. Esto reemplaza el título genérico "Nuevo Chat".
+Cuando inicias una nueva conversación, 橘子岛 puede generar automáticamente un título corto y significativo basado en tu primer mensaje y la respuesta del modelo. Esto reemplaza el título genérico "Nuevo Chat".
 
 ## Configuración
 
@@ -19,7 +19,7 @@ Cuando inicias una nueva conversación, Agora puede generar automáticamente un 
 
 1. Envías tu primer mensaje en una nueva conversación
 2. El modelo responde (como de costumbre)
-3. Después de que la respuesta se completa, Agora envía una solicitud separada y pequeña para generar un título
+3. Después de que la respuesta se completa, 橘子岛 envía una solicitud separada y pequeña para generar un título
 4. El título generado se guarda y se muestra en la lista de conversaciones
 
 La generación de títulos solo se ejecuta una vez por conversación, en el primer intercambio.

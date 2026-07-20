@@ -25,7 +25,7 @@ Vá em Configurações → Provedor → **+ Adicionar Provedor Personalizado**. 
 
 ### Quais modelos GGUF funcionam?
 
-O Agora suporta o formato GGUF tanto para chat quanto para embedding. Modelos de chat devem caber na memória do dispositivo (1–8B de parâmetros, dependendo da RAM). Modelos de embedding são bem menores (100–500 MB). Consulte [Modelos Locais](local-model.md).
+O 橘子岛 suporta o formato GGUF tanto para chat quanto para embedding. Modelos de chat devem caber na memória do dispositivo (1–8B de parâmetros, dependendo da RAM). Modelos de embedding são bem menores (100–500 MB). Consulte [Modelos Locais](local-model.md).
 
 ### Como executo modelos offline?
 
@@ -56,7 +56,7 @@ A busca por palavra-chave corresponde texto exato. RAG (busca semântica) corres
 
 1. Instale o Ollama em uma máquina
 2. Baixe um modelo de embedding: `ollama pull qwen3-embedding:8b`
-3. No Agora, adicione um modelo de embedding remoto com o preset **Ollama**
+3. No 橘子岛, adicione um modelo de embedding remoto com o preset **Ollama**
 4. Use `http://<host>:11434/v1` como URL base
 5. Insira o nome exato do modelo incluindo a tag (ex.: `qwen3-embedding:8b`)
 6. Deixe a chave de API em branco
@@ -79,11 +79,11 @@ Sim, se você ativar **Acessar Memórias Salvas** e/ou **Acessar Memória Ativa*
 
 ### Como configuro o acesso ao shell remoto?
 
-Implante o servidor [Conch](https://github.com/newo-ether/conch) na máquina de destino e adicione o dispositivo em Configurações → Shell com sua URL e chave de API. Consulte [Shell Remoto](shell.md).
+Implante o servidor [Conch](https://github.com/orangeisland/conch) na máquina de destino e adicione o dispositivo em Configurações → Shell com sua URL e chave de API. Consulte [Shell Remoto](shell.md).
 
 ### A conexão do shell é criptografada?
 
-Sim. O Conch usa troca de chaves ECDH + criptografia AES-256-GCM + assinatura HMAC-SHA256. Todo o tráfego entre o Agora e o servidor Conch é criptografado de ponta a ponta.
+Sim. O Conch usa troca de chaves ECDH + criptografia AES-256-GCM + assinatura HMAC-SHA256. Todo o tráfego entre o 橘子岛 e o servidor Conch é criptografado de ponta a ponta.
 
 ---
 
@@ -91,7 +91,7 @@ Sim. O Conch usa troca de chaves ECDH + criptografia AES-256-GCM + assinatura HM
 
 ### Como faço backup dos meus dados?
 
-Vá em Configurações → Controle de Dados → **Exportar Dados**. Selecione as categorias e exporte para um arquivo `.agora`. Armazene-o em um local seguro. Consulte [Portabilidade de Dados](import-export.md).
+Vá em Configurações → Controle de Dados → **Exportar Dados**. Selecione as categorias e exporte para um arquivo `.橘子岛`. Armazene-o em um local seguro. Consulte [Portabilidade de Dados](import-export.md).
 
 ### Posso importar do ChatGPT ou Claude?
 
@@ -99,7 +99,7 @@ Sim. Exporte seus dados do ChatGPT ou Claude (eles fornecem arquivos `.zip`) e i
 
 ### Minhas chaves de API são incluídas nas exportações?
 
-Elas podem ser, mas é opcional. A tela de exportação permite ativar ou desativar a inclusão de chaves de API. Um aviso é exibido quando você ativa essa opção. As chaves são armazenadas em texto puro dentro do arquivo `.agora`, então inclua-as apenas para migrações completas de dispositivo para destinos confiáveis.
+Elas podem ser, mas é opcional. A tela de exportação permite ativar ou desativar a inclusão de chaves de API. Um aviso é exibido quando você ativa essa opção. As chaves são armazenadas em texto puro dentro do arquivo `.橘子岛`, então inclua-as apenas para migrações completas de dispositivo para destinos confiáveis.
 
 ---
 
@@ -107,12 +107,12 @@ Elas podem ser, mas é opcional. A tela de exportação permite ativar ou desati
 
 ### Onde meus dados são armazenados?
 
-Tudo é armazenado localmente no seu dispositivo Android em um banco de dados Room. O Agora não tem servidores, nem sincronização na nuvem, nem telemetria. As mensagens são enviadas diretamente do seu dispositivo para o provedor de IA que você configurar.
+Tudo é armazenado localmente no seu dispositivo Android em um banco de dados Room. O 橘子岛 não tem servidores, nem sincronização na nuvem, nem telemetria. As mensagens são enviadas diretamente do seu dispositivo para o provedor de IA que você configurar.
 
-### O Agora suporta vários idiomas?
+### O 橘子岛 suporta vários idiomas?
 
 Sim. A interface do aplicativo suporta **English** e **中文 (Chinês)**. Configurações → Idioma. É necessário reiniciar após a troca.
 
 ### Como relato um bug ou solicito uma funcionalidade?
 
-Abra uma issue no [GitHub](https://github.com/newo-ether/Agora/issues). Para contribuições, consulte a seção [Contributing](https://github.com/newo-ether/Agora#contributing) do README.
+Abra uma issue no [GitHub](https://github.com/orangeisland/app/issues). Para contribuições, consulte a seção [Contributing](https://github.com/orangeisland/app#contributing) do README.

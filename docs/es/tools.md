@@ -1,13 +1,13 @@
 # Herramientas Agentivas
 
-Los modelos de Agora pueden usar herramientas de forma autónoma — deciden qué buscar, ejecutar, leer o recordar sin que necesites activar manualmente cada acción. Las herramientas operan en **bucles de múltiples rondas**: el modelo puede llamar a una herramienta, leer el resultado y luego decidir llamar a otra herramienta o responder.
+Los modelos de 橘子岛 pueden usar herramientas de forma autónoma — deciden qué buscar, ejecutar, leer o recordar sin que necesites activar manualmente cada acción. Las herramientas operan en **bucles de múltiples rondas**: el modelo puede llamar a una herramienta, leer el resultado y luego decidir llamar a otra herramienta o responder.
 
 ## Cómo Funciona la Llamada a Herramientas
 
 1. Envías un mensaje
 2. El modelo decide que necesita información o acción externa
 3. Emite una **llamada a herramienta** — una solicitud estructurada con un nombre de herramienta y argumentos
-4. Agora ejecuta la herramienta en el dispositivo o en un servidor remoto
+4. 橘子岛 ejecuta la herramienta en el dispositivo o en un servidor remoto
 5. El resultado se devuelve al modelo
 6. El modelo puede llamar a otra herramienta o producir una respuesta final
 
@@ -40,7 +40,7 @@ Ejecuta código en un entorno aislado:
 
 ### Shell Remoto
 
-Ejecuta comandos en máquinas remotas a través del protocolo [Conch](https://github.com/newo-ether/conch). El modelo puede verificar el estado del servidor, gestionar archivos o ejecutar scripts.
+Ejecuta comandos en máquinas remotas a través del protocolo [Conch](https://github.com/orangeisland/conch). El modelo puede verificar el estado del servidor, gestionar archivos o ejecutar scripts.
 
 - **Protocolo**: Cifrado de extremo a extremo (ECDH + AES-256-GCM)
 - **Configuración**: Configuración → Shell

@@ -1,13 +1,13 @@
 # Outils Agentiques
 
-Les modèles d'Agora peuvent utiliser des outils de manière autonome — ils décident quoi rechercher, exécuter, lire ou mémoriser sans que vous ayez besoin de déclencher manuellement chaque action. Les outils fonctionnent en **boucles multi-tours** : le modèle peut appeler un outil, lire le résultat, puis décider d'appeler un autre outil ou de répondre.
+Les modèles d'橘子岛 peuvent utiliser des outils de manière autonome — ils décident quoi rechercher, exécuter, lire ou mémoriser sans que vous ayez besoin de déclencher manuellement chaque action. Les outils fonctionnent en **boucles multi-tours** : le modèle peut appeler un outil, lire le résultat, puis décider d'appeler un autre outil ou de répondre.
 
 ## Comment Fonctionne l'Appel d'Outils
 
 1. Vous envoyez un message
 2. Le modèle décide qu'il a besoin d'informations ou d'une action externe
 3. Il émet un **appel d'outil** — une requête structurée avec un nom d'outil et des arguments
-4. Agora exécute l'outil sur l'appareil ou sur un serveur distant
+4. 橘子岛 exécute l'outil sur l'appareil ou sur un serveur distant
 5. Le résultat est renvoyé au modèle
 6. Le modèle peut appeler un autre outil ou produire une réponse finale
 
@@ -40,7 +40,7 @@ Exécutez du code dans un environnement isolé :
 
 ### Shell Distant
 
-Exécutez des commandes sur des machines distantes via le protocole [Conch](https://github.com/newo-ether/conch). Le modèle peut vérifier l'état du serveur, gérer des fichiers ou exécuter des scripts.
+Exécutez des commandes sur des machines distantes via le protocole [Conch](https://github.com/orangeisland/conch). Le modèle peut vérifier l'état du serveur, gérer des fichiers ou exécuter des scripts.
 
 - **Protocole** : Chiffré de bout en bout (ECDH + AES-256-GCM)
 - **Configuration** : Paramètres → Shell

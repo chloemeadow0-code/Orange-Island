@@ -15,14 +15,14 @@ App-Version, Updates, Dokumentationseinstellungen und Links.
 
 ### Nach Updates suchen
 
-Tippen Sie auf **Nach Updates suchen**, um GitHub nach der neuesten Version abzufragen. Agora vergleicht Ihre installierte Version mit der neuesten Version und zeigt das Ergebnis an:
+Tippen Sie auf **Nach Updates suchen**, um GitHub nach der neuesten Version abzufragen. 橘子岛 vergleicht Ihre installierte Version mit der neuesten Version und zeigt das Ergebnis an:
 
 - **Update verfügbar** — eine neuere Version ist auf GitHub veröffentlicht
 - **Aktuell** — Sie verwenden die neueste Version
 
 ### Automatische Update-Prüfung
 
-Wenn aktiviert, prüft Agora regelmäßig im Hintergrund nach neuen Versionen. Deaktivieren Sie dies, um automatische Prüfungen auszuschalten.
+Wenn aktiviert, prüft 橘子岛 regelmäßig im Hintergrund nach neuen Versionen. Deaktivieren Sie dies, um automatische Prüfungen auszuschalten.
 
 ---
 
@@ -40,19 +40,19 @@ Deaktivieren Sie dies, wenn Sie eine übersichtlichere Oberfläche ohne den Doku
 
 | Link | Ziel |
 |------|-------------|
-| **GitHub** | Agora-Quellcode-Repository |
+| **GitHub** | 橘子岛-Quellcode-Repository |
 | **Issue Tracker** | Fehler melden oder Funktionen wünschen |
 | **Beitragen** | Einen Pull Request öffnen |
-| **Datenschutzerklärung** | Agora-Datenschutzerklärung |
+| **Datenschutzerklärung** | 橘子岛-Datenschutzerklärung |
 
 ---
 
 ## Bewertung
 
-Ein integriertes Feedback-Formular ermöglicht es Ihnen, die App zu bewerten und Kommentare einzureichen. Ihr Feedback hilft, Agora zu verbessern.
+Ein integriertes Feedback-Formular ermöglicht es Ihnen, die App zu bewerten und Kommentare einzureichen. Ihr Feedback hilft, 橘子岛 zu verbessern.
 
 ---
 
 ## Absturz-Log
 
-Wenn Agora auf einen Fehler stößt, können Sie das Absturz-Log unter **Einstellungen → Über → Absturz-Log** einsehen. Das Log wird in einem Monospace-Dialog mit einer **Kopieren**-Schaltfläche angezeigt, um Diagnosedetails beim Melden von Fehlern zu teilen.
+Wenn 橘子岛 auf einen Fehler stößt, können Sie das Absturz-Log unter **Einstellungen → Über → Absturz-Log** einsehen. Das Log wird in einem Monospace-Dialog mit einer **Kopieren**-Schaltfläche angezeigt, um Diagnosedetails beim Melden von Fehlern zu teilen.

@@ -1,9 +1,9 @@
-// 插件开发指南 —— 为 AI 提供的 Agora 插件开发规范
+// 插件开发指南 —— 为 AI 提供的 Orange Island 插件开发规范
 //
 // 本插件只暴露一个工具 get_plugin_dev_guide，返回一份 Markdown 文档。
 // AI 在帮用户写/调试插件时调用此工具，按文档规范编写。
 
-var GUIDE = '# Agora 插件开发规范\n\
+var GUIDE = '# Orange Island 插件开发规范\n\
 \n\
 本规范由实战调试得出，**请严格遵守**，否则会重蹈已知的坑。\n\
 \n\
@@ -94,22 +94,22 @@ exports.my_tool = function (params) {\n\
 \n\
 | 变量 | 类型 | 说明 |\n\
 |---|---|---|\n\
-| `__AGORA_USER_ID` | string | 当前设备的稳定 UUID（永不变，跨所有插件共享）|\n\
-| `__AGORA_PLUGIN_CONFIG` | object | 用户在配置弹窗填的值，形如 `{"user_nickname":"Alice"}`；无 config 字段时是 `{}` |\n\
-| `__AGORA_TOOL_NAME` | string | 当前被调用的工具名（一般用不到）|\n\
-| `__AGORA_TOOL_ARGS` | object | 调用参数（同 `params` 形参，一般用 params 即可）|\n\
+| `__OI_USER_ID` | string | 当前设备的稳定 UUID（永不变，跨所有插件共享）|\n\
+| `__OI_PLUGIN_CONFIG` | object | 用户在配置弹窗填的值，形如 `{"user_nickname":"Alice"}`；无 config 字段时是 `{}` |\n\
+| `__OI_TOOL_NAME` | string | 当前被调用的工具名（一般用不到）|\n\
+| `__OI_TOOL_ARGS` | object | 调用参数（同 `params` 形参，一般用 params 即可）|\n\
 | `fetch` | function | 同步 HTTP（见第 6 节）|\n\
 | `console.log/warn/error` | function | 日志打到 logcat（tag: `plugin/<id>`）|\n\
 \n\
 **读取身份/配置的推荐写法**：\n\
 ```js\n\
 function getDeviceId() {\n\
-    return (typeof __AGORA_USER_ID === "string") ? __AGORA_USER_ID : "";\n\
+    return (typeof __OI_USER_ID === "string") ? __OI_USER_ID : "";\n\
 }\n\
 function getConfig() {\n\
     try {\n\
-        if (typeof __AGORA_PLUGIN_CONFIG === "object" && __AGORA_PLUGIN_CONFIG) return __AGORA_PLUGIN_CONFIG;\n\
-        if (typeof __AGORA_PLUGIN_CONFIG === "string") return JSON.parse(__AGORA_PLUGIN_CONFIG);\n\
+        if (typeof __OI_PLUGIN_CONFIG === "object" && __OI_PLUGIN_CONFIG) return __OI_PLUGIN_CONFIG;\n\
+        if (typeof __OI_PLUGIN_CONFIG === "string") return JSON.parse(__OI_PLUGIN_CONFIG);\n\
     } catch (e) {}\n\
     return {};\n\
 }\n\
@@ -120,25 +120,25 @@ function getConfig() {\n\
 ui.html 是一个完整的 HTML 文档（`<!DOCTYPE html>...`），在 WebView 里加载。\n\
 \n\
 **host 会自动**：\n\
-1. 在页面 HTML 前注入一段 `<script>` bootstrap，定义 `window.agora`（见下）\n\
-2. 把 `__agoraNative` 作为 JavascriptInterface 注入 WebView\n\
+1. 在页面 HTML 前注入一段 `<script>` bootstrap，定义 `window.orangeisland`（见下）\n\
+2. 把 `__oiNative` 作为 JavascriptInterface 注入 WebView\n\
 \n\
-**`window.agora` 桥 API**：\n\
+**`window.orangeisland` 桥 API**：\n\
 ```js\n\
 // 异步调用本插件的某个工具（只能调 manifest 里声明的工具）\n\
-agora.call("tool_name", { key: "value" }, function (resultJson) {\n\
+orangeisland.call("tool_name", { key: "value" }, function (resultJson) {\n\
     var result = JSON.parse(resultJson);\n\
     // result 就是 main.js 里 return 的对象\n\
 });\n\
 \n\
 // 同步读取配置（实时值，零时序竞态）\n\
-var cfg = agora.config;          // 用户填的配置对象\n\
-var deviceId = agora.deviceId;   // 设备 UUID\n\
+var cfg = orangeisland.config;          // 用户填的配置对象\n\
+var deviceId = orangeisland.deviceId;   // 设备 UUID\n\
 ```\n\
 \n\
 **重要约束（踩过的坑）**：\n\
 - ui.html 里的 `fetch` 是【浏览器原生 fetch】，返回 Promise，**可以**用 async/await（这点和 main.js 相反！）\n\
-- 配置读取**优先用 `agora.config`**（同步 getter，零竞态），兜底用 `__AGORA_PLUGIN_CONFIG` 全局\n\
+- 配置读取**优先用 `orangeisland.config`**（同步 getter，零竞态），兜底用 `__OI_PLUGIN_CONFIG` 全局\n\
 - 页面 origin 是 `about:blank`；跨域请求靠目标服务器返回 `Access-Control-Allow-Origin: *`（大多数后端 API 如 Supabase 默认支持）\n\
 - WebView 禁用了 file/dom access；JS 不能读本地文件\n\
 \n\
@@ -146,15 +146,15 @@ var deviceId = agora.deviceId;   // 设备 UUID\n\
 ```js\n\
 function readConfig() {\n\
     try {\n\
-        if (typeof agora !== "undefined" && agora.config) return agora.config;\n\
+        if (typeof orangeisland !== "undefined" && orangeisland.config) return orangeisland.config;\n\
     } catch (e) {}\n\
     try {\n\
-        if (typeof __AGORA_PLUGIN_CONFIG === "object") return __AGORA_PLUGIN_CONFIG;\n\
-        if (typeof __AGORA_PLUGIN_CONFIG === "string") return JSON.parse(__AGORA_PLUGIN_CONFIG);\n\
+        if (typeof __OI_PLUGIN_CONFIG === "object") return __OI_PLUGIN_CONFIG;\n\
+        if (typeof __OI_PLUGIN_CONFIG === "string") return JSON.parse(__OI_PLUGIN_CONFIG);\n\
     } catch (e) {}\n\
     return {};\n\
 }\n\
-// 直接读，不需要 waitForConfig 轮询（agora.config 是同步 getter）\n\
+// 直接读，不需要 waitForConfig 轮询（orangeisland.config 是同步 getter）\n\
 var cfg = readConfig();\n\
 var nickname = cfg.user_nickname || "默认值";\n\
 ```\n\
@@ -164,7 +164,7 @@ var nickname = cfg.user_nickname || "默认值";\n\
 1. manifest 里声明 `config` 字段（name/type/label/required/placeholder 等）\n\
 2. 用户点插件🌐图标时，若 config 非空且未填过，host 自动弹配置表单\n\
 3. 用户填完保存，值存到 DataStore（按 pluginId 隔离）\n\
-4. host 把值注入 main.js 的 `__AGORA_PLUGIN_CONFIG` 和 ui.html 的 `agora.config`\n\
+4. host 把值注入 main.js 的 `__OI_PLUGIN_CONFIG` 和 ui.html 的 `orangeisland.config`\n\
 5. 插件列表的⚙齿轮按钮可随时改配置\n\
 \n\
 **type 字段**：目前只支持 `"string"`（渲染为文本输入框）；其他类型会被当成文本框（未来会扩展 number/boolean/select）。\n\
@@ -208,7 +208,7 @@ Compress-Archive -Path manifest.json,main.js,ui.html -DestinationPath my-plugin.
 \n\
 1. **main.js 工具函数不能 async**：host 同步取返回值，async 返回 Promise 会被序列化成 `{}`。\n\
 2. **main.js fetch 不能 await**：是同步函数，直接 `var resp = fetch(...)`。\n\
-3. **ui.html 读配置用 `agora.config`**：不要靠全局 `__AGORA_PLUGIN_CONFIG`（有时序竞态）。`agora.config` 是同步 getter，零竞态。\n\
+3. **ui.html 读配置用 `orangeisland.config`**：不要靠全局 `__OI_PLUGIN_CONFIG`（有时序竞态）。`orangeisland.config` 是同步 getter，零竞态。\n\
 4. **ui.html 是完整 HTML 文档**：必须 `<!DOCTYPE html>` 开头；不要把 JS 代码裸放在 DOCTYPE 前（会被当文字渲染）。\n\
 5. **manifest.ui 不能含路径**：用 `"ui": "ui.html"`，不是 `"ui/index.html"`。\n\
 6. **manifest.id 含特殊字符会被拒**：只能小写字母/数字/`_`/`.`/`-`。\n\
@@ -238,9 +238,9 @@ Compress-Archive -Path manifest.json,main.js,ui.html -DestinationPath my-plugin.
 **main.js**：\n\
 ```js\n\
 exports.greet = function (params) {\n\
-    var cfg = (typeof __AGORA_PLUGIN_CONFIG === "object") ? __AGORA_PLUGIN_CONFIG : {};\n\
+    var cfg = (typeof __OI_PLUGIN_CONFIG === "object") ? __OI_PLUGIN_CONFIG : {};\n\
     var name = cfg.name || "世界";\n\
-    var deviceId = (typeof __AGORA_USER_ID === "string") ? __AGORA_USER_ID : "";\n\
+    var deviceId = (typeof __OI_USER_ID === "string") ? __OI_USER_ID : "";\n\
     return { message: "你好，" + name + "！", deviceId: deviceId };\n\
 };\n\
 ```\n\
@@ -252,7 +252,7 @@ exports.greet = function (params) {\n\
 <body>\n\
 <div id="out">加载中…</div>\n\
 <script>\n\
-    var cfg = (typeof agora !== "undefined" && agora.config) ? agora.config : {};\n\
+    var cfg = (typeof orangeisland !== "undefined" && orangeisland.config) ? orangeisland.config : {};\n\
     document.getElementById("out").textContent = "你好，" + (cfg.name || "世界") + "！";\n\
 </script>\n\
 </body></html>\n\

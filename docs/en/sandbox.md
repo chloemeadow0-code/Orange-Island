@@ -1,6 +1,6 @@
 # Sandbox
 
-Agora can run a lightweight Alpine Linux environment locally on your device — no internet connection required. The sandbox lets the model install packages and execute commands in an isolated root filesystem.
+橘子岛 can run a lightweight Alpine Linux environment locally on your device — no internet connection required. The sandbox lets the model install packages and execute commands in an isolated root filesystem.
 
 !!! note "Availability"
     The sandbox is available in all builds. Access it from **Settings → Shell → Sandbox Management** or directly via **Settings → Sandbox**.

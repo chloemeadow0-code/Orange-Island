@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="app/src/main/assets/agora_transparent_large.png" alt="Agora Logo" width="120" />
+  <img src="app/src/main/assets/橘子岛_transparent_large.png" alt="橘子岛 Logo" width="120" />
 
-  # Agora
+  # 橘子岛
 
   **BYOK LLM 客户端 — 多提供商接入、智能代理工作流、远程设备控制**
 
@@ -10,25 +10,25 @@
   [![Kotlin](https://img.shields.io/badge/Kotlin-Native-blue.svg)](https://kotlinlang.org/)
   <br/>[English](README.md) | **中文**
 
-  <img src="assets/feature_graphic.png" alt="Agora — 夺回数据主权的 BYOK AI 应用" width="100%" />
+  <img src="assets/feature_graphic.png" alt="橘子岛 — 夺回数据主权的 BYOK AI 应用" width="100%" />
 </div>
 
 ## 下载
 
-[![F-Droid](https://img.shields.io/badge/F--Droid-安装-blue?logo=fdroid)](https://f-droid.org/packages/com.newoether.agora/)
+[![F-Droid](https://img.shields.io/badge/F--Droid-安装-blue?logo=fdroid)](https://f-droid.org/packages/com.orangeisland.app/)
 &nbsp;&nbsp;
-[![Google Play](https://img.shields.io/badge/Google_Play-安装-blue?logo=google-play)](https://play.google.com/store/apps/details?id=com.newoether.agora)
+[![Google Play](https://img.shields.io/badge/Google_Play-安装-blue?logo=google-play)](https://play.google.com/store/apps/details?id=com.orangeisland.app)
 &nbsp;&nbsp;
-[![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-blue?logo=github)](https://github.com/newo-ether/Agora/releases)
+[![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-blue?logo=github)](https://github.com/orangeisland/app/releases)
 
-- **F-Droid（推荐）** — 通过 [F-Droid](https://f-droid.org/) 安装，搜索 **Agora**。
-- **Google Play** — 从 [Google Play 商店](https://play.google.com/store/apps/details?id=com.newoether.agora) 安装。
-- **GitHub Releases** — 从 [Releases 页面](https://github.com/newo-ether/Agora/releases) 下载最新 `.apk`。
+- **F-Droid（推荐）** — 通过 [F-Droid](https://f-droid.org/) 安装，搜索 **橘子岛**。
+- **Google Play** — 从 [Google Play 商店](https://play.google.com/store/apps/details?id=com.orangeisland.app) 安装。
+- **GitHub Releases** — 从 [Releases 页面](https://github.com/orangeisland/app/releases) 下载最新 `.apk`。
 - **从源码构建** — 用 Android Studio 克隆并构建（详见[快速开始](#快速开始)）。
 
 ---
 
-**Agora** — 为 AI 重度用户打造的 BYOK Android 客户端。接入 8+ 内置提供商（外加无限自定义端点），使用自己的 API 密钥，支持对话分支树、llama.cpp 本地推理、加密远程 Shell 控制。所有数据存储在本地，无日志泄露。开源，MIT 协议。
+**橘子岛** — 为 AI 重度用户打造的 BYOK Android 客户端。接入 8+ 内置提供商（外加无限自定义端点），使用自己的 API 密钥，支持对话分支树、llama.cpp 本地推理、加密远程 Shell 控制。所有数据存储在本地，无日志泄露。开源，MIT 协议。
 
 ## 截图
 
@@ -40,12 +40,12 @@
 </tr>
 </table>
 
-## 为什么选择 Agora？
+## 为什么选择 橘子岛？
 
 - **无中间层：** 直连 API。无遥测、无追踪、无企业服务器记录你的对话。一切存储在本地 Room 数据库中。
 - **非线性思维：** 树形消息数据库让你可以编辑任意历史消息、重新生成回复、探索备选分支，不会丢失上下文。
 - **原生智能代理：** 多轮工具调用，支持联网搜索、代码执行、远程文件操作、记忆管理、语义对话搜索。
-- **远程控制：** 通过 [Conch](https://github.com/newo-ether/conch) 协议管理服务器、编辑文件、搜索远程代码 — ECDH + AES-256-GCM 端到端加密。
+- **远程控制：** 通过 [Conch](https://github.com/orangeisland/conch) 协议管理服务器、编辑文件、搜索远程代码 — ECDH + AES-256-GCM 端到端加密。
 
 ## 功能特性
 
@@ -61,7 +61,7 @@
 - **联网搜索** — DuckDuckGo Lite（匿名免密钥）、Brave、Serper、Tavily、SearXNG
 - **代码执行** — Gemini 代码执行、PRoot Alpine Linux 沙盒 + SAF 文件访问
 - **图片生成** — BYOK 文生图，OpenAI 兼容 `/v1/images/generations`，聊天内直接渲染
-- **远程 Shell 与文件 I/O** — 通过 [Conch](https://github.com/newo-ether/conch) 协议执行命令、读写/编辑/搜索远程文件
+- **远程 Shell 与文件 I/O** — 通过 [Conch](https://github.com/orangeisland/conch) 协议执行命令、读写/编辑/搜索远程文件
 - **记忆** — 跨对话的持久活跃记忆和记忆文件存储
 - **对话搜索** — 基于 RAG 的对话历史语义搜索
 
@@ -89,7 +89,7 @@
 - 可视化上下文范围指示器，淡化窗口外的消息
 
 ### 数据可移植
-- **.agora 导出/导入：** 对话、记忆、提示词、设置、API 密钥打包为单一可移植文件
+- **.橘子岛 导出/导入：** 对话、记忆、提示词、设置、API 密钥打包为单一可移植文件
 - **合并、替换、跳过** 三种导入策略
 - **自动备份** — 基于 WorkManager 的周期性备份，可配置周期、分类和保留策略
 - **第三方导入：** Claude 和 ChatGPT 导出格式（.zip / .json）
@@ -118,7 +118,7 @@
 
 ## 文档
 
-📖 **[浏览用户手册](https://newo-ether.github.io/Agora/)** — 24 个页面，涵盖安装、提供商、工具、搜索、记忆、Shell 等。
+📖 **[浏览用户手册](https://docs.orangeisland.app/)** — 24 个页面，涵盖安装、提供商、工具、搜索、记忆、Shell 等。
 
 🏗️ **[架构指南](ARCHITECTURE.md)** — 完整的代码库导览：数据层、API 提供商、JNI、UI 及数据流。
 
@@ -133,7 +133,7 @@
 
 <table>
 <tr>
-<td width="20%"><b>① 启动</b><br/>在设备上打开 Agora。</td>
+<td width="20%"><b>① 启动</b><br/>在设备上打开 橘子岛。</td>
 <td width="20%"><b>② 设置</b><br/>从导航栏打开<b>设置</b>。</td>
 <td width="20%"><b>③ API 密钥</b><br/>选择<b>提供商</b>，添加你的 <b>API 密钥</b>。</td>
 <td width="20%"><b>④ 模型</b><br/><b>模型</b> →「从所有提供商同步」。</td>
@@ -156,7 +156,7 @@
 
 <table>
 <tr>
-<td width="33%"><b>① 部署</b><br/>在目标机器上部署 <a href="https://github.com/newo-ether/conch">Conch 服务器</a>。</td>
+<td width="33%"><b>① 部署</b><br/>在目标机器上部署 <a href="https://github.com/orangeisland/conch">Conch 服务器</a>。</td>
 <td width="33%"><b>② 添加设备</b><br/>设置 → Shell 设备 → 添加 URL 和 API 密钥。</td>
 <td width="33%"><b>③ 使用</b><br/>模型会自动发现 Shell 设备，用于执行命令、文件操作和搜索。</td>
 </tr>
@@ -181,7 +181,7 @@
 
 ## 隐私
 
-Agora 不会收集、存储或传输任何个人数据。所有对话、API 密钥和设置均存储在本地设备上。消息直接从你的设备发送到你配置的 AI 提供商 — 无中间服务器、无遥测、无追踪。详见[隐私政策](PRIVACY.md)。
+橘子岛 不会收集、存储或传输任何个人数据。所有对话、API 密钥和设置均存储在本地设备上。消息直接从你的设备发送到你配置的 AI 提供商 — 无中间服务器、无遥测、无追踪。详见[隐私政策](PRIVACY.md)。
 
 ## 许可证
 

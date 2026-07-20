@@ -1,6 +1,6 @@
 # Prompts Système
 
-Les prompts système définissent le personnage, le comportement et les règles de base du modèle. Agora vous donne un contrôle fin sur la façon dont les instructions sont assemblées et envoyées au modèle.
+Les prompts système définissent le personnage, le comportement et les règles de base du modèle. 橘子岛 vous donne un contrôle fin sur la façon dont les instructions sont assemblées et envoyées au modèle.
 
 ## Éditeur à Trois Sections
 
@@ -31,10 +31,10 @@ Ceux-ci enveloppent chaque message que vous envoyez :
 - **Préfixe Utilisateur** — ajouté avant le texte de votre message. Utile pour des rappels ou des balises de contexte.
 - **Suffixe Utilisateur** — ajouté après le texte de votre message. Utile pour des instructions de clôture.
 
-**Exemple** : Si votre préfixe est `[Contexte : travail sur la documentation Agora]` et le suffixe est `\n\nVeuillez répondre en Markdown.`, le modèle reçoit :
+**Exemple** : Si votre préfixe est `[Contexte : travail sur la documentation 橘子岛]` et le suffixe est `\n\nVeuillez répondre en Markdown.`, le modèle reçoit :
 
 ```text
-[Contexte : travail sur la documentation Agora]
+[Contexte : travail sur la documentation 橘子岛]
 Comment configurer la recherche web ?
 Veuillez répondre en Markdown.
 ```
@@ -123,7 +123,7 @@ Pour n'utiliser aucun prompt, sélectionnez **Aucun** dans la liste des prompts.
 
 ## Génération Automatique de Titres
 
-Agora peut générer automatiquement des titres de conversation après la première réponse :
+橘子岛 peut générer automatiquement des titres de conversation après la première réponse :
 
 1. Allez dans **Paramètres → Génération de Titres**
 2. Activez **Génération Automatique de Titres**

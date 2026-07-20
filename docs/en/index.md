@@ -1,6 +1,6 @@
-# Agora User Manual
+# 橘子岛 User Manual
 
-Welcome to the Agora user manual. Agora is a BYOK (Bring Your Own Key) LLM client for Android with multi-provider access, non-linear branching conversations, agentic tool calling, and remote device control.
+Welcome to the 橘子岛 user manual. 橘子岛 is a BYOK (Bring Your Own Key) LLM client for Android with multi-provider access, non-linear branching conversations, agentic tool calling, and remote device control.
 
 ## Quick Links
 
@@ -38,19 +38,19 @@ Welcome to the Agora user manual. Agora is a BYOK (Bring Your Own Key) LLM clien
 
 - **[Local Models](local-model.md)** — run GGUF models on-device via llama.cpp
 - **[PDF Import](pdf-import.md)** — extract and send PDF pages to vision models
-- **[Data Portability](import-export.md)** — export/import .agora files, auto backup, import from Claude and ChatGPT
+- **[Data Portability](import-export.md)** — export/import .橘子岛 files, auto backup, import from Claude and ChatGPT
 - **[Language](language.md)** — switch between English, 中文, 繁體中文, or system default
 - **[About](about.md)** — version info, updates, documentation toggles, links, rating
 
 ---
 
-## About Agora
+## About 橘子岛
 
-Agora is a BYOK Android client for AI power users:
+橘子岛 is a BYOK Android client for AI power users:
 
 - **No middlemen**: Direct API connections, no telemetry, no tracking
 - **On-device storage**: Everything lives locally in a Room database
 - **Non-linear conversations**: Edit any past message and explore alternative branches
 - **Agentic by default**: Multi-round tool calling with web search, image generation, code execution, shell, file operations, and memory
 - **Remote control**: Manage servers via the encrypted Conch protocol
-- **Open source**: MIT licensed, [source on GitHub](https://github.com/newo-ether/Agora)
+- **Open source**: MIT licensed, [source on GitHub](https://github.com/orangeisland/app)

@@ -18,7 +18,7 @@ Permite al modelo buscar en internet y obtener páginas web en tiempo real. Cuan
 
 DuckDuckGo Lite es el proveedor de búsqueda **predeterminado** — no requiere clave API, funciona de inmediato.
 
-1. En Agora, ve a **Configuración → Búsqueda Web**
+1. En 橘子岛, ve a **Configuración → Búsqueda Web**
 2. Selecciona **DuckDuckGo Lite** como proveedor de búsqueda
 3. No se necesita clave ni URL — comienza a buscar de inmediato
 
@@ -28,28 +28,28 @@ DuckDuckGo Lite es el proveedor de búsqueda **predeterminado** — no requiere 
 ### Brave
 
 1. Obtén una clave API de [Brave Search API](https://api.search.brave.com/)
-2. En Agora, ve a **Configuración → Búsqueda Web**
+2. En 橘子岛, ve a **Configuración → Búsqueda Web**
 3. Selecciona **Brave** como proveedor de búsqueda
 4. Pega tu clave API
 
 ### Serper
 
 1. Obtén una clave API de [serper.dev](https://serper.dev)
-2. En Agora, ve a **Configuración → Búsqueda Web**
+2. En 橘子岛, ve a **Configuración → Búsqueda Web**
 3. Selecciona **Serper**
 4. Pega tu clave API
 
 ### Tavily
 
 1. Obtén una clave API de [tavily.com](https://tavily.com)
-2. En Agora, ve a **Configuración → Búsqueda Web**
+2. En 橘子岛, ve a **Configuración → Búsqueda Web**
 3. Selecciona **Tavily**
 4. Pega tu clave API
 
 ### SearXNG
 
 1. Configura una instancia de SearXNG (autoalojada) o usa una instancia pública
-2. En Agora, ve a **Configuración → Búsqueda Web**
+2. En 橘子岛, ve a **Configuración → Búsqueda Web**
 3. Selecciona **SearXNG**
 4. Introduce la **URL Base** de tu instancia (ej., `https://searx.be`)
 5. La clave API es opcional (solo se necesita si tu instancia requiere autenticación)
@@ -106,6 +106,6 @@ Más allá de la búsqueda, el modelo puede obtener y leer páginas web específ
 
 Al usar la búsqueda web:
 
-- Tus consultas van al proveedor de búsqueda (Brave, Serper, etc.), no a Agora
-- Agora no registra ni almacena tus consultas de búsqueda (excepto en la conversación misma)
+- Tus consultas van al proveedor de búsqueda (Brave, Serper, etc.), no a 橘子岛
+- 橘子岛 no registra ni almacena tus consultas de búsqueda (excepto en la conversación misma)
 - El autoalojamiento de SearXNG te da la mayor privacidad — las consultas permanecen en tu infraestructura

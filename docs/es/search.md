@@ -1,6 +1,6 @@
 # Búsqueda de Conversaciones
 
-Agora puede buscar en todo tu historial de conversaciones — ya sea por coincidencia de palabras clave o por recuperación semántica (basada en significado) usando modelos de embedding.
+橘子岛 puede buscar en todo tu historial de conversaciones — ya sea por coincidencia de palabras clave o por recuperación semántica (basada en significado) usando modelos de embedding.
 
 ## Métodos de Búsqueda
 

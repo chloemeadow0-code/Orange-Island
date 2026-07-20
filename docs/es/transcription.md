@@ -4,7 +4,7 @@ Permite que un modelo de visión describa imágenes para que los modelos de solo
 
 ## Qué Hace
 
-Cuando envías una imagen a un modelo de solo texto, Agora puede usar un modelo de visión separado para generar primero una descripción de texto de la imagen. Esta descripción se incluye luego en el prompt enviado a tu modelo principal.
+Cuando envías una imagen a un modelo de solo texto, 橘子岛 puede usar un modelo de visión separado para generar primero una descripción de texto de la imagen. Esta descripción se incluye luego en el prompt enviado a tu modelo principal.
 
 Esto te permite usar imágenes con cualquier modelo, incluso aquellos que no soportan visión de forma nativa.
 
@@ -21,7 +21,7 @@ Esto te permite usar imágenes con cualquier modelo, incluso aquellos que no sop
 ## Cómo Funciona
 
 1. Adjuntas una imagen a tu mensaje
-2. Agora detecta que tu modelo actual no soporta visión
+2. 橘子岛 detecta que tu modelo actual no soporta visión
 3. La imagen se envía primero al modelo de transcripción
 4. El modelo de transcripción genera una descripción de texto
 5. Esta descripción se antepone al texto de tu mensaje

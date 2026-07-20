@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Agora</string>
-    <string name="agora_responded">Agora respondió</string>
+    <string name="app_name">橘子岛</string>
+    <string name="oi_responded">橘子岛 respondió</string>
 
     <!-- Chat Bottom Bar -->
     <string name="add_attachment">Añadir adjunto</string>
@@ -17,7 +17,7 @@
     <string name="google_search">Búsqueda de Google</string>
     <string name="thinking">Razonamiento</string>
     <string name="web_search">Búsqueda web</string>
-    <string name="ask_agora">Pregunta lo que quieras a Agora...</string>
+    <string name="ask_orange_island">Pregunta lo que quieras a 橘子岛...</string>
     <string name="send">Enviar</string>
 
     <!-- Tool Display -->
@@ -238,7 +238,7 @@
     <string name="prompts_template_blank">En blanco</string>
     <string name="prompts_template_blank_desc">Empezar con una instrucción del sistema editable vacía.</string>
     <string name="prompts_template_default">Predeterminado</string>
-    <string name="prompts_template_default_desc">Usar la instrucción predeterminada de Agora con contexto de ejecución, memoria, búsqueda web, shell y reglas de acceso a archivos del dispositivo.</string>
+    <string name="prompts_template_default_desc">Usar la instrucción predeterminada de 橘子岛 con contexto de ejecución, memoria, búsqueda web, shell y reglas de acceso a archivos del dispositivo.</string>
     <string name="prompts_duplicate">Duplicar</string>
     <string name="prompts_duplicate_title">Copia de %1$s</string>
     <string name="prompts_empty_preview">Instrucción vacía</string>
@@ -648,9 +648,9 @@
     <string name="play">Reproducir</string>
     <string name="video_preview">Vista previa del vídeo</string>
     <string name="total_tokens">Total: %1$d tokens</string>
-    <string name="welcome_to_agora">Bienvenido a Agora.</string>
+    <string name="welcome_to_orange_island">Bienvenido a 橘子岛.</string>
     <string name="database_incompatible">Base de datos incompatible</string>
-    <string name="database_incompatible_desc">La base de datos es incompatible con esta versión de Agora. Borra la base de datos y reinicia la aplicación.</string>
+    <string name="database_incompatible_desc">La base de datos es incompatible con esta versión de 橘子岛. Borra la base de datos y reinicia la aplicación.</string>
     <string name="quit">Salir</string>
     <string name="clear_database">Borrar base de datos</string>
     <string name="generate_title">Generar título</string>
@@ -725,10 +725,10 @@
     <string name="about_update_available">Actualización disponible: v%1$s</string>
     <string name="about_up_to_date">Estás al día (v%1$s)</string>
     <string name="about_checking">Comprobando...</string>
-    <string name="about_available_body">Hay una nueva versión de Agora disponible en GitHub.</string>
+    <string name="about_available_body">Hay una nueva versión de 橘子岛 disponible en GitHub.</string>
     <string name="about_view_release">Ver versión</string>
     <string name="about_later">Más tarde</string>
-    <string name="rating_title">Valorar Agora</string>
+    <string name="rating_title">Valorar 橘子岛</string>
     <string name="rating_star">%1$d estrella(s)</string>
     <string name="rating_your_name">Tu nombre (opcional)</string>
     <string name="rating_your_email">Tu correo (opcional)</string>
@@ -737,7 +737,7 @@
     <string name="rating_submitting">Enviando…</string>
     <string name="rating_success">¡Gracias por tus comentarios!</string>
     <string name="rating_failed">Error al enviar. Inténtalo de nuevo.</string>
-    <string name="rating_privacy">Tu valoración se subirá de forma anónima a newoether.space. Solo se transmiten los campos que rellenes. No se recopilan otros datos.</string>
+    <string name="rating_privacy">Tu valoración se subirá de forma anónima a rating.orangeisland.app. Solo se transmiten los campos que rellenes. No se recopilan otros datos.</string>
 
     <!-- Data Control -->
     <string name="settings_data_control">Control de datos</string>
@@ -745,7 +745,7 @@
     <string name="data_export_title">Exportar datos</string>
     <string name="data_export_subtitle">Guarda conversaciones, memorias, instrucciones y ajustes en un archivo.</string>
     <string name="data_import_title">Importar datos</string>
-    <string name="data_import_subtitle">Restaura desde un archivo de exportación .agora anterior.</string>
+    <string name="data_import_subtitle">Restaura desde un archivo de exportación .oi anterior.</string>
     <string name="export_category_conversations">Conversaciones y mensajes</string>
     <string name="export_category_memories">Memorias</string>
     <string name="export_category_system_prompts">Instrucciones del sistema</string>
@@ -758,7 +758,7 @@
 
     <string name="export_failed">Error al exportar: %1$s</string>
     <string name="import_preview_title">Importar datos</string>
-    <string name="import_from">Exportado el %1$s\nDesde Agora v%2$s</string>
+    <string name="import_from">Exportado el %1$s\nDesde 橘子岛 v%2$s</string>
     <string name="import_strategy_merge">Combinar</string>
     <string name="import_strategy_replace">Reemplazar</string>
     <string name="import_strategy_skip">Omitir</string>
@@ -767,7 +767,7 @@
     <string name="importing_label">Importando…</string>
     <string name="import_success">Importación completada: %1$s</string>
     <string name="import_failed">Error al importar: %1$s</string>
-    <string name="import_invalid_file">Archivo .agora no válido. Selecciona una exportación válida.</string>
+    <string name="import_invalid_file">Archivo .oi no válido. Selecciona una exportación válida.</string>
     <string name="import_no_data">Este archivo de exportación no contiene datos importables.</string>
 
     <!-- Claude Chat Import -->
@@ -844,7 +844,7 @@
     <string name="show_documentation_links_desc">Mostrar el botón de documentación en las páginas de ajustes</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_welcome_title">Bienvenido a Agora</string>
+    <string name="onboarding_welcome_title">Bienvenido a 橘子岛</string>
     <string name="onboarding_welcome_desc">Una app BYOK que recupera la soberanía de tus datos.</string>
     <string name="onboarding_byok_title">Trae tu propia clave</string>
     <string name="onboarding_byok_desc">Configura tus claves de API o importa un modelo GGUF para desbloquear la inferencia en el dispositivo.</string>
@@ -929,11 +929,11 @@
     <string name="shell_confirm_setting_desc">Preguntar antes de que el asistente ejecute comandos o escriba archivos en servidores SSH/Conch remotos</string>
 
     <!-- Crash reporting -->
-    <string name="crash_title">Agora se cerró inesperadamente</string>
+    <string name="crash_title">橘子岛 se cerró inesperadamente</string>
     <string name="crash_message">Lo sentimos. Puedes ayudar a solucionarlo enviando un informe de fallos anónimo.</string>
     <string name="crash_submit">Enviar informe</string>
     <string name="crash_dismiss">No enviar</string>
-    <string name="crash_privacy_note">Solo se envía el registro del fallo a newoether.space. No se recopila ninguna otra información.</string>
+    <string name="crash_privacy_note">Solo se envía el registro del fallo a rating.orangeisland.app. No se recopila ninguna otra información.</string>
     <string name="crash_submitted">Informe de fallos enviado. ¡Gracias!</string>
     <string name="settings_group_network">Red</string>
     <string name="settings_proxy">Proxy</string>

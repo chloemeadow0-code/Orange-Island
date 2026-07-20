@@ -1,10 +1,10 @@
 # Datenportabilität
 
-Agora speichert alle Ihre Daten auf dem Gerät und bietet vollständige Import-/Export-Funktionen. Sie besitzen Ihre Daten — bewegen Sie sie hinein, bewegen Sie sie heraus, sichern Sie sie.
+橘子岛 speichert alle Ihre Daten auf dem Gerät und bietet vollständige Import-/Export-Funktionen. Sie besitzen Ihre Daten — bewegen Sie sie hinein, bewegen Sie sie heraus, sichern Sie sie.
 
 ## Export
 
-Exportieren Sie Ihre Daten in eine einzelne `.agora`-Datei — ein portables Archiv, das alles enthält, was Agora speichert.
+Exportieren Sie Ihre Daten in eine einzelne `.橘子岛`-Datei — ein portables Archiv, das alles enthält, was 橘子岛 speichert.
 
 ### Was exportiert wird
 
@@ -19,7 +19,7 @@ Sie wählen, was enthalten sein soll:
 | **API-Keys** | Alle konfigurierten API-Keys |
 
 !!! danger "API-Key-Warnung"
-    API-Keys werden im **Klartext** exportiert. Jeder mit der `.agora`-Datei kann Ihre Keys lesen. Aktivieren Sie den API-Key-Export nur, wenn Sie dem Ziel vertrauen und die Datei sicher behandeln.
+    API-Keys werden im **Klartext** exportiert. Jeder mit der `.橘子岛`-Datei kann Ihre Keys lesen. Aktivieren Sie den API-Key-Export nur, wenn Sie dem Ziel vertrauen und die Datei sicher behandeln.
 
 ### So exportieren Sie
 
@@ -27,17 +27,17 @@ Sie wählen, was enthalten sein soll:
 2. Tippen Sie auf **Daten exportieren**
 3. Wählen Sie, welche Kategorien enthalten sein sollen
 4. Tippen Sie auf **Exportieren**
-5. Wählen Sie, wo die `.agora`-Datei gespeichert werden soll
+5. Wählen Sie, wo die `.橘子岛`-Datei gespeichert werden soll
 
 ---
 
 ## Import
 
-Stellen Sie Daten aus einem früheren `.agora`-Export wieder her.
+Stellen Sie Daten aus einem früheren `.橘子岛`-Export wieder her.
 
 ### Importstrategien
 
-Beim Import wählen Sie, wie Agora mit bereits auf Ihrem Gerät vorhandenen Daten umgeht:
+Beim Import wählen Sie, wie 橘子岛 mit bereits auf Ihrem Gerät vorhandenen Daten umgeht:
 
 | Strategie | Verhalten |
 |----------|----------|
@@ -52,13 +52,13 @@ Beim Import wählen Sie, wie Agora mit bereits auf Ihrem Gerät vorhandenen Date
 
 1. Gehen Sie zu **Einstellungen → Datenkontrolle**
 2. Tippen Sie auf **Daten importieren**
-3. Wählen Sie eine `.agora`-Datei
+3. Wählen Sie eine `.橘子岛`-Datei
 4. Überprüfen Sie die Importvorschau — sehen Sie, was in der Datei ist (Exportdatum, Version, Inhaltsanzahlen)
 5. Wählen Sie eine Importstrategie
 6. Tippen Sie auf **Importieren**
 
 !!! danger "API-Key-Warnung"
-    Wenn die Exportdatei API-Keys enthält, warnt Agora Sie vor dem Import. Keys werden im Klartext importiert. Fahren Sie nur fort, wenn Sie der Quelle der Datei vertrauen.
+    Wenn die Exportdatei API-Keys enthält, warnt 橘子岛 Sie vor dem Import. Keys werden im Klartext importiert. Fahren Sie nur fort, wenn Sie der Quelle der Datei vertrauen.
 
 ---
 
@@ -66,7 +66,7 @@ Beim Import wählen Sie, wie Agora mit bereits auf Ihrem Gerät vorhandenen Date
 
 Importieren Sie Konversationen von anderen KI-Chat-Plattformen.
 
-Sowohl Claude als auch ChatGPT exportieren Ihre Daten als **`.zip`-Archiv**. Agora importiert dieses `.zip` direkt — es muss nicht zuerst entpackt werden, und Agora akzeptiert **keine** losen `.json`-Dateien.
+Sowohl Claude als auch ChatGPT exportieren Ihre Daten als **`.zip`-Archiv**. 橘子岛 importiert dieses `.zip` direkt — es muss nicht zuerst entpackt werden, und 橘子岛 akzeptiert **keine** losen `.json`-Dateien.
 
 ### Import von Claude
 
@@ -75,7 +75,7 @@ Sowohl Claude als auch ChatGPT exportieren Ihre Daten als **`.zip`-Archiv**. Ago
 !!! warning "Rechtzeitig herunterladen"
     Claudes Download-Link **läuft schnell ab**. Laden Sie die `.zip` herunter, sobald die E-Mail eintrifft — wenn Sie zu lange warten, wird der Link ungültig und Sie müssen einen neuen Export anfordern.
 
-**2. In Agora importieren.**
+**2. In 橘子岛 importieren.**
 
 1. Gehen Sie zu **Einstellungen → Datenkontrolle → Drittanbieter → Von Claude importieren**
 2. Wählen Sie die exportierte `.zip`-Datei
@@ -84,7 +84,7 @@ Sowohl Claude als auch ChatGPT exportieren Ihre Daten als **`.zip`-Archiv**. Ago
 5. Tippen Sie auf **Importieren**
 
 !!! note
-    Agora liest die Konversationsdaten direkt aus Claudes `.zip`-Export. Anhänge werden erkannt und in der Vorschau angezeigt, aber nur der Nachrichtentext wird importiert — die Anhangsdateien selbst nicht.
+    橘子岛 liest die Konversationsdaten direkt aus Claudes `.zip`-Export. Anhänge werden erkannt und in der Vorschau angezeigt, aber nur der Nachrichtentext wird importiert — die Anhangsdateien selbst nicht.
 
 ### Import von ChatGPT
 
@@ -93,7 +93,7 @@ Sowohl Claude als auch ChatGPT exportieren Ihre Daten als **`.zip`-Archiv**. Ago
 !!! info "Geduld haben"
     Der ChatGPT-Export dauert typischerweise **1–2 Tage**. Dies ist normal — warten Sie auf die E-Mail, anstatt erneut anzufordern.
 
-**2. In Agora importieren.**
+**2. In 橘子岛 importieren.**
 
 1. Gehen Sie zu **Einstellungen → Datenkontrolle → Drittanbieter → Von ChatGPT importieren**
 2. Wählen Sie die heruntergeladene `.zip`-Datei
@@ -108,18 +108,18 @@ Sowohl Claude als auch ChatGPT exportieren Ihre Daten als **`.zip`-Archiv**. Ago
 
 ## Dateiformat
 
-Die `.agora`-Datei ist ein JSON-basiertes Archiv. Wenn Sie technisch versiert sind, können Sie es mit Standardwerkzeugen inspizieren oder verarbeiten. Das Format ist auf Vorwärts- und Rückwärtskompatibilität ausgelegt.
+Die `.橘子岛`-Datei ist ein JSON-basiertes Archiv. Wenn Sie technisch versiert sind, können Sie es mit Standardwerkzeugen inspizieren oder verarbeiten. Das Format ist auf Vorwärts- und Rückwärtskompatibilität ausgelegt.
 
 ---
 
 ## Automatische Sicherung
 
-Agora kann Ihre Daten automatisch nach einem Zeitplan sichern. Sie müssen nicht daran denken zu exportieren — Agora erledigt das für Sie.
+橘子岛 kann Ihre Daten automatisch nach einem Zeitplan sichern. Sie müssen nicht daran denken zu exportieren — 橘子岛 erledigt das für Sie.
 
 ### Wie es funktioniert
 
 - Die automatische Sicherung läuft regelmäßig im Hintergrund mit Android WorkManager
-- Wenn eine Sicherung fällig ist, exportiert Agora Ihre ausgewählten Kategorien in das konfigurierte Verzeichnis
+- Wenn eine Sicherung fällig ist, exportiert 橘子岛 Ihre ausgewählten Kategorien in das konfigurierte Verzeichnis
 - Eine Benachrichtigung erscheint nur, wenn eine Sicherung fehlschlägt — erfolgreiche Sicherungen sind still
 - Alte Sicherungen werden automatisch basierend auf Ihren Aufbewahrungseinstellungen gelöscht
 
@@ -129,7 +129,7 @@ Agora kann Ihre Daten automatisch nach einem Zeitplan sichern. Sie müssen nicht
 2. Schalten Sie **Automatische Sicherung** ein/aus
 3. Legen Sie **Sichern alle** fest — wählen Sie 1 Tag, 3 Tage, 5 Tage, 1 Woche oder 1 Monat
 4. Wählen Sie **Exportinhalt** — wählen Sie, welche Kategorien enthalten sein sollen. API-Keys **können** enthalten sein (eine Warnung wird angezeigt, wenn Sie dieses Kästchen aktivieren) — aktivieren Sie es nur, wenn der Sicherungsort privat und sicher ist. API-Keys sind standardmäßig **nicht** enthalten.
-5. Legen Sie den **Sicherungsort** fest — tippen Sie, um einen Ordner auszuwählen (Standard ist `Download/Agora/Backup`)
+5. Legen Sie den **Sicherungsort** fest — tippen Sie, um einen Ordner auszuwählen (Standard ist `Download/橘子岛/Backup`)
 6. Schalten Sie **Alte Sicherungen automatisch löschen** ein/aus und legen Sie den Zeitraum **Löschen älter als** fest
 
 !!! info "Einschränkung der automatischen Löschung"

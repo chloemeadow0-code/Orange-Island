@@ -1,0 +1,828 @@
+package com.orangeisland.app.viewmodel
+
+import android.app.Application
+import com.orangeisland.app.util.DebugLog
+import com.orangeisland.app.api.LlmProvider
+import com.orangeisland.app.api.ProviderConfig
+import com.orangeisland.app.api.StreamEvent
+import com.orangeisland.app.api.ToolDefinition
+import com.orangeisland.app.data.MemoryManager
+
+import com.orangeisland.app.data.local.MessageEntity
+import com.orangeisland.app.model.ChatMessage
+import com.orangeisland.app.model.MessageSegment
+import com.orangeisland.app.model.MessageStatus
+import com.orangeisland.app.model.Participant
+import com.orangeisland.app.model.ToolCallData
+import com.orangeisland.app.R
+import com.orangeisland.app.service.OrangeIslandForegroundService
+import com.orangeisland.app.service.AppForegroundTracker
+import com.orangeisland.app.api.util.projectAssistantImagesToLatestUserMessage
+import com.orangeisland.app.util.Constants
+import com.orangeisland.app.util.SearchResultFormatter
+import com.orangeisland.app.tool.ImageGenToolProvider
+import com.orangeisland.app.tool.MemoryToolProvider
+import com.orangeisland.app.tool.RagToolProvider
+import com.orangeisland.app.tool.ShellToolProvider
+import com.orangeisland.app.tool.ToolProvider
+import com.orangeisland.app.tool.WebSearchToolProvider
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.io.File
+import java.util.UUID
+
+data class GenerationConfig(
+    val providerName: String,
+    val modelId: String,
+    val apiKey: String,
+    val effectiveSystemPrompt: String?,
+    val maxContextWindow: Int,
+    val codeExecutionEnabled: Boolean,
+    val googleSearchEnabled: Boolean,
+    val thinkingEnabled: Boolean,
+    val thinkingLevel: String = "medium",
+    val thinkingBudgetEnabled: Boolean = false,
+    val thinkingBudgetTokens: Int = 4096,
+    val baseUrl: String?,
+    val userPrepend: String? = null,
+    val userPostpend: String? = null,
+    val temperature: Float? = null,
+    val maxTokens: Int? = null,
+    val topP: Float? = null,
+    val frequencyPenalty: Float? = null,
+    val presencePenalty: Float? = null
+)
+
+data class GenerationContext(
+    val conversationId: String? = null,
+    val accessSavedMemories: Boolean = true,
+    val accessActiveMemory: Boolean = true,
+    val accessPastConversations: Boolean = true,
+    val modelSearchMethod: String = "keyword",
+    val activeEmbeddingConfig: com.orangeisland.app.data.EmbeddingModelConfig? = null,
+    val embeddingApiKey: String = "",
+    val ragThreshold: Float = 0.5f,
+    val searchMatchLimit: Int = 10,
+    val searchContextWindow: Int = 8,
+    val webSearchEnabled: Boolean = false,
+    val webSearchApiKeys: Map<String, String> = emptyMap(),
+    val webSearchProvider: String = "duckduckgo",
+    val webSearchNumResults: Int = 5,
+    val webSearchBaseUrl: String = "",
+    val imageGenEnabled: Boolean = false,
+    val imageGenApiKey: String = "",
+    val imageGenBaseUrl: String = "",
+    val imageGenModel: String = "gpt-image-1",
+    val imageGenSize: String = "1024x1024",
+    val shellEnabled: Boolean = false,
+    val shellDevices: List<com.orangeisland.app.data.ShellDeviceConfig> = emptyList(),
+    val sandboxEnabled: Boolean = false,
+    val imageTranscriptionEnabled: Boolean = false,
+    val imageTranscriptionModel: String? = null,
+    val imageTranscriptionBatchSize: Int = 3,
+    val imageTranscriptionPrompt: String = com.orangeisland.app.data.BuiltInPrompts.IMAGE_TRANSCRIPTION_USER,
+    val transcriptionProviderName: String = "",
+    val transcriptionModelId: String = "",
+    val transcriptionApiKey: String = "",
+    val transcriptionBaseUrl: String? = null,
+    /** All configured MCP servers (resolved at request-build time so the provider doesn't
+     *  read DataStore on the hot path). [McpToolProvider] filters these by [mcpServerIds]. */
+    val mcpServers: List<com.orangeisland.app.data.McpServerConfig> = emptyList(),
+    /** Per-conversation MCP activation (null = use all globally enabled servers,
+     *  empty = disable MCP for this turn, non-empty = exactly these server ids). */
+    val mcpServerIds: List<String>? = null,
+    /** Per-conversation JS-plugin activation. Same semantics as [mcpServerIds] but for
+     *  locally-installed JS plugins (resolved by [PluginToolProvider]). */
+    val pluginIds: List<String>? = null
+)
+
+internal fun applyUserTemplateToMessages(
+    messages: List<ChatMessage>,
+    prepend: String?,
+    postpend: String?
+): List<ChatMessage> {
+    if (prepend == null && postpend == null) return messages
+    val timeSdf = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
+    val dateSdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+    return messages.map { msg ->
+        val isToolMessage = msg.id.startsWith(Constants.TOOL_MSG_PREFIX) ||
+            msg.id.startsWith(Constants.RESULT_MSG_PREFIX)
+        if (!isToolMessage && msg.participant == Participant.USER && msg.text.isNotEmpty()) {
+            val ts = java.util.Date(msg.timestamp)
+            val rp = prepend?.replace("{sent_time}", timeSdf.format(ts))?.replace("{sent_date}", dateSdf.format(ts)) ?: ""
+            val ra = postpend?.replace("{sent_time}", timeSdf.format(ts))?.replace("{sent_date}", dateSdf.format(ts)) ?: ""
+            if (rp.isEmpty() && ra.isEmpty()) msg
+            else msg.copy(text = rp + msg.text + ra)
+        } else msg
+    }
+}
+
+/**
+ * The token-gated UI callbacks a single generation drives. Built once per call by
+ * [GenerationSession.callbacksFor], so each generation entry point ([ChatViewModel]'s
+ * send / regenerate / edit) wires the session ownership tokens in exactly one place
+ * instead of re-threading five lambdas by hand.
+ */
+data class GenerationCallbacks(
+    val onStreamUpdate: (ChatMessage) -> Unit,
+    val onLoadingChange: (Boolean) -> Unit,
+    val onGeneratingIdChange: (String?) -> Unit,
+    val onStreamClear: () -> Unit,
+    val isLatestPersist: () -> Boolean,
+)
+
+class GenerationManager(
+    private val app: Application,
+    private val conversations: com.orangeisland.app.data.repository.ConversationRepository,
+    private val memoryManager: MemoryManager,
+    private val providers: Map<String, LlmProvider>,
+    private val context: android.content.Context,
+    private val sandboxFactory: com.orangeisland.app.sandbox.SandboxManagerFactory? = null,
+    /** Optional MCP client pool. When null, MCP tools are disabled (e.g. during title
+     *  generation where external tools should not run). */
+    private val mcpPool: com.orangeisland.app.mcp.McpClientPool? = null,
+    /** Optional JS-plugin tool provider. When null, plugin tools are disabled. */
+    private val pluginToolProvider: com.orangeisland.app.plugin.PluginToolProvider? = null
+) {
+    var onMessagePersisted: ((messageId: String, text: String) -> Unit)? = null
+
+    /** User-confirmation gate for remote shell mutations. Set by the ViewModel.
+     *  Returns true to proceed, false to deny. */
+    var onConfirmShellCommand: (suspend (server: String, summary: String) -> Boolean)? = null
+
+    private val memoryToolProvider = MemoryToolProvider(memoryManager)
+    private val webSearchToolProvider = WebSearchToolProvider()
+    private val ragToolProvider = RagToolProvider(conversations)
+    private val imageGenToolProvider = ImageGenToolProvider(app)
+    private val shellToolProvider = ShellToolProvider(sandboxFactory).also { stp ->
+        // Forward to the ViewModel-provided gate at call time (read the var lazily).
+        stp.confirm = { server, summary -> onConfirmShellCommand?.invoke(server, summary) ?: true }
+    }
+    private val mcpToolProvider = mcpPool?.let { com.orangeisland.app.tool.McpToolProvider(it) }
+    private val toolProviders: List<ToolProvider> = buildList {
+        add(memoryToolProvider); add(webSearchToolProvider); add(ragToolProvider)
+        add(imageGenToolProvider); add(shellToolProvider)
+        mcpToolProvider?.let { add(it) }
+        pluginToolProvider?.let { add(it) }
+    }
+
+    fun buildImageGenTool(ctx: GenerationContext): List<ToolDefinition> =
+        imageGenToolProvider.definitions(ctx)
+
+    private val transcriptionManager = TranscriptionManager(providers, conversations, context)
+
+    companion object {
+        private val FILE_TOOL_NAMES = setOf("file_read", "file_write", "file_edit", "file_glob", "file_grep")
+    }
+
+    private fun getProviderInstance(name: String): LlmProvider =
+        providers[name] ?: providers.values.first()
+
+    // Image/video frame extraction lives in ImageProcessor (single source of truth).
+    private val imageProcessor = ImageProcessor(app)
+
+    suspend fun processImages(
+        uris: List<String>,
+        sliceConfigs: Map<String, VideoSliceConfig> = emptyMap()
+    ): List<String> = imageProcessor.processImagesAndVideos(uris, sliceConfigs)
+
+    fun buildMemoryTools(ctx: GenerationContext): List<ToolDefinition> =
+        memoryToolProvider.definitions(ctx)
+
+    fun buildWebSearchTool(ctx: GenerationContext): List<ToolDefinition> =
+        webSearchToolProvider.definitions(ctx)
+
+    fun buildRagTool(ctx: GenerationContext): List<ToolDefinition> =
+        ragToolProvider.definitions(ctx)
+
+    fun buildShellTool(ctx: GenerationContext): List<ToolDefinition> {
+        val all = shellToolProvider.definitions(ctx)
+        return all.filter { it.function.name !in FILE_TOOL_NAMES }
+    }
+
+    fun buildFileTool(ctx: GenerationContext): List<ToolDefinition> {
+        val all = shellToolProvider.definitions(ctx)
+        return all.filter { it.function.name in FILE_TOOL_NAMES }
+    }
+
+    /** Tools exposed by active remote MCP servers. Empty when MCP is disabled or no servers
+     *  are configured/active for this conversation. */
+    fun buildMcpTools(ctx: GenerationContext): List<ToolDefinition> =
+        mcpToolProvider?.definitions(ctx) ?: emptyList()
+
+    /** Tools exposed by active JS plugins. Empty when no plugins are installed/active. */
+    fun buildPluginTools(ctx: GenerationContext): List<ToolDefinition> =
+        pluginToolProvider?.definitions(ctx) ?: emptyList()
+
+
+    /** Semantic message search — delegates to [RagToolProvider], which owns the
+     *  embedding-search logic. Kept here as the entry point used by ChatViewModel's
+     *  in-app conversation search. */
+    suspend fun semanticSearch(query: String, limit: Int, ctx: GenerationContext): List<Pair<MessageEntity, Float>> =
+        ragToolProvider.semanticSearch(query, limit, ctx)
+
+    private suspend fun executeTool(name: String, arguments: String, ctx: GenerationContext): String {
+        return try {
+            for (provider in toolProviders) {
+                if (provider.handles(name)) {
+                    return provider.execute(name, arguments, ctx)
+                }
+            }
+            "Unknown tool: $name"
+        } catch (e: Exception) {
+            "Error executing tool '$name': ${e.localizedMessage ?: "Unknown error"}"
+        }
+    }
+
+    private fun applyUserTemplate(messages: List<ChatMessage>, prepend: String?, postpend: String?): List<ChatMessage> {
+        return applyUserTemplateToMessages(messages, prepend, postpend)
+    }
+
+    private fun appendMergedSegment(target: MutableList<MessageSegment>, segment: MessageSegment) {
+        val last = target.lastOrNull()
+        if (last != null && last.type == segment.type && (segment.type == "answer" || segment.type == "thought")) {
+            target[target.lastIndex] = last.copy(
+                content = last.content + segment.content,
+                signature = segment.signature ?: last.signature,
+                durationMs = mergeDurationMs(last.durationMs, segment.durationMs)
+            )
+        } else {
+            target.add(segment)
+        }
+    }
+
+    private fun mergeDurationMs(first: Long?, second: Long?): Long? {
+        val merged = (first ?: 0L) + (second ?: 0L)
+        return merged.takeIf { it > 0L }
+    }
+
+    private fun buildLiveSegments(
+        flushed: List<MessageSegment>,
+        answerBuf: StringBuilder,
+        thoughtBuf: StringBuilder,
+        signature: String? = null,
+        thoughtDurationMs: Long? = null
+    ): List<MessageSegment>? {
+        val result = flushed.toMutableList()
+        if (answerBuf.isNotEmpty()) {
+            appendMergedSegment(result, MessageSegment(type = "answer", content = answerBuf.toString()))
+        }
+        if (thoughtBuf.isNotEmpty()) {
+            appendMergedSegment(result, MessageSegment(
+                type = "thought",
+                content = thoughtBuf.toString(),
+                signature = signature,
+                durationMs = thoughtDurationMs
+            ))
+        }
+        return result.ifEmpty { null }
+    }
+
+    private suspend fun buildApiPath(
+        parentId: String?,
+        conversationId: String,
+        isRegenerate: Boolean,
+        replaceMessageId: String?,
+        config: GenerationConfig,
+        ctx: GenerationContext
+    ): Pair<List<ChatMessage>, ProviderConfig> {
+        val dbMessages = conversations.getMessagesForConversationSnapshot(conversationId)
+        val pathEntities = mutableListOf<MessageEntity>()
+        var currId: String? = parentId
+        while (currId != null) {
+            val msg = dbMessages.find { it.id == currId } ?: break
+            pathEntities.add(0, msg)
+            currId = msg.parentId
+        }
+        // Inject tool call chains that are children of messages in the ancestor path.
+        val expanded = mutableListOf<MessageEntity>()
+        for (entity in pathEntities) {
+            val toolChildren = dbMessages
+                .filter { it.parentId == entity.id && it.id.startsWith(Constants.TOOL_MSG_PREFIX) }
+                .sortedBy { it.timestamp }
+            if (toolChildren.isEmpty()) {
+                expanded.add(entity)
+            } else {
+                for (toolMsg in toolChildren) {
+                    expanded.add(toolMsg)
+                    val pending = mutableListOf(toolMsg)
+                    var safety = 0
+                    while (pending.isNotEmpty() && safety < 100) {
+                        val current = pending.removeAt(0)
+                        val children = dbMessages
+                            .filter { it.parentId == current.id && (it.id.startsWith(Constants.RESULT_MSG_PREFIX) || it.id.startsWith(Constants.TOOL_MSG_PREFIX)) }
+                            .sortedBy { it.timestamp }
+                        for (child in children) {
+                            val isResult = child.id.startsWith(Constants.RESULT_MSG_PREFIX)
+                            if (isResult) {
+                                // Include result_ messages so providers can emit
+                                // correct tool_use/tool_result pairs. The result
+                                // data lives in TOOL_MSG segments too, but Anthropic
+                                // requires separate tool_result blocks in the next
+                                // user-role message.
+                                if (child !in expanded) {
+                                    expanded.add(child)
+                                }
+                                pending.add(child)
+                            } else if (child !in expanded) {
+                                expanded.add(child)
+                                pending.add(child)
+                            }
+                        }
+                        safety++
+                    }
+                }
+                expanded.add(entity.copy(toolCallJson = null))
+            }
+        }
+        val currentPath = expanded.map {
+            val segs = it.toolCallJson?.let { json -> try { Json.decodeFromString<List<MessageSegment>>(json) } catch (_: Exception) { null } }
+            val toolCall = segs?.lastOrNull { s -> s.type == "tool" }?.let { s ->
+                ToolCallData(s.toolName ?: "", s.toolArgs ?: "{}", s.toolResult ?: "", s.toolCallId)
+            }
+            val meta = it.attachmentMeta?.let { json -> try { Json.decodeFromString<com.orangeisland.app.model.AttachmentMeta>(json) } catch (_: Exception) { null } }
+            val attachmentText = if (meta != null) {
+                meta.items.mapNotNull { item ->
+                    val content = item.textContent
+                    val transcription = item.transcription
+                    val includeTranscription = ctx.imageTranscriptionEnabled && transcription != null && transcription.isNotBlank()
+                    when {
+                        content != null -> {
+                            val label = item.fileName ?: "file"
+                            "\n\n--- File: $label ---\n$content"
+                        }
+                        includeTranscription -> {
+                            val label = item.fileName ?: "image"
+                            "\n\n--- Image Transcription: $label ---\n$transcription"
+                        }
+                        else -> null
+                    }
+                }.joinToString("")
+            } else ""
+            val combinedText = if (attachmentText.isNotBlank()) it.text + attachmentText else it.text
+            val hasTranscription = ctx.imageTranscriptionEnabled && meta != null && meta.items.any { item -> !item.transcription.isNullOrBlank() }
+            val effectiveImages = if (hasTranscription) emptyList() else it.images
+            ChatMessage(id = it.id, parentId = it.parentId, text = combinedText, images = effectiveImages, thoughts = it.thoughts, thoughtTitle = it.thoughtTitle, tokenCount = it.tokenCount, status = it.status, participant = it.participant, timestamp = it.timestamp, thoughtTimeMs = it.thoughtTimeMs, segments = segs, toolCall = toolCall)
+        }.filter { it.participant != Participant.ERROR }
+            .let { path ->
+                if (isRegenerate && replaceMessageId != null) {
+                    val oldIdx = path.indexOfFirst { it.id == replaceMessageId }
+                    if (oldIdx >= 0) path.take(oldIdx) else path
+                } else path
+            }
+
+        val memoryTools = buildMemoryTools(ctx)
+        val webSearchTool = buildWebSearchTool(ctx)
+        val ragTool = buildRagTool(ctx)
+        val shellTool = buildShellTool(ctx)
+        val fileTool = buildFileTool(ctx)
+        val imageGenTool = buildImageGenTool(ctx)
+        val mcpTools = buildMcpTools(ctx)
+        val pluginTools = buildPluginTools(ctx)
+        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools
+        val providerConfig = ProviderConfig(
+            apiKey = config.apiKey,
+            modelId = config.modelId,
+            systemPrompt = config.effectiveSystemPrompt,
+            maxContextWindow = config.maxContextWindow,
+            codeExecutionEnabled = config.codeExecutionEnabled,
+            googleSearchEnabled = config.googleSearchEnabled,
+            thinkingEnabled = config.thinkingEnabled,
+            thinkingLevel = config.thinkingLevel,
+            thinkingBudgetEnabled = config.thinkingBudgetEnabled,
+            thinkingBudgetTokens = config.thinkingBudgetTokens,
+            baseUrl = config.baseUrl,
+            tools = allTools,
+            userPrepend = config.userPrepend,
+            userPostpend = config.userPostpend,
+            temperature = config.temperature,
+            maxTokens = config.maxTokens,
+            topP = config.topP,
+            frequencyPenalty = config.frequencyPenalty,
+            presencePenalty = config.presencePenalty
+        )
+        return Pair(currentPath, providerConfig)
+    }
+
+    suspend fun generate(
+        conversationId: String,
+        modelMessageId: String,
+        startTime: Long,
+        isRegenerate: Boolean,
+        replaceMessageId: String?,
+        modelName: String,
+        config: GenerationConfig,
+        ctx: GenerationContext,
+        generationJob: kotlinx.coroutines.Job?,
+        callbacks: GenerationCallbacks
+    ) {
+        // Destructure into locals so the body below reads exactly as before.
+        val (onStreamUpdate, onLoadingChange, onGeneratingIdChange, onStreamClear, isLatestPersist) = callbacks
+        val provider = getProviderInstance(config.providerName)
+
+        onLoadingChange(true)
+        onGeneratingIdChange(conversationId)
+        com.orangeisland.app.util.CrashReporter.note("generate provider=${config.providerName} regen=$isRegenerate")
+        withContext(Dispatchers.Main) { OrangeIslandForegroundService.start(app) }
+
+        var totalText = ""
+        var totalThoughts = ""
+        val thinkingPlaceholder = context.getString(R.string.thinking_ellipsis)
+        var totalThoughtTitle: String? = null
+        var totalTokenCount = 0
+        var totalThoughtTimeMs: Long? = null
+        var cumulativeThoughtMs: Long = 0
+        var currentThoughtStartMs: Long? = null
+        var currentThoughtDurationMs: Long = 0
+        var currentStatus = MessageStatus.SENDING
+        var retryText: String? = null
+        val segments = mutableListOf(MessageSegment(type = "answer"))
+        val generatedImages = mutableListOf<String>()
+        var currentAnswerBuf = StringBuilder()
+        var currentThoughtBuf = StringBuilder()
+        var currentThoughtSignature: String? = null
+        val placeholder = conversations.getMessagesForConversationSnapshot(conversationId).find { it.id == modelMessageId }
+        val parentId = placeholder?.parentId
+        var toolPath = emptyList<ChatMessage>()
+
+        fun liveThoughtDurationMs(): Long? {
+            val liveElapsed = currentThoughtStartMs?.let { System.currentTimeMillis() - it } ?: 0L
+            return (currentThoughtDurationMs + liveElapsed).takeIf { it > 0L }
+        }
+
+        fun finishCurrentThoughtTiming() {
+            val startedAt = currentThoughtStartMs ?: return
+            val elapsed = System.currentTimeMillis() - startedAt
+            if (elapsed > 0L) {
+                cumulativeThoughtMs += elapsed
+                currentThoughtDurationMs += elapsed
+                totalThoughtTimeMs = cumulativeThoughtMs
+            }
+            currentThoughtStartMs = null
+        }
+
+        try {
+            // Stage 1: Image Transcription
+            var transcriptionPerformed = false
+            if (ctx.imageTranscriptionEnabled && ctx.transcriptionModelId.isNotEmpty()) {
+                kotlinx.coroutines.delay(500) // let foreground service fully start
+                val targets = transcriptionManager.collectTargets(conversationId, parentId)
+                if (targets.isNotEmpty()) {
+                    val (transcriptionSegments, transcriptionError) = transcriptionManager.transcribe(
+                        targets, conversationId,
+                        ctx.transcriptionProviderName, ctx.transcriptionModelId,
+                        ctx.transcriptionApiKey, ctx.transcriptionBaseUrl,
+                        ctx.imageTranscriptionPrompt,
+                        generationJob, modelMessageId, startTime, onStreamUpdate
+                    )
+                    if (transcriptionError != null) {
+                        totalText = transcriptionError
+                        currentStatus = MessageStatus.ERROR
+                        transcriptionPerformed = true
+                    } else {
+                        segments.addAll(0, transcriptionSegments)
+                        transcriptionPerformed = true
+                    }
+                }
+            }
+
+            if (currentStatus != MessageStatus.ERROR) {
+            // Re-scan the plugins directory so freshly-installed/uninstalled plugins are visible
+            // to this turn without an app restart. Cheap: reads manifest.json files only.
+            pluginToolProvider?.refreshPluginList()
+            val (currentPath, rawProviderConfig) = buildApiPath(parentId, conversationId, isRegenerate, replaceMessageId, config, ctx)
+            val providerConfig = if (transcriptionPerformed) rawProviderConfig.copy(includeImages = false) else rawProviderConfig
+
+            var toolCallData: ToolCallData? = null
+            var toolCallDataList: List<ToolCallData> = emptyList()
+            val roundToolSegments = mutableListOf<MessageSegment>()
+
+            var lastEmitMs = 0L
+
+            fun modelMessage() = ChatMessage(
+                id = modelMessageId, parentId = parentId,
+                text = totalText, thoughts = totalThoughts.ifBlank { null },
+                thoughtTitle = totalThoughtTitle, tokenCount = totalTokenCount,
+                status = currentStatus, participant = Participant.MODEL,
+                timestamp = startTime, thoughtTimeMs = totalThoughtTimeMs,
+                modelName = modelName, toolCall = toolCallData,
+                images = generatedImages.toList(),
+                segments = buildLiveSegments(
+                    segments,
+                    currentAnswerBuf,
+                    currentThoughtBuf,
+                    currentThoughtSignature,
+                    liveThoughtDurationMs()
+                ),
+                retryText = retryText
+            )
+
+            fun flushAnswerSegment() {
+                if (currentAnswerBuf.isNotEmpty()) {
+                    appendMergedSegment(segments, MessageSegment(type = "answer", content = currentAnswerBuf.toString()))
+                    currentAnswerBuf = StringBuilder()
+                }
+            }
+
+            fun flushThoughtSegment() {
+                finishCurrentThoughtTiming()
+                if (currentThoughtBuf.isNotEmpty()) {
+                    appendMergedSegment(segments, MessageSegment(
+                        type = "thought",
+                        content = currentThoughtBuf.toString(),
+                        signature = currentThoughtSignature,
+                        durationMs = currentThoughtDurationMs.takeIf { it > 0L }
+                    ))
+                    currentThoughtBuf = StringBuilder()
+                    currentThoughtSignature = null
+                }
+                currentThoughtDurationMs = 0L
+            }
+
+            suspend fun handleStreamEvent(event: StreamEvent) {
+                when (event) {
+                    is StreamEvent.TextChunk -> {
+                        val answerText = if (currentStatus == MessageStatus.THINKING) event.text.trimStart() else event.text
+                        if (currentStatus == MessageStatus.THINKING && answerText.isBlank()) {
+                            retryText = null
+                            return
+                        }
+                        if (currentStatus == MessageStatus.THINKING) {
+                            flushThoughtSegment()
+                        }
+                        totalText += answerText
+                        currentAnswerBuf.append(answerText)
+                        if (answerText.isNotBlank()) {
+                            currentStatus = MessageStatus.SENDING
+                        }
+                        retryText = null
+                    }
+                    is StreamEvent.ThoughtChunk -> {
+                        flushAnswerSegment()
+                        currentStatus = MessageStatus.THINKING
+                        retryText = null
+                        if (currentThoughtStartMs == null) {
+                            currentThoughtStartMs = System.currentTimeMillis()
+                        }
+                        if (totalThoughts.isEmpty()) totalThoughts = thinkingPlaceholder
+                        if (event.thought.isNotEmpty()) {
+                            currentThoughtBuf.append(event.thought)
+                            if (totalThoughts == thinkingPlaceholder) totalThoughts = event.thought
+                            else totalThoughts += event.thought
+                        }
+                        if (event.title != null) totalThoughtTitle = event.title
+                        if (event.signature != null) currentThoughtSignature = event.signature
+                    }
+                    is StreamEvent.UsageUpdate -> {
+                        if (event.tokenCount > 0) totalTokenCount = event.tokenCount
+                        if (totalText.isEmpty() && event.thoughtsTokenCount > 0) {
+                            currentStatus = MessageStatus.THINKING
+                            if (currentThoughtStartMs == null) {
+                                currentThoughtStartMs = System.currentTimeMillis()
+                            }
+                            if (totalThoughts.isEmpty()) totalThoughts = thinkingPlaceholder
+                        }
+                    }
+                    is StreamEvent.Retrying -> {
+                        retryText = context.getString(R.string.generation_retry_attempt, event.attempt, event.maxAttempts)
+                        onStreamUpdate(modelMessage())
+                    }
+                    is StreamEvent.Error -> {
+                        flushThoughtSegment()
+                        retryText = null
+                        if (toolCallData == null && toolCallDataList.isEmpty()) {
+                            totalText = event.message
+                            currentStatus = MessageStatus.ERROR
+                        }
+                    }
+                    is StreamEvent.ToolCallRequest -> {
+                        flushAnswerSegment()
+                        flushThoughtSegment()
+                        val ts = MessageSegment(type = "tool", toolName = event.name, toolArgs = event.arguments, toolResult = null, toolCallId = event.id, signature = event.signature)
+                        appendMergedSegment(segments, ts)
+                        currentStatus = MessageStatus.TOOL_CALLING
+                        onStreamUpdate(modelMessage())
+                        lastEmitMs = System.currentTimeMillis()
+                        val result = executeTool(event.name, event.arguments, ctx)
+                        generatedImages.addAll(imageGenToolProvider.drainImages())
+                        val clipped = result.take(Constants.MAX_TOOL_RESULT_LENGTH)
+                        val idx = segments.indexOfLast { it.toolCallId == event.id }
+                        if (idx >= 0) {
+                            segments[idx] = segments[idx].copy(toolResult = clipped)
+                            roundToolSegments.add(segments[idx])
+                        }
+                        val tcd = ToolCallData(event.name, event.arguments, clipped, event.signature, event.id)
+                        if (toolCallData == null) toolCallData = tcd
+                        toolCallDataList = toolCallDataList + tcd
+                        currentStatus = MessageStatus.SENDING
+                        onStreamUpdate(modelMessage())
+                        lastEmitMs = System.currentTimeMillis()
+                    }
+                    is StreamEvent.ToolCallsRequest -> {
+                        flushAnswerSegment()
+                        flushThoughtSegment()
+                        event.calls.forEach { call ->
+                            appendMergedSegment(segments, MessageSegment(type = "tool", toolName = call.name, toolArgs = call.arguments, toolResult = null, toolCallId = call.id, signature = call.signature))
+                        }
+                        currentStatus = MessageStatus.TOOL_CALLING
+                        onStreamUpdate(modelMessage())
+                        lastEmitMs = System.currentTimeMillis()
+                        val tcds = event.calls.map { call ->
+                            val result = executeTool(call.name, call.arguments, ctx)
+                            generatedImages.addAll(imageGenToolProvider.drainImages())
+                            val clipped = result.take(Constants.MAX_TOOL_RESULT_LENGTH)
+                            val idx = segments.indexOfLast { it.toolCallId == call.id }
+                            if (idx >= 0) {
+                                segments[idx] = segments[idx].copy(toolResult = clipped)
+                                roundToolSegments.add(segments[idx])
+                            }
+                            ToolCallData(call.name, call.arguments, clipped, call.signature, call.id)
+                        }
+                        toolCallData = tcds.firstOrNull()
+                        toolCallDataList = tcds
+                        currentStatus = MessageStatus.SENDING
+                        onStreamUpdate(modelMessage())
+                        lastEmitMs = System.currentTimeMillis()
+                    }
+                }
+
+                val now = System.currentTimeMillis()
+                val isSignificant = event is StreamEvent.Error
+                if (now - lastEmitMs >= 500 || isSignificant) {
+                    onStreamUpdate(modelMessage())
+                    lastEmitMs = now
+                }
+            }
+
+            val projectedPath = projectAssistantImagesToLatestUserMessage(currentPath, providerConfig.includeImages)
+            val apiPath = applyUserTemplate(projectedPath, config.userPrepend, config.userPostpend)
+            provider.generateResponse(apiPath, providerConfig).collect { event ->
+                handleStreamEvent(event)
+            }
+            finishCurrentThoughtTiming()
+            // Always emit final state after collection completes
+            if (generationJob?.isCancelled != true) {
+                onStreamUpdate(modelMessage())
+            }
+
+            // Multi-tool loop
+            var toolRound = 0
+            toolPath = currentPath
+
+            while (toolCallDataList.isNotEmpty() && currentStatus != MessageStatus.ERROR && currentCoroutineContext().isActive) {
+                toolRound++
+                val roundToolList = roundToolSegments.toList()
+                roundToolSegments.clear()
+                val thoughtSegs = segments.filter { it.type == "thought" }
+                val txedSegments = if (thoughtSegs.isNotEmpty()) thoughtSegs + roundToolList else roundToolList
+                val prevLastId = if (toolRound == 1) modelMessageId else toolPath.lastOrNull()?.id
+                val toolMsgId = "${Constants.TOOL_MSG_PREFIX}${UUID.randomUUID()}"
+                val toolMsgSegs = txedSegments.ifEmpty { null }
+                val tcds = toolCallDataList
+                val allSegmentsJson = Json.encodeToString(toolMsgSegs ?: tcds.map { tc ->
+                    MessageSegment(type = "tool", toolName = tc.toolName, toolArgs = tc.arguments, toolResult = tc.result, signature = tc.signature, toolCallId = tc.toolCallId)
+                })
+                val resultMsgs = tcds.map { tcData ->
+                    val rid = "${Constants.RESULT_MSG_PREFIX}${UUID.randomUUID()}"
+                    val displayText = SearchResultFormatter.format(tcData.result, context)
+                    rid to ChatMessage(
+                        id = rid, parentId = toolMsgId,
+                        text = displayText,
+                        participant = Participant.USER, status = MessageStatus.SUCCESS,
+                        toolCall = tcData
+                    )
+                }
+                toolPath = toolPath.toMutableList().apply {
+                    add(ChatMessage(
+                        id = toolMsgId, parentId = prevLastId,
+                        text = "", participant = Participant.MODEL,
+                        status = MessageStatus.SUCCESS, toolCall = tcds.first(),
+                        segments = toolMsgSegs
+                    ))
+                    for ((_, msg) in resultMsgs) add(msg)
+                }
+                conversations.upsertMessage(MessageEntity(
+                    id = toolMsgId, conversationId = conversationId, parentId = prevLastId,
+                    text = "", thoughts = null, status = MessageStatus.SUCCESS,
+                    participant = Participant.MODEL, timestamp = System.currentTimeMillis(),
+                    toolCallJson = allSegmentsJson
+                ))
+                for ((index, entry) in resultMsgs.withIndex()) {
+                    val (rid, _) = entry
+                    conversations.upsertMessage(MessageEntity(
+                        id = rid, conversationId = conversationId, parentId = toolMsgId,
+                        text = tcds[index].result, thoughts = null, status = MessageStatus.SUCCESS,
+                        participant = Participant.USER, timestamp = System.currentTimeMillis(),
+                        toolCallJson = Json.encodeToString(listOf(
+                            MessageSegment(type = "tool", toolName = tcds[index].toolName, toolArgs = tcds[index].arguments, toolResult = tcds[index].result, signature = tcds[index].signature, toolCallId = tcds[index].toolCallId)
+                        ))
+                    ))
+                }
+
+                toolCallData = null
+                toolCallDataList = emptyList()
+
+                lastEmitMs = 0L
+
+                val projectedToolPath = projectAssistantImagesToLatestUserMessage(toolPath, providerConfig.includeImages)
+                val apiToolPath = applyUserTemplate(projectedToolPath, config.userPrepend, config.userPostpend)
+                provider.generateResponse(apiToolPath, providerConfig).collect { event ->
+                    handleStreamEvent(event)
+                }
+                finishCurrentThoughtTiming()
+                // Always emit final state after tool round completes
+                onStreamUpdate(modelMessage())
+            }
+
+            if (!currentCoroutineContext().isActive) {
+                currentStatus = MessageStatus.STOPPED
+            }
+
+            if (!isRegenerate && isLatestPersist()) for (msg in toolPath) {
+                if (msg.id.startsWith(Constants.TOOL_MSG_PREFIX) || msg.id.startsWith(Constants.RESULT_MSG_PREFIX)) {
+                    val exists = conversations.getMessagesForConversationSnapshot(conversationId).any { it.id == msg.id }
+                    if (!exists) {
+                        conversations.upsertMessage(MessageEntity(
+                            id = msg.id, conversationId = conversationId, parentId = msg.parentId,
+                            text = msg.text, thoughts = null, status = msg.status,
+                            participant = msg.participant, timestamp = System.currentTimeMillis(),
+                            toolCallJson = msg.segments?.let { Json.encodeToString(it) }
+                                ?: msg.toolCall?.let { Json.encodeToString(listOf(
+                                    MessageSegment(type = "tool", toolName = it.toolName, toolArgs = it.arguments, toolResult = it.result, signature = it.signature, toolCallId = it.toolCallId)
+                                )) }
+                        ))
+                    }
+                }
+            }
+
+            if (currentStatus != MessageStatus.ERROR) {
+                currentStatus = if (totalText.isNotEmpty() || totalThoughts.isNotEmpty()) MessageStatus.SUCCESS else MessageStatus.ERROR
+            }
+            if (generationJob?.isCancelled == true && currentStatus != MessageStatus.ERROR) {
+                currentStatus = MessageStatus.STOPPED
+            }
+            } // else { // called buildApiPath when currentStatus == ERROR
+        } catch (e: CancellationException) {
+            currentStatus = MessageStatus.STOPPED
+            throw e
+        } catch (e: Exception) {
+            val isCancelled = generationJob?.isCancelled == true
+            currentStatus = if (isCancelled) MessageStatus.STOPPED else MessageStatus.ERROR
+            if (!isCancelled) {
+                totalText = "Error: ${e.localizedMessage ?: "An unexpected error occurred."}"
+            }
+        } finally {
+            withContext(NonCancellable) {
+                try {
+                    if (isLatestPersist()) {
+                        val conversationExists = conversations.getConversation(conversationId) != null
+                        if (conversationExists) {
+                            finishCurrentThoughtTiming()
+                            val finalSegments = buildLiveSegments(
+                                segments,
+                                currentAnswerBuf,
+                                currentThoughtBuf,
+                                currentThoughtSignature,
+                                currentThoughtDurationMs.takeIf { it > 0L }
+                            )
+                                ?: segments.toList().ifEmpty { null }
+                            val segmentsJson = finalSegments?.let { Json.encodeToString(it) }
+                            val effectiveParentId = parentId
+                            conversations.upsertMessage(MessageEntity(
+                                id = modelMessageId, conversationId = conversationId, parentId = effectiveParentId,
+                                text = totalText, images = generatedImages.toList(),
+                                thoughts = totalThoughts.ifBlank { null },
+                                thoughtTitle = totalThoughtTitle, tokenCount = totalTokenCount,
+                                status = currentStatus, participant = Participant.MODEL, timestamp = startTime,
+                                thoughtTimeMs = totalThoughtTimeMs, modelName = modelName, toolCallJson = segmentsJson
+                            ))
+                            if (totalText.isNotBlank()) {
+                                onMessagePersisted?.invoke(modelMessageId, totalText)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    DebugLog.e("OrangeIslandVM", "Failed to persist message to DB", e)
+                }
+                // Terminal UI cleanup. These callbacks are token-gated at the sink
+                // (in ChatViewModel), so they automatically no-op when this generation
+                // was stopped or superseded — only the still-current generation resets
+                // the loading/streaming/generating-id UI state.
+                onStreamClear()
+                onLoadingChange(false)
+                onGeneratingIdChange(null)
+                OrangeIslandForegroundService.stop(app)
+                if (!AppForegroundTracker.isInForeground && currentStatus == MessageStatus.SUCCESS && totalText.isNotBlank()) {
+                    OrangeIslandForegroundService.showCompletionNotification(app, totalText)
+                }
+            }
+        }
+    }
+}

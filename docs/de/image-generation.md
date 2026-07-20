@@ -4,7 +4,7 @@ Generieren Sie Bilder aus Text-Prompts mit einem Text-zu-Bild-Modell, direkt in 
 
 ## Was es macht
 
-Wenn die Bildgenerierung aktiviert ist, kann Agora Ihre Prompts mit einem dedizierten Text-zu-Bild-Modell (wie DALL·E, GPT-Image, Imagen, FLUX, Stable Diffusion, Seedream, Qwen-Image und vielen anderen) in Bilder umwandeln. Das generierte Bild wird in die Konversation zurückgegeben, sodass Sie wie bei jeder anderen Antwort darauf iterieren können.
+Wenn die Bildgenerierung aktiviert ist, kann 橘子岛 Ihre Prompts mit einem dedizierten Text-zu-Bild-Modell (wie DALL·E, GPT-Image, Imagen, FLUX, Stable Diffusion, Seedream, Qwen-Image und vielen anderen) in Bilder umwandeln. Das generierte Bild wird in die Konversation zurückgegeben, sodass Sie wie bei jeder anderen Antwort darauf iterieren können.
 
 Die Bildgenerierung verwendet eine **eigene Modellauswahl**, unabhängig vom Modell, mit dem Sie chatten — Sie können also mit einem Modell chatten und mit einem anderen Bilder generieren.
 
@@ -37,7 +37,7 @@ Legt die Standard-Ausgabeabmessungen fest, eingegeben als **Breite × Höhe** in
 
 1. Aktivieren Sie die Bildgenerierung und wählen Sie ein Bildmodell
 2. Bitten Sie den Assistenten in einer Konversation, ein Bild zu erstellen
-3. Agora leitet die Anfrage an das konfigurierte Bildmodell unter Verwendung der Anmeldeinformationen dieses Providers weiter
+3. 橘子岛 leitet die Anfrage an das konfigurierte Bildmodell unter Verwendung der Anmeldeinformationen dieses Providers weiter
 4. Das generierte Bild wird in die Konversation zurückgegeben
 
 !!! tip

@@ -224,15 +224,15 @@
         const supabaseKey = 'sb_publishable_UEd2Pn0kR2sau1Xsfk2TQw_oHC8pRhS';
 
         // ===== 身份（来自插件配置弹窗）=====
-        // 优先用 host 暴露的同步 getter agora.config（通过 @JavascriptInterface，零时序竞态）；
-        // 兜底用全局 __AGORA_PLUGIN_CONFIG（host 也会注入）。
+        // 优先用 host 暴露的同步 getter orangeisland.config（通过 @JavascriptInterface，零时序竞态）；
+        // 兜底用全局 __OI_PLUGIN_CONFIG（host 也会注入）。
         function readPluginConfig() {
             try {
-                if (typeof agora !== 'undefined' && agora.config) return agora.config;
+                if (typeof orangeisland !== 'undefined' && orangeisland.config) return orangeisland.config;
             } catch (e) { /* fall through */ }
             try {
-                if (typeof __AGORA_PLUGIN_CONFIG === 'string') return JSON.parse(__AGORA_PLUGIN_CONFIG);
-                if (typeof __AGORA_PLUGIN_CONFIG === 'object' && __AGORA_PLUGIN_CONFIG) return __AGORA_PLUGIN_CONFIG;
+                if (typeof __OI_PLUGIN_CONFIG === 'string') return JSON.parse(__OI_PLUGIN_CONFIG);
+                if (typeof __OI_PLUGIN_CONFIG === 'object' && __OI_PLUGIN_CONFIG) return __OI_PLUGIN_CONFIG;
             } catch (e2) { /* fall through */ }
             return {};
         }

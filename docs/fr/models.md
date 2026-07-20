@@ -4,7 +4,7 @@ Gérez les modèles d'IA disponibles et définissez votre modèle par défaut po
 
 ## Liste des Modèles
 
-La page **Modèles** affiche tous les modèles connus d'Agora, organisés par fournisseur :
+La page **Modèles** affiche tous les modèles connus d'橘子岛, organisés par fournisseur :
 
 - **Modèle par Défaut** — Le modèle utilisé pour les nouvelles conversations. Appuyez pour changer.
 - **Modèles Disponibles** — Développez chaque fournisseur pour voir ses modèles. Activez ceux que vous souhaitez utiliser.

@@ -4,7 +4,7 @@ GGUF 모델 파일과 llama.cpp를 사용하여 Android 기기에서 직접 LLM�
 
 ## 작동 방식
 
-Agora는 Android NDK(CMake)를 통해 llama.cpp를 번들로 제공합니다. GGUF 파일을 가져오면 모델이 기기의 CPU에서 완전히 실행됩니다 — 데이터가 기기를 벗어나지 않습니다.
+橘子岛는 Android NDK(CMake)를 통해 llama.cpp를 번들로 제공합니다. GGUF 파일을 가져오면 모델이 기기의 CPU에서 완전히 실행됩니다 — 데이터가 기기를 벗어나지 않습니다.
 
 ## 요구 사항
 
@@ -76,7 +76,7 @@ Agora는 Android NDK(CMake)를 통해 llama.cpp를 번들로 제공합니다. GG
 
 ### 삭제
 
-모델을 길게 누르고 **삭제** 탭. Agora에서 모델이 제거되고 저장소에서 GGUF 파일이 삭제됩니다.
+모델을 길게 누르고 **삭제** 탭. 橘子岛에서 모델이 제거되고 저장소에서 GGUF 파일이 삭제됩니다.
 
 ---
 

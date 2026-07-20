@@ -1,6 +1,6 @@
 # Proxy Réseau
 
-Achemine tout le trafic réseau d'Agora via un proxy HTTP ou SOCKS. Utile sur les réseaux restreints, pour router les requêtes via une passerelle spécifique, ou lorsqu'un fournisseur n'est accessible que via un proxy.
+Achemine tout le trafic réseau d'橘子岛 via un proxy HTTP ou SOCKS. Utile sur les réseaux restreints, pour router les requêtes via une passerelle spécifique, ou lorsqu'un fournisseur n'est accessible que via un proxy.
 
 Le proxy s'applique à **tout** le trafic sortant : fournisseurs de chat, récupération de modèles, recherche web, embeddings, récupération de pages web et envoi de rapports de crash.
 

@@ -1,6 +1,6 @@
 # Recherche de Conversations
 
-Agora peut rechercher dans tout votre historique de conversations — soit par correspondance de mots-clés, soit par recherche sémantique (basée sur le sens) en utilisant des modèles d'embedding.
+橘子岛 peut rechercher dans tout votre historique de conversations — soit par correspondance de mots-clés, soit par recherche sémantique (basée sur le sens) en utilisant des modèles d'embedding.
 
 ## Méthodes de Recherche
 

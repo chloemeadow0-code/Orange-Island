@@ -18,7 +18,7 @@
 
 DuckDuckGo Lite 是**預設**搜尋提供者 — 無需 API 金鑰，即刻運作。
 
-1. 在 Agora 中，前往 **設定 → 網頁搜尋**
+1. 在 橘子岛 中，前往 **設定 → 網頁搜尋**
 2. 選擇 **DuckDuckGo Lite** 作為搜尋提供者
 3. 無需金鑰或 URL — 即刻開始搜尋
 
@@ -28,28 +28,28 @@ DuckDuckGo Lite 是**預設**搜尋提供者 — 無需 API 金鑰，即刻運�
 ### Brave
 
 1. 從 [Brave Search API](https://api.search.brave.com/) 取得 API 金鑰
-2. 在 Agora 中，前往 **設定 → 網頁搜尋**
+2. 在 橘子岛 中，前往 **設定 → 網頁搜尋**
 3. 選擇 **Brave** 作為搜尋提供者
 4. 貼上您的 API 金鑰
 
 ### Serper
 
 1. 從 [serper.dev](https://serper.dev) 取得 API 金鑰
-2. 在 Agora 中，前往 **設定 → 網頁搜尋**
+2. 在 橘子岛 中，前往 **設定 → 網頁搜尋**
 3. 選擇 **Serper**
 4. 貼上您的 API 金鑰
 
 ### Tavily
 
 1. 從 [tavily.com](https://tavily.com) 取得 API 金鑰
-2. 在 Agora 中，前往 **設定 → 網頁搜尋**
+2. 在 橘子岛 中，前往 **設定 → 網頁搜尋**
 3. 選擇 **Tavily**
 4. 貼上您的 API 金鑰
 
 ### SearXNG
 
 1. 設定一個 SearXNG 執行個體（自託管）或使用公開執行個體
-2. 在 Agora 中，前往 **設定 → 網頁搜尋**
+2. 在 橘子岛 中，前往 **設定 → 網頁搜尋**
 3. 選擇 **SearXNG**
 4. 輸入您執行個體的 **Base URL**（例如 `https://searx.be`）
 5. API 金鑰為選填（僅在您的執行個體需要驗證時才需要）
@@ -106,6 +106,6 @@ DuckDuckGo Lite 是**預設**搜尋提供者 — 無需 API 金鑰，即刻運�
 
 使用網頁搜尋時：
 
-- 您的查詢會傳送到搜尋提供者（Brave、Serper 等），而非 Agora
-- Agora 不會記錄或儲存您的搜尋查詢（除了在對話本身中）
+- 您的查詢會傳送到搜尋提供者（Brave、Serper 等），而非 橘子岛
+- 橘子岛 不會記錄或儲存您的搜尋查詢（除了在對話本身中）
 - SearXNG 自託管為您提供最高的隱私保護 — 查詢保留在您自己的基礎設施上

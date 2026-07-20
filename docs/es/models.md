@@ -4,7 +4,7 @@ Gestiona qué modelos de IA están disponibles y establece tu modelo predetermin
 
 ## Lista de Modelos
 
-La página de **Modelos** muestra todos los modelos que Agora conoce, organizados por proveedor:
+La página de **Modelos** muestra todos los modelos que 橘子岛 conoce, organizados por proveedor:
 
 - **Modelo Predeterminado** — El modelo usado para nuevas conversaciones. Toca para cambiar.
 - **Modelos Disponibles** — Expande cada proveedor para ver sus modelos. Habilita los que quieras usar.

@@ -1,4 +1,4 @@
-# Agora Architecture
+# 橘子岛 Architecture
 
 ## 1. Architecture at a Glance
 
@@ -42,8 +42,8 @@
 │  Room DB v12 (conversations + messages + embeddings)          │
 │  DataStore (settings, API keys, model lists, theming)          │
 │  Filesystem (memory .md files, GGUF models, sandbox rootfs)   │
-│  Export/Import (.agora, Claude, ChatGPT formats)               │
-│  AutoBackup (WorkManager periodic backup to .agora)           │
+│  Export/Import (.橘子岛, Claude, ChatGPT formats)               │
+│  AutoBackup (WorkManager periodic backup to .橘子岛)           │
 ├──────────────────────────────────────────────────────────────┤
 │  Sandbox Layer (SAF + proot)                                  │
 │  SandboxDocumentsProvider (Android Storage Access Framework)  │
@@ -212,9 +212,9 @@ Thread-safe via `@Synchronized`. Path traversal protected by canonical path chec
 
 ### 3e. Data Export & Import
 
-**DataExporter** (319 lines) — exports as `.agora` ZIP: Conversations (JSON), Memories (markdown), System Prompts (JSON), Settings (JSON), API Keys (JSON). Selective export by category.
+**DataExporter** (319 lines) — exports as `.橘子岛` ZIP: Conversations (JSON), Memories (markdown), System Prompts (JSON), Settings (JSON), API Keys (JSON). Selective export by category.
 
-**DataImporter** (530 lines) — imports `.agora` with three strategies: Merge, Replace, Skip.
+**DataImporter** (530 lines) — imports `.橘子岛` with three strategies: Merge, Replace, Skip.
 
 **ImportStreams** (data/ImportStreams.kt) — streaming chat import to avoid OOM on large files. Reads JSON incrementally rather than loading entire file into memory.
 
@@ -226,7 +226,7 @@ Thread-safe via `@Synchronized`. Path traversal protected by canonical path chec
 
 ### 3f. Auto Backup (`data/AutoBackupManager.kt`)
 
-Manages periodic auto-backup of user data to `.agora` ZIP files:
+Manages periodic auto-backup of user data to `.橘子岛` ZIP files:
 - **Mutex-guarded** — companion object Mutex ensures only one backup runs at a time across the process
 - **Selective categories** — conversations, memories, prompts, settings, API keys (user-configurable)
 - **Auto-delete policy** — configurable retention (keep last N backups)
@@ -314,7 +314,7 @@ The engine that talks to LLMs. Config via `GenerationConfig` (provider, model, A
 1. Build message path from DB (walking parentId chain)
 2. If regenerating: trim path to exclude the replaced message
 3. Collect tool providers: memory, shell, web search, RAG, transcription
-4. Start AgoraForegroundService (prevents process death)
+4. Start 橘子岛ForegroundService (prevents process death)
 5. Call provider.generateResponse(currentPath, ProviderConfig) → Flow<StreamEvent>
 6. Collect events:
    - TextChunk → accumulate into totalText
@@ -454,8 +454,8 @@ Structured error type for generation failures with provider attribution.
 
 | Service | Lines | Purpose |
 |---|---|---|
-| `AgoraForegroundService` | 120 | Foreground notification keeps process alive during LLM generation |
-| `AutoBackupWorker` | 89 | WorkManager `CoroutineWorker` — periodic auto-backup of conversations/memories/prompts/settings to `.agora` ZIP. Configurable period, categories, and auto-delete policy. Uses `AutoBackupManager` mutex for cross-instance safety |
+| `橘子岛ForegroundService` | 120 | Foreground notification keeps process alive during LLM generation |
+| `AutoBackupWorker` | 89 | WorkManager `CoroutineWorker` — periodic auto-backup of conversations/memories/prompts/settings to `.橘子岛` ZIP. Configurable period, categories, and auto-delete policy. Uses `AutoBackupManager` mutex for cross-instance safety |
 | `EmbeddingCacheWorker` | 154 | WorkManager worker — survives process death during embedding cache operations. Reports progress via `setProgress` |
 | `AppForegroundTracker` | 5 | App lifecycle monitoring stub |
 
@@ -468,7 +468,7 @@ Structured error type for generation failures with provider attribution.
 - **ECDH key exchange** using X25519
 - **AES-256-GCM** symmetric encryption with random nonces
 - **HMAC-SHA256** request signing
-- HKDF key derivation with info string `"conch-agora-v1"`
+- HKDF key derivation with info string `"conch-橘子岛-v1"`
 - Token bucket rate limiting with nonce-based anti-replay
 
 ### 9b. ShellClient (`util/ShellClient.kt`, 277 lines)
@@ -516,7 +516,7 @@ JNI bridge to the PRoot binary (built from `thirdparty/proot` git submodule via 
 | `nativeProotExec` | Executes a command inside the PRoot chroot environment |
 | `nativeProotVersion` | Returns PRoot version string |
 
-PRoot is compiled as a static binary (no external dependencies besides libc). The build produces `libagora_proot.so` which bundles the proot code.
+PRoot is compiled as a static binary (no external dependencies besides libc). The build produces `lib橘子岛_proot.so` which bundles the proot code.
 
 ---
 
@@ -525,7 +525,7 @@ PRoot is compiled as a static binary (no external dependencies besides libc). Th
 ### 11a. Build System (`app/src/main/cpp/CMakeLists.txt`)
 
 - llama.cpp built as static library from `thirdparty/llama.cpp` (git submodule)
-- JNI wrapper built as shared library `agora_llama`
+- JNI wrapper built as shared library `橘子岛_llama`
 - C++17, arm64-v8a only, links `llama` + `log`
 - GGML_OPENMP forced OFF for Android compatibility
 
@@ -570,7 +570,7 @@ Entry point. Handles:
 - Splash screen setup
 - Notification channel creation + permission request
 - Database version check (error dialog if stored version > current version)
-- Creates `AppContainer` (all DI), sets up Compose tree: `AgoraTheme` → `MainNavigation`
+- Creates `AppContainer` (all DI), sets up Compose tree: `橘子岛Theme` → `MainNavigation`
 
 ### 12b. ChatApp (`ui/chat/ChatApp.kt`, 1194 lines)
 
@@ -647,7 +647,7 @@ Both implement an iOS-style collapsing large-title pattern: the title shrinks an
 | `SettingsTitleGenPage` | 139 | Auto-title toggle + model |
 | `SettingsLanguagePage` | 95 | Language selection |
 | `SettingsAppearancePage` | 226 | Theme mode, color scheme, dynamic color, blur effects toggle |
-| `SettingsDataControlPage` | 777 | Export/Import .agora, Claude/ChatGPT import, auto-backup config |
+| `SettingsDataControlPage` | 777 | Export/Import .橘子岛, Claude/ChatGPT import, auto-backup config |
 | `SettingsClaudeImportPage` | 266 | Claude import wizard |
 | `SettingsAboutPage` | 200 | App version, licenses, update checker, crash log viewer |
 
@@ -659,7 +659,7 @@ Both implement an iOS-style collapsing large-title pattern: the title shrinks an
 | `TypewriterText` | 73 | Streaming text animation |
 | `AnimatedBlobBackground` | 133 | Decorative animated gradient blobs |
 | `GradientBlur` (`util/`) | 38 | Compose blur effect with gradient mask |
-| `AgoraHaptics` (`ui/common/`) | 52 | Haptic feedback utility: long-press, selection, success/error patterns. Used in drawer, image viewer, message actions |
+| `橘子岛Haptics` (`ui/common/`) | 52 | Haptic feedback utility: long-press, selection, success/error patterns. Used in drawer, image viewer, message actions |
 | `ThinkingControlPanel` (`ui/common/`) | 215 | Reusable thinking level selector (low/medium/high) with per-model compatibility detection |
 | `PromptSettingControls` (`ui/settings/`) | 128 | Reusable prompt template controls for settings pages |
 | `RatingForm` | 218 | In-app rating/feedback |
@@ -671,7 +671,7 @@ Both implement an iOS-style collapsing large-title pattern: the title shrinks an
 | File | Lines | Purpose |
 |---|---|---|
 | `Color.kt` | 68 | Material You dynamic color + static schemes |
-| `Theme.kt` | 39 | AgoraTheme (light/dark/system, configurable) |
+| `Theme.kt` | 39 | 橘子岛Theme (light/dark/system, configurable) |
 | `Type.kt` | 129 | Typography scale + MonoFamily |
 
 ---
@@ -790,7 +790,7 @@ ORPHAN: deleteOrphanedEmbeddings() →
 - **Three-section system prompts** — system + userPrepend + userPostpend with variable substitution.
 - **Transcription fallback** — in-house image→text pipeline for providers without native vision support.
 - **Collapsing large-title settings** — iOS-style unified scaffold across all ~22 settings sub-pages, derived scroll fraction with eased scale/translation, shared animation spec.
-- **Haptic feedback** — `AgoraHaptics` utility for long-press, selection, and success/error patterns throughout the UI.
+- **Haptic feedback** — `橘子岛Haptics` utility for long-press, selection, and success/error patterns throughout the UI.
 - **Streaming markdown optimization** — double-buffered crossfade (`RecomposeSafeMarkdown`), debounced recomposition, effort/budget mutual exclusion for LaTeX+markdown.
 - **Reproducible F-Droid builds** — via `build-fdroid.ps1` under Arch WSL; binary artifacts (proot/talloc .so, Alpine rootfs) built in `build:` step to avoid `scanignore`.
 
@@ -855,8 +855,8 @@ ORPHAN: deleteOrphanedEmbeddings() →
 | `data/repository/ConversationRepository.kt` | 118 | ChatDao wrapper (CRUD, tree, branches) |
 | `data/repository/SettingsRepository.kt` | 142 | SettingsManager wrapper |
 | `data/repository/MemoryRepository.kt` | 29 | MemoryManager wrapper |
-| `data/DataExporter.kt` | 319 | .agora export with selective categories |
-| `data/DataImporter.kt` | 530 | .agora import (merge/replace/skip) |
+| `data/DataExporter.kt` | 319 | .橘子岛 export with selective categories |
+| `data/DataImporter.kt` | 530 | .橘子岛 import (merge/replace/skip) |
 | `data/ImportStreams.kt` | 45 | Streaming JSON import to avoid OOM |
 | `data/ExportExtraSettings.kt` | 117 | Extra export metadata |
 | `data/ClaudeChatImporter.kt` | 302 | Claude export (.zip) import |
@@ -884,7 +884,7 @@ ORPHAN: deleteOrphanedEmbeddings() →
 ### Service Layer (4 files)
 | File | Lines | Purpose |
 |---|---|---|
-| `service/AgoraForegroundService.kt` | 120 | Foreground service for generation |
+| `service/橘子岛ForegroundService.kt` | 120 | Foreground service for generation |
 | `service/AutoBackupWorker.kt` | 89 | WorkManager CoroutineWorker for periodic auto-backup |
 | `service/EmbeddingCacheWorker.kt` | 154 | WorkManager worker for embedding cache |
 | `service/AppForegroundTracker.kt` | 5 | Lifecycle monitoring stub |
@@ -908,7 +908,7 @@ ORPHAN: deleteOrphanedEmbeddings() →
 | `cpp/llama_chat_jni.cpp` | ~370 | Chat generation JNI (+ modified-UTF-8 fix) |
 | `cpp/llama_jni.cpp` | 175 | Embedding JNI |
 | `cpp/proot_jni.cpp` | ~65 | PRoot chroot sandbox JNI |
-| `cpp/CMakeLists.txt` | 19 | CMake build config (agora_llama + agora_proot) |
+| `cpp/CMakeLists.txt` | 19 | CMake build config (橘子岛_llama + 橘子岛_proot) |
 
 ### UI Layer (31 files)
 | File | Lines | Purpose |
@@ -955,12 +955,12 @@ ORPHAN: deleteOrphanedEmbeddings() →
 | `ui/settings/RatingForm.kt` | 218 | In-app rating form |
 | `ui/onboarding/WelcomeScreen.kt` | 616 | Welcome/onboarding |
 | `ui/common/ThinkingControlPanel.kt` | 215 | Thinking level selector |
-| `ui/common/AgoraHaptics.kt` | 52 | Haptic feedback utility |
+| `ui/common/橘子岛Haptics.kt` | 52 | Haptic feedback utility |
 | `ui/components/LatexRenderer.kt` | 293 | LaTeX math + dollar escaping |
 | `ui/components/TypewriterText.kt` | 73 | Streaming text animation |
 | `ui/components/AnimatedBlobBackground.kt` | 133 | Animated gradient blobs |
 | `ui/theme/Color.kt` | 68 | Dynamic color + static schemes |
-| `ui/theme/Theme.kt` | 39 | Agora theme |
+| `ui/theme/Theme.kt` | 39 | 橘子岛 theme |
 | `ui/theme/Type.kt` | 129 | Typography + MonoFamily |
 
 ### Utilities (13 files)
@@ -973,7 +973,7 @@ ORPHAN: deleteOrphanedEmbeddings() →
 | `util/ShellCrypto.kt` | 116 | Conch encryption |
 | `util/ShellClient.kt` | 277 | Conch HTTP client |
 | `util/SshClient.kt` | 95 | SSH client with TOFU host key verification |
-| `util/CrashReporter.kt` | 70 | Crash report capture + upload to newoether.space |
+| `util/CrashReporter.kt` | 70 | Crash report capture + upload to crash.orangeisland.app |
 | `util/FileValidator.kt` | 83 | File import validation |
 | `util/UpdateChecker.kt` | 71 | GitHub releases update checker |
 | `util/DebugLog.kt` | 18 | Debug logging utility |

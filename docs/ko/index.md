@@ -1,6 +1,6 @@
-# Agora 사용자 매뉴얼
+# 橘子岛 사용자 매뉴얼
 
-Agora 사용자 매뉴얼에 오신 것을 환영합니다. Agora는 멀티 프로바이더 접근, 비선형 분기 대화, 에이전트 도구 호출, 원격 기기 제어를 지원하는 Android용 BYOK(Bring Your Own Key) LLM 클라이언트입니다.
+橘子岛 사용자 매뉴얼에 오신 것을 환영합니다. 橘子岛는 멀티 프로바이더 접근, 비선형 분기 대화, 에이전트 도구 호출, 원격 기기 제어를 지원하는 Android용 BYOK(Bring Your Own Key) LLM 클라이언트입니다.
 
 ## 빠른 링크
 
@@ -38,19 +38,19 @@ Agora 사용자 매뉴얼에 오신 것을 환영합니다. Agora는 멀티 프�
 
 - **[로컬 모델](local-model.ko.md)** — llama.cpp를 통해 기기에서 GGUF 모델 실행
 - **[PDF 가져오기](pdf-import.ko.md)** — PDF 페이지 추출 및 비전 모델로 전송
-- **[데이터 이식성](import-export.ko.md)** — .agora 파일 내보내기/가져오기, 자동 백업, Claude 및 ChatGPT에서 가져오기
+- **[데이터 이식성](import-export.ko.md)** — .橘子岛 파일 내보내기/가져오기, 자동 백업, Claude 및 ChatGPT에서 가져오기
 - **[언어](language.ko.md)** — English, 中文, 繁體中文 또는 시스템 기본값 간 전환
 - **[정보](about.ko.md)** — 버전 정보, 업데이트, 문서 토글, 링크, 평가
 
 ---
 
-## Agora 소개
+## 橘子岛 소개
 
-Agora는 AI 파워 유저를 위한 BYOK Android 클라이언트입니다:
+橘子岛는 AI 파워 유저를 위한 BYOK Android 클라이언트입니다:
 
 - **중간자 없음**: 직접 API 연결, 원격 측정 없음, 추적 없음
 - **기기 내 저장**: 모든 것이 Room 데이터베이스에 로컬로 저장됩니다
 - **비선형 대화**: 과거 메시지를 편집하고 대체 분기를 탐색하세요
 - **기본 에이전트**: 웹 검색, 이미지 생성, 코드 실행, 셸, 파일 작업, 메모리를 포함한 다중 라운드 도구 호출
 - **원격 제어**: 암호화된 Conch 프로토콜을 통해 서버 관리
-- **오픈 소스**: MIT 라이선스, [GitHub 소스](https://github.com/newo-ether/Agora)
+- **오픈 소스**: MIT 라이선스, [GitHub 소스](https://github.com/orangeisland/app)

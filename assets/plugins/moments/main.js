@@ -1,8 +1,8 @@
-// 朋友圈插件 (Agora host 适配版)
+// 朋友圈插件 (Orange Island host 适配版)
 // 功能：基于 Supabase 的朋友圈，支持发布动态、点赞、评论、查看动态流
 // 用户身份 = 插件配置 (user_nickname)，AI 身份 = 插件配置 (ai_nickname)
 //
-// 重要：Agora host 的工具调用是【同步】的（fn(args) 返回值会被 JSON.stringify），
+// 重要：Orange Island host 的工具调用是【同步】的（fn(args) 返回值会被 JSON.stringify），
 // 且 host 注入的 fetch() 也是同步阻塞返回 {ok, status, body, error?}。
 // 因此本文件全程同步写法，不能用 async/await。
 
@@ -11,13 +11,13 @@
 var SUPABASE_URL = 'https://nvkcztwjlbszvwkvbetf.supabase.co';
 var SUPABASE_KEY = 'sb_publishable_UEd2Pn0kR2sau1Xsfk2TQw_oHC8pRhS';
 
-// host 在每次工具调用前注入 __AGORA_PLUGIN_CONFIG（JSON 字符串），形如：
+// host 在每次工具调用前注入 __OI_PLUGIN_CONFIG（JSON 字符串），形如：
 //   {"user_nickname":"Alice","ai_nickname":"Bob"}
 // 由用户在「配置」弹窗里填写（manifest.config 声明）。
 function getPluginConfig() {
   try {
-    if (typeof __AGORA_PLUGIN_CONFIG === 'string') return JSON.parse(__AGORA_PLUGIN_CONFIG);
-    if (typeof __AGORA_PLUGIN_CONFIG === 'object' && __AGORA_PLUGIN_CONFIG) return __AGORA_PLUGIN_CONFIG;
+    if (typeof __OI_PLUGIN_CONFIG === 'string') return JSON.parse(__OI_PLUGIN_CONFIG);
+    if (typeof __OI_PLUGIN_CONFIG === 'object' && __OI_PLUGIN_CONFIG) return __OI_PLUGIN_CONFIG;
   } catch (e) { /* fall through */ }
   return {};
 }

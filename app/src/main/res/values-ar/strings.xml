@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Agora</string>
-    <string name="agora_responded">ردّت Agora</string>
+    <string name="app_name">橘子岛</string>
+    <string name="oi_responded">ردّت 橘子岛</string>
 
     <!-- Chat Bottom Bar -->
     <string name="add_attachment">إضافة مرفق</string>
@@ -17,7 +17,7 @@
     <string name="google_search">بحث Google</string>
     <string name="thinking">التفكير</string>
     <string name="web_search">بحث الويب</string>
-    <string name="ask_agora">اسأل Agora أي شيء...</string>
+    <string name="ask_orange_island">اسأل 橘子岛 أي شيء...</string>
     <string name="send">إرسال</string>
 
     <!-- Tool Display -->
@@ -238,7 +238,7 @@
     <string name="prompts_template_blank">فارغ</string>
     <string name="prompts_template_blank_desc">ابدأ بموجّه نظام فارغ قابل للتحرير.</string>
     <string name="prompts_template_default">افتراضي</string>
-    <string name="prompts_template_default_desc">استخدم الموجّه الافتراضي في Agora مع سياق التشغيل والذاكرة وبحث الويب والصدفة وقواعد الوصول إلى ملفات الجهاز.</string>
+    <string name="prompts_template_default_desc">استخدم الموجّه الافتراضي في 橘子岛 مع سياق التشغيل والذاكرة وبحث الويب والصدفة وقواعد الوصول إلى ملفات الجهاز.</string>
     <string name="prompts_duplicate">تكرار</string>
     <string name="prompts_duplicate_title">نسخة من %1$s</string>
     <string name="prompts_empty_preview">موجّه فارغ</string>
@@ -648,9 +648,9 @@
     <string name="play">تشغيل</string>
     <string name="video_preview">معاينة الفيديو</string>
     <string name="total_tokens">الإجمالي: %1$d رمز</string>
-    <string name="welcome_to_agora">مرحبًا بك في Agora.</string>
+    <string name="welcome_to_orange_island">مرحبًا بك في 橘子岛.</string>
     <string name="database_incompatible">قاعدة البيانات غير متوافقة</string>
-    <string name="database_incompatible_desc">قاعدة البيانات غير متوافقة مع هذا الإصدار من Agora. يرجى مسح قاعدة البيانات وإعادة تشغيل التطبيق.</string>
+    <string name="database_incompatible_desc">قاعدة البيانات غير متوافقة مع هذا الإصدار من 橘子岛. يرجى مسح قاعدة البيانات وإعادة تشغيل التطبيق.</string>
     <string name="quit">خروج</string>
     <string name="clear_database">مسح قاعدة البيانات</string>
     <string name="generate_title">توليد العنوان</string>
@@ -725,10 +725,10 @@
     <string name="about_update_available">يتوفر تحديث: v%1$s</string>
     <string name="about_up_to_date">أنت محدّث (v%1$s)</string>
     <string name="about_checking">جارٍ التحقق...</string>
-    <string name="about_available_body">يتوفر إصدار جديد من Agora على GitHub.</string>
+    <string name="about_available_body">يتوفر إصدار جديد من 橘子岛 على GitHub.</string>
     <string name="about_view_release">عرض الإصدار</string>
     <string name="about_later">لاحقًا</string>
-    <string name="rating_title">قيّم Agora</string>
+    <string name="rating_title">قيّم 橘子岛</string>
     <string name="rating_star">%1$d نجمة</string>
     <string name="rating_your_name">اسمك (اختياري)</string>
     <string name="rating_your_email">بريدك الإلكتروني (اختياري)</string>
@@ -737,7 +737,7 @@
     <string name="rating_submitting">جارٍ الإرسال…</string>
     <string name="rating_success">شكرًا على ملاحظاتك!</string>
     <string name="rating_failed">فشل الإرسال. يرجى المحاولة مرة أخرى.</string>
-    <string name="rating_privacy">سيتم رفع تقييمك بشكل مجهول إلى newoether.space. تُرسَل الحقول التي تملؤها فقط. لا يتم جمع أي بيانات أخرى.</string>
+    <string name="rating_privacy">سيتم رفع تقييمك بشكل مجهول إلى rating.orangeisland.app. تُرسَل الحقول التي تملؤها فقط. لا يتم جمع أي بيانات أخرى.</string>
 
     <!-- Data Control -->
     <string name="settings_data_control">التحكم في البيانات</string>
@@ -745,7 +745,7 @@
     <string name="data_export_title">تصدير البيانات</string>
     <string name="data_export_subtitle">احفظ المحادثات والذكريات والموجّهات والإعدادات في ملف.</string>
     <string name="data_import_title">استيراد البيانات</string>
-    <string name="data_import_subtitle">الاستعادة من ملف تصدير .agora سابق.</string>
+    <string name="data_import_subtitle">الاستعادة من ملف تصدير .oi سابق.</string>
     <string name="export_category_conversations">المحادثات والرسائل</string>
     <string name="export_category_memories">الذكريات</string>
     <string name="export_category_system_prompts">موجّهات النظام</string>
@@ -758,7 +758,7 @@
 
     <string name="export_failed">فشل التصدير: %1$s</string>
     <string name="import_preview_title">استيراد البيانات</string>
-    <string name="import_from">تم التصدير في %1$s\nمن Agora v%2$s</string>
+    <string name="import_from">تم التصدير في %1$s\nمن 橘子岛 v%2$s</string>
     <string name="import_strategy_merge">دمج</string>
     <string name="import_strategy_replace">استبدال</string>
     <string name="import_strategy_skip">تخطٍّ</string>
@@ -767,7 +767,7 @@
     <string name="importing_label">جارٍ الاستيراد…</string>
     <string name="import_success">اكتمل الاستيراد: %1$s</string>
     <string name="import_failed">فشل الاستيراد: %1$s</string>
-    <string name="import_invalid_file">ملف .agora غير صالح. يرجى اختيار تصدير صالح.</string>
+    <string name="import_invalid_file">ملف .oi غير صالح. يرجى اختيار تصدير صالح.</string>
     <string name="import_no_data">لا يحتوي ملف التصدير هذا على بيانات قابلة للاستيراد.</string>
 
     <!-- Claude Chat Import -->
@@ -844,7 +844,7 @@
     <string name="show_documentation_links_desc">عرض زر الوثائق في صفحات الإعدادات</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_welcome_title">مرحبًا بك في Agora</string>
+    <string name="onboarding_welcome_title">مرحبًا بك في 橘子岛</string>
     <string name="onboarding_welcome_desc">تطبيق BYOK يعيد إليك سيادتك على بياناتك.</string>
     <string name="onboarding_byok_title">أحضر مفتاحك الخاص</string>
     <string name="onboarding_byok_desc">أعدّ مفاتيح API الخاصة بك أو استورد نموذج GGUF لتفعيل الاستدلال على الجهاز.</string>
@@ -929,11 +929,11 @@
     <string name="shell_confirm_setting_desc">الطلب قبل أن يشغّل المساعد أوامر أو يكتب ملفات على خوادم SSH/Conch البعيدة</string>
 
     <!-- Crash reporting -->
-    <string name="crash_title">أُغلق Agora بشكل غير متوقع</string>
+    <string name="crash_title">أُغلق 橘子岛 بشكل غير متوقع</string>
     <string name="crash_message">نعتذر عن ذلك. يمكنك المساعدة في إصلاح هذا بإرسال تقرير تعطّل مجهول.</string>
     <string name="crash_submit">إرسال التقرير</string>
     <string name="crash_dismiss">عدم الإرسال</string>
-    <string name="crash_privacy_note">يُرسَل سجل التعطّل فقط إلى newoether.space. لا يتم جمع أي معلومات أخرى.</string>
+    <string name="crash_privacy_note">يُرسَل سجل التعطّل فقط إلى rating.orangeisland.app. لا يتم جمع أي معلومات أخرى.</string>
     <string name="crash_submitted">تم إرسال تقرير التعطّل. شكرًا لك!</string>
     <string name="settings_group_network">الشبكة</string>
     <string name="settings_proxy">الوكيل</string>

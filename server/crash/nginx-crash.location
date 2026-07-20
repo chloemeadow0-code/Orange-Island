@@ -1,5 +1,5 @@
-# Agora crash-report endpoint. Add this location block to BOTH the :80 and :443
-# server blocks of the newoether.space site, then `nginx -t && systemctl reload nginx`.
+# 橘子岛 crash-report endpoint. Add this location block to BOTH the :80 and :443
+# server blocks of the example.com site, then `nginx -t && systemctl reload nginx`.
 #
 #   location = /crash {
 #       limit_except POST { deny all; }

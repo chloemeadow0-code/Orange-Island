@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Agora</string>
-    <string name="agora_responded">Agora ответила</string>
+    <string name="app_name">橘子岛</string>
+    <string name="oi_responded">橘子岛 ответила</string>
 
     <!-- Chat Bottom Bar -->
     <string name="add_attachment">Добавить вложение</string>
@@ -17,7 +17,7 @@
     <string name="google_search">Поиск Google</string>
     <string name="thinking">Размышление</string>
     <string name="web_search">Веб-поиск</string>
-    <string name="ask_agora">Спросите Agora о чём угодно...</string>
+    <string name="ask_orange_island">Спросите 橘子岛 о чём угодно...</string>
     <string name="send">Отправить</string>
 
     <!-- Tool Display -->
@@ -238,7 +238,7 @@
     <string name="prompts_template_blank">Пустой</string>
     <string name="prompts_template_blank_desc">Начать с пустого редактируемого системного промпта.</string>
     <string name="prompts_template_default">По умолчанию</string>
-    <string name="prompts_template_default_desc">Использовать промпт Agora по умолчанию с контекстом выполнения, памятью, веб-поиском, shell и правилами доступа к файлам устройства.</string>
+    <string name="prompts_template_default_desc">Использовать промпт 橘子岛 по умолчанию с контекстом выполнения, памятью, веб-поиском, shell и правилами доступа к файлам устройства.</string>
     <string name="prompts_duplicate">Дублировать</string>
     <string name="prompts_duplicate_title">Копия %1$s</string>
     <string name="prompts_empty_preview">Пустой промпт</string>
@@ -648,9 +648,9 @@
     <string name="play">Воспроизвести</string>
     <string name="video_preview">Предпросмотр видео</string>
     <string name="total_tokens">Всего: %1$d токенов</string>
-    <string name="welcome_to_agora">Добро пожаловать в Agora.</string>
+    <string name="welcome_to_orange_island">Добро пожаловать в 橘子岛.</string>
     <string name="database_incompatible">Несовместимая база данных</string>
-    <string name="database_incompatible_desc">База данных несовместима с этой версией Agora. Очистите базу данных и перезапустите приложение.</string>
+    <string name="database_incompatible_desc">База данных несовместима с этой версией 橘子岛. Очистите базу данных и перезапустите приложение.</string>
     <string name="quit">Выйти</string>
     <string name="clear_database">Очистить базу данных</string>
     <string name="generate_title">Сгенерировать заголовок</string>
@@ -725,10 +725,10 @@
     <string name="about_update_available">Доступно обновление: v%1$s</string>
     <string name="about_up_to_date">У вас последняя версия (v%1$s)</string>
     <string name="about_checking">Проверка...</string>
-    <string name="about_available_body">На GitHub доступна новая версия Agora.</string>
+    <string name="about_available_body">На GitHub доступна новая версия 橘子岛.</string>
     <string name="about_view_release">Посмотреть выпуск</string>
     <string name="about_later">Позже</string>
-    <string name="rating_title">Оценить Agora</string>
+    <string name="rating_title">Оценить 橘子岛</string>
     <string name="rating_star">%1$d звёзд</string>
     <string name="rating_your_name">Ваше имя (необязательно)</string>
     <string name="rating_your_email">Ваш e-mail (необязательно)</string>
@@ -737,7 +737,7 @@
     <string name="rating_submitting">Отправка…</string>
     <string name="rating_success">Спасибо за ваш отзыв!</string>
     <string name="rating_failed">Не удалось отправить. Попробуйте ещё раз.</string>
-    <string name="rating_privacy">Ваша оценка будет анонимно загружена на newoether.space. Передаются только заполненные вами поля. Никакие другие данные не собираются.</string>
+    <string name="rating_privacy">Ваша оценка будет анонимно загружена на rating.orangeisland.app. Передаются только заполненные вами поля. Никакие другие данные не собираются.</string>
 
     <!-- Data Control -->
     <string name="settings_data_control">Управление данными</string>
@@ -745,7 +745,7 @@
     <string name="data_export_title">Экспорт данных</string>
     <string name="data_export_subtitle">Сохраните беседы, память, промпты и настройки в файл.</string>
     <string name="data_import_title">Импорт данных</string>
-    <string name="data_import_subtitle">Восстановить из предыдущего файла экспорта .agora.</string>
+    <string name="data_import_subtitle">Восстановить из предыдущего файла экспорта .oi.</string>
     <string name="export_category_conversations">Беседы и сообщения</string>
     <string name="export_category_memories">Память</string>
     <string name="export_category_system_prompts">Системные промпты</string>
@@ -758,7 +758,7 @@
 
     <string name="export_failed">Не удалось экспортировать: %1$s</string>
     <string name="import_preview_title">Импорт данных</string>
-    <string name="import_from">Экспортировано %1$s\nИз Agora v%2$s</string>
+    <string name="import_from">Экспортировано %1$s\nИз 橘子岛 v%2$s</string>
     <string name="import_strategy_merge">Объединить</string>
     <string name="import_strategy_replace">Заменить</string>
     <string name="import_strategy_skip">Пропустить</string>
@@ -767,7 +767,7 @@
     <string name="importing_label">Импорт…</string>
     <string name="import_success">Импорт завершён: %1$s</string>
     <string name="import_failed">Не удалось импортировать: %1$s</string>
-    <string name="import_invalid_file">Недопустимый файл .agora. Выберите корректный экспорт.</string>
+    <string name="import_invalid_file">Недопустимый файл .oi. Выберите корректный экспорт.</string>
     <string name="import_no_data">Этот файл экспорта не содержит данных для импорта.</string>
 
     <!-- Claude Chat Import -->
@@ -844,7 +844,7 @@
     <string name="show_documentation_links_desc">Отображать кнопку документации на страницах настроек</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_welcome_title">Добро пожаловать в Agora</string>
+    <string name="onboarding_welcome_title">Добро пожаловать в 橘子岛</string>
     <string name="onboarding_welcome_desc">Приложение BYOK, возвращающее вам суверенитет над данными.</string>
     <string name="onboarding_byok_title">Используйте свой ключ</string>
     <string name="onboarding_byok_desc">Настройте свои API-ключи или импортируйте модель GGUF, чтобы разблокировать вывод на устройстве.</string>
@@ -929,11 +929,11 @@
     <string name="shell_confirm_setting_desc">Спрашивать перед тем, как ассистент выполнит команды или запишет файлы на удалённых серверах SSH/Conch</string>
 
     <!-- Crash reporting -->
-    <string name="crash_title">Agora неожиданно завершилась</string>
+    <string name="crash_title">橘子岛 неожиданно завершилась</string>
     <string name="crash_message">Приносим извинения. Вы можете помочь исправить это, отправив анонимный отчёт о сбое.</string>
     <string name="crash_submit">Отправить отчёт</string>
     <string name="crash_dismiss">Не отправлять</string>
-    <string name="crash_privacy_note">На newoether.space отправляется только журнал сбоя. Никакая другая информация не собирается.</string>
+    <string name="crash_privacy_note">На rating.orangeisland.app отправляется только журнал сбоя. Никакая другая информация не собирается.</string>
     <string name="crash_submitted">Отчёт о сбое отправлен. Спасибо!</string>
     <string name="settings_group_network">Сеть</string>
     <string name="settings_proxy">Прокси</string>

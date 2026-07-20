@@ -4,7 +4,7 @@ Führen Sie LLMs direkt auf Ihrem Android-Gerät mit GGUF-Modelldateien und llam
 
 ## Wie es funktioniert
 
-Agora bündelt llama.cpp via Android NDK (CMake). Wenn Sie eine GGUF-Datei importieren, läuft das Modell vollständig auf der CPU Ihres Geräts — keine Daten verlassen das Gerät.
+橘子岛 bündelt llama.cpp via Android NDK (CMake). Wenn Sie eine GGUF-Datei importieren, läuft das Modell vollständig auf der CPU Ihres Geräts — keine Daten verlassen das Gerät.
 
 ## Voraussetzungen
 
@@ -76,7 +76,7 @@ Tippen Sie auf ein Modell, um seinen Alias zu ändern oder Parameter anzupassen 
 
 ### Löschen
 
-Langer Druck auf ein Modell und tippen Sie auf **Löschen**. Dies entfernt das Modell aus Agora und löscht die GGUF-Datei aus dem Speicher.
+Langer Druck auf ein Modell und tippen Sie auf **Löschen**. Dies entfernt das Modell aus 橘子岛 und löscht die GGUF-Datei aus dem Speicher.
 
 ---
 

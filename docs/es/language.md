@@ -1,6 +1,6 @@
 # Idioma
 
-Elige el idioma de visualización para la interfaz de Agora.
+Elige el idioma de visualización para la interfaz de 橘子岛.
 
 ## Idiomas Disponibles
 
@@ -17,4 +17,4 @@ Elige el idioma de visualización para la interfaz de Agora.
 3. Aparece un snackbar: toca **Reiniciar** para aplicar el cambio inmediatamente
 
 !!! note "Se Requiere Reiniciar"
-    Los cambios de idioma requieren un reinicio completo de la aplicación. Agora te pide que reinicies después de seleccionar un nuevo idioma — toca la acción de reiniciar en el snackbar para recargar la aplicación con el nuevo idioma.
+    Los cambios de idioma requieren un reinicio completo de la aplicación. 橘子岛 te pide que reinicies después de seleccionar un nuevo idioma — toca la acción de reiniciar en el snackbar para recargar la aplicación con el nuevo idioma.

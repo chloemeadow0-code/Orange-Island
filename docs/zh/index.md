@@ -1,6 +1,6 @@
-# Agora 用户手册
+# 橘子岛 用户手册
 
-欢迎查阅 Agora 用户手册。Agora 是一款 BYOK（自带密钥）Android LLM 客户端，支持多提供商接入、非线形分支对话、代理工具调用、图像生成、代码执行和远程设备控制。
+欢迎查阅 橘子岛 用户手册。橘子岛 是一款 BYOK（自带密钥）Android LLM 客户端，支持多提供商接入、非线形分支对话、代理工具调用、图像生成、代码执行和远程设备控制。
 
 ## 快速导航
 
@@ -38,19 +38,19 @@
 
 - **[本地模型](local-model.md)** — 通过 llama.cpp 在设备上运行 GGUF 模型
 - **[PDF 导入](pdf-import.md)** — 提取并发送 PDF 页面给视觉模型
-- **[数据迁移](import-export.md)** — 导出/导入 .agora 文件、自动备份，从 Claude 和 ChatGPT 导入
+- **[数据迁移](import-export.md)** — 导出/导入 .橘子岛 文件、自动备份，从 Claude 和 ChatGPT 导入
 - **[语言](language.md)** — 在英文、中文、繁體中文或系统默认之间切换
 - **[关于](about.md)** — 版本信息、更新、文档开关、链接、评分
 
 ---
 
-## 关于 Agora
+## 关于 橘子岛
 
-Agora 是一款面向 AI 高级用户的 BYOK Android 客户端：
+橘子岛 是一款面向 AI 高级用户的 BYOK Android 客户端：
 
 - **无中间商**：直连 API，无遥测，无追踪
 - **本地存储**：一切数据存储在 Room 数据库中
 - **非线形对话**：编辑任意历史消息，探索替代分支
 - **原生代理**：多轮工具调用，支持网络搜索、Shell 执行、文件操作、图像生成、代码执行和记忆
 - **远程控制**：通过加密的 Conch 协议管理服务器
-- **开源**：MIT 协议，[源码在 GitHub](https://github.com/newo-ether/Agora)
+- **开源**：MIT 协议，[源码在 GitHub](https://github.com/orangeisland/app)

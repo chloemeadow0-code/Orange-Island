@@ -1,11 +1,11 @@
 # Remote Shell (Conch)
 
-Agora kann Befehle auf entfernten Rechnern über das [Conch](https://github.com/newo-ether/conch)-Protokoll ausführen — eine Ende-zu-Ende-verschlüsselte, sichere Shell, die für KI-Agenten entwickelt wurde.
+橘子岛 kann Befehle auf entfernten Rechnern über das [Conch](https://github.com/orangeisland/conch)-Protokoll ausführen — eine Ende-zu-Ende-verschlüsselte, sichere Shell, die für KI-Agenten entwickelt wurde.
 
 ## Wie es funktioniert
 
 ```text
-Agora (Android)  ──ECDH + AES-256-GCM──▶  Conch Server (Linux/macOS/Windows)
+橘子岛 (Android)  ──ECDH + AES-256-GCM──▶  Conch Server (Linux/macOS/Windows)
                                            │
                                            ├── Befehle ausführen
                                            ├── Dateien lesen/schreiben/bearbeiten
@@ -34,9 +34,9 @@ Conch verwendet starke Verschlüsselung und Anti-Missbrauch-Schutz:
 
 ### Schritt 1: Conch-Server bereitstellen
 
-Stellen Sie den Conch-Server auf Ihrem Zielrechner bereit. Siehe das [Conch-Repository](https://github.com/newo-ether/conch) für Einrichtungsanweisungen.
+Stellen Sie den Conch-Server auf Ihrem Zielrechner bereit. Siehe das [Conch-Repository](https://github.com/orangeisland/conch) für Einrichtungsanweisungen.
 
-### Schritt 2: Gerät in Agora hinzufügen
+### Schritt 2: Gerät in 橘子岛 hinzufügen
 
 1. Gehen Sie zu **Einstellungen → Shell**
 2. Aktivieren Sie **Shell-Tool**
@@ -109,7 +109,7 @@ Alle Dateioperationen gehen durch den verschlüsselten Conch-Kanal.
 
 Conch kann auch als **Claude Desktop MCP-Server** dienen. Wenn Sie Claude Code oder einen anderen MCP-Client verwenden, können Sie Conch als Tool-Provider für entfernten Datei- und Shell-Zugriff von Ihrem Desktop aus konfigurieren.
 
-Siehe die [Conch-Dokumentation](https://github.com/newo-ether/conch) für MCP-Einrichtungsanweisungen.
+Siehe die [Conch-Dokumentation](https://github.com/orangeisland/conch) für MCP-Einrichtungsanweisungen.
 
 ---
 

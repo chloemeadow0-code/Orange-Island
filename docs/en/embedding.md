@@ -1,13 +1,13 @@
 # Embedding / RAG
 
-Embedding models convert text into numerical vectors that capture meaning. Agora uses these vectors for semantic search (RAG) over your conversation history — finding messages by what they mean, not just what words they contain.
+Embedding models convert text into numerical vectors that capture meaning. 橘子岛 uses these vectors for semantic search (RAG) over your conversation history — finding messages by what they mean, not just what words they contain.
 
 ## How It Works
 
 1. Each message is sent to an embedding model
 2. The model returns a vector (a list of numbers) representing the message's meaning
 3. When you search, your query is also embedded
-4. Agora computes **cosine similarity** between the query vector and all message vectors
+4. 橘子岛 computes **cosine similarity** between the query vector and all message vectors
 5. Messages with similarity above your threshold are returned as matches
 
 ## Supported Providers
@@ -43,7 +43,7 @@ Embedding models convert text into numerical vectors that capture meaning. Agora
 4. Tap **Add** — a connection test runs before saving
 
 !!! tip
-    The API key field is optional if you've already configured the same provider for chat. Leave it blank and Agora resolves your chat API key automatically.
+    The API key field is optional if you've already configured the same provider for chat. Leave it blank and 橘子岛 resolves your chat API key automatically.
 
 ### Local (GGUF)
 
@@ -59,7 +59,7 @@ Embedding models are typically much smaller than chat models — a few hundred M
 
 1. Install Ollama on a machine
 2. Pull an embedding model: `ollama pull qwen3-embedding:8b`
-3. In Agora, add a remote model:
+3. In 橘子岛, add a remote model:
     - Provider: **Ollama**
     - Base URL: `http://<host>:11434/v1`
     - Model name: `qwen3-embedding:8b` (include the `:tag`)
@@ -76,7 +76,7 @@ Embedding models are typically much smaller than chat models — a few hundred M
 After adding a model, you need to cache your messages (generate embeddings):
 
 1. Tap **Cache** on the embedding model
-2. Agora processes all uncached messages in batches
+2. 橘子岛 processes all uncached messages in batches
 3. A circular progress indicator shows the current progress
 4. Completion: "All N messages cached"
 
@@ -110,7 +110,7 @@ Start with the default and adjust if you encounter timeouts (lower it) or want f
 
 ## Testing Your Setup
 
-When you add a remote model, Agora runs an automatic connection test. If it fails:
+When you add a remote model, 橘子岛 runs an automatic connection test. If it fails:
 
 1. Check the model name — include tags for Ollama (`:8b`, `:latest`)
 2. Verify the base URL is reachable from your device

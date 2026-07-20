@@ -4,7 +4,7 @@ Verwalten Sie, welche KI-Modelle verfügbar sind, und legen Sie Ihr Standardmode
 
 ## Modellliste
 
-Die **Modelle**-Seite zeigt alle Modelle, die Agora kennt, nach Provider organisiert:
+Die **Modelle**-Seite zeigt alle Modelle, die 橘子岛 kennt, nach Provider organisiert:
 
 - **Standardmodell** — Das Modell, das für neue Konversationen verwendet wird. Tippen zum Ändern.
 - **Verfügbare Modelle** — Erweitern Sie jeden Provider, um seine Modelle zu sehen. Aktivieren Sie die, die Sie verwenden möchten.

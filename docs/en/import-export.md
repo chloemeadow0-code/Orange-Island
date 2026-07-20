@@ -1,10 +1,10 @@
 # Data Portability
 
-Agora stores all your data on-device and provides full import/export capabilities. You own your data — move it in, move it out, back it up.
+橘子岛 stores all your data on-device and provides full import/export capabilities. You own your data — move it in, move it out, back it up.
 
 ## Export
 
-Export your data to a single `.agora` file — a portable archive that contains everything Agora stores.
+Export your data to a single `.橘子岛` file — a portable archive that contains everything 橘子岛 stores.
 
 ### What Gets Exported
 
@@ -19,7 +19,7 @@ You choose what to include:
 | **API Keys** | All configured API keys |
 
 !!! danger "API Keys Warning"
-    API keys are exported in **plain text**. Anyone with the `.agora` file can read your keys. Only enable API key export if you trust the destination and handle the file securely.
+    API keys are exported in **plain text**. Anyone with the `.橘子岛` file can read your keys. Only enable API key export if you trust the destination and handle the file securely.
 
 ### How to Export
 
@@ -27,17 +27,17 @@ You choose what to include:
 2. Tap **Export Data**
 3. Select which categories to include
 4. Tap **Export**
-5. Choose where to save the `.agora` file
+5. Choose where to save the `.橘子岛` file
 
 ---
 
 ## Import
 
-Restore data from a previous `.agora` export.
+Restore data from a previous `.橘子岛` export.
 
 ### Import Strategies
 
-When importing, you choose how Agora handles data that already exists on your device:
+When importing, you choose how 橘子岛 handles data that already exists on your device:
 
 | Strategy | Behavior |
 |----------|----------|
@@ -52,13 +52,13 @@ When importing, you choose how Agora handles data that already exists on your de
 
 1. Go to **Settings → Data Control**
 2. Tap **Import Data**
-3. Select a `.agora` file
+3. Select a `.橘子岛` file
 4. Review the import preview — see what's in the file (export date, version, content counts)
 5. Choose an import strategy
 6. Tap **Import**
 
 !!! danger "API Keys Warning"
-    If the export file contains API keys, Agora warns you before importing. Keys are imported in plain text. Only proceed if you trust the source of the file.
+    If the export file contains API keys, 橘子岛 warns you before importing. Keys are imported in plain text. Only proceed if you trust the source of the file.
 
 ---
 
@@ -66,7 +66,7 @@ When importing, you choose how Agora handles data that already exists on your de
 
 Import conversations from other AI chat platforms.
 
-Both Claude and ChatGPT export your data as a **`.zip` archive**. Agora imports that `.zip` directly — there is no need to unzip it first, and Agora does **not** accept loose `.json` files.
+Both Claude and ChatGPT export your data as a **`.zip` archive**. 橘子岛 imports that `.zip` directly — there is no need to unzip it first, and 橘子岛 does **not** accept loose `.json` files.
 
 ### Import from Claude
 
@@ -75,7 +75,7 @@ Both Claude and ChatGPT export your data as a **`.zip` archive**. Agora imports 
 !!! warning "Download promptly"
     Claude's download link **expires quickly**. Grab the `.zip` as soon as the email arrives — if you wait too long, the link goes dead and you'll have to request a new export.
 
-**2. Import into Agora.**
+**2. Import into 橘子岛.**
 
 1. Go to **Settings → Data Control → Third Party → Import from Claude**
 2. Select the exported `.zip` file
@@ -84,7 +84,7 @@ Both Claude and ChatGPT export your data as a **`.zip` archive**. Agora imports 
 5. Tap **Import**
 
 !!! note
-    Agora reads the conversation data straight out of Claude's `.zip` export. Attachments are detected and shown in the preview, but only the message text is imported — attachment files themselves are not.
+    橘子岛 reads the conversation data straight out of Claude's `.zip` export. Attachments are detected and shown in the preview, but only the message text is imported — attachment files themselves are not.
 
 ### Import from ChatGPT
 
@@ -93,7 +93,7 @@ Both Claude and ChatGPT export your data as a **`.zip` archive**. Agora imports 
 !!! info "Be patient"
     ChatGPT's export typically takes **1–2 days** to arrive. This is normal — wait for the email rather than re-requesting.
 
-**2. Import into Agora.**
+**2. Import into 橘子岛.**
 
 1. Go to **Settings → Data Control → Third Party → Import from ChatGPT**
 2. Select the downloaded `.zip` file
@@ -108,18 +108,18 @@ Both Claude and ChatGPT export your data as a **`.zip` archive**. Agora imports 
 
 ## File Format
 
-The `.agora` file is a JSON-based archive. If you're technically inclined, you can inspect or process it with standard tools. The format is designed for forward and backward compatibility.
+The `.橘子岛` file is a JSON-based archive. If you're technically inclined, you can inspect or process it with standard tools. The format is designed for forward and backward compatibility.
 
 ---
 
 ## Auto Backup
 
-Agora can automatically back up your data on a schedule. You don't need to remember to export — Agora handles it for you.
+橘子岛 can automatically back up your data on a schedule. You don't need to remember to export — 橘子岛 handles it for you.
 
 ### How It Works
 
 - Auto backup runs periodically in the background using Android WorkManager
-- When a backup is due, Agora exports your selected categories to the configured directory
+- When a backup is due, 橘子岛 exports your selected categories to the configured directory
 - A notification appears only if a backup fails — successful backups are silent
 - Old backups are automatically deleted based on your retention settings
 
@@ -129,7 +129,7 @@ Agora can automatically back up your data on a schedule. You don't need to remem
 2. Toggle **Auto Backup** on/off
 3. Set **Backup every** — choose 1 day, 3 days, 5 days, 1 week, or 1 month
 4. Choose **Export content** — select which categories to include. API keys **can** be included (a warning is shown when you tick that box) — only enable it if the backup location is private and secure. API keys are **not** included by default.
-5. Set **Backup location** — tap to pick a folder (defaults to `Download/Agora/Backup`)
+5. Set **Backup location** — tap to pick a folder (defaults to `Download/橘子岛/Backup`)
 6. Toggle **Auto delete old backups** on/off, and set **Delete older than** period
 
 !!! info "Auto Delete Constraint"

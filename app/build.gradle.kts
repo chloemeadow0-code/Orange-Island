@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.newoether.agora"
+    namespace = "com.orangeisland.app"
     compileSdk {
         version = release(36)
     }
@@ -24,7 +24,7 @@ android {
     ndkVersion = "28.2.13676358"
 
     defaultConfig {
-        applicationId = "com.newoether.agora"
+        applicationId = "com.orangeisland.app"
         minSdk = 24
         targetSdk = 36
         versionCode = 26
@@ -39,7 +39,7 @@ android {
             cmake {
                 cppFlags += "-std=c++17"
                 arguments += listOf("-DANDROID_STL=c++_shared")
-                targets += listOf("agora_llama", "agora_proot")
+                targets += listOf("orangeisland_llama", "orangeisland_proot")
             }
         }
     }

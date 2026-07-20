@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Agora</string>
-    <string name="agora_responded">Agora responded</string>
+    <string name="app_name">橘子岛</string>
+    <string name="oi_responded">橘子岛 responded</string>
 
     <!-- Chat Bottom Bar -->
     <string name="add_attachment">Add Attachment</string>
@@ -17,7 +17,7 @@
     <string name="google_search">Google Search</string>
     <string name="thinking">Thinking</string>
     <string name="web_search">Web Search</string>
-    <string name="ask_agora">Ask Agora anything...</string>
+    <string name="ask_orange_island">Ask 橘子岛 anything...</string>
     <string name="send">Send</string>
 
     <!-- Tool Display -->
@@ -238,7 +238,7 @@
     <string name="prompts_template_blank">Blank</string>
     <string name="prompts_template_blank_desc">Start with an empty editable system prompt.</string>
     <string name="prompts_template_default">Default</string>
-    <string name="prompts_template_default_desc">Use Agora\'s default prompt with runtime context, memory, web search, shell, and device-file guidance.</string>
+    <string name="prompts_template_default_desc">Use 橘子岛\'s default prompt with runtime context, memory, web search, shell, and device-file guidance.</string>
     <string name="prompts_duplicate">Duplicate</string>
     <string name="prompts_duplicate_title">%1$s Copy</string>
     <string name="prompts_empty_preview">Empty prompt</string>
@@ -724,9 +724,9 @@
     <string name="play">Play</string>
     <string name="video_preview">Video preview</string>
     <string name="total_tokens">Total: %1$d tokens</string>
-    <string name="welcome_to_agora">Welcome to Agora.</string>
+    <string name="welcome_to_orange_island">Welcome to 橘子岛.</string>
     <string name="database_incompatible">Database Incompatible</string>
-    <string name="database_incompatible_desc">The database is incompatible with this version of Agora. Please clear the database and restart the app.</string>
+    <string name="database_incompatible_desc">The database is incompatible with this version of 橘子岛. Please clear the database and restart the app.</string>
     <string name="quit">Quit</string>
     <string name="clear_database">Clear Database</string>
     <string name="generate_title">Generate Title</string>
@@ -775,7 +775,6 @@
     <string name="settings_group_responses">Responses</string>
     <string name="settings_group_tools">Tools</string>
     <string name="settings_group_about">About</string>
-    <string name="rating_category">Rate</string>
 
     <!-- About -->
     <string name="settings_about">About</string>
@@ -791,8 +790,6 @@
     <string name="about_privacy_policy">Privacy Policy</string>
     <string name="about_source_code">Source Code</string>
     <string name="about_version">Version</string>
-    <string name="about_rating">Rate the App</string>
-    <string name="about_rating_desc">This project was developed by a single person. I truly appreciate your feedback.</string>
     <string name="about_updates">Updates</string>
     <string name="about_check_updates">Check for Updates</string>
     <string name="about_check_updates_desc">Check GitHub for the latest release</string>
@@ -801,19 +798,9 @@
     <string name="about_update_available">Update available: v%1$s</string>
     <string name="about_up_to_date">You\'re up to date (v%1$s)</string>
     <string name="about_checking">Checking...</string>
-    <string name="about_available_body">A new version of Agora is available on GitHub.</string>
+    <string name="about_available_body">A new version of 橘子岛 is available on GitHub.</string>
     <string name="about_view_release">View Release</string>
     <string name="about_later">Later</string>
-    <string name="rating_title">Rate Agora</string>
-    <string name="rating_star">%1$d star(s)</string>
-    <string name="rating_your_name">Your Name (optional)</string>
-    <string name="rating_your_email">Your Email (optional)</string>
-    <string name="rating_comment">Comment (optional)</string>
-    <string name="rating_submit">Submit</string>
-    <string name="rating_submitting">Submitting…</string>
-    <string name="rating_success">Thanks for your feedback!</string>
-    <string name="rating_failed">Failed to submit. Please try again.</string>
-    <string name="rating_privacy">Your rating will be uploaded anonymously to newoether.space. Only the fields you fill in are transmitted. No other data is collected.</string>
 
     <!-- Data Control -->
     <string name="settings_data_control">Data Control</string>
@@ -821,7 +808,7 @@
     <string name="data_export_title">Export Data</string>
     <string name="data_export_subtitle">Save conversations, memories, prompts, and settings to a file.</string>
     <string name="data_import_title">Import Data</string>
-    <string name="data_import_subtitle">Restore from a previous .agora export file.</string>
+    <string name="data_import_subtitle">Restore from a previous .oi export file.</string>
     <string name="export_category_conversations">Conversations &amp; Messages</string>
     <string name="export_category_memories">Memories</string>
     <string name="export_category_system_prompts">System Prompts</string>
@@ -834,7 +821,7 @@
 
     <string name="export_failed">Export failed: %1$s</string>
     <string name="import_preview_title">Import Data</string>
-    <string name="import_from">Exported on %1$s\nFrom Agora v%2$s</string>
+    <string name="import_from">Exported on %1$s\nFrom 橘子岛 v%2$s</string>
     <string name="import_strategy_merge">Merge</string>
     <string name="import_strategy_replace">Replace</string>
     <string name="import_strategy_skip">Skip</string>
@@ -843,7 +830,7 @@
     <string name="importing_label">Importing…</string>
     <string name="import_success">Import complete: %1$s</string>
     <string name="import_failed">Import failed: %1$s</string>
-    <string name="import_invalid_file">Invalid .agora file. Please select a valid export.</string>
+    <string name="import_invalid_file">Invalid .oi file. Please select a valid export.</string>
     <string name="import_no_data">This export file contains no importable data.</string>
 
     <!-- Claude Chat Import -->
@@ -923,7 +910,7 @@
     <string name="show_documentation_links_desc">Display documentation button on settings pages</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_welcome_title">Welcome to Agora</string>
+    <string name="onboarding_welcome_title">Welcome to 橘子岛</string>
     <string name="onboarding_welcome_desc">A BYOK app that takes back your data sovereignty.</string>
     <string name="onboarding_byok_title">Bring Your Own Key</string>
     <string name="onboarding_byok_desc">Set up your API keys or import a GGUF model to unlock on-device inference.</string>
@@ -1008,11 +995,11 @@
     <string name="shell_confirm_setting_desc">Ask before the assistant runs commands or writes files on remote SSH/Conch servers</string>
 
     <!-- Crash reporting -->
-    <string name="crash_title">Agora quit unexpectedly</string>
+    <string name="crash_title">橘子岛 quit unexpectedly</string>
     <string name="crash_message">Sorry about that. You can help fix this by sending an anonymous crash report.</string>
     <string name="crash_submit">Submit report</string>
     <string name="crash_dismiss">Don\'t send</string>
-    <string name="crash_privacy_note">Only the crash log is sent to newoether.space. No other information is collected.</string>
+    <string name="crash_privacy_note">Only the crash log is sent to rating.orangeisland.app. No other information is collected.</string>
     <string name="crash_submitted">Crash report sent. Thank you!</string>
     <string name="settings_group_network">Network</string>
     <string name="settings_proxy">Proxy</string>

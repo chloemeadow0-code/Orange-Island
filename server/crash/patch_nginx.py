@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Idempotently insert the Agora /crash location into the newoether.space nginx site.
+"""Idempotently insert the 橘子岛 /crash location into the example.com nginx site.
 
 Adds a `location = /crash { ... }` block immediately before each `location / {` in the
 config (once per :80 and :443 server block). Safe to re-run: does nothing if /crash is
@@ -7,7 +7,7 @@ already present.
 """
 import sys
 
-PATH = "/etc/nginx/sites-available/newoether.space"
+PATH = "/etc/nginx/sites-available/example.com"
 ANCHOR = "    location / {"
 BLOCK = """    location = /crash {
         limit_except POST { deny all; }

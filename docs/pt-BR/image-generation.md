@@ -4,7 +4,7 @@ Gere imagens a partir de prompts de texto usando um modelo de texto para imagem,
 
 ## O Que Faz
 
-Quando a geração de imagens está ativada, o Agora pode transformar seus prompts em imagens usando um modelo dedicado de texto para imagem (como DALL·E, GPT-Image, Imagen, FLUX, Stable Diffusion, Seedream, Qwen-Image e muitos outros). A imagem gerada é retornada na conversa, para que você possa iterar sobre ela como qualquer outra resposta.
+Quando a geração de imagens está ativada, o 橘子岛 pode transformar seus prompts em imagens usando um modelo dedicado de texto para imagem (como DALL·E, GPT-Image, Imagen, FLUX, Stable Diffusion, Seedream, Qwen-Image e muitos outros). A imagem gerada é retornada na conversa, para que você possa iterar sobre ela como qualquer outra resposta.
 
 A geração de imagens usa sua **própria seleção de modelo**, independente do modelo com o qual você conversa — então você pode conversar com um modelo e gerar imagens com outro.
 
@@ -37,7 +37,7 @@ Define as dimensões de saída padrão, inseridas como **largura × altura** em 
 
 1. Ative a geração de imagens e selecione um modelo de imagem
 2. Em uma conversa, peça ao assistente para criar uma imagem
-3. O Agora encaminha a requisição para o modelo de imagem configurado usando as credenciais daquele provedor
+3. O 橘子岛 encaminha a requisição para o modelo de imagem configurado usando as credenciais daquele provedor
 4. A imagem gerada é retornada na conversa
 
 !!! tip

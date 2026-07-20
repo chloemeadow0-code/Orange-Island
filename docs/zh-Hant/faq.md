@@ -25,7 +25,7 @@
 
 ### 哪些 GGUF 模型可以運作？
 
-Agora 支援用於聊天和嵌入的 GGUF 格式。聊天模型應能放入裝置記憶體（視 RAM 而定，約 1–8B 參數）。嵌入模型則小得多（100–500 MB）。請參閱 [本地模型](local-model.md)。
+橘子岛 支援用於聊天和嵌入的 GGUF 格式。聊天模型應能放入裝置記憶體（視 RAM 而定，約 1–8B 參數）。嵌入模型則小得多（100–500 MB）。請參閱 [本地模型](local-model.md)。
 
 ### 如何離線執行模型？
 
@@ -56,7 +56,7 @@ Agora 支援用於聊天和嵌入的 GGUF 格式。聊天模型應能放入裝�
 
 1. 在機器上安裝 Ollama
 2. 拉取嵌入模型：`ollama pull qwen3-embedding:8b`
-3. 在 Agora 中，使用 **Ollama** 預設新增遠端嵌入模型
+3. 在 橘子岛 中，使用 **Ollama** 預設新增遠端嵌入模型
 4. 使用 `http://<host>:11434/v1` 作為基礎 URL
 5. 輸入確切的模型名稱，包含標籤（例如 `qwen3-embedding:8b`）
 6. 將 API 金鑰留空
@@ -79,7 +79,7 @@ Agora 支援用於聊天和嵌入的 GGUF 格式。聊天模型應能放入裝�
 
 ### 如何設定遠端 Shell 存取？
 
-在您的目標機器上部署 [Conch](https://github.com/newo-ether/conch) 伺服器，然後在設定 → Shell 中使用其 URL 和 API 金鑰新增裝置。請參閱 [遠端 Shell](shell.md)。
+在您的目標機器上部署 [Conch](https://github.com/orangeisland/conch) 伺服器，然後在設定 → Shell 中使用其 URL 和 API 金鑰新增裝置。請參閱 [遠端 Shell](shell.md)。
 
 ### 我可以不使用 API 金鑰來搜尋網頁嗎？
 
@@ -87,7 +87,7 @@ Agora 支援用於聊天和嵌入的 GGUF 格式。聊天模型應能放入裝�
 
 ### Shell 連線是否加密？
 
-是的。Conch 使用 ECDH 金鑰交換 + AES-256-GCM 加密 + HMAC-SHA256 簽章。Agora 與 Conch 伺服器之間的所有流量均為端對端加密。
+是的。Conch 使用 ECDH 金鑰交換 + AES-256-GCM 加密 + HMAC-SHA256 簽章。橘子岛 與 Conch 伺服器之間的所有流量均為端對端加密。
 
 ---
 
@@ -95,7 +95,7 @@ Agora 支援用於聊天和嵌入的 GGUF 格式。聊天模型應能放入裝�
 
 ### 如何備份我的資料？
 
-前往設定 → 資料控制 → **匯出資料** 以建立手動 `.agora` 備份。如需無憂保護，請在設定 → 資料控制 → 自動備份中啟用**自動備份** — 它會在背景定期備份您的資料。請參閱 [資料可攜性](import-export.md)。
+前往設定 → 資料控制 → **匯出資料** 以建立手動 `.橘子岛` 備份。如需無憂保護，請在設定 → 資料控制 → 自動備份中啟用**自動備份** — 它會在背景定期備份您的資料。請參閱 [資料可攜性](import-export.md)。
 
 ### 我可以從 ChatGPT 或 Claude 匯入嗎？
 
@@ -103,7 +103,7 @@ Agora 支援用於聊天和嵌入的 GGUF 格式。聊天模型應能放入裝�
 
 ### 我的 API 金鑰是否包含在匯出中？
 
-可以包含，但這是可選的。匯出畫面讓您可以切換是否包含 API 金鑰。啟用時會顯示警告。金鑰以純文字形式儲存在 `.agora` 檔案中，因此僅在進行完整裝置遷移到受信任的目的地時才包含它們。
+可以包含，但這是可選的。匯出畫面讓您可以切換是否包含 API 金鑰。啟用時會顯示警告。金鑰以純文字形式儲存在 `.橘子岛` 檔案中，因此僅在進行完整裝置遷移到受信任的目的地時才包含它們。
 
 ---
 
@@ -111,12 +111,12 @@ Agora 支援用於聊天和嵌入的 GGUF 格式。聊天模型應能放入裝�
 
 ### 我的資料儲存在哪裡？
 
-所有資料都儲存在您 Android 裝置本地的 Room 資料庫中。Agora 沒有伺服器、沒有雲端同步、沒有遙測。訊息直接從您的裝置傳送到您設定的 AI 提供者。
+所有資料都儲存在您 Android 裝置本地的 Room 資料庫中。橘子岛 沒有伺服器、沒有雲端同步、沒有遙測。訊息直接從您的裝置傳送到您設定的 AI 提供者。
 
-### Agora 支援多種語言嗎？
+### 橘子岛 支援多種語言嗎？
 
 是的。應用程式 UI 支援 **英文**、**中文** 和 **繁體中文**。設定 → 語言。切換後需要重新啟動。
 
 ### 如何回報錯誤或請求功能？
 
-在 [GitHub](https://github.com/newo-ether/Agora/issues) 上開啟 Issue。如需貢獻，請參閱 README 的 [Contributing](https://github.com/newo-ether/Agora#contributing) 章節。
+在 [GitHub](https://github.com/orangeisland/app/issues) 上開啟 Issue。如需貢獻，請參閱 README 的 [Contributing](https://github.com/orangeisland/app#contributing) 章節。

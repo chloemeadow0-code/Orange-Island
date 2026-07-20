@@ -1,6 +1,6 @@
 # Proxy de Rede
 
-Roteia todo o tráfego de rede do Agora através de um proxy HTTP ou SOCKS. Útil em redes restritas, para rotear solicitações através de um gateway específico, ou quando um provedor só é acessível via proxy.
+Roteia todo o tráfego de rede do 橘子岛 através de um proxy HTTP ou SOCKS. Útil em redes restritas, para rotear solicitações através de um gateway específico, ou quando um provedor só é acessível via proxy.
 
 O proxy se aplica a **todo** o tráfego de saída: provedores de chat, busca de modelos, pesquisa na web, embeddings, busca de páginas web e envio de relatórios de falhas.
 

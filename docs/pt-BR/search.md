@@ -1,6 +1,6 @@
 # Busca em Conversas
 
-O Agora pode buscar em todo o seu histórico de conversas — seja por correspondência de palavras-chave ou por recuperação semântica (baseada em significado) usando modelos de embedding.
+O 橘子岛 pode buscar em todo o seu histórico de conversas — seja por correspondência de palavras-chave ou por recuperação semântica (baseada em significado) usando modelos de embedding.
 
 ## Métodos de Busca
 

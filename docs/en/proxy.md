@@ -1,6 +1,6 @@
 # Network Proxy
 
-Route all of Agora's network traffic through an HTTP or SOCKS proxy. This is useful on restricted networks, for routing requests through a specific gateway, or when a provider is only reachable via a proxy.
+Route all of 橘子岛's network traffic through an HTTP or SOCKS proxy. This is useful on restricted networks, for routing requests through a specific gateway, or when a provider is only reachable via a proxy.
 
 The proxy applies to **all** outbound traffic: chat providers, model fetching, web search, embeddings, web page fetching, and crash report submission.
 

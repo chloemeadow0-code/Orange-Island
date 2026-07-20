@@ -100,7 +100,7 @@ Wenn aktiviert, generiert das Modell internes Reasoning, bevor es die endgültig
 
 ## Kontext-Rollout visualisieren
 
-Wenn aktiviert, zeigt Agora visuell an, welche Nachrichten im aktuellen Kontextfenster enthalten sind und welche herausgerollt wurden (aufgrund der Kontextfenster-Begrenzung ausgeschlossen). Dies hilft Ihnen zu verstehen:
+Wenn aktiviert, zeigt 橘子岛 visuell an, welche Nachrichten im aktuellen Kontextfenster enthalten sind und welche herausgerollt wurden (aufgrund der Kontextfenster-Begrenzung ausgeschlossen). Dies hilft Ihnen zu verstehen:
 
 - Wie viel Ihrer Konversation das Modell "sehen" kann
 - Wann ältere Nachrichten aus dem Kontext fallen

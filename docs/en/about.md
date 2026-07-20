@@ -15,14 +15,14 @@ App version, updates, documentation settings, and links.
 
 ### Check for Updates
 
-Tap **Check for Updates** to query GitHub for the latest release. Agora compares your installed version against the latest release and shows the result:
+Tap **Check for Updates** to query GitHub for the latest release. 橘子岛 compares your installed version against the latest release and shows the result:
 
 - **Update available** — a newer version is published on GitHub
 - **Up to date** — you're running the latest release
 
 ### Auto Update Check
 
-When enabled, Agora periodically checks for new releases in the background. Toggle this off to disable automatic checks.
+When enabled, 橘子岛 periodically checks for new releases in the background. Toggle this off to disable automatic checks.
 
 ---
 
@@ -40,19 +40,19 @@ Toggle this off if you prefer a cleaner interface without the documentation FAB.
 
 | Link | Destination |
 |------|-------------|
-| **GitHub** | Agora source code repository |
+| **GitHub** | 橘子岛 source code repository |
 | **Issue Tracker** | Report bugs or request features |
 | **Contribute** | Open a pull request |
-| **Privacy Policy** | Agora privacy policy |
+| **Privacy Policy** | 橘子岛 privacy policy |
 
 ---
 
 ## Rating
 
-A built-in feedback form lets you rate the app and submit comments. Your feedback helps improve Agora.
+A built-in feedback form lets you rate the app and submit comments. Your feedback helps improve 橘子岛.
 
 ---
 
 ## Crash Log
 
-If Agora encounters an error, you can view the crash log from **Settings → About → Crash Log**. The log is displayed in a monospace dialog with a **Copy** button to share diagnostic details when reporting bugs.
+If 橘子岛 encounters an error, you can view the crash log from **Settings → About → Crash Log**. The log is displayed in a monospace dialog with a **Copy** button to share diagnostic details when reporting bugs.

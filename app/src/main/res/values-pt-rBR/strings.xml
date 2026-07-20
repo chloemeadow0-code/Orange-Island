@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Agora</string>
-    <string name="agora_responded">Agora respondeu</string>
+    <string name="app_name">橘子岛</string>
+    <string name="oi_responded">橘子岛 respondeu</string>
 
     <!-- Chat Bottom Bar -->
     <string name="add_attachment">Adicionar anexo</string>
@@ -17,7 +17,7 @@
     <string name="google_search">Pesquisa Google</string>
     <string name="thinking">Raciocínio</string>
     <string name="web_search">Pesquisa na web</string>
-    <string name="ask_agora">Pergunte qualquer coisa ao Agora...</string>
+    <string name="ask_orange_island">Pergunte qualquer coisa ao 橘子岛...</string>
     <string name="send">Enviar</string>
 
     <!-- Tool Display -->
@@ -238,7 +238,7 @@
     <string name="prompts_template_blank">Em branco</string>
     <string name="prompts_template_blank_desc">Começar com um prompt de sistema editável vazio.</string>
     <string name="prompts_template_default">Padrão</string>
-    <string name="prompts_template_default_desc">Usar o prompt padrão do Agora com contexto de execução, memória, busca na web, shell e regras de acesso a arquivos do dispositivo.</string>
+    <string name="prompts_template_default_desc">Usar o prompt padrão do 橘子岛 com contexto de execução, memória, busca na web, shell e regras de acesso a arquivos do dispositivo.</string>
     <string name="prompts_duplicate">Duplicar</string>
     <string name="prompts_duplicate_title">Cópia de %1$s</string>
     <string name="prompts_empty_preview">Prompt vazio</string>
@@ -648,9 +648,9 @@
     <string name="play">Reproduzir</string>
     <string name="video_preview">Pré-visualização do vídeo</string>
     <string name="total_tokens">Total: %1$d tokens</string>
-    <string name="welcome_to_agora">Bem-vindo ao Agora.</string>
+    <string name="welcome_to_orange_island">Bem-vindo ao 橘子岛.</string>
     <string name="database_incompatible">Banco de dados incompatível</string>
-    <string name="database_incompatible_desc">O banco de dados é incompatível com esta versão do Agora. Limpe o banco de dados e reinicie o app.</string>
+    <string name="database_incompatible_desc">O banco de dados é incompatível com esta versão do 橘子岛. Limpe o banco de dados e reinicie o app.</string>
     <string name="quit">Sair</string>
     <string name="clear_database">Limpar banco de dados</string>
     <string name="generate_title">Gerar título</string>
@@ -725,10 +725,10 @@
     <string name="about_update_available">Atualização disponível: v%1$s</string>
     <string name="about_up_to_date">Você está atualizado (v%1$s)</string>
     <string name="about_checking">Verificando...</string>
-    <string name="about_available_body">Uma nova versão do Agora está disponível no GitHub.</string>
+    <string name="about_available_body">Uma nova versão do 橘子岛 está disponível no GitHub.</string>
     <string name="about_view_release">Ver versão</string>
     <string name="about_later">Mais tarde</string>
-    <string name="rating_title">Avaliar o Agora</string>
+    <string name="rating_title">Avaliar o 橘子岛</string>
     <string name="rating_star">%1$d estrela(s)</string>
     <string name="rating_your_name">Seu nome (opcional)</string>
     <string name="rating_your_email">Seu e-mail (opcional)</string>
@@ -737,7 +737,7 @@
     <string name="rating_submitting">Enviando…</string>
     <string name="rating_success">Obrigado pelo seu feedback!</string>
     <string name="rating_failed">Falha ao enviar. Tente novamente.</string>
-    <string name="rating_privacy">Sua avaliação será enviada anonimamente para newoether.space. Apenas os campos que você preencher são transmitidos. Nenhum outro dado é coletado.</string>
+    <string name="rating_privacy">Sua avaliação será enviada anonimamente para rating.orangeisland.app. Apenas os campos que você preencher são transmitidos. Nenhum outro dado é coletado.</string>
 
     <!-- Data Control -->
     <string name="settings_data_control">Controle de dados</string>
@@ -745,7 +745,7 @@
     <string name="data_export_title">Exportar dados</string>
     <string name="data_export_subtitle">Salve conversas, memórias, prompts e configurações em um arquivo.</string>
     <string name="data_import_title">Importar dados</string>
-    <string name="data_import_subtitle">Restaurar de um arquivo de exportação .agora anterior.</string>
+    <string name="data_import_subtitle">Restaurar de um arquivo de exportação .oi anterior.</string>
     <string name="export_category_conversations">Conversas e mensagens</string>
     <string name="export_category_memories">Memórias</string>
     <string name="export_category_system_prompts">Prompts do sistema</string>
@@ -758,7 +758,7 @@
 
     <string name="export_failed">Falha na exportação: %1$s</string>
     <string name="import_preview_title">Importar dados</string>
-    <string name="import_from">Exportado em %1$s\nDo Agora v%2$s</string>
+    <string name="import_from">Exportado em %1$s\nDo 橘子岛 v%2$s</string>
     <string name="import_strategy_merge">Mesclar</string>
     <string name="import_strategy_replace">Substituir</string>
     <string name="import_strategy_skip">Ignorar</string>
@@ -767,7 +767,7 @@
     <string name="importing_label">Importando…</string>
     <string name="import_success">Importação concluída: %1$s</string>
     <string name="import_failed">Falha na importação: %1$s</string>
-    <string name="import_invalid_file">Arquivo .agora inválido. Selecione uma exportação válida.</string>
+    <string name="import_invalid_file">Arquivo .oi inválido. Selecione uma exportação válida.</string>
     <string name="import_no_data">Este arquivo de exportação não contém dados importáveis.</string>
 
     <!-- Claude Chat Import -->
@@ -844,7 +844,7 @@
     <string name="show_documentation_links_desc">Exibir o botão de documentação nas páginas de configurações</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_welcome_title">Bem-vindo ao Agora</string>
+    <string name="onboarding_welcome_title">Bem-vindo ao 橘子岛</string>
     <string name="onboarding_welcome_desc">Um app BYOK que devolve a soberania sobre seus dados.</string>
     <string name="onboarding_byok_title">Use sua própria chave</string>
     <string name="onboarding_byok_desc">Configure suas chaves de API ou importe um modelo GGUF para desbloquear a inferência no dispositivo.</string>
@@ -929,11 +929,11 @@
     <string name="shell_confirm_setting_desc">Perguntar antes de o assistente executar comandos ou gravar arquivos em servidores SSH/Conch remotos</string>
 
     <!-- Crash reporting -->
-    <string name="crash_title">O Agora fechou inesperadamente</string>
+    <string name="crash_title">O 橘子岛 fechou inesperadamente</string>
     <string name="crash_message">Sentimos muito. Você pode ajudar a corrigir isso enviando um relatório de falha anônimo.</string>
     <string name="crash_submit">Enviar relatório</string>
     <string name="crash_dismiss">Não enviar</string>
-    <string name="crash_privacy_note">Apenas o registro da falha é enviado para newoether.space. Nenhuma outra informação é coletada.</string>
+    <string name="crash_privacy_note">Apenas o registro da falha é enviado para rating.orangeisland.app. Nenhuma outra informação é coletada.</string>
     <string name="crash_submitted">Relatório de falha enviado. Obrigado!</string>
     <string name="settings_group_network">Rede</string>
     <string name="settings_proxy">Proxy</string>

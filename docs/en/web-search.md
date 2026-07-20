@@ -18,7 +18,7 @@ Let the model search the internet and fetch web pages in real time. When enabled
 
 DuckDuckGo Lite is the **default** search provider — no API key required, works immediately.
 
-1. In Agora, go to **Settings → Web Search**
+1. In 橘子岛, go to **Settings → Web Search**
 2. Select **DuckDuckGo Lite** as the search provider
 3. No key or URL needed — start searching right away
 
@@ -28,28 +28,28 @@ DuckDuckGo Lite is the **default** search provider — no API key required, work
 ### Brave
 
 1. Get an API key from [Brave Search API](https://api.search.brave.com/)
-2. In Agora, go to **Settings → Web Search**
+2. In 橘子岛, go to **Settings → Web Search**
 3. Select **Brave** as the search provider
 4. Paste your API key
 
 ### Serper
 
 1. Get an API key from [serper.dev](https://serper.dev)
-2. In Agora, go to **Settings → Web Search**
+2. In 橘子岛, go to **Settings → Web Search**
 3. Select **Serper**
 4. Paste your API key
 
 ### Tavily
 
 1. Get an API key from [tavily.com](https://tavily.com)
-2. In Agora, go to **Settings → Web Search**
+2. In 橘子岛, go to **Settings → Web Search**
 3. Select **Tavily**
 4. Paste your API key
 
 ### SearXNG
 
 1. Set up a SearXNG instance (self-hosted) or use a public instance
-2. In Agora, go to **Settings → Web Search**
+2. In 橘子岛, go to **Settings → Web Search**
 3. Select **SearXNG**
 4. Enter your instance's **Base URL** (e.g., `https://searx.be`)
 5. API key is optional (only needed if your instance requires authentication)
@@ -106,6 +106,6 @@ Beyond search, the model can fetch and read specific web pages. When the model e
 
 When using web search:
 
-- Your queries go to the search provider (Brave, Serper, etc.), not to Agora
-- Agora does not log or store your search queries (except in the conversation itself)
+- Your queries go to the search provider (Brave, Serper, etc.), not to 橘子岛
+- 橘子岛 does not log or store your search queries (except in the conversation itself)
 - SearXNG self-hosting gives you the most privacy — queries stay on your infrastructure

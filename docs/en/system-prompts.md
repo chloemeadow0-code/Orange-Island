@@ -1,6 +1,6 @@
 # System Prompts
 
-System prompts define the model's persona, behavior, and ground rules. Agora gives you fine-grained control over how instructions are assembled and sent to the model.
+System prompts define the model's persona, behavior, and ground rules. 橘子岛 gives you fine-grained control over how instructions are assembled and sent to the model.
 
 ## Three-Section Editor
 
@@ -31,10 +31,10 @@ These wrap every message you send:
 - **User Prefix** — added before your message text. Useful for reminders or context tags.
 - **User Suffix** — added after your message text. Useful for closing instructions.
 
-**Example**: If your prefix is `[Context: working on Agora docs]` and suffix is `\n\nPlease reply in Markdown.`, the model receives:
+**Example**: If your prefix is `[Context: working on 橘子岛 docs]` and suffix is `\n\nPlease reply in Markdown.`, the model receives:
 
 ```text
-[Context: working on Agora docs]
+[Context: working on 橘子岛 docs]
 How do I configure web search?
 Please reply in Markdown.
 ```
@@ -43,7 +43,7 @@ Please reply in Markdown.
 
 ## Built-in Templates
 
-Agora ships with a library of ready-to-use prompt templates organized into 4 categories:
+橘子岛 ships with a library of ready-to-use prompt templates organized into 4 categories:
 
 | Category | Description | Example |
 |----------|-------------|---------|
@@ -138,7 +138,7 @@ To use no prompt, select **None** from the prompt list.
 
 ## Auto Title Generation
 
-Agora can automatically generate conversation titles after the first response:
+橘子岛 can automatically generate conversation titles after the first response:
 
 1. Go to **Settings → Title Generation**
 2. Enable **Auto-Generate Title**

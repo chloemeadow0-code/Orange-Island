@@ -1,6 +1,6 @@
 # Proveedores de API
 
-Agora se conecta directamente a proveedores de IA — sin intermediarios, sin suscripción, sin telemetría. Tú traes tus propias claves API y todo se ejecuta desde tu dispositivo.
+橘子岛 se conecta directamente a proveedores de IA — sin intermediarios, sin suscripción, sin telemetría. Tú traes tus propias claves API y todo se ejecuta desde tu dispositivo.
 
 ## Proveedores Integrados
 
@@ -48,7 +48,7 @@ Toca el botón de radio para establecer la clave activa. Mantén pulsada una cla
 ### Seguridad de las Claves
 
 !!! warning
-    Las claves API se almacenan localmente en una base de datos Room cifrada. Nunca se envían a servidores de Agora (no los hay). Sin embargo, se exportan en texto plano si las incluyes en un archivo de exportación `.agora`.
+    Las claves API se almacenan localmente en una base de datos Room cifrada. Nunca se envían a servidores de 橘子岛 (no los hay). Sin embargo, se exportan en texto plano si las incluyes en un archivo de exportación `.橘子岛`.
 
 ---
 
@@ -63,7 +63,7 @@ Añade cualquier endpoint de API compatible con OpenAI:
     - **URL Base** — el endpoint de la API
 4. Toca **Añadir**
 
-Agora obtiene la lista de modelos desde `{base_url}/v1/models`. Una vez añadidos, los proveedores personalizados funcionan exactamente como los integrados: añade claves API, sincroniza modelos y chatea.
+橘子岛 obtiene la lista de modelos desde `{base_url}/v1/models`. Una vez añadidos, los proveedores personalizados funcionan exactamente como los integrados: añade claves API, sincroniza modelos y chatea.
 
 ### Casos de Uso
 
@@ -96,7 +96,7 @@ Después de añadir claves API, sincroniza la lista de modelos:
 
 1. Ve a **Configuración → Modelos**
 2. Toca **Sincronizar de Todos los Proveedores**
-3. Agora obtiene los modelos disponibles de cada proveedor configurado
+3. 橘子岛 obtiene los modelos disponibles de cada proveedor configurado
 
 Un snackbar muestra el progreso y los resultados de la sincronización. Luego puedes habilitar/deshabilitar modelos individuales y establecer un predeterminado.
 

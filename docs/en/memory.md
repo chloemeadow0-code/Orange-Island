@@ -1,6 +1,6 @@
 # Memory & Cache
 
-Agora has a persistent memory system that lets the model remember information across conversations. Combined with automatic embedding-based caching, it provides a knowledge base that grows with your usage.
+橘子岛 has a persistent memory system that lets the model remember information across conversations. Combined with automatic embedding-based caching, it provides a knowledge base that grows with your usage.
 
 ## Memory Types
 
@@ -18,7 +18,7 @@ A single, always-on memory context that is included with **every API call** to t
 ```text
 User: Newo Ether
 Preferences: Prefers Chinese for casual chat, English for technical topics.
-Project: Building Agora — a BYOK Android LLM client.
+Project: Building 橘子岛 — a BYOK Android LLM client.
 Coding style: Kotlin, Jetpack Compose, MVVM architecture.
 ```
 

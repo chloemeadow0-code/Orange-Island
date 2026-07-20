@@ -1,6 +1,6 @@
 # System-Prompts
 
-System-Prompts definieren die Persona, das Verhalten und die Grundregeln des Modells. Agora gibt Ihnen feinkörnige Kontrolle darüber, wie Anweisungen zusammengestellt und an das Modell gesendet werden.
+System-Prompts definieren die Persona, das Verhalten und die Grundregeln des Modells. 橘子岛 gibt Ihnen feinkörnige Kontrolle darüber, wie Anweisungen zusammengestellt und an das Modell gesendet werden.
 
 ## Drei-Abschnitts-Editor
 
@@ -31,10 +31,10 @@ Diese umschließen jede von Ihnen gesendete Nachricht:
 - **Benutzer-Präfix** — vor Ihrem Nachrichtentext hinzugefügt. Nützlich für Erinnerungen oder Kontext-Tags.
 - **Benutzer-Suffix** — nach Ihrem Nachrichtentext hinzugefügt. Nützlich für abschließende Anweisungen.
 
-**Beispiel**: Wenn Ihr Präfix `[Kontext: Arbeite an Agora-Dokumentation]` und Suffix `\n\nBitte antworte in Markdown.` ist, erhält das Modell:
+**Beispiel**: Wenn Ihr Präfix `[Kontext: Arbeite an 橘子岛-Dokumentation]` und Suffix `\n\nBitte antworte in Markdown.` ist, erhält das Modell:
 
 ```text
-[Kontext: Arbeite an Agora-Dokumentation]
+[Kontext: Arbeite an 橘子岛-Dokumentation]
 Wie konfiguriere ich die Websuche?
 Bitte antworte in Markdown.
 ```
@@ -123,7 +123,7 @@ Um keinen Prompt zu verwenden, wählen Sie **Keiner** aus der Prompt-Liste.
 
 ## Automatische Titelgenerierung
 
-Agora kann nach der ersten Antwort automatisch Konversationstitel generieren:
+橘子岛 kann nach der ersten Antwort automatisch Konversationstitel generieren:
 
 1. Gehen Sie zu **Einstellungen → Titelgenerierung**
 2. Aktivieren Sie **Titel automatisch generieren**

@@ -1,6 +1,6 @@
 # Apariencia
 
-Personaliza el aspecto de Agora — modo de tema, esquema de color y estilo.
+Personaliza el aspecto de 橘子岛 — modo de tema, esquema de color y estilo.
 
 ## Modo de Tema
 
@@ -59,7 +59,7 @@ Activa **Habilitar Efectos de Desenfoque** para controlar el desenfoque de fondo
 
 ## Color Dinámico (Android 12+)
 
-Cuando está activado en dispositivos con Android 12 o superior, Agora extrae una paleta de colores de tu fondo de pantalla del sistema y la aplica automáticamente.
+Cuando está activado en dispositivos con Android 12 o superior, 橘子岛 extrae una paleta de colores de tu fondo de pantalla del sistema y la aplica automáticamente.
 
 Esto anula la selección manual de **Esquema de Color**. Desactívalo para usar un esquema personalizado.
 

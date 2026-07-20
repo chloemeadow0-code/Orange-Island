@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Agora</string>
-    <string name="agora_responded">Agora が応答しました</string>
+    <string name="app_name">橘子岛</string>
+    <string name="oi_responded">橘子岛 が応答しました</string>
 
     <!-- Chat Bottom Bar -->
     <string name="add_attachment">添付を追加</string>
@@ -17,7 +17,7 @@
     <string name="google_search">Google 検索</string>
     <string name="thinking">思考</string>
     <string name="web_search">ウェブ検索</string>
-    <string name="ask_agora">Agora に何でも質問...</string>
+    <string name="ask_orange_island">橘子岛 に何でも質問...</string>
     <string name="send">送信</string>
 
     <!-- Tool Display -->
@@ -238,7 +238,7 @@
     <string name="prompts_template_blank">空白</string>
     <string name="prompts_template_blank_desc">空の編集可能なシステムプロンプトから始めます。</string>
     <string name="prompts_template_default">デフォルト</string>
-    <string name="prompts_template_default_desc">ランタイムコンテキスト、メモリ、Web 検索、シェル、デバイスファイルアクセスのルールを含む Agora のデフォルトプロンプトを使用します。</string>
+    <string name="prompts_template_default_desc">ランタイムコンテキスト、メモリ、Web 検索、シェル、デバイスファイルアクセスのルールを含む 橘子岛 のデフォルトプロンプトを使用します。</string>
     <string name="prompts_duplicate">複製</string>
     <string name="prompts_duplicate_title">%1$s のコピー</string>
     <string name="prompts_empty_preview">空のプロンプト</string>
@@ -648,9 +648,9 @@
     <string name="play">再生</string>
     <string name="video_preview">動画のプレビュー</string>
     <string name="total_tokens">合計: %1$d トークン</string>
-    <string name="welcome_to_agora">Agora へようこそ。</string>
+    <string name="welcome_to_orange_island">橘子岛 へようこそ。</string>
     <string name="database_incompatible">データベースが非互換です</string>
-    <string name="database_incompatible_desc">データベースはこのバージョンの Agora と互換性がありません。データベースを消去してアプリを再起動してください。</string>
+    <string name="database_incompatible_desc">データベースはこのバージョンの 橘子岛 と互換性がありません。データベースを消去してアプリを再起動してください。</string>
     <string name="quit">終了</string>
     <string name="clear_database">データベースを消去</string>
     <string name="generate_title">タイトルを生成</string>
@@ -725,10 +725,10 @@
     <string name="about_update_available">アップデートが利用可能: v%1$s</string>
     <string name="about_up_to_date">最新の状態です（v%1$s）</string>
     <string name="about_checking">確認中...</string>
-    <string name="about_available_body">Agora の新しいバージョンが GitHub で利用可能です。</string>
+    <string name="about_available_body">橘子岛 の新しいバージョンが GitHub で利用可能です。</string>
     <string name="about_view_release">リリースを表示</string>
     <string name="about_later">後で</string>
-    <string name="rating_title">Agora を評価</string>
+    <string name="rating_title">橘子岛 を評価</string>
     <string name="rating_star">%1$d 個の星</string>
     <string name="rating_your_name">お名前（任意）</string>
     <string name="rating_your_email">メールアドレス（任意）</string>
@@ -737,7 +737,7 @@
     <string name="rating_submitting">送信中…</string>
     <string name="rating_success">フィードバックありがとうございます!</string>
     <string name="rating_failed">送信に失敗しました。もう一度お試しください。</string>
-    <string name="rating_privacy">評価は匿名で newoether.space にアップロードされます。入力した項目のみが送信されます。それ以外のデータは収集されません。</string>
+    <string name="rating_privacy">評価は匿名で rating.orangeisland.app にアップロードされます。入力した項目のみが送信されます。それ以外のデータは収集されません。</string>
 
     <!-- Data Control -->
     <string name="settings_data_control">データ管理</string>
@@ -745,7 +745,7 @@
     <string name="data_export_title">データをエクスポート</string>
     <string name="data_export_subtitle">会話、メモリ、プロンプト、設定をファイルに保存します。</string>
     <string name="data_import_title">データをインポート</string>
-    <string name="data_import_subtitle">以前の .agora エクスポートファイルから復元します。</string>
+    <string name="data_import_subtitle">以前の .oi エクスポートファイルから復元します。</string>
     <string name="export_category_conversations">会話とメッセージ</string>
     <string name="export_category_memories">メモリ</string>
     <string name="export_category_system_prompts">システムプロンプト</string>
@@ -758,7 +758,7 @@
 
     <string name="export_failed">エクスポートに失敗しました: %1$s</string>
     <string name="import_preview_title">データをインポート</string>
-    <string name="import_from">%1$s にエクスポート\nAgora v%2$s から</string>
+    <string name="import_from">%1$s にエクスポート\n橘子岛 v%2$s から</string>
     <string name="import_strategy_merge">マージ</string>
     <string name="import_strategy_replace">置換</string>
     <string name="import_strategy_skip">スキップ</string>
@@ -767,7 +767,7 @@
     <string name="importing_label">インポート中…</string>
     <string name="import_success">インポートが完了しました: %1$s</string>
     <string name="import_failed">インポートに失敗しました: %1$s</string>
-    <string name="import_invalid_file">無効な .agora ファイルです。有効なエクスポートを選択してください。</string>
+    <string name="import_invalid_file">無効な .oi ファイルです。有効なエクスポートを選択してください。</string>
     <string name="import_no_data">このエクスポートファイルにはインポート可能なデータがありません。</string>
 
     <!-- Claude Chat Import -->
@@ -844,7 +844,7 @@
     <string name="show_documentation_links_desc">設定ページにドキュメントボタンを表示</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_welcome_title">Agora へようこそ</string>
+    <string name="onboarding_welcome_title">橘子岛 へようこそ</string>
     <string name="onboarding_welcome_desc">データの主権を取り戻す BYOK アプリ。</string>
     <string name="onboarding_byok_title">自分のキーを使う</string>
     <string name="onboarding_byok_desc">API キーを設定するか GGUF モデルをインポートして、オンデバイス推論を利用しましょう。</string>
@@ -929,11 +929,11 @@
     <string name="shell_confirm_setting_desc">アシスタントがリモートの SSH/Conch サーバーでコマンドを実行したりファイルを書き込んだりする前に確認する</string>
 
     <!-- Crash reporting -->
-    <string name="crash_title">Agora が予期せず終了しました</string>
+    <string name="crash_title">橘子岛 が予期せず終了しました</string>
     <string name="crash_message">申し訳ありません。匿名のクラッシュレポートを送信して修正にご協力いただけます。</string>
     <string name="crash_submit">レポートを送信</string>
     <string name="crash_dismiss">送信しない</string>
-    <string name="crash_privacy_note">クラッシュログのみが newoether.space に送信されます。それ以外の情報は収集されません。</string>
+    <string name="crash_privacy_note">クラッシュログのみが rating.orangeisland.app に送信されます。それ以外の情報は収集されません。</string>
     <string name="crash_submitted">クラッシュレポートを送信しました。ありがとうございます!</string>
     <string name="settings_group_network">ネットワーク</string>
     <string name="settings_proxy">プロキシ</string>

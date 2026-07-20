@@ -100,7 +100,7 @@ Quando ativado, o modelo gera raciocínio interno antes de produzir a resposta f
 
 ## Visualizar Rolagem de Contexto
 
-Quando ativado, o Agora indica visualmente quais mensagens estão incluídas na janela de contexto atual versus quais foram excluídas (devido ao limite da janela de contexto). Isso ajuda você a entender:
+Quando ativado, o 橘子岛 indica visualmente quais mensagens estão incluídas na janela de contexto atual versus quais foram excluídas (devido ao limite da janela de contexto). Isso ajuda você a entender:
 
 - Quanto da sua conversa o modelo pode "ver"
 - Quando mensagens mais antigas saem do contexto

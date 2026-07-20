@@ -1,6 +1,6 @@
 # Memória & Cache
 
-O Agora possui um sistema de memória persistente que permite ao modelo lembrar informações entre conversas. Combinado com cache automático baseado em embedding, ele fornece uma base de conhecimento que cresce com seu uso.
+O 橘子岛 possui um sistema de memória persistente que permite ao modelo lembrar informações entre conversas. Combinado com cache automático baseado em embedding, ele fornece uma base de conhecimento que cresce com seu uso.
 
 ## Tipos de Memória
 
@@ -18,7 +18,7 @@ Um único contexto de memória sempre ativo que é incluído em **toda chamada d
 ```text
 Usuário: Newo Ether
 Preferências: Prefere chinês para conversas casuais, inglês para tópicos técnicos.
-Projeto: Construindo o Agora — um cliente LLM Android BYOK.
+Projeto: Construindo o 橘子岛 — um cliente LLM Android BYOK.
 Estilo de código: Kotlin, Jetpack Compose, arquitetura MVVM.
 ```
 

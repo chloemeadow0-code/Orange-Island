@@ -1,6 +1,6 @@
-# Agora Benutzerhandbuch
+# 橘子岛 Benutzerhandbuch
 
-Willkommen zum Agora Benutzerhandbuch. Agora ist ein BYOK (Bring Your Own Key) LLM-Client für Android mit Multi-Provider-Zugriff, nicht-linearen verzweigten Konversationen, agentischem Tool-Aufruf, Bildgenerierung und Fernsteuerung von Geräten.
+Willkommen zum 橘子岛 Benutzerhandbuch. 橘子岛 ist ein BYOK (Bring Your Own Key) LLM-Client für Android mit Multi-Provider-Zugriff, nicht-linearen verzweigten Konversationen, agentischem Tool-Aufruf, Bildgenerierung und Fernsteuerung von Geräten.
 
 ## Schnelllinks
 
@@ -38,19 +38,19 @@ Willkommen zum Agora Benutzerhandbuch. Agora ist ein BYOK (Bring Your Own Key) L
 
 - **[Lokale Modelle](local-model.md)** — GGUF-Modelle auf dem Gerät via llama.cpp ausführen
 - **[PDF-Import](pdf-import.md)** — PDF-Seiten extrahieren und an Vision-Modelle senden
-- **[Datenportabilität](import-export.md)** — .agora-Dateien exportieren/importieren, automatische Sicherung, Import von Claude und ChatGPT
+- **[Datenportabilität](import-export.md)** — .橘子岛-Dateien exportieren/importieren, automatische Sicherung, Import von Claude und ChatGPT
 - **[Sprache](language.md)** — zwischen Englisch, Chinesisch, Traditionellem Chinesisch oder Systemstandard wechseln
 - **[Über](about.md)** — Versionsinfo, Updates, Dokumentationsschalter, Links, Bewertung
 
 ---
 
-## Über Agora
+## Über 橘子岛
 
-Agora ist ein BYOK Android-Client für KI-Power-User:
+橘子岛 ist ein BYOK Android-Client für KI-Power-User:
 
 - **Keine Mittelsmänner**: Direkte API-Verbindungen, keine Telemetrie, kein Tracking
 - **Lokale Speicherung**: Alles lebt lokal in einer Room-Datenbank
 - **Nicht-lineare Konversationen**: Jede vergangene Nachricht bearbeiten und alternative Zweige erkunden
 - **Standardmäßig agentisch**: Mehrstufige Tool-Aufrufe mit Websuche, Bildgenerierung, Code-Ausführung, Shell, Dateioperationen und Speicher
 - **Fernsteuerung**: Server über das verschlüsselte Conch-Protokoll verwalten
-- **Open Source**: MIT-lizenziert, [Quellcode auf GitHub](https://github.com/newo-ether/Agora)
+- **Open Source**: MIT-lizenziert, [Quellcode auf GitHub](https://github.com/orangeisland/app)

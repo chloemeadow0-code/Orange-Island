@@ -1,13 +1,13 @@
 # Importação de PDF
 
-O Agora pode extrair e enviar páginas selecionadas de arquivos PDF como imagens para modelos com capacidade de visão.
+O 橘子岛 pode extrair e enviar páginas selecionadas de arquivos PDF como imagens para modelos com capacidade de visão.
 
 ## Como Funciona
 
 1. Anexe um arquivo PDF no chat
 2. Um diálogo é aberto mostrando todas as páginas como miniaturas
 3. Selecione quais páginas enviar
-4. Confirme — o Agora extrai as páginas como imagens e as envia ao modelo
+4. Confirme — o 橘子岛 extrai as páginas como imagens e as envia ao modelo
 
 O modelo recebe as páginas como entrada de visão, permitindo que ele leia e analise o conteúdo do PDF.
 
@@ -40,7 +40,7 @@ A pré-visualização permite inspecionar páginas antes de decidir quais enviar
 
 ## Enviando Páginas
 
-Após selecionar as páginas, toque no botão de confirmação. O Agora:
+Após selecionar as páginas, toque no botão de confirmação. O 橘子岛:
 
 1. Renderiza cada página PDF selecionada como uma imagem de alta resolução
 2. Anexa as imagens à sua mensagem

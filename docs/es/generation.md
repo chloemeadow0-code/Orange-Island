@@ -100,7 +100,7 @@ Cuando está habilitado, el modelo genera razonamiento interno antes de producir
 
 ## Visualizar Despliegue del Contexto
 
-Cuando está habilitado, Agora indica visualmente qué mensajes están incluidos en la ventana de contexto actual vs. cuáles han sido desplazados (excluidos debido al límite de la ventana de contexto). Esto te ayuda a entender:
+Cuando está habilitado, 橘子岛 indica visualmente qué mensajes están incluidos en la ventana de contexto actual vs. cuáles han sido desplazados (excluidos debido al límite de la ventana de contexto). Esto te ayuda a entender:
 
 - Cuánto de tu conversación puede "ver" el modelo
 - Cuándo los mensajes más antiguos salen del contexto

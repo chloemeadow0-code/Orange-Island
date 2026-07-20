@@ -1,6 +1,6 @@
 # API-Provider
 
-Agora verbindet sich direkt mit KI-Providern — kein Mittelsmann, kein Abonnement, keine Telemetrie. Sie bringen Ihre eigenen API-Keys mit und alles läuft von Ihrem Gerät aus.
+橘子岛 verbindet sich direkt mit KI-Providern — kein Mittelsmann, kein Abonnement, keine Telemetrie. Sie bringen Ihre eigenen API-Keys mit und alles läuft von Ihrem Gerät aus.
 
 ## Integrierte Provider
 
@@ -48,7 +48,7 @@ Tippen Sie auf den Radio-Button, um den aktiven Key festzulegen. Langer Druck au
 ### Key-Sicherheit
 
 !!! warning
-    API-Keys werden lokal in einer verschlüsselten Room-Datenbank gespeichert. Sie werden niemals an Agora-Server gesendet (es gibt keine). Sie werden jedoch im Klartext exportiert, wenn Sie sie in eine `.agora`-Exportdatei einschließen.
+    API-Keys werden lokal in einer verschlüsselten Room-Datenbank gespeichert. Sie werden niemals an 橘子岛-Server gesendet (es gibt keine). Sie werden jedoch im Klartext exportiert, wenn Sie sie in eine `.橘子岛`-Exportdatei einschließen.
 
 ---
 
@@ -63,7 +63,7 @@ Fügen Sie jeden OpenAI-kompatiblen API-Endpunkt hinzu:
     - **Basis-URL** — der API-Endpunkt
 4. Tippen Sie auf **Hinzufügen**
 
-Agora ruft die Modellliste von `{base_url}/v1/models` ab. Einmal hinzugefügt, funktionieren benutzerdefinierte Provider genauso wie integrierte: API-Keys hinzufügen, Modelle synchronisieren und chatten.
+橘子岛 ruft die Modellliste von `{base_url}/v1/models` ab. Einmal hinzugefügt, funktionieren benutzerdefinierte Provider genauso wie integrierte: API-Keys hinzufügen, Modelle synchronisieren und chatten.
 
 ### Anwendungsfälle
 
@@ -96,7 +96,7 @@ Nach dem Hinzufügen von API-Keys synchronisieren Sie die Modellliste:
 
 1. Gehen Sie zu **Einstellungen → Modelle**
 2. Tippen Sie auf **Von allen Providern synchronisieren**
-3. Agora ruft verfügbare Modelle von jedem konfigurierten Provider ab
+3. 橘子岛 ruft verfügbare Modelle von jedem konfigurierten Provider ab
 
 Eine Snackbar zeigt den Synchronisierungsfortschritt und die Ergebnisse an. Sie können dann einzelne Modelle aktivieren/deaktivieren und ein Standardmodell festlegen.
 

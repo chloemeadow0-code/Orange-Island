@@ -1,20 +1,20 @@
 # 시작하기
 
-이 가이드는 Agora 설치, 첫 API 키 추가, 첫 메시지 전송 과정을 안내합니다.
+이 가이드는 橘子岛 설치, 첫 API 키 추가, 첫 메시지 전송 과정을 안내합니다.
 
 ## 설치
 
 ### F-Droid에서 (권장)
 
-Agora는 오픈 소스 Android 앱 스토어인 F-Droid에서 이용 가능합니다.
+橘子岛는 오픈 소스 Android 앱 스토어인 F-Droid에서 이용 가능합니다.
 
 1. 기기에 [F-Droid](https://f-droid.org/) 설치
-2. F-Droid를 열고 **Agora** 검색
+2. F-Droid를 열고 **橘子岛** 검색
 3. **설치** 탭
 
 ### GitHub 릴리스에서
 
-1. [릴리스 페이지](https://github.com/newo-ether/Agora/releases) 방문
+1. [릴리스 페이지](https://github.com/orangeisland/app/releases) 방문
 2. 최신 `.apk` 파일 다운로드
 3. 기기에서 파일을 열고 설치 확인
 
@@ -24,7 +24,7 @@ Agora는 오픈 소스 Android 앱 스토어인 F-Droid에서 이용 가능합�
 
 1. 저장소 클론:
    ```
-   git clone https://github.com/newo-ether/Agora.git
+   git clone https://github.com/orangeisland/app.git
    ```
 2. [Android Studio](https://developer.android.com/studio) (Ladybug 이상)에서 프로젝트 열기
 3. Gradle 동기화 및 빌드
@@ -35,7 +35,7 @@ Agora는 오픈 소스 Android 앱 스토어인 F-Droid에서 이용 가능합�
 
 ## 첫 실행
 
-Agora를 처음 열면 텍스트 입력이 있는 환영 화면이 표시됩니다. 채팅하기 전에 프로바이더와 API 키를 구성해야 합니다.
+橘子岛를 처음 열면 텍스트 입력이 있는 환영 화면이 표시됩니다. 채팅하기 전에 프로바이더와 API 키를 구성해야 합니다.
 
 ### 1단계: API 키 추가
 
@@ -59,7 +59,7 @@ Agora를 처음 열면 텍스트 입력이 있는 환영 화면이 표시됩니�
 
 1. 설정으로 돌아가서 **모델** 탭 (**서비스** 아래)
 2. **모든 프로바이더에서 동기화** 탭
-3. Agora가 구성된 모든 프로바이더의 최신 모델 목록을 가져옵니다
+3. 橘子岛가 구성된 모든 프로바이더의 최신 모델 목록을 가져옵니다
 4. 동기화 후, 모델을 탭하여 **기본 모델**로 설정
 
 ### 3단계: 첫 메시지 보내기
@@ -74,7 +74,7 @@ Agora를 처음 열면 텍스트 입력이 있는 환영 화면이 표시됩니�
 
 ## 앱 레이아웃
 
-Agora는 채팅 화면을 중심으로 한 깔끔한 레이아웃을 제공합니다:
+橘子岛는 채팅 화면을 중심으로 한 깔끔한 레이아웃을 제공합니다:
 
 ### 상단 바
 

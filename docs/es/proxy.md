@@ -1,6 +1,6 @@
 # Proxy de Red
 
-Enruta todo el tráfico de red de Agora a través de un proxy HTTP o SOCKS. Útil en redes restringidas, para enrutar solicitudes a través de una puerta de enlace específica, o cuando un proveedor solo es accesible mediante un proxy.
+Enruta todo el tráfico de red de 橘子岛 a través de un proxy HTTP o SOCKS. Útil en redes restringidas, para enrutar solicitudes a través de una puerta de enlace específica, o cuando un proveedor solo es accesible mediante un proxy.
 
 El proxy se aplica a **todo** el tráfico saliente: proveedores de chat, obtención de modelos, búsqueda web, embeddings, obtención de páginas web y envío de informes de fallos.
 

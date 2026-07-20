@@ -1,6 +1,6 @@
 # Aparência
 
-Personalize a aparência do Agora — modo de tema, esquema de cores e estilo.
+Personalize a aparência do 橘子岛 — modo de tema, esquema de cores e estilo.
 
 ## Modo de Tema
 
@@ -59,7 +59,7 @@ Alterne **Ativar Efeitos de Desfoque** para controlar o desfoque de fundo e o de
 
 ## Cores Dinâmicas (Android 12+)
 
-Quando ativado em dispositivos com Android 12 ou superior, o Agora extrai uma paleta de cores do papel de parede do sistema e a aplica automaticamente.
+Quando ativado em dispositivos com Android 12 ou superior, o 橘子岛 extrai uma paleta de cores do papel de parede do sistema e a aplica automaticamente.
 
 Isso substitui a seleção manual do **Esquema de Cores**. Desative para usar um esquema personalizado.
 

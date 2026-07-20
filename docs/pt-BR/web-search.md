@@ -18,9 +18,9 @@ Permita que o modelo pesquise na internet e busque páginas da web em tempo real
 
 DuckDuckGo Lite é o provedor de busca **padrão** — sem necessidade de chave de API, funciona imediatamente.
 
-1. No Agora, vá em **Configurações → Busca na Web**
+1. No 橘子岛, vá em **Configurações → Busca na Web**
 2. Selecione **DuckDuckGo Lite** como provedor de busca
-3. Nenhuma chave ou URL necessária — comece a buscar agora mesmo
+3. Nenhuma chave ou URL necessária — comece a buscar 橘子岛 mesmo
 
 !!! note "Serviço de melhor esforço"
     DuckDuckGo Lite usa raspagem HTML do `lite.duckduckgo.com`. O DDG pode alterar seu layout, limitar a taxa ou bloquear requisições automatizadas. Ele é fornecido como uma opção explicitamente de melhor esforço e sem chave. Se você precisa de confiabilidade, configure um dos provedores baseados em API abaixo.
@@ -28,28 +28,28 @@ DuckDuckGo Lite é o provedor de busca **padrão** — sem necessidade de chave 
 ### Brave
 
 1. Obtenha uma chave de API em [Brave Search API](https://api.search.brave.com/)
-2. No Agora, vá em **Configurações → Busca na Web**
+2. No 橘子岛, vá em **Configurações → Busca na Web**
 3. Selecione **Brave** como provedor de busca
 4. Cole sua chave de API
 
 ### Serper
 
 1. Obtenha uma chave de API em [serper.dev](https://serper.dev)
-2. No Agora, vá em **Configurações → Busca na Web**
+2. No 橘子岛, vá em **Configurações → Busca na Web**
 3. Selecione **Serper**
 4. Cole sua chave de API
 
 ### Tavily
 
 1. Obtenha uma chave de API em [tavily.com](https://tavily.com)
-2. No Agora, vá em **Configurações → Busca na Web**
+2. No 橘子岛, vá em **Configurações → Busca na Web**
 3. Selecione **Tavily**
 4. Cole sua chave de API
 
 ### SearXNG
 
 1. Configure uma instância SearXNG (auto-hospedada) ou use uma instância pública
-2. No Agora, vá em **Configurações → Busca na Web**
+2. No 橘子岛, vá em **Configurações → Busca na Web**
 3. Selecione **SearXNG**
 4. Insira a **URL Base** da sua instância (ex.: `https://searx.be`)
 5. A chave de API é opcional (necessária apenas se sua instância exigir autenticação)
@@ -106,6 +106,6 @@ Além da busca, o modelo pode buscar e ler páginas web específicas. Quando o m
 
 Ao usar a busca na web:
 
-- Suas consultas vão para o provedor de busca (Brave, Serper, etc.), não para o Agora
-- O Agora não registra nem armazena suas consultas de busca (exceto na própria conversa)
+- Suas consultas vão para o provedor de busca (Brave, Serper, etc.), não para o 橘子岛
+- O 橘子岛 não registra nem armazena suas consultas de busca (exceto na própria conversa)
 - A auto-hospedagem com SearXNG oferece a maior privacidade — as consultas permanecem na sua infraestrutura

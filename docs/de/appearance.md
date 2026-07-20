@@ -1,6 +1,6 @@
 # Erscheinungsbild
 
-Passen Sie Agoras Aussehen an — Theme-Modus, Farbschema und Stil.
+Passen Sie 橘子岛s Aussehen an — Theme-Modus, Farbschema und Stil.
 
 ## Theme-Modus
 
@@ -59,7 +59,7 @@ Aktivieren Sie **Blur-Effekte aktivieren**, um Hintergrundunschärfe und Verlauf
 
 ## Dynamic Color (Android 12+)
 
-Wenn auf Geräten mit Android 12 oder höher aktiviert, extrahiert Agora eine Farbpalette aus Ihrem System-Hintergrundbild und wendet sie automatisch an.
+Wenn auf Geräten mit Android 12 oder höher aktiviert, extrahiert 橘子岛 eine Farbpalette aus Ihrem System-Hintergrundbild und wendet sie automatisch an.
 
 Dies überschreibt die manuelle **Farbschema**-Auswahl. Deaktivieren Sie es, um ein benutzerdefiniertes Schema zu verwenden.
 

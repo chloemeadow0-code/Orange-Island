@@ -21,5 +21,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Agora"
+rootProject.name = "OrangeIsland"
 include(":app")

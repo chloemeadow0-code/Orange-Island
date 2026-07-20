@@ -1,6 +1,6 @@
-# Manual do Usuário do Agora
+# Manual do Usuário do 橘子岛
 
-Bem-vindo ao manual do usuário do Agora. O Agora é um cliente LLM BYOK (Bring Your Own Key) para Android com acesso a múltiplos provedores, conversas com ramificação não linear, chamada de ferramentas agênticas e controle remoto de dispositivos.
+Bem-vindo ao manual do usuário do 橘子岛. O 橘子岛 é um cliente LLM BYOK (Bring Your Own Key) para Android com acesso a múltiplos provedores, conversas com ramificação não linear, chamada de ferramentas agênticas e controle remoto de dispositivos.
 
 ## Links Rápidos
 
@@ -38,19 +38,19 @@ Bem-vindo ao manual do usuário do Agora. O Agora é um cliente LLM BYOK (Bring 
 
 - **[Modelos Locais](local-model.md)** — execute modelos GGUF no dispositivo via llama.cpp
 - **[Importação de PDF](pdf-import.md)** — extraia e envie páginas de PDF para modelos de visão
-- **[Portabilidade de Dados](import-export.md)** — exporte/importe arquivos .agora, backup automático, importe do Claude e ChatGPT
+- **[Portabilidade de Dados](import-export.md)** — exporte/importe arquivos .橘子岛, backup automático, importe do Claude e ChatGPT
 - **[Idioma](language.md)** — alterne entre English, 中文, 繁體中文 ou padrão do sistema
 - **[Sobre](about.md)** — informações da versão, atualizações, opções de documentação, links, avaliação
 
 ---
 
-## Sobre o Agora
+## Sobre o 橘子岛
 
-O Agora é um cliente Android BYOK para usuários avançados de IA:
+O 橘子岛 é um cliente Android BYOK para usuários avançados de IA:
 
 - **Sem intermediários**: Conexões diretas à API, sem telemetria, sem rastreamento
 - **Armazenamento no dispositivo**: Tudo vive localmente em um banco de dados Room
 - **Conversas não lineares**: Edite qualquer mensagem passada e explore ramificações alternativas
 - **Agêntico por padrão**: Chamada de ferramentas em múltiplas rodadas com busca na web, execução shell, operações de arquivo e memória
 - **Controle remoto**: Gerencie servidores via o protocolo criptografado Conch
-- **Código aberto**: Licenciado sob MIT, [código fonte no GitHub](https://github.com/newo-ether/Agora)
+- **Código aberto**: Licenciado sob MIT, [código fonte no GitHub](https://github.com/orangeisland/app)

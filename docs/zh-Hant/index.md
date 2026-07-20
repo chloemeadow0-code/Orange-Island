@@ -1,6 +1,6 @@
-# Agora 使用手冊
+# 橘子岛 使用手冊
 
-歡迎來到 Agora 使用手冊。Agora 是一款 Android 的 BYOK（自帶金鑰）LLM 客戶端，支援多提供者存取、非線性分支對話、代理工具呼叫以及遠端裝置控制。
+歡迎來到 橘子岛 使用手冊。橘子岛 是一款 Android 的 BYOK（自帶金鑰）LLM 客戶端，支援多提供者存取、非線性分支對話、代理工具呼叫以及遠端裝置控制。
 
 ## 快速連結
 
@@ -38,19 +38,19 @@
 
 - **[本地模型](local-model.md)** — 透過 llama.cpp 在裝置上執行 GGUF 模型
 - **[PDF 匯入](pdf-import.md)** — 擷取 PDF 頁面並傳送給視覺模型
-- **[資料可攜性](import-export.md)** — 匯出/匯入 .agora 檔案、自動備份、從 Claude 和 ChatGPT 匯入
+- **[資料可攜性](import-export.md)** — 匯出/匯入 .橘子岛 檔案、自動備份、從 Claude 和 ChatGPT 匯入
 - **[語言](language.md)** — 在 English、中文、繁體中文或系統預設值之間切換
 - **[關於](about.md)** — 版本資訊、更新、文件開關、連結、評分
 
 ---
 
-## 關於 Agora
+## 關於 橘子岛
 
-Agora 是一款面向 AI 進階使用者的 BYOK Android 客戶端：
+橘子岛 是一款面向 AI 進階使用者的 BYOK Android 客戶端：
 
 - **無中介層**：直接 API 連線，無遙測，無追蹤
 - **裝置端儲存**：所有資料均存放於本地的 Room 資料庫中
 - **非線性對話**：編輯任何過往訊息，探索替代分支
 - **預設代理**：多輪工具呼叫，支援網頁搜尋、圖片生成、程式碼執行、Shell、檔案操作與記憶體
 - **遠端控制**：透過加密的 Conch 協定管理伺服器
-- **開放原始碼**：MIT 授權，[原始碼於 GitHub](https://github.com/newo-ether/Agora)
+- **開放原始碼**：MIT 授權，[原始碼於 GitHub](https://github.com/orangeisland/app)

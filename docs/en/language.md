@@ -1,6 +1,6 @@
 # Language
 
-Choose the display language for Agora's interface.
+Choose the display language for 橘子岛's interface.
 
 ## Available Languages
 
@@ -18,4 +18,4 @@ Choose the display language for Agora's interface.
 3. A snackbar appears: tap **Restart** to apply the change immediately
 
 !!! note "Restart Required"
-    Language changes require a full app restart. Agora prompts you to restart after selecting a new language — tap the restart action in the snackbar to reload the app with the new language.
+    Language changes require a full app restart. 橘子岛 prompts you to restart after selecting a new language — tap the restart action in the snackbar to reload the app with the new language.

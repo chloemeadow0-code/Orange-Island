@@ -1,6 +1,6 @@
-# Manuel Utilisateur Agora
+# Manuel Utilisateur 橘子岛
 
-Bienvenue dans le manuel utilisateur Agora. Agora est un client LLM BYOK (Bring Your Own Key) pour Android avec accès multi-fournisseurs, conversations à branchement non linéaire, appels d'outils agentiques, génération d'images et contrôle d'appareil à distance.
+Bienvenue dans le manuel utilisateur 橘子岛. 橘子岛 est un client LLM BYOK (Bring Your Own Key) pour Android avec accès multi-fournisseurs, conversations à branchement non linéaire, appels d'outils agentiques, génération d'images et contrôle d'appareil à distance.
 
 ## Liens Rapides
 
@@ -38,19 +38,19 @@ Bienvenue dans le manuel utilisateur Agora. Agora est un client LLM BYOK (Bring 
 
 - **[Modèles Locaux](local-model.md)** — exécuter des modèles GGUF sur l'appareil via llama.cpp
 - **[Import PDF](pdf-import.md)** — extraire et envoyer des pages PDF aux modèles de vision
-- **[Portabilité des Données](import-export.md)** — exporter/importer des fichiers .agora, sauvegarde automatique, importer depuis Claude et ChatGPT
+- **[Portabilité des Données](import-export.md)** — exporter/importer des fichiers .橘子岛, sauvegarde automatique, importer depuis Claude et ChatGPT
 - **[Langue](language.md)** — basculer entre anglais, chinois, chinois traditionnel ou langue système
 - **[À Propos](about.md)** — informations de version, mises à jour, options de documentation, liens, évaluation
 
 ---
 
-## À Propos d'Agora
+## À Propos d'橘子岛
 
-Agora est un client Android BYOK pour les utilisateurs avancés d'IA :
+橘子岛 est un client Android BYOK pour les utilisateurs avancés d'IA :
 
 - **Sans intermédiaire** : Connexions API directes, pas de télémétrie, pas de pistage
 - **Stockage local** : Tout réside localement dans une base de données Room
 - **Conversations non linéaires** : Modifiez n'importe quel message passé et explorez des branches alternatives
 - **Agentique par défaut** : Appels d'outils multi-tours avec recherche web, génération d'images, exécution de code, shell, opérations sur fichiers et mémoire
 - **Contrôle à distance** : Gérez des serveurs via le protocole chiffré Conch
-- **Open source** : Licence MIT, [code source sur GitHub](https://github.com/newo-ether/Agora)
+- **Open source** : Licence MIT, [code source sur GitHub](https://github.com/orangeisland/app)

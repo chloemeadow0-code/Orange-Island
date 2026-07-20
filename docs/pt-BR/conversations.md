@@ -1,6 +1,6 @@
 # Conversas
 
-O sistema de conversas do Agora é construído em torno de **ramificação não linear** — diferente da maioria dos aplicativos de chat, você pode editar qualquer mensagem passada e explorar caminhos alternativos de resposta sem perder a conversa original.
+O sistema de conversas do 橘子岛 é construído em torno de **ramificação não linear** — diferente da maioria dos aplicativos de chat, você pode editar qualquer mensagem passada e explorar caminhos alternativos de resposta sem perder a conversa original.
 
 ## Criando Conversas
 
@@ -30,14 +30,14 @@ Abra a **gaveta de conversas** (menu hambúrguer :material-menu: ou deslize para
 
 ## Ramificação Não Linear
 
-Esta é a funcionalidade assinatura do Agora. Cada mensagem pode ser um ponto de ramificação.
+Esta é a funcionalidade assinatura do 橘子岛. Cada mensagem pode ser um ponto de ramificação.
 
 ### Editando uma Mensagem Passada
 
 1. Pressione longamente qualquer balão de mensagem (usuário ou modelo)
 2. Toque em **Editar**
 3. Modifique o conteúdo da mensagem
-4. Envie — o Agora cria uma **nova ramificação** a partir deste ponto
+4. Envie — o 橘子岛 cria uma **nova ramificação** a partir deste ponto
 
 A ramificação original é preservada. Você pode alternar entre ramificações a qualquer momento.
 
@@ -112,7 +112,7 @@ Digite sua mensagem e toque em **Enviar** (:material-send:). O modelo transmite 
 
 ### Streaming em Tempo Real
 
-As respostas aparecem palavra por palavra conforme o modelo as gera. O Agora rola automaticamente para manter o conteúdo mais recente visível. Toque no botão **rolar para o final** (aparece quando você rola para cima) para voltar à resposta ao vivo.
+As respostas aparecem palavra por palavra conforme o modelo as gera. O 橘子岛 rola automaticamente para manter o conteúdo mais recente visível. Toque no botão **rolar para o final** (aparece quando você rola para cima) para voltar à resposta ao vivo.
 
 ### Renderização Markdown
 
@@ -148,6 +148,6 @@ Essas substituições são definidas no menu overflow da conversa na barra super
 
 ## Janela de Contexto
 
-O Agora rastreia o uso de tokens em tempo real. Quando uma conversa excede a janela de contexto do modelo, as mensagens mais antigas ficam visualmente **esmaecidas** para indicar que estão fora do contexto ativo. O modelo não "vê" mais as mensagens esmaecidas, mas elas permanecem visíveis na sua interface.
+O 橘子岛 rastreia o uso de tokens em tempo real. Quando uma conversa excede a janela de contexto do modelo, as mensagens mais antigas ficam visualmente **esmaecidas** para indicar que estão fora do contexto ativo. O modelo não "vê" mais as mensagens esmaecidas, mas elas permanecem visíveis na sua interface.
 
 Ajuste o tamanho da janela de contexto em **Configurações → Geração → Janela de Contexto**.

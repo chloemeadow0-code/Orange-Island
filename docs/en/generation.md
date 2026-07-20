@@ -100,7 +100,7 @@ When enabled, the model generates internal reasoning before producing the final 
 
 ## Visualize Context Rollout
 
-When enabled, Agora visually indicates which messages are included in the current context window vs. which have been rolled out (excluded due to the context window limit). This helps you understand:
+When enabled, 橘子岛 visually indicates which messages are included in the current context window vs. which have been rolled out (excluded due to the context window limit). This helps you understand:
 
 - How much of your conversation the model can "see"
 - When older messages drop out of context

@@ -1,13 +1,13 @@
 # Import PDF
 
-Agora peut extraire et envoyer des pages sélectionnées de fichiers PDF sous forme d'images aux modèles compatibles vision.
+橘子岛 peut extraire et envoyer des pages sélectionnées de fichiers PDF sous forme d'images aux modèles compatibles vision.
 
 ## Comment Ça Marche
 
 1. Joignez un fichier PDF dans le chat
 2. Une boîte de dialogue s'ouvre affichant toutes les pages sous forme de vignettes
 3. Sélectionnez les pages à envoyer
-4. Confirmez — Agora extrait les pages sous forme d'images et les envoie au modèle
+4. Confirmez — 橘子岛 extrait les pages sous forme d'images et les envoie au modèle
 
 Le modèle reçoit les pages comme entrée visuelle, lui permettant de lire et d'analyser le contenu PDF.
 
@@ -40,7 +40,7 @@ L'aperçu vous permet d'inspecter les pages avant de décider lesquelles envoyer
 
 ## Envoyer des Pages
 
-Après avoir sélectionné les pages, appuyez sur le bouton de confirmation. Agora :
+Après avoir sélectionné les pages, appuyez sur le bouton de confirmation. 橘子岛 :
 
 1. Rend chaque page PDF sélectionnée comme une image haute résolution
 2. Joint les images à votre message

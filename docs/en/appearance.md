@@ -1,6 +1,6 @@
 # Appearance
 
-Customize Agora's look and feel — theme mode, color scheme, and style.
+Customize 橘子岛's look and feel — theme mode, color scheme, and style.
 
 ## Theme Mode
 
@@ -59,7 +59,7 @@ Toggle **Enable Blur Effects** to control background blur and gradient blur thro
 
 ## Dynamic Color (Android 12+)
 
-When enabled on devices running Android 12 or higher, Agora extracts a color palette from your system wallpaper and applies it automatically.
+When enabled on devices running Android 12 or higher, 橘子岛 extracts a color palette from your system wallpaper and applies it automatically.
 
 This overrides the manual **Color Scheme** selection. Disable it to use a custom scheme.
 

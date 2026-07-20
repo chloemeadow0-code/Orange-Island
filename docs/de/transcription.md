@@ -4,7 +4,7 @@ Lassen Sie ein Vision-Modell Bilder beschreiben, damit textbasierte Modelle sie 
 
 ## Was es macht
 
-Wenn Sie ein Bild an ein textbasiertes Modell senden, kann Agora ein separates Vision-Modell verwenden, um zuerst eine Textbeschreibung des Bildes zu generieren. Diese Beschreibung wird dann in den Prompt eingefügt, der an Ihr Hauptmodell gesendet wird.
+Wenn Sie ein Bild an ein textbasiertes Modell senden, kann 橘子岛 ein separates Vision-Modell verwenden, um zuerst eine Textbeschreibung des Bildes zu generieren. Diese Beschreibung wird dann in den Prompt eingefügt, der an Ihr Hauptmodell gesendet wird.
 
 So können Sie Bilder mit jedem Modell verwenden, auch mit solchen, die nativ kein Vision unterstützen.
 
@@ -21,7 +21,7 @@ So können Sie Bilder mit jedem Modell verwenden, auch mit solchen, die nativ ke
 ## Wie es funktioniert
 
 1. Sie hängen ein Bild an Ihre Nachricht an
-2. Agora erkennt, dass Ihr aktuelles Modell kein Vision unterstützt
+2. 橘子岛 erkennt, dass Ihr aktuelles Modell kein Vision unterstützt
 3. Das Bild wird zuerst an das Transkriptionsmodell gesendet
 4. Das Transkriptionsmodell generiert eine Textbeschreibung
 5. Diese Beschreibung wird Ihrem Nachrichtentext vorangestellt

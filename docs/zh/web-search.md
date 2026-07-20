@@ -18,7 +18,7 @@
 
 DuckDuckGo Lite 是**默认**搜索提供商 — 无需 API 密钥，立即可用。
 
-1. 在 Agora 中，前往 **设置 → 网络搜索**
+1. 在 橘子岛 中，前往 **设置 → 网络搜索**
 2. 选择 **DuckDuckGo Lite** 作为搜索提供商
 3. 无需密钥或 URL — 立即开始搜索
 
@@ -28,28 +28,28 @@ DuckDuckGo Lite 是**默认**搜索提供商 — 无需 API 密钥，立即可�
 ### Brave
 
 1. 从 [Brave Search API](https://api.search.brave.com/) 获取 API 密钥
-2. 在 Agora 中，前往 **设置 → 网络搜索**
+2. 在 橘子岛 中，前往 **设置 → 网络搜索**
 3. 选择 **Brave** 作为搜索提供商
 4. 粘贴 API 密钥
 
 ### Serper
 
 1. 从 [serper.dev](https://serper.dev) 获取 API 密钥
-2. 在 Agora 中，前往 **设置 → 网络搜索**
+2. 在 橘子岛 中，前往 **设置 → 网络搜索**
 3. 选择 **Serper**
 4. 粘贴 API 密钥
 
 ### Tavily
 
 1. 从 [tavily.com](https://tavily.com) 获取 API 密钥
-2. 在 Agora 中，前往 **设置 → 网络搜索**
+2. 在 橘子岛 中，前往 **设置 → 网络搜索**
 3. 选择 **Tavily**
 4. 粘贴 API 密钥
 
 ### SearXNG
 
 1. 搭建 SearXNG 实例（自托管）或使用公共实例
-2. 在 Agora 中，前往 **设置 → 网络搜索**
+2. 在 橘子岛 中，前往 **设置 → 网络搜索**
 3. 选择 **SearXNG**
 4. 输入实例的 **Base URL**（如 `https://searx.be`）
 5. API 密钥可选（仅实例需要认证时才需要）
@@ -106,6 +106,6 @@ DuckDuckGo Lite 是**默认**搜索提供商 — 无需 API 密钥，立即可�
 
 使用网络搜索时：
 
-- 你的查询发送给搜索提供商（Brave、Serper 等），而非 Agora
-- Agora 不记录或存储你的搜索查询（除了在对话本身中）
+- 你的查询发送给搜索提供商（Brave、Serper 等），而非 橘子岛
+- 橘子岛 不记录或存储你的搜索查询（除了在对话本身中）
 - SearXNG 自托管提供最多的隐私——查询保留在你的基础设施上

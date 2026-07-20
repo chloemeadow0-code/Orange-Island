@@ -1,13 +1,13 @@
 # Agentic Tools
 
-Agora's models can autonomously use tools — they decide what to search, execute, read, or remember without you needing to manually trigger each action. Tools operate in **multi-round loops**: the model can call a tool, read the result, then decide to call another tool or respond.
+橘子岛's models can autonomously use tools — they decide what to search, execute, read, or remember without you needing to manually trigger each action. Tools operate in **multi-round loops**: the model can call a tool, read the result, then decide to call another tool or respond.
 
 ## How Tool Calling Works
 
 1. You send a message
 2. The model decides it needs external information or action
 3. It emits a **tool call** — a structured request with a tool name and arguments
-4. Agora executes the tool on-device or on a remote server
+4. 橘子岛 executes the tool on-device or on a remote server
 5. The result is fed back to the model
 6. The model can call another tool or produce a final response
 
@@ -40,7 +40,7 @@ Execute code in an isolated environment:
 
 ### Remote Shell
 
-Execute commands on remote machines via the [Conch](https://github.com/newo-ether/conch) protocol. The model can check server status, manage files, or run scripts.
+Execute commands on remote machines via the [Conch](https://github.com/orangeisland/conch) protocol. The model can check server status, manage files, or run scripts.
 
 - **Protocol**: End-to-end encrypted (ECDH + AES-256-GCM)
 - **Configuration**: Settings → Shell

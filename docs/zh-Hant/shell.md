@@ -1,11 +1,11 @@
 # 遠端 Shell (Conch)
 
-Agora 可以透過 [Conch](https://github.com/newo-ether/conch) 協定在遠端機器上執行指令 — 一個專為 AI 代理設計的端對端加密安全 Shell。
+橘子岛 可以透過 [Conch](https://github.com/orangeisland/conch) 協定在遠端機器上執行指令 — 一個專為 AI 代理設計的端對端加密安全 Shell。
 
 ## 運作方式
 
 ```text
-Agora (Android)  ──ECDH + AES-256-GCM──▶  Conch 伺服器 (Linux/macOS/Windows)
+橘子岛 (Android)  ──ECDH + AES-256-GCM──▶  Conch 伺服器 (Linux/macOS/Windows)
                                            │
                                            ├── 執行指令
                                            ├── 讀取/寫入/編輯檔案
@@ -34,9 +34,9 @@ Conch 使用強加密與防濫用保護：
 
 ### 步驟 1：部署 Conch 伺服器
 
-在您的目標機器上部署 Conch 伺服器。請參閱 [Conch 儲存庫](https://github.com/newo-ether/conch) 了解設定說明。
+在您的目標機器上部署 Conch 伺服器。請參閱 [Conch 儲存庫](https://github.com/orangeisland/conch) 了解設定說明。
 
-### 步驟 2：在 Agora 中新增裝置
+### 步驟 2：在 橘子岛 中新增裝置
 
 1. 前往 **設定 → Shell**
 2. 啟用 **Shell 工具**
@@ -109,7 +109,7 @@ Conch 使用強加密與防濫用保護：
 
 Conch 也可以作為 **Claude Desktop MCP 伺服器**。如果您使用 Claude Code 或其他 MCP 客戶端，您可以將 Conch 設定為工具提供者，以便從您的桌面進行遠端檔案與 Shell 存取。
 
-請參閱 [Conch 文件](https://github.com/newo-ether/conch) 了解 MCP 設定說明。
+請參閱 [Conch 文件](https://github.com/orangeisland/conch) 了解 MCP 設定說明。
 
 ---
 

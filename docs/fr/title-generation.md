@@ -4,7 +4,7 @@ Générez automatiquement des titres de conversation basés sur le premier écha
 
 ## Ce Que Cela Fait
 
-Lorsque vous démarrez une nouvelle conversation, Agora peut générer automatiquement un titre court et significatif basé sur votre premier message et la réponse du modèle. Cela remplace le titre générique "Nouveau Chat".
+Lorsque vous démarrez une nouvelle conversation, 橘子岛 peut générer automatiquement un titre court et significatif basé sur votre premier message et la réponse du modèle. Cela remplace le titre générique "Nouveau Chat".
 
 ## Configuration
 
@@ -19,7 +19,7 @@ Lorsque vous démarrez une nouvelle conversation, Agora peut générer automatiq
 
 1. Vous envoyez votre premier message dans une nouvelle conversation
 2. Le modèle répond (comme d'habitude)
-3. Une fois la réponse terminée, Agora envoie une petite requête séparée pour générer un titre
+3. Une fois la réponse terminée, 橘子岛 envoie une petite requête séparée pour générer un titre
 4. Le titre généré est enregistré et affiché dans la liste des conversations
 
 La génération de titres ne s'exécute qu'une seule fois par conversation, lors du premier échange.

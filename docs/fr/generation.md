@@ -100,7 +100,7 @@ Lorsqu'il est activé, le modèle génère un raisonnement interne avant de prod
 
 ## Visualiser le Défilement du Contexte
 
-Lorsqu'elle est activée, Agora indique visuellement quels messages sont inclus dans la fenêtre de contexte actuelle par rapport à ceux qui ont été retirés (exclus en raison de la limite de la fenêtre de contexte). Cela vous aide à comprendre :
+Lorsqu'elle est activée, 橘子岛 indique visuellement quels messages sont inclus dans la fenêtre de contexte actuelle par rapport à ceux qui ont été retirés (exclus en raison de la limite de la fenêtre de contexte). Cela vous aide à comprendre :
 
 - Quelle partie de votre conversation le modèle peut "voir"
 - Quand les messages plus anciens sortent du contexte

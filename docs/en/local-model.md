@@ -4,7 +4,7 @@ Run LLMs directly on your Android device using GGUF model files and llama.cpp. N
 
 ## How It Works
 
-Agora bundles llama.cpp via Android NDK (CMake). When you import a GGUF file, the model runs entirely on your device's CPU — no data leaves the device.
+橘子岛 bundles llama.cpp via Android NDK (CMake). When you import a GGUF file, the model runs entirely on your device's CPU — no data leaves the device.
 
 ## Requirements
 
@@ -76,7 +76,7 @@ Tap a model to change its alias or adjust parameters (temperature, context size,
 
 ### Delete
 
-Long-press a model and tap **Delete**. This removes the model from Agora and deletes the GGUF file from storage.
+Long-press a model and tap **Delete**. This removes the model from 橘子岛 and deletes the GGUF file from storage.
 
 ---
 

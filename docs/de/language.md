@@ -1,6 +1,6 @@
 # Sprache
 
-Wählen Sie die Anzeigesprache für Agoras Benutzeroberfläche.
+Wählen Sie die Anzeigesprache für 橘子岛s Benutzeroberfläche.
 
 ## Verfügbare Sprachen
 
@@ -17,4 +17,4 @@ Wählen Sie die Anzeigesprache für Agoras Benutzeroberfläche.
 3. Eine Snackbar erscheint: Tippen Sie auf **Neustart**, um die Änderung sofort zu übernehmen
 
 !!! note "Neustart erforderlich"
-    Sprachänderungen erfordern einen vollständigen App-Neustart. Agora fordert Sie nach der Auswahl einer neuen Sprache zum Neustart auf — tippen Sie auf die Neustart-Aktion in der Snackbar, um die App mit der neuen Sprache neu zu laden.
+    Sprachänderungen erfordern einen vollständigen App-Neustart. 橘子岛 fordert Sie nach der Auswahl einer neuen Sprache zum Neustart auf — tippen Sie auf die Neustart-Aktion in der Snackbar, um die App mit der neuen Sprache neu zu laden.

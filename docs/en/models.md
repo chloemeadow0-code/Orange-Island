@@ -4,7 +4,7 @@ Manage which AI models are available and set your default model for conversation
 
 ## Model List
 
-The **Models** page shows all models Agora knows about, organized by provider:
+The **Models** page shows all models 橘子岛 knows about, organized by provider:
 
 - **Default Model** — The model used for new conversations. Tap to change.
 - **Available Models** — Expand each provider to see its models. Enable the ones you want to use.

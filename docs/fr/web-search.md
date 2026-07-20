@@ -18,7 +18,7 @@ Permettez au modèle de rechercher sur internet et de récupérer des pages web 
 
 DuckDuckGo Lite est le fournisseur de recherche **par défaut** — aucune clé API requise, fonctionne immédiatement.
 
-1. Dans Agora, allez dans **Paramètres → Recherche Web**
+1. Dans 橘子岛, allez dans **Paramètres → Recherche Web**
 2. Sélectionnez **DuckDuckGo Lite** comme fournisseur de recherche
 3. Aucune clé ni URL nécessaire — commencez à rechercher tout de suite
 
@@ -28,28 +28,28 @@ DuckDuckGo Lite est le fournisseur de recherche **par défaut** — aucune clé 
 ### Brave
 
 1. Obtenez une clé API depuis [Brave Search API](https://api.search.brave.com/)
-2. Dans Agora, allez dans **Paramètres → Recherche Web**
+2. Dans 橘子岛, allez dans **Paramètres → Recherche Web**
 3. Sélectionnez **Brave** comme fournisseur de recherche
 4. Collez votre clé API
 
 ### Serper
 
 1. Obtenez une clé API depuis [serper.dev](https://serper.dev)
-2. Dans Agora, allez dans **Paramètres → Recherche Web**
+2. Dans 橘子岛, allez dans **Paramètres → Recherche Web**
 3. Sélectionnez **Serper**
 4. Collez votre clé API
 
 ### Tavily
 
 1. Obtenez une clé API depuis [tavily.com](https://tavily.com)
-2. Dans Agora, allez dans **Paramètres → Recherche Web**
+2. Dans 橘子岛, allez dans **Paramètres → Recherche Web**
 3. Sélectionnez **Tavily**
 4. Collez votre clé API
 
 ### SearXNG
 
 1. Configurez une instance SearXNG (auto-hébergée) ou utilisez une instance publique
-2. Dans Agora, allez dans **Paramètres → Recherche Web**
+2. Dans 橘子岛, allez dans **Paramètres → Recherche Web**
 3. Sélectionnez **SearXNG**
 4. Saisissez l'**URL de Base** de votre instance (par ex., `https://searx.be`)
 5. La clé API est optionnelle (nécessaire uniquement si votre instance exige une authentification)
@@ -106,6 +106,6 @@ Au-delà de la recherche, le modèle peut récupérer et lire des pages web spé
 
 Lors de l'utilisation de la recherche web :
 
-- Vos requêtes vont au fournisseur de recherche (Brave, Serper, etc.), pas à Agora
-- Agora n'enregistre ni ne stocke vos requêtes de recherche (sauf dans la conversation elle-même)
+- Vos requêtes vont au fournisseur de recherche (Brave, Serper, etc.), pas à 橘子岛
+- 橘子岛 n'enregistre ni ne stocke vos requêtes de recherche (sauf dans la conversation elle-même)
 - L'auto-hébergement SearXNG vous donne le plus de confidentialité — les requêtes restent sur votre infrastructure

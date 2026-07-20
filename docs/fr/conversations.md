@@ -1,6 +1,6 @@
 # Conversations
 
-Le système de conversation d'Agora est construit autour du **branchement non linéaire** — contrairement à la plupart des applications de chat, vous pouvez modifier n'importe quel message passé et explorer des chemins de réponse alternatifs sans perdre la conversation originale.
+Le système de conversation d'橘子岛 est construit autour du **branchement non linéaire** — contrairement à la plupart des applications de chat, vous pouvez modifier n'importe quel message passé et explorer des chemins de réponse alternatifs sans perdre la conversation originale.
 
 ## Créer des Conversations
 
@@ -30,14 +30,14 @@ Ouvrez le **tiroir des conversations** (menu hamburger :material-menu: ou balaye
 
 ## Branchement Non Linéaire
 
-C'est la fonctionnalité signature d'Agora. Chaque message peut être un point de branchement.
+C'est la fonctionnalité signature d'橘子岛. Chaque message peut être un point de branchement.
 
 ### Modifier un Message Passé
 
 1. Appui long sur n'importe quelle bulle de message (utilisateur ou modèle)
 2. Appuyez sur **Modifier**
 3. Modifiez le contenu du message
-4. Envoyez — Agora crée une **nouvelle branche** à partir de ce point
+4. Envoyez — 橘子岛 crée une **nouvelle branche** à partir de ce point
 
 La branche originale est préservée. Vous pouvez basculer entre les branches à tout moment.
 
@@ -112,7 +112,7 @@ Tapez votre message et appuyez sur **Envoyer** (:material-send:). Le modèle dif
 
 ### Streaming en Temps Réel
 
-Les réponses apparaissent mot par mot au fur et à mesure que le modèle les génère. Agora fait défiler automatiquement pour garder le contenu le plus récent visible. Appuyez sur le **bouton défiler vers le bas** (apparaît lorsque vous faites défiler vers le haut) pour revenir à la réponse en direct.
+Les réponses apparaissent mot par mot au fur et à mesure que le modèle les génère. 橘子岛 fait défiler automatiquement pour garder le contenu le plus récent visible. Appuyez sur le **bouton défiler vers le bas** (apparaît lorsque vous faites défiler vers le haut) pour revenir à la réponse en direct.
 
 ### Rendu Markdown
 
@@ -148,6 +148,6 @@ Ces remplacements sont définis depuis le menu contextuel de la conversation dan
 
 ## Fenêtre de Contexte
 
-Agora suit l'utilisation des tokens en temps réel. Lorsqu'une conversation dépasse la fenêtre de contexte du modèle, les messages plus anciens sont visuellement **grisés** pour indiquer qu'ils sont en dehors du contexte actif. Le modèle ne "voit" plus les messages grisés, mais ils restent visibles dans votre interface.
+橘子岛 suit l'utilisation des tokens en temps réel. Lorsqu'une conversation dépasse la fenêtre de contexte du modèle, les messages plus anciens sont visuellement **grisés** pour indiquer qu'ils sont en dehors du contexte actif. Le modèle ne "voit" plus les messages grisés, mais ils restent visibles dans votre interface.
 
 Ajustez la taille de la fenêtre de contexte dans **Paramètres → Génération → Fenêtre de Contexte**.

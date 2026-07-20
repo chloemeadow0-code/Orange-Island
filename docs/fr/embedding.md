@@ -1,13 +1,13 @@
 # Embedding / RAG
 
-Les modèles d'embedding convertissent le texte en vecteurs numériques qui capturent le sens. Agora utilise ces vecteurs pour la recherche sémantique (RAG) dans votre historique de conversations — trouver des messages par ce qu'ils signifient, pas seulement par les mots qu'ils contiennent.
+Les modèles d'embedding convertissent le texte en vecteurs numériques qui capturent le sens. 橘子岛 utilise ces vecteurs pour la recherche sémantique (RAG) dans votre historique de conversations — trouver des messages par ce qu'ils signifient, pas seulement par les mots qu'ils contiennent.
 
 ## Comment Ça Marche
 
 1. Chaque message est envoyé à un modèle d'embedding
 2. Le modèle retourne un vecteur (une liste de nombres) représentant le sens du message
 3. Lorsque vous recherchez, votre requête est également intégrée
-4. Agora calcule la **similarité cosinus** entre le vecteur de la requête et tous les vecteurs de messages
+4. 橘子岛 calcule la **similarité cosinus** entre le vecteur de la requête et tous les vecteurs de messages
 5. Les messages avec une similarité supérieure à votre seuil sont retournés comme correspondances
 
 ## Fournisseurs Pris en Charge
@@ -43,7 +43,7 @@ Les modèles d'embedding convertissent le texte en vecteurs numériques qui capt
 4. Appuyez sur **Ajouter** — un test de connexion est exécuté avant l'enregistrement
 
 !!! tip
-    Le champ de clé API est optionnel si vous avez déjà configuré le même fournisseur pour le chat. Laissez-le vide et Agora résout votre clé API de chat automatiquement.
+    Le champ de clé API est optionnel si vous avez déjà configuré le même fournisseur pour le chat. Laissez-le vide et 橘子岛 résout votre clé API de chat automatiquement.
 
 ### Local (GGUF)
 
@@ -59,7 +59,7 @@ Les modèles d'embedding sont généralement beaucoup plus petits que les modèl
 
 1. Installez Ollama sur une machine
 2. Téléchargez un modèle d'embedding : `ollama pull qwen3-embedding:8b`
-3. Dans Agora, ajoutez un modèle distant :
+3. Dans 橘子岛, ajoutez un modèle distant :
     - Fournisseur : **Ollama**
     - URL de Base : `http://<hôte>:11434/v1`
     - Nom du modèle : `qwen3-embedding:8b` (incluez le `:tag`)
@@ -76,7 +76,7 @@ Les modèles d'embedding sont généralement beaucoup plus petits que les modèl
 Après avoir ajouté un modèle, vous devez mettre en cache vos messages (générer des embeddings) :
 
 1. Appuyez sur **Mettre en Cache** sur le modèle d'embedding
-2. Agora traite tous les messages non mis en cache par lots
+2. 橘子岛 traite tous les messages non mis en cache par lots
 3. Un indicateur de progression circulaire montre la progression actuelle
 4. Achèvement : "Tous les N messages en cache"
 
@@ -110,7 +110,7 @@ Commencez avec la valeur par défaut et ajustez si vous rencontrez des délais d
 
 ## Tester Votre Configuration
 
-Lorsque vous ajoutez un modèle distant, Agora exécute un test de connexion automatique. S'il échoue :
+Lorsque vous ajoutez un modèle distant, 橘子岛 exécute un test de connexion automatique. S'il échoue :
 
 1. Vérifiez le nom du modèle — incluez les tags pour Ollama (`:8b`, `:latest`)
 2. Vérifiez que l'URL de base est accessible depuis votre appareil

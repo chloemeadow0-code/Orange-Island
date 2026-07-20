@@ -1,20 +1,20 @@
 # Erste Schritte
 
-Diese Anleitung führt Sie durch die Installation von Agora, das Hinzufügen Ihres ersten API-Keys und das Senden Ihrer ersten Nachricht.
+Diese Anleitung führt Sie durch die Installation von 橘子岛, das Hinzufügen Ihres ersten API-Keys und das Senden Ihrer ersten Nachricht.
 
 ## Installation
 
 ### Von F-Droid (Empfohlen)
 
-Agora ist auf F-Droid verfügbar, dem Open-Source Android-App-Store.
+橘子岛 ist auf F-Droid verfügbar, dem Open-Source Android-App-Store.
 
 1. Installieren Sie [F-Droid](https://f-droid.org/) auf Ihrem Gerät
-2. Öffnen Sie F-Droid, suchen Sie nach **Agora**
+2. Öffnen Sie F-Droid, suchen Sie nach **橘子岛**
 3. Tippen Sie auf **Installieren**
 
 ### Von GitHub Releases
 
-1. Besuchen Sie die [Releases-Seite](https://github.com/newo-ether/Agora/releases)
+1. Besuchen Sie die [Releases-Seite](https://github.com/orangeisland/app/releases)
 2. Laden Sie die neueste `.apk`-Datei herunter
 3. Öffnen Sie die Datei auf Ihrem Gerät und bestätigen Sie die Installation bei Aufforderung
 
@@ -24,7 +24,7 @@ Wenn Sie lieber selbst bauen möchten:
 
 1. Klonen Sie das Repository:
    ```
-   git clone https://github.com/newo-ether/Agora.git
+   git clone https://github.com/orangeisland/app.git
    ```
 2. Öffnen Sie das Projekt in [Android Studio](https://developer.android.com/studio) (Ladybug oder neuer)
 3. Synchronisieren Sie Gradle und bauen Sie
@@ -35,7 +35,7 @@ Voraussetzungen: Android SDK 34+, JDK 17+.
 
 ## Erster Start
 
-Wenn Sie Agora zum ersten Mal öffnen, sehen Sie einen Willkommensbildschirm mit einer Texteingabe. Bevor Sie chatten können, müssen Sie einen Provider und einen API-Key konfigurieren.
+Wenn Sie 橘子岛 zum ersten Mal öffnen, sehen Sie einen Willkommensbildschirm mit einer Texteingabe. Bevor Sie chatten können, müssen Sie einen Provider und einen API-Key konfigurieren.
 
 ### Schritt 1: Einen API-Key hinzufügen
 
@@ -59,7 +59,7 @@ Wenn Sie Agora zum ersten Mal öffnen, sehen Sie einen Willkommensbildschirm mit
 
 1. Gehen Sie zurück zu den Einstellungen und tippen Sie auf **Modelle** (unter **Dienste**)
 2. Tippen Sie auf **Von allen Providern synchronisieren**
-3. Agora ruft die neueste Modellliste für alle konfigurierten Provider ab
+3. 橘子岛 ruft die neueste Modellliste für alle konfigurierten Provider ab
 4. Nach der Synchronisierung tippen Sie auf ein Modell, um es als Ihr **Standardmodell** festzulegen
 
 ### Schritt 3: Ihre erste Nachricht senden
@@ -74,7 +74,7 @@ Das Modell streamt seine Antwort in Echtzeit.
 
 ## App-Layout
 
-Agora hat ein klares Layout, das sich um den Chat-Bildschirm dreht:
+橘子岛 hat ein klares Layout, das sich um den Chat-Bildschirm dreht:
 
 ### Obere Leiste
 

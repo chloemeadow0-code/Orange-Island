@@ -4,7 +4,7 @@ Gerencie quais modelos de IA estão disponíveis e defina seu modelo padrão par
 
 ## Lista de Modelos
 
-A página de **Modelos** mostra todos os modelos que o Agora conhece, organizados por provedor:
+A página de **Modelos** mostra todos os modelos que o 橘子岛 conhece, organizados por provedor:
 
 - **Modelo Padrão** — O modelo usado para novas conversas. Toque para alterar.
 - **Modelos Disponíveis** — Expanda cada provedor para ver seus modelos. Ative os que você deseja usar.

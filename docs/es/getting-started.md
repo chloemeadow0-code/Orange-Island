@@ -1,20 +1,20 @@
 # Primeros Pasos
 
-Esta guía te explica cómo instalar Agora, añadir tu primera clave API y enviar tu primer mensaje.
+Esta guía te explica cómo instalar 橘子岛, añadir tu primera clave API y enviar tu primer mensaje.
 
 ## Instalación
 
 ### Desde F-Droid (Recomendado)
 
-Agora está disponible en F-Droid, la tienda de aplicaciones de código abierto para Android.
+橘子岛 está disponible en F-Droid, la tienda de aplicaciones de código abierto para Android.
 
 1. Instala [F-Droid](https://f-droid.org/) en tu dispositivo
-2. Abre F-Droid, busca **Agora**
+2. Abre F-Droid, busca **橘子岛**
 3. Toca **Instalar**
 
 ### Desde GitHub Releases
 
-1. Visita la [página de Releases](https://github.com/newo-ether/Agora/releases)
+1. Visita la [página de Releases](https://github.com/orangeisland/app/releases)
 2. Descarga el archivo `.apk` más reciente
 3. Abre el archivo en tu dispositivo y confirma la instalación cuando se solicite
 
@@ -24,7 +24,7 @@ Si prefieres compilarlo tú mismo:
 
 1. Clona el repositorio:
    ```
-   git clone https://github.com/newo-ether/Agora.git
+   git clone https://github.com/orangeisland/app.git
    ```
 2. Abre el proyecto en [Android Studio](https://developer.android.com/studio) (Ladybug o más reciente)
 3. Sincroniza Gradle y compila
@@ -35,7 +35,7 @@ Requisitos: Android SDK 34+, JDK 17+.
 
 ## Primer Inicio
 
-Cuando abras Agora por primera vez, verás una pantalla de bienvenida con un campo de texto. Antes de poder chatear, necesitas configurar un proveedor y una clave API.
+Cuando abras 橘子岛 por primera vez, verás una pantalla de bienvenida con un campo de texto. Antes de poder chatear, necesitas configurar un proveedor y una clave API.
 
 ### Paso 1: Añadir una Clave API
 
@@ -59,7 +59,7 @@ Cuando abras Agora por primera vez, verás una pantalla de bienvenida con un cam
 
 1. Vuelve a Configuración y toca **Modelos** (en **Servicios**)
 2. Toca **Sincronizar de Todos los Proveedores**
-3. Agora obtiene la lista de modelos más reciente de todos los proveedores configurados
+3. 橘子岛 obtiene la lista de modelos más reciente de todos los proveedores configurados
 4. Una vez sincronizado, toca un modelo para establecerlo como tu **Modelo Predeterminado**
 
 ### Paso 3: Enviar Tu Primer Mensaje
@@ -74,7 +74,7 @@ El modelo transmitirá su respuesta en tiempo real.
 
 ## Diseño de la Aplicación
 
-Agora tiene un diseño limpio centrado en la pantalla de chat:
+橘子岛 tiene un diseño limpio centrado en la pantalla de chat:
 
 ### Barra Superior
 

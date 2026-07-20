@@ -1,6 +1,6 @@
 # Idioma
 
-Escolha o idioma de exibição da interface do Agora.
+Escolha o idioma de exibição da interface do 橘子岛.
 
 ## Idiomas Disponíveis
 
@@ -17,4 +17,4 @@ Escolha o idioma de exibição da interface do Agora.
 3. Uma snackbar aparece: toque em **Reiniciar** para aplicar a alteração imediatamente
 
 !!! note "Reinicialização Necessária"
-    Alterações de idioma exigem uma reinicialização completa do aplicativo. O Agora solicita que você reinicie após selecionar um novo idioma — toque na ação de reiniciar na snackbar para recarregar o aplicativo com o novo idioma.
+    Alterações de idioma exigem uma reinicialização completa do aplicativo. O 橘子岛 solicita que você reinicie após selecionar um novo idioma — toque na ação de reiniciar na snackbar para recarregar o aplicativo com o novo idioma.

@@ -1,6 +1,6 @@
 # Netzwerk-Proxy
 
-Den gesamten Netzwerkverkehr von Agora über einen HTTP- oder SOCKS-Proxy leiten. Nützlich in eingeschränkten Netzwerken, zum Routing über ein bestimmtes Gateway oder wenn ein Anbieter nur über einen Proxy erreichbar ist.
+Den gesamten Netzwerkverkehr von 橘子岛 über einen HTTP- oder SOCKS-Proxy leiten. Nützlich in eingeschränkten Netzwerken, zum Routing über ein bestimmtes Gateway oder wenn ein Anbieter nur über einen Proxy erreichbar ist.
 
 Der Proxy gilt für **den gesamten** ausgehenden Verkehr: Chat-Anbieter, Modellabruf, Websuche, Embeddings, Webseitenabruf und Absturzbericht-Übermittlung.
 

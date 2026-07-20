@@ -1,6 +1,6 @@
 # Conversaciones
 
-El sistema de conversaciones de Agora está construido alrededor de la **ramificación no lineal** — a diferencia de la mayoría de las aplicaciones de chat, puedes editar cualquier mensaje pasado y explorar rutas de respuesta alternativas sin perder la conversación original.
+El sistema de conversaciones de 橘子岛 está construido alrededor de la **ramificación no lineal** — a diferencia de la mayoría de las aplicaciones de chat, puedes editar cualquier mensaje pasado y explorar rutas de respuesta alternativas sin perder la conversación original.
 
 ## Crear Conversaciones
 
@@ -30,14 +30,14 @@ Abre el **panel de conversaciones** (menú hamburguesa :material-menu: o desliza
 
 ## Ramificación No Lineal
 
-Esta es la característica distintiva de Agora. Cada mensaje puede ser un punto de ramificación.
+Esta es la característica distintiva de 橘子岛. Cada mensaje puede ser un punto de ramificación.
 
 ### Editar un Mensaje Pasado
 
 1. Mantén pulsada cualquier burbuja de mensaje (usuario o modelo)
 2. Toca **Editar**
 3. Modifica el contenido del mensaje
-4. Envía — Agora crea una **nueva rama** desde este punto
+4. Envía — 橘子岛 crea una **nueva rama** desde este punto
 
 La rama original se conserva. Puedes cambiar entre ramas en cualquier momento.
 
@@ -112,7 +112,7 @@ Escribe tu mensaje y toca **Enviar** (:material-send:). El modelo transmite su r
 
 ### Streaming en Tiempo Real
 
-Las respuestas aparecen palabra por palabra a medida que el modelo las genera. Agora se desplaza automáticamente para mantener visible el contenido más reciente. Toca el botón **ir al final** (aparece cuando te desplazas hacia arriba) para volver a la respuesta en vivo.
+Las respuestas aparecen palabra por palabra a medida que el modelo las genera. 橘子岛 se desplaza automáticamente para mantener visible el contenido más reciente. Toca el botón **ir al final** (aparece cuando te desplazas hacia arriba) para volver a la respuesta en vivo.
 
 ### Renderizado de Markdown
 
@@ -148,6 +148,6 @@ Estas anulaciones se establecen desde el menú de opciones de la conversación e
 
 ## Ventana de Contexto
 
-Agora rastrea el uso de tokens en tiempo real. Cuando una conversación excede la ventana de contexto del modelo, los mensajes más antiguos se **atenúan** visualmente para indicar que están fuera del contexto activo. El modelo ya no "ve" los mensajes atenuados, pero permanecen visibles en tu interfaz.
+橘子岛 rastrea el uso de tokens en tiempo real. Cuando una conversación excede la ventana de contexto del modelo, los mensajes más antiguos se **atenúan** visualmente para indicar que están fuera del contexto activo. El modelo ya no "ve" los mensajes atenuados, pero permanecen visibles en tu interfaz.
 
 Ajusta el tamaño de la ventana de contexto en **Configuración → Generación → Ventana de Contexto**.

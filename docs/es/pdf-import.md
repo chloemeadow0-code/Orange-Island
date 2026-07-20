@@ -1,13 +1,13 @@
 # Importación de PDF
 
-Agora puede extraer y enviar páginas seleccionadas de archivos PDF como imágenes a modelos con capacidad de visión.
+橘子岛 puede extraer y enviar páginas seleccionadas de archivos PDF como imágenes a modelos con capacidad de visión.
 
 ## Cómo Funciona
 
 1. Adjunta un archivo PDF en el chat
 2. Se abre un diálogo mostrando todas las páginas como miniaturas
 3. Selecciona qué páginas enviar
-4. Confirma — Agora extrae las páginas como imágenes y las envía al modelo
+4. Confirma — 橘子岛 extrae las páginas como imágenes y las envía al modelo
 
 El modelo recibe las páginas como entrada de visión, lo que le permite leer y analizar el contenido del PDF.
 
@@ -40,7 +40,7 @@ La vista previa te permite inspeccionar las páginas antes de decidir cuáles en
 
 ## Enviar Páginas
 
-Después de seleccionar las páginas, toca el botón de confirmar. Agora:
+Después de seleccionar las páginas, toca el botón de confirmar. 橘子岛:
 
 1. Renderiza cada página PDF seleccionada como una imagen de alta resolución
 2. Adjunta las imágenes a tu mensaje

@@ -4,7 +4,7 @@ Genera imágenes a partir de prompts de texto usando un modelo de texto a imagen
 
 ## Qué Hace
 
-Cuando la generación de imágenes está habilitada, Agora puede convertir tus prompts en imágenes usando un modelo dedicado de texto a imagen (como DALL·E, GPT-Image, Imagen, FLUX, Stable Diffusion, Seedream, Qwen-Image y muchos otros). La imagen generada se devuelve a la conversación, para que puedas iterar sobre ella como cualquier otra respuesta.
+Cuando la generación de imágenes está habilitada, 橘子岛 puede convertir tus prompts en imágenes usando un modelo dedicado de texto a imagen (como DALL·E, GPT-Image, Imagen, FLUX, Stable Diffusion, Seedream, Qwen-Image y muchos otros). La imagen generada se devuelve a la conversación, para que puedas iterar sobre ella como cualquier otra respuesta.
 
 La generación de imágenes usa su **propia selección de modelo**, independiente del modelo con el que chateas — así que puedes chatear con un modelo y generar imágenes con otro.
 
@@ -37,7 +37,7 @@ Establece las dimensiones de salida predeterminadas, introducidas como **ancho �
 
 1. Habilita la generación de imágenes y selecciona un modelo de imagen
 2. En una conversación, pide al asistente que cree una imagen
-3. Agora enruta la solicitud al modelo de imagen configurado usando las credenciales de ese proveedor
+3. 橘子岛 enruta la solicitud al modelo de imagen configurado usando las credenciales de ese proveedor
 4. La imagen generada se devuelve a la conversación
 
 !!! tip

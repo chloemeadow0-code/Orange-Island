@@ -4,7 +4,7 @@ Permita que um modelo de visão descreva imagens para que modelos somente de tex
 
 ## O Que Faz
 
-Quando você envia uma imagem para um modelo somente de texto, o Agora pode usar um modelo de visão separado para gerar uma descrição em texto da imagem primeiro. Essa descrição é então incluída no prompt enviado ao seu modelo principal.
+Quando você envia uma imagem para um modelo somente de texto, o 橘子岛 pode usar um modelo de visão separado para gerar uma descrição em texto da imagem primeiro. Essa descrição é então incluída no prompt enviado ao seu modelo principal.
 
 Isso permite que você use imagens com qualquer modelo, mesmo aqueles que não suportam visão nativamente.
 
@@ -21,7 +21,7 @@ Isso permite que você use imagens com qualquer modelo, mesmo aqueles que não s
 ## Como Funciona
 
 1. Você anexa uma imagem à sua mensagem
-2. O Agora detecta que seu modelo atual não suporta visão
+2. O 橘子岛 detecta que seu modelo atual não suporta visão
 3. A imagem é enviada primeiro ao modelo de transcrição
 4. O modelo de transcrição gera uma descrição em texto
 5. Essa descrição é adicionada antes do texto da sua mensagem
