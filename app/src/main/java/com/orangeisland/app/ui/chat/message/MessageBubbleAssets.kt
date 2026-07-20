@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.orangeisland.app.ui.components.HtmlCodePreview
 import com.orangeisland.app.ui.components.LatexImageTransformer
 import com.orangeisland.app.ui.theme.ChatType
 import com.mikepenz.markdown.m3.markdownColor
@@ -24,14 +25,16 @@ import com.mikepenz.markdown.compose.elements.MarkdownTableRow
 import org.intellij.markdown.flavours.MarkdownFlavourDescriptor
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 
-/**
- * The memoized markdown rendering assets shared by a single [MessageItem]: the main
- * chat-body [ChatMarkdownRenderContext] plus the subordinate thought-block typography,
- * colors, padding and components reused by the [SegmentDetailSheet].
- *
- * Extracted from MessageItem so the ~110 lines of typography/color/component wiring
- * live in one place and the message composable reads as layout, not configuration.
- */
+/** Languages that get an auto-rendered live preview once the fenced code block is complete. */
+private val PREVIEWABLE_LANGUAGES = setOf("html", "svg")
+
+/** Matches a complete fenced code block: opening ```lang, body, closing ```.
+ *  Requiring the closing fence to be present is what makes this only fire once the AI
+ *  has actually finished writing the block -- while still streaming, the raw text has no
+ *  closing ``` yet, so this simply doesn't match and the block falls through to the
+ *  normal (non-preview) code rendering until it's done. */
+private val COMPLETE_FENCE_REGEX = Regex("""^`{3,}\s*([\w./+-]*)\s*\n([\s\S]*?)\n`{3,}\s*$""")
+
 @Stable
 internal class ChatMarkdownAssets(
     val renderContext: ChatMarkdownRenderContext,
@@ -44,10 +47,6 @@ internal class ChatMarkdownAssets(
 
 @Composable
 internal fun rememberChatMarkdownAssets(textColor: Color): ChatMarkdownAssets {
-    // Chat-specific markdown scale — optimized for immersive reading.
-    // Outfit's large x-height means 15sp reads like ~16sp Roboto.
-    // Heading steps of 3sp (h1→h2→h3) and 2sp (h3→h4) create
-    // a visible but not jarring hierarchy during long-form reading.
     val customTypography = markdownTypography(
         text = ChatType.body,
         paragraph = ChatType.body,
@@ -65,9 +64,6 @@ internal fun rememberChatMarkdownAssets(textColor: Color): ChatMarkdownAssets {
         table = ChatType.body,
     )
 
-    // Compact typography for thought blocks — subordinate to main chat body.
-    // One tier below main markdown: body at 13sp (vs 15sp), headings similarly
-    // stepped down. Readable for paragraph-level content but clearly secondary.
     val thoughtTypography = markdownTypography(
         text = ChatType.thoughtBody,
         paragraph = ChatType.thoughtBody,
@@ -86,7 +82,6 @@ internal fun rememberChatMarkdownAssets(textColor: Color): ChatMarkdownAssets {
 
     val fg = MaterialTheme.colorScheme.onBackground
     val bg = MaterialTheme.colorScheme.surface
-    // Composite fg at 0.1 alpha over bg to produce the exact opaque equivalent
     val codeBg = remember(fg, bg) {
         Color(
             red   = fg.red   * 0.1f + bg.red   * 0.9f,
@@ -101,7 +96,11 @@ internal fun rememberChatMarkdownAssets(textColor: Color): ChatMarkdownAssets {
     val customMarkdownPadding = markdownPadding(block = 8.dp)
     val thoughtMarkdownPadding = markdownPadding(block = 5.dp)
 
-    val customMarkdownComponents = remember {
+    // Library defaults, used as the fallback for code-fence languages that aren't html/svg --
+    // so every other language keeps rendering exactly as before, unchanged.
+    val defaultComponents = remember { markdownComponents() }
+
+    val customMarkdownComponents = remember(defaultComponents) {
         markdownComponents(
             table = { model ->
                 MarkdownTable(
@@ -129,6 +128,20 @@ internal fun rememberChatMarkdownAssets(textColor: Color): ChatMarkdownAssets {
                         )
                     },
                 )
+            },
+            codeFence = { model ->
+                val start = model.node.startOffset.coerceIn(0, model.content.length)
+                val end = model.node.endOffset.coerceIn(start, model.content.length)
+                val raw = model.content.substring(start, end).trim()
+                val match = COMPLETE_FENCE_REGEX.find(raw)
+                val language = match?.groupValues?.get(1)?.trim()?.lowercase().orEmpty()
+                val body = match?.groupValues?.get(2).orEmpty()
+
+                if (match != null && language in PREVIEWABLE_LANGUAGES) {
+                    HtmlCodePreview(html = body, language = language)
+                } else {
+                    defaultComponents.codeFence(model)
+                }
             }
         )
     }
