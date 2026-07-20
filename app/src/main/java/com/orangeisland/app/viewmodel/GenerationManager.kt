@@ -168,6 +168,7 @@ class GenerationManager(
     private val webSearchToolProvider = WebSearchToolProvider()
     private val ragToolProvider = RagToolProvider(conversations)
     private val imageGenToolProvider = ImageGenToolProvider(app)
+    private val deviceInfoToolProvider = com.orangeisland.app.tool.device.DeviceInfoToolProvider(app)
     private val shellToolProvider = ShellToolProvider(sandboxFactory).also { stp ->
         // Forward to the ViewModel-provided gate at call time (read the var lazily).
         stp.confirm = { server, summary -> onConfirmShellCommand?.invoke(server, summary) ?: true }
@@ -175,7 +176,7 @@ class GenerationManager(
     private val mcpToolProvider = mcpPool?.let { com.orangeisland.app.tool.McpToolProvider(it) }
     private val toolProviders: List<ToolProvider> = buildList {
         add(memoryToolProvider); add(webSearchToolProvider); add(ragToolProvider)
-        add(imageGenToolProvider); add(shellToolProvider)
+        add(imageGenToolProvider); add(deviceInfoToolProvider); add(shellToolProvider)
         mcpToolProvider?.let { add(it) }
         pluginToolProvider?.let { add(it) }
     }
