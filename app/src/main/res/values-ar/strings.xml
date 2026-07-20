@@ -516,6 +516,27 @@
     <!-- Appearance -->
     <string name="settings_appearance">المظهر</string>
     <string name="settings_appearance_desc">السمة ونظام الألوان واللون الديناميكي</string>
+    <string name="settings_custom_colors">ألوان مخصصة</string>
+    <string name="settings_custom_colors_desc">ألوان الفقاعات والخلفية والتمييز</string>
+    <string name="color_picker_title">اختر اللون</string>
+    <string name="color_picker_default">افتراضي</string>
+    <string name="color_picker_current">الحالي</string>
+    <string name="color_picker_reset">إعادة تعيين</string>
+    <string name="color_picker_confirm">تأكيد</string>
+    <string name="color_picker_recent">الأخيرة</string>
+    <string name="custom_colors_section_colors">الألوان</string>
+    <string name="custom_colors_section_transparency">الشفافية</string>
+    <string name="custom_color_chat_text">لون نص الدردشة</string>
+    <string name="custom_color_global_text">لون النص العام</string>
+    <string name="custom_color_user_bubble">لون فقاعة المستخدم</string>
+    <string name="custom_color_assistant_bubble">لون فقاعة المساعد</string>
+    <string name="custom_color_reasoning_panel">لون لوحة التفكير</string>
+    <string name="custom_color_chat_background">لون خلفية الدردشة</string>
+    <string name="custom_color_accent">اللون المميز</string>
+    <string name="custom_color_input_field">لون حقل الإدخال</string>
+    <string name="transparency_message_bubble">فقاعة الرسالة</string>
+    <string name="transparency_reasoning_panel">لوحة التفكير</string>
+    <string name="transparency_drawer_item">عنصر القائمة الجانبية</string>
     <string name="appearance_title">المظهر</string>
     <string name="theme_mode">وضع السمة</string>
     <string name="theme_mode_light">فاتح</string>

@@ -39,6 +39,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import ru.noties.jlatexmath.JLatexMathDrawable
+import coil.compose.rememberAsyncImagePainter
 import kotlin.io.encoding.Base64
 import kotlin.math.roundToInt
 
@@ -592,7 +593,19 @@ class LatexImageTransformer(
 ) : ImageTransformer {
     @Composable
     override fun transform(link: String): ImageData? {
-        val request = decodeLatexLink(link) ?: return null
+        val request = decodeLatexLink(link)
+        if (request == null) {
+            // Not a latex:// link — treat as a normal network/local image (e.g. stickers,
+            // emoji images sent by the model) and load it via Coil instead of returning null.
+            val painter = rememberAsyncImagePainter(model = link)
+            return ImageData(
+                painter = painter,
+                contentDescription = null,
+                modifier = Modifier,
+                alignment = Alignment.Center,
+                contentScale = ContentScale.Fit,
+            )
+        }
         val key = LatexRenderKey(request.latex, textSize, color)
         var bitmap by remember(key) { mutableStateOf(LatexBitmapCache.get(key)) }
         val fade = remember(key) { Animatable(if (bitmap != null) 1f else 0f) }

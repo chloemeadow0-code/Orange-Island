@@ -516,6 +516,27 @@
     <!-- Appearance -->
     <string name="settings_appearance">Aparência</string>
     <string name="settings_appearance_desc">Tema, esquema de cores e cor dinâmica</string>
+    <string name="settings_custom_colors">Cores personalizadas</string>
+    <string name="settings_custom_colors_desc">Cores de balões, fundo e destaque</string>
+    <string name="color_picker_title">Escolher cor</string>
+    <string name="color_picker_default">Padrão</string>
+    <string name="color_picker_current">Atual</string>
+    <string name="color_picker_reset">Redefinir</string>
+    <string name="color_picker_confirm">Confirmar</string>
+    <string name="color_picker_recent">Recentes</string>
+    <string name="custom_colors_section_colors">Cores</string>
+    <string name="custom_colors_section_transparency">Transparência</string>
+    <string name="custom_color_chat_text">Cor do texto do chat</string>
+    <string name="custom_color_global_text">Cor do texto global</string>
+    <string name="custom_color_user_bubble">Cor do balão do usuário</string>
+    <string name="custom_color_assistant_bubble">Cor do balão do assistente</string>
+    <string name="custom_color_reasoning_panel">Cor do painel de raciocínio</string>
+    <string name="custom_color_chat_background">Cor de fundo do chat</string>
+    <string name="custom_color_accent">Cor de destaque</string>
+    <string name="custom_color_input_field">Cor do campo de entrada</string>
+    <string name="transparency_message_bubble">Balão de mensagem</string>
+    <string name="transparency_reasoning_panel">Painel de raciocínio</string>
+    <string name="transparency_drawer_item">Item da gaveta</string>
     <string name="appearance_title">Aparência</string>
     <string name="theme_mode">Modo do tema</string>
     <string name="theme_mode_light">Claro</string>

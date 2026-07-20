@@ -526,6 +526,27 @@
     <!-- Appearance -->
     <string name="settings_appearance">外觀</string>
     <string name="settings_appearance_desc">主題、配色方案和動態顏色</string>
+    <string name="settings_custom_colors">自訂顏色</string>
+    <string name="settings_custom_colors_desc">氣泡、背景與強調色</string>
+    <string name="color_picker_title">選擇顏色</string>
+    <string name="color_picker_default">預設</string>
+    <string name="color_picker_current">目前</string>
+    <string name="color_picker_reset">重設</string>
+    <string name="color_picker_confirm">確認</string>
+    <string name="color_picker_recent">最近使用</string>
+    <string name="custom_colors_section_colors">顏色</string>
+    <string name="custom_colors_section_transparency">透明度</string>
+    <string name="custom_color_chat_text">聊天文字顏色</string>
+    <string name="custom_color_global_text">全域文字顏色</string>
+    <string name="custom_color_user_bubble">使用者氣泡顏色</string>
+    <string name="custom_color_assistant_bubble">AI氣泡顏色</string>
+    <string name="custom_color_reasoning_panel">推理面板顏色</string>
+    <string name="custom_color_chat_background">聊天背景色</string>
+    <string name="custom_color_accent">主色調</string>
+    <string name="custom_color_input_field">輸入框顏色</string>
+    <string name="transparency_message_bubble">訊息氣泡</string>
+    <string name="transparency_reasoning_panel">推理面板</string>
+    <string name="transparency_drawer_item">側邊欄項目</string>
     <string name="appearance_title">外觀</string>
     <string name="theme_mode">主題模式</string>
     <string name="theme_mode_light">淺色</string>

@@ -116,6 +116,25 @@ class SettingsRepository(
     val colorScheme: StateFlow<String> = hot(settingsManager.colorScheme, "DEFAULT")
     val dynamicColor: StateFlow<Boolean> = hot(settingsManager.dynamicColor, true)
     val blurEffectsEnabled: StateFlow<Boolean> = hot(settingsManager.blurEffectsEnabled, true)
+    val customColorChatText: StateFlow<Long?> = hot(settingsManager.customColorChatText, null)
+    val customColorGlobalText: StateFlow<Long?> = hot(settingsManager.customColorGlobalText, null)
+    val customColorUserBubble: StateFlow<Long?> = hot(settingsManager.customColorUserBubble, null)
+    val customColorAssistantBubble: StateFlow<Long?> = hot(settingsManager.customColorAssistantBubble, null)
+    val customColorReasoningPanel: StateFlow<Long?> = hot(settingsManager.customColorReasoningPanel, null)
+    val customColorChatBackground: StateFlow<Long?> = hot(settingsManager.customColorChatBackground, null)
+    val customColorAccent: StateFlow<Long?> = hot(settingsManager.customColorAccent, null)
+    val customColorInputField: StateFlow<Long?> = hot(settingsManager.customColorInputField, null)
+    val illustrationChatBackgroundPath: StateFlow<String> = hot(settingsManager.illustrationChatBackgroundPath, "")
+    val illustrationInputBackgroundPath: StateFlow<String> = hot(settingsManager.illustrationInputBackgroundPath, "")
+    val illustrationDrawerBackgroundPath: StateFlow<String> = hot(settingsManager.illustrationDrawerBackgroundPath, "")
+    val illustrationUserBubbleBackgroundPath: StateFlow<String> = hot(settingsManager.illustrationUserBubbleBackgroundPath, "")
+    val illustrationUserBubbleCornerRadius: StateFlow<Float> = hot(settingsManager.illustrationUserBubbleCornerRadius, 20f)
+    val illustrationTopBarBackgroundPath: StateFlow<String> = hot(settingsManager.illustrationTopBarBackgroundPath, "")
+    val transparencyTopBar: StateFlow<Float> = hot(settingsManager.transparencyTopBar, 1f)
+    val transparencyMessageBubble: StateFlow<Float> = hot(settingsManager.transparencyMessageBubble, 1f)
+    val transparencyReasoningPanel: StateFlow<Float> = hot(settingsManager.transparencyReasoningPanel, 1f)
+    val transparencyDrawerItem: StateFlow<Float> = hot(settingsManager.transparencyDrawerItem, 1f)
+    val recentCustomColors: StateFlow<List<Long>> = hot(settingsManager.recentCustomColors, emptyList())
     val hapticsEnabled: StateFlow<Boolean> = hot(settingsManager.hapticsEnabled, true)
     val toolCallDisplayMode: StateFlow<String> = hot(settingsManager.toolCallDisplayMode, ToolCallDisplayModes.DEFAULT)
     val schemeStyle: StateFlow<String> = hot(settingsManager.schemeStyle, "TONAL_SPOT")
@@ -429,6 +448,29 @@ class SettingsRepository(
     fun setColorScheme(scheme: String) = scope.launch { settingsManager.saveColorScheme(scheme) }
     fun setDynamicColor(enabled: Boolean) = scope.launch { settingsManager.saveDynamicColor(enabled) }
     fun setBlurEffectsEnabled(enabled: Boolean) = scope.launch { settingsManager.saveBlurEffectsEnabled(enabled) }
+    fun setCustomColorChatText(v: Long?) = scope.launch { settingsManager.saveCustomColorChatText(v) }
+    fun setCustomColorGlobalText(v: Long?) = scope.launch { settingsManager.saveCustomColorGlobalText(v) }
+    fun setCustomColorUserBubble(v: Long?) = scope.launch { settingsManager.saveCustomColorUserBubble(v) }
+    fun setCustomColorAssistantBubble(v: Long?) = scope.launch { settingsManager.saveCustomColorAssistantBubble(v) }
+    fun setCustomColorReasoningPanel(v: Long?) = scope.launch { settingsManager.saveCustomColorReasoningPanel(v) }
+    fun setCustomColorChatBackground(v: Long?) = scope.launch { settingsManager.saveCustomColorChatBackground(v) }
+    fun setCustomColorAccent(v: Long?) = scope.launch { settingsManager.saveCustomColorAccent(v) }
+    fun setCustomColorInputField(v: Long?) = scope.launch { settingsManager.saveCustomColorInputField(v) }
+    fun setIllustrationChatBackgroundPath(path: String) = scope.launch { settingsManager.saveIllustrationChatBackgroundPath(path) }
+    fun setIllustrationInputBackgroundPath(path: String) = scope.launch { settingsManager.saveIllustrationInputBackgroundPath(path) }
+    fun setIllustrationDrawerBackgroundPath(path: String) = scope.launch { settingsManager.saveIllustrationDrawerBackgroundPath(path) }
+    fun setIllustrationUserBubbleBackgroundPath(path: String) = scope.launch { settingsManager.saveIllustrationUserBubbleBackgroundPath(path) }
+    fun setIllustrationUserBubbleCornerRadius(radius: Float) = scope.launch { settingsManager.saveIllustrationUserBubbleCornerRadius(radius) }
+    fun setIllustrationTopBarBackgroundPath(path: String) = scope.launch { settingsManager.saveIllustrationTopBarBackgroundPath(path) }
+    fun setTransparencyTopBar(v: Float) = scope.launch { settingsManager.saveTransparencyTopBar(v) }
+    fun setTransparencyMessageBubble(v: Float) = scope.launch { settingsManager.saveTransparencyMessageBubble(v) }
+    fun setTransparencyReasoningPanel(v: Float) = scope.launch { settingsManager.saveTransparencyReasoningPanel(v) }
+    fun setTransparencyDrawerItem(v: Float) = scope.launch { settingsManager.saveTransparencyDrawerItem(v) }
+    fun addRecentCustomColor(argb: Long) = scope.launch {
+        val updated = (listOf(argb) + recentCustomColors.value.filter { it != argb }).take(20)
+        settingsManager.saveRecentCustomColors(updated)
+    }
+    fun clearRecentCustomColors() = scope.launch { settingsManager.saveRecentCustomColors(emptyList()) }
     fun setHapticsEnabled(enabled: Boolean) = scope.launch { settingsManager.saveHapticsEnabled(enabled) }
     fun setToolCallDisplayMode(mode: String) = scope.launch { settingsManager.saveToolCallDisplayMode(mode) }
     fun setSchemeStyle(style: String) = scope.launch { settingsManager.saveSchemeStyle(style) }

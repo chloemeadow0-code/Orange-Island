@@ -516,6 +516,27 @@
     <!-- Appearance -->
     <string name="settings_appearance">Apariencia</string>
     <string name="settings_appearance_desc">Tema, esquema de color y color dinámico</string>
+    <string name="settings_custom_colors">Colores personalizados</string>
+    <string name="settings_custom_colors_desc">Colores de burbujas, fondo y acento</string>
+    <string name="color_picker_title">Elegir color</string>
+    <string name="color_picker_default">Predeterminado</string>
+    <string name="color_picker_current">Actual</string>
+    <string name="color_picker_reset">Restablecer</string>
+    <string name="color_picker_confirm">Confirmar</string>
+    <string name="color_picker_recent">Recientes</string>
+    <string name="custom_colors_section_colors">Colores</string>
+    <string name="custom_colors_section_transparency">Transparencia</string>
+    <string name="custom_color_chat_text">Color del texto del chat</string>
+    <string name="custom_color_global_text">Color del texto global</string>
+    <string name="custom_color_user_bubble">Color de la burbuja del usuario</string>
+    <string name="custom_color_assistant_bubble">Color de la burbuja del asistente</string>
+    <string name="custom_color_reasoning_panel">Color del panel de razonamiento</string>
+    <string name="custom_color_chat_background">Color de fondo del chat</string>
+    <string name="custom_color_accent">Color de acento</string>
+    <string name="custom_color_input_field">Color del campo de entrada</string>
+    <string name="transparency_message_bubble">Burbuja de mensaje</string>
+    <string name="transparency_reasoning_panel">Panel de razonamiento</string>
+    <string name="transparency_drawer_item">Elemento del menú lateral</string>
     <string name="appearance_title">Apariencia</string>
     <string name="theme_mode">Modo de tema</string>
     <string name="theme_mode_light">Claro</string>
