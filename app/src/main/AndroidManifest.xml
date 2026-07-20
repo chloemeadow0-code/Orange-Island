@@ -70,6 +70,18 @@
             android:name=".service.OrangeIslandForegroundService"
             android:foregroundServiceType="dataSync"
             android:exported="false" />
+
+        <!-- Notification-listener: captures other apps' notifications into a ring buffer the
+             NotificationToolProvider reads. Bound by the system only after the user enables it
+             under Settings → Notification access (the app cannot enable it programmatically). -->
+        <service
+            android:name=".tool.device.DeviceNotificationListenerService"
+            android:exported="false"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

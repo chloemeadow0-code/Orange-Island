@@ -178,6 +178,9 @@ class GenerationManager(
     private val calendarToolProvider = permissionController?.let {
         com.orangeisland.app.tool.device.CalendarToolProvider(app, it)
     }
+    private val notificationToolProvider = permissionController?.let {
+        com.orangeisland.app.tool.device.NotificationToolProvider(app, it)
+    }
     private val shellToolProvider = ShellToolProvider(sandboxFactory).also { stp ->
         // Forward to the ViewModel-provided gate at call time (read the var lazily).
         stp.confirm = { server, summary -> onConfirmShellCommand?.invoke(server, summary) ?: true }
@@ -188,6 +191,7 @@ class GenerationManager(
         add(imageGenToolProvider); add(deviceInfoToolProvider); add(shellToolProvider)
         locationToolProvider?.let { add(it) }
         calendarToolProvider?.let { add(it) }
+        notificationToolProvider?.let { add(it) }
         mcpToolProvider?.let { add(it) }
         pluginToolProvider?.let { add(it) }
     }
