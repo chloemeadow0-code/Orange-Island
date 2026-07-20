@@ -97,6 +97,13 @@ class SettingsRepository(
     val shellConfirmEnabled: StateFlow<Boolean> = hot(settingsManager.shellConfirmEnabled, true)
     val shellDevices: StateFlow<List<ShellDeviceConfig>> = hot(settingsManager.shellDevices, emptyList())
     val sandboxEnabled: StateFlow<Boolean> = hot(settingsManager.sandboxEnabled, false)
+    // ── Device Access tools (all default off) ─────────────────
+    val deviceInfoEnabled: StateFlow<Boolean> = hot(settingsManager.deviceInfoEnabled, false)
+    val locationEnabled: StateFlow<Boolean> = hot(settingsManager.locationEnabled, false)
+    val calendarEnabled: StateFlow<Boolean> = hot(settingsManager.calendarEnabled, false)
+    val notificationEnabled: StateFlow<Boolean> = hot(settingsManager.notificationEnabled, false)
+    val usageStatsEnabled: StateFlow<Boolean> = hot(settingsManager.usageStatsEnabled, false)
+    val amapApiKey: StateFlow<String> = hot(settingsManager.amapApiKey, "")
     val mcpServers: StateFlow<List<com.orangeisland.app.data.McpServerConfig>> = hot(settingsManager.mcpServers, emptyList())
     val enabledPluginIds: StateFlow<Set<String>> = hot(settingsManager.enabledPluginIds, emptySet())
     val defaultTemperature: StateFlow<Float?> = hot(settingsManager.defaultTemperature, null)
@@ -394,6 +401,14 @@ class SettingsRepository(
     fun setProxyPassword(pass: String) = scope.launch { settingsManager.saveProxyPassword(pass) }
     fun setProxyBypass(bypass: String) = scope.launch { settingsManager.saveProxyBypass(bypass) }
     fun setSandboxEnabled(enabled: Boolean) = scope.launch { settingsManager.saveSandboxEnabled(enabled) }
+
+    // ── Device Access tools ───────────────────────────────────
+    fun setDeviceInfoEnabled(enabled: Boolean) = scope.launch { settingsManager.saveDeviceInfoEnabled(enabled) }
+    fun setLocationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveLocationEnabled(enabled) }
+    fun setCalendarEnabled(enabled: Boolean) = scope.launch { settingsManager.saveCalendarEnabled(enabled) }
+    fun setNotificationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveNotificationEnabled(enabled) }
+    fun setUsageStatsEnabled(enabled: Boolean) = scope.launch { settingsManager.saveUsageStatsEnabled(enabled) }
+    fun setAmapApiKey(key: String) = scope.launch { settingsManager.saveAmapApiKey(key) }
 
     // ── MCP servers ──────────────────────────────────────────
     fun saveMcpServers(servers: List<com.orangeisland.app.data.McpServerConfig>) =

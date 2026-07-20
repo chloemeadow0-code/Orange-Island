@@ -100,7 +100,14 @@ data class GenerationContext(
     val mcpServerIds: List<String>? = null,
     /** Per-conversation JS-plugin activation. Same semantics as [mcpServerIds] but for
      *  locally-installed JS plugins (resolved by [PluginToolProvider]). */
-    val pluginIds: List<String>? = null
+    val pluginIds: List<String>? = null,
+    // ── Device Access tools (each gated by its own setting + runtime permission) ──
+    val deviceInfoEnabled: Boolean = false,
+    val locationEnabled: Boolean = false,
+    val amapApiKey: String = "",
+    val calendarEnabled: Boolean = false,
+    val notificationEnabled: Boolean = false,
+    val usageStatsEnabled: Boolean = false
 )
 
 internal fun applyUserTemplateToMessages(
@@ -149,7 +156,10 @@ class GenerationManager(
      *  generation where external tools should not run). */
     private val mcpPool: com.orangeisland.app.mcp.McpClientPool? = null,
     /** Optional JS-plugin tool provider. When null, plugin tools are disabled. */
-    private val pluginToolProvider: com.orangeisland.app.plugin.PluginToolProvider? = null
+    private val pluginToolProvider: com.orangeisland.app.plugin.PluginToolProvider? = null,
+    /** Permission state for the Device Access tools. Null during title generation
+     *  (no device tools run there) — passed in for real chat from ChatViewModel. */
+    private val permissionController: com.orangeisland.app.viewmodel.PermissionController? = null
 ) {
     var onMessagePersisted: ((messageId: String, text: String) -> Unit)? = null
 
@@ -161,6 +171,19 @@ class GenerationManager(
     private val webSearchToolProvider = WebSearchToolProvider()
     private val ragToolProvider = RagToolProvider(conversations)
     private val imageGenToolProvider = ImageGenToolProvider(app)
+    private val deviceInfoToolProvider = com.orangeisland.app.tool.device.DeviceInfoToolProvider(app)
+    private val locationToolProvider = permissionController?.let {
+        com.orangeisland.app.tool.device.LocationToolProvider(app, it)
+    }
+    private val calendarToolProvider = permissionController?.let {
+        com.orangeisland.app.tool.device.CalendarToolProvider(app, it)
+    }
+    private val notificationToolProvider = permissionController?.let {
+        com.orangeisland.app.tool.device.NotificationToolProvider(app, it)
+    }
+    private val usageStatsToolProvider = permissionController?.let {
+        com.orangeisland.app.tool.device.UsageStatsToolProvider(app, it)
+    }
     private val shellToolProvider = ShellToolProvider(sandboxFactory).also { stp ->
         // Forward to the ViewModel-provided gate at call time (read the var lazily).
         stp.confirm = { server, summary -> onConfirmShellCommand?.invoke(server, summary) ?: true }
@@ -168,7 +191,11 @@ class GenerationManager(
     private val mcpToolProvider = mcpPool?.let { com.orangeisland.app.tool.McpToolProvider(it) }
     private val toolProviders: List<ToolProvider> = buildList {
         add(memoryToolProvider); add(webSearchToolProvider); add(ragToolProvider)
-        add(imageGenToolProvider); add(shellToolProvider)
+        add(imageGenToolProvider); add(deviceInfoToolProvider); add(shellToolProvider)
+        locationToolProvider?.let { add(it) }
+        calendarToolProvider?.let { add(it) }
+        notificationToolProvider?.let { add(it) }
+        usageStatsToolProvider?.let { add(it) }
         mcpToolProvider?.let { add(it) }
         pluginToolProvider?.let { add(it) }
     }

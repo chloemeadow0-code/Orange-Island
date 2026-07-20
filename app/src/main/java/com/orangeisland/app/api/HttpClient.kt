@@ -201,6 +201,22 @@ object HttpClient {
         }
     }
 
+    /** Plain GET returning the response body as a string, or null on non-2xx / failure.
+     *  Used by device-access tools (e.g. Amap reverse geocoding) for simple REST calls. */
+    fun get(url: String, headers: Map<String, String> = emptyMap()): String? {
+        guardCleartextCredentials(url, headers)
+        val requestBuilder = Request.Builder().url(url).get()
+        headers.forEach { (k, v) -> requestBuilder.addHeader(k, v) }
+        val response = client.newCall(requestBuilder.build()).execute()
+        return response.use {
+            if (it.isSuccessful) it.body?.string()
+            else {
+                DebugLog.e("HttpClient", "GET $url failed: ${it.code} ${it.body?.string()}")
+                null
+            }
+        }
+    }
+
     /** GET raw bytes (e.g. an image referenced by URL). Returns null on failure. */
     fun getBytes(url: String, headers: Map<String, String> = emptyMap()): ByteArray? {
         guardCleartextCredentials(url, headers)

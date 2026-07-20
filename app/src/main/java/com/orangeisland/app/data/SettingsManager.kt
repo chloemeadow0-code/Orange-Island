@@ -177,6 +177,15 @@ class SettingsManager(private val context: Context) {
         val SHELL_CONFIRM_ENABLED = booleanPreferencesKey("shell_confirm_enabled")
         val SHELL_DEVICES_JSON = stringPreferencesKey("shell_devices_json")
         val SANDBOX_ENABLED = booleanPreferencesKey("sandbox_enabled")
+        // ── Device Access tools (per-tool on/off) ─────────────────
+        // Each is off by default; the user opts in from Settings → Device Access.
+        val DEVICE_INFO_ENABLED = booleanPreferencesKey("device_info_enabled")
+        val LOCATION_ENABLED = booleanPreferencesKey("location_enabled")
+        val CALENDAR_ENABLED = booleanPreferencesKey("calendar_enabled")
+        val NOTIFICATION_ENABLED = booleanPreferencesKey("notification_enabled")
+        val USAGE_STATS_ENABLED = booleanPreferencesKey("usage_stats_enabled")
+        // Amap (高德) REST API key for the location tool's reverse geocoding + nearby search.
+        val AMAP_API_KEY = stringPreferencesKey("amap_api_key")
         val MCP_SERVERS_JSON = stringPreferencesKey("mcp_servers_json")
         val PLUGINS_ENABLED = stringSetPreferencesKey("plugins_enabled")
         val THEME_MODE = stringPreferencesKey("theme_mode")
@@ -379,6 +388,14 @@ class SettingsManager(private val context: Context) {
         try { json.decodeFromString<List<ShellDeviceConfig>>(jsonStr) } catch (e: Exception) { emptyList() }
     }
     val sandboxEnabled: Flow<Boolean> = context.dataStore.data.map { it[SANDBOX_ENABLED] ?: false }
+
+    // ── Device Access tools (all default off) ─────────────────
+    val deviceInfoEnabled: Flow<Boolean> = context.dataStore.data.map { it[DEVICE_INFO_ENABLED] ?: false }
+    val locationEnabled: Flow<Boolean> = context.dataStore.data.map { it[LOCATION_ENABLED] ?: false }
+    val calendarEnabled: Flow<Boolean> = context.dataStore.data.map { it[CALENDAR_ENABLED] ?: false }
+    val notificationEnabled: Flow<Boolean> = context.dataStore.data.map { it[NOTIFICATION_ENABLED] ?: false }
+    val usageStatsEnabled: Flow<Boolean> = context.dataStore.data.map { it[USAGE_STATS_ENABLED] ?: false }
+    val amapApiKey: Flow<String> = context.dataStore.data.map { it[AMAP_API_KEY] ?: "" }
 
     // ── MCP servers ──────────────────────────────────────────
     // Encrypted (headersJson commonly carries bearer tokens), same scheme as apiKeys/shellDevices.
@@ -812,6 +829,14 @@ class SettingsManager(private val context: Context) {
     suspend fun saveSandboxEnabled(enabled: Boolean) {
         context.dataStore.edit { it[SANDBOX_ENABLED] = enabled }
     }
+
+    // ── Device Access tools ───────────────────────────────────
+    suspend fun saveDeviceInfoEnabled(enabled: Boolean) { context.dataStore.edit { it[DEVICE_INFO_ENABLED] = enabled } }
+    suspend fun saveLocationEnabled(enabled: Boolean) { context.dataStore.edit { it[LOCATION_ENABLED] = enabled } }
+    suspend fun saveCalendarEnabled(enabled: Boolean) { context.dataStore.edit { it[CALENDAR_ENABLED] = enabled } }
+    suspend fun saveNotificationEnabled(enabled: Boolean) { context.dataStore.edit { it[NOTIFICATION_ENABLED] = enabled } }
+    suspend fun saveUsageStatsEnabled(enabled: Boolean) { context.dataStore.edit { it[USAGE_STATS_ENABLED] = enabled } }
+    suspend fun saveAmapApiKey(key: String) { context.dataStore.edit { it[AMAP_API_KEY] = key } }
 
     suspend fun saveThemeMode(mode: String) {
         context.dataStore.edit { it[THEME_MODE] = mode }

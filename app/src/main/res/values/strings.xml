@@ -293,6 +293,27 @@
     <string name="manual_model_id_error">Already added</string>
     <string name="manual_model_delete_title">Remove Model</string>
     <string name="manual_model_delete_text">Remove \"%1$s\" from this provider?</string>
+    <!-- Device Access tools -->
+    <string name="device_access_title">Device Access</string>
+    <string name="device_access_desc">Let the model read device sensors and system state</string>
+    <string name="device_access_group_tools">Tools</string>
+    <string name="device_access_device_info_title">Device Info</string>
+    <string name="device_access_device_info_desc">Battery, storage, memory, model, Android version</string>
+    <string name="device_access_location_title">Location</string>
+    <string name="device_access_location_desc">Current location + nearby places within 1000m (Amap)</string>
+    <string name="device_access_calendar_title">Calendar</string>
+    <string name="device_access_calendar_desc">List, create, and delete calendar events</string>
+    <string name="device_access_notification_title">Notifications</string>
+    <string name="device_access_notification_desc">Read active notifications from other apps</string>
+    <string name="device_access_usage_title">Screen Usage</string>
+    <string name="device_access_usage_desc">Per-app usage time and last-opened timestamps</string>
+    <string name="device_access_perm_not_required">No permission needed</string>
+    <string name="device_access_perm_granted">Permission granted</string>
+    <string name="device_access_perm_runtime_needed">Permission needed -- enable to grant</string>
+    <string name="device_access_perm_open_settings">Open system settings...</string>
+    <string name="device_access_amap_key_title">Amap (高德) Web Service API Key</string>
+    <string name="device_access_amap_key_desc">Required for reverse geocoding + nearby search. Get one free at lbs.amap.com</string>
+    <string name="device_access_amap_key_hint">Paste your Amap key</string>
     <string name="models_count">%1$d models available</string>
     <string name="models_rename">Rename Model</string>
     <string name="models_rename_current">Current ID: %1$s</string>
