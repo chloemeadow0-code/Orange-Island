@@ -217,6 +217,25 @@
     <string name="manual_model_id_error">已添加</string>
     <string name="manual_model_delete_title">移除模型</string>
     <string name="manual_model_delete_text">从此提供商移除“%1$s”？</string>
+
+    <!-- Device Access tools / 设备访问工具 -->
+    <string name="device_access_title">设备访问</string>
+    <string name="device_access_desc">允许模型读取设备传感器与系统状态</string>
+    <string name="device_access_group_tools">工具</string>
+    <string name="device_access_device_info_title">设备信息</string>
+    <string name="device_access_device_info_desc">电量、存储、内存、机型、安卓版本</string>
+    <string name="device_access_location_title">位置</string>
+    <string name="device_access_location_desc">当前位置 + 周边 1000 米内地点（高德）</string>
+    <string name="device_access_calendar_title">日历</string>
+    <string name="device_access_calendar_desc">查看、新建、删除日历日程</string>
+    <string name="device_access_notification_title">通知</string>
+    <string name="device_access_notification_desc">读取其他应用的活动通知</string>
+    <string name="device_access_usage_title">屏幕使用</string>
+    <string name="device_access_usage_desc">各应用使用时长与最近打开时间</string>
+    <string name="device_access_perm_not_required">无需权限</string>
+    <string name="device_access_perm_granted">权限已授予</string>
+    <string name="device_access_perm_runtime_needed">需要权限 - 打开开关以授权</string>
+    <string name="device_access_perm_open_settings">打开系统设置…</string>
     <string name="models_count">%1$d 个模型可用</string>
     <string name="models_rename">重命名模型</string>
     <string name="models_rename_current">当前 ID：%1$s</string>

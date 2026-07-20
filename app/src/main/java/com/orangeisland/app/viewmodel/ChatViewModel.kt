@@ -1,4 +1,4 @@
-package com.orangeisland.app.viewmodel
+﻿package com.orangeisland.app.viewmodel
 
 import android.app.Application
 import android.content.Context
@@ -79,7 +79,7 @@ class ChatViewModel(
     val memoryManager: MemoryManager,
     private val appContext: Context,
     private val sandboxFactory: SandboxManagerFactory? = null,
-    // All injected via AppContainer/ChatViewModelFactory — the single construction site.
+    // All injected via AppContainer/ChatViewModelFactory 鈥?the single construction site.
     val autoBackupManager: AutoBackupManager,
     conversationRepository: ConversationRepository,
     settingsRepository: SettingsRepository,
@@ -139,7 +139,7 @@ class ChatViewModel(
 
     /**
      * Startup jobs deferred until all StateFlow/property backing fields are
-     * initialized — avoids the constructor this-escape where a Dispatchers.IO
+     * initialized 鈥?avoids the constructor this-escape where a Dispatchers.IO
      * coroutine accesses a field whose JVM backing field is still null.
      */
     /** Build the proxy config from settings and push it into the shared HttpClient. */
@@ -222,7 +222,7 @@ class ChatViewModel(
                 }
             } catch (e: Exception) { DebugLog.d("ChatViewModel", "PDF thumbnail cleanup error", e) }
         }
-        // ── Auto Backup ──────────────────────────────────────────
+        // 鈹€鈹€ Auto Backup 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
         try { AutoBackupWorker.schedule(getApplication()) } catch (_: Exception) {}
         viewModelScope.launch(Dispatchers.IO) {
             try { autoBackupManager.checkAndBackup() } catch (e: Exception) { DebugLog.e("ChatViewModel", "Auto backup check failed", e) }
@@ -282,7 +282,7 @@ class ChatViewModel(
         }
     }
 
-    /** MCP (Model Context Protocol) client pool — one connection per configured server.
+    /** MCP (Model Context Protocol) client pool 鈥?one connection per configured server.
      *  Lazily created (only when first MCP tool is requested), eagerly closed in [onCleared].
      *  Lives on viewModelScope so the background reconnect coroutines die with the ViewModel. */
     private val mcpClientPoolLazy = lazy {
@@ -347,7 +347,7 @@ class ChatViewModel(
     val cacheCounts get() = ragManager.cacheCounts
     fun loadCacheCounts() = ragManager.loadCacheCounts()
 
-    // ── Remote shell command confirmation gate ───────────────────────────
+    // 鈹€鈹€ Remote shell command confirmation gate 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
     /** Shell-command confirmation policy + pending-prompt handshake (see [ShellConfirmationController]). */
     private val shellConfirmation = ShellConfirmationController(settings)
     val pendingShellCommand: StateFlow<ShellConfirmationController.PendingShellCommand?>
@@ -359,7 +359,10 @@ class ChatViewModel(
 
     fun setShellConfirmEnabled(enabled: Boolean) = shellConfirmation.setEnabled(enabled)
 
-    // ── Auto Backup ───────────────────────────────────────────
+    /** Centralized runtime + special-permission state for the Device Access tools. */
+    val permissionController: PermissionController = PermissionController(appContext)
+
+    // 鈹€鈹€ Auto Backup 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
         val conversations: StateFlow<List<ChatConversation>> = convRepo.getAllConversations()
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -556,7 +559,7 @@ class ChatViewModel(
         viewModelScope.launch {
             _currentConversationId.collectLatest { id ->
                 if (id != null) {
-                    // Fix stuck sending states when loading conversation — skip if currently generating
+                    // Fix stuck sending states when loading conversation 鈥?skip if currently generating
                     if (!_isLoading.value) {
                         val stuckMessages = convRepo.getMessagesForConversation(id).first()
                             .filter { it.status == MessageStatus.SENDING || it.status == MessageStatus.THINKING || it.status == MessageStatus.TOOL_CALLING || it.status == MessageStatus.TRANSCRIBING }
@@ -645,14 +648,14 @@ class ChatViewModel(
         convRepo.saveBranchSelections(conversationId, childrenMap)
     }
 
-    // ── Custom providers ──────────────────────────────────────
+    // 鈹€鈹€ Custom providers 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
     // Settings persistence lives in SettingsRepository; ChatViewModel only maintains
     // the live in-memory provider instances (the `providers` map) via callbacks.
     fun addCustomProvider(name: String, baseUrl: String) = providerRegistry.addCustom(name, baseUrl)
     fun renameCustomProvider(oldName: String, newName: String) = providerRegistry.renameCustom(oldName, newName)
     fun deleteCustomProvider(name: String) = providerRegistry.deleteCustom(name)
 
-    // ── Manual models (custom providers only) ────────────────
+    // 鈹€鈹€ Manual models (custom providers only) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
     fun addManualModel(provider: String, modelId: String) = settings.addManualModel(provider, modelId)
     fun removeManualModel(provider: String, modelId: String) = settings.removeManualModel(provider, modelId)
     fun isManualModelTaken(provider: String, modelId: String): Boolean {
@@ -745,7 +748,7 @@ class ChatViewModel(
 
     fun indexMessageForRag(messageId: String, text: String) = ragManager.indexMessageForRag(messageId, text)
     suspend fun searchMessages(query: String, limit: Int = 20) = convRepo.searchMessages(query, limit)
-    // ── Auto Backup ───────────────────────────────────────────
+    // 鈹€鈹€ Auto Backup 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
     fun setAutoBackupEnabled(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             settings.saveAutoBackupEnabled(enabled)
@@ -797,7 +800,7 @@ class ChatViewModel(
      * Connects to an SSH host in capture mode and returns the server host key
      * (base64) together with its SHA-256 fingerprint, for the user to review and
      * pin. The host key is exchanged before authentication, so this succeeds even
-     * if the password is wrong — letting the user pin the key first.
+     * if the password is wrong 鈥?letting the user pin the key first.
      */
     suspend fun verifySshHostKey(
         host: String, port: Int, user: String, password: String, timeoutSec: Int
@@ -810,7 +813,7 @@ class ChatViewModel(
         try {
             client.executeCommand("true")
         } catch (_: Exception) {
-            // Ignore — the host key is captured during the handshake regardless of auth result.
+            // Ignore 鈥?the host key is captured during the handshake regardless of auth result.
         } finally {
             client.close()
         }
@@ -996,7 +999,7 @@ class ChatViewModel(
      * Unlike [fetchAvailableModels] this carries no global side effects: no
      * `_isSyncingModels` guard (so re-entry always refetches the latest key),
      * no enabled-set intersection, and no snackbar. It is a plain suspend
-     * function so the caller's coroutine owns its lifecycle — cancelling that
+     * function so the caller's coroutine owns its lifecycle 鈥?cancelling that
      * coroutine cooperatively aborts the in-flight network request, which keeps
      * the welcome flow seamless (no stale result can land after the user edits
      * their key and returns). Results are persisted so the [availableModels]

@@ -100,7 +100,14 @@ data class GenerationContext(
     val mcpServerIds: List<String>? = null,
     /** Per-conversation JS-plugin activation. Same semantics as [mcpServerIds] but for
      *  locally-installed JS plugins (resolved by [PluginToolProvider]). */
-    val pluginIds: List<String>? = null
+    val pluginIds: List<String>? = null,
+    // ── Device Access tools (each gated by its own setting + runtime permission) ──
+    val deviceInfoEnabled: Boolean = false,
+    val locationEnabled: Boolean = false,
+    val amapApiKey: String = "",
+    val calendarEnabled: Boolean = false,
+    val notificationEnabled: Boolean = false,
+    val usageStatsEnabled: Boolean = false
 )
 
 internal fun applyUserTemplateToMessages(

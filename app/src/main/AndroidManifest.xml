@@ -10,6 +10,18 @@
     <!-- Saving images to the gallery on pre-Q only; Q+ uses scoped MediaStore (no permission). -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
 
+    <!-- ── Device Access tools ─────────────────────────────────── -->
+    <!-- Location tool (high-accuracy reverse geocoding + nearby search via Amap REST). -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Calendar tool (read/create/delete events via CalendarContract). -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+    <!-- Screen-usage tool (UsageStatsManager). Special permission: granted via
+         Settings.ACTION_USAGE_ACCESS_SETTINGS, not the runtime permission dialog. -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
     <application
         android:name=".OrangeIslandApplication"
         android:allowBackup="false"

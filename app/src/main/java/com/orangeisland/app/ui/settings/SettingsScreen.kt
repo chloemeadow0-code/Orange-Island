@@ -180,6 +180,7 @@ private val settingsGroups = listOf(
         SettingsCategory("shell", R.string.shell_title, R.string.shell_desc, Icons.Default.Terminal),
         SettingsCategory("mcp", R.string.mcp_title, R.string.mcp_desc, Icons.Default.Extension),
         SettingsCategory("plugins", R.string.plugin_title, R.string.plugin_desc, Icons.Default.Extension),
+        SettingsCategory("device_access", R.string.device_access_title, R.string.device_access_desc, Icons.Default.Smartphone),
     )),
     SettingsGroupData(titleRes = R.string.settings_group_network, items = listOf(
         SettingsCategory("proxy", R.string.settings_proxy, R.string.settings_proxy_desc, Icons.Default.Lan),
@@ -234,6 +235,7 @@ fun SettingsScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
                 "shell" -> SettingsShellPage(viewModel, onBack = { selectedCategory = null })
                 "mcp" -> SettingsMcpPage(viewModel, onBack = { selectedCategory = null })
                 "plugins" -> SettingsPluginPage(viewModel, onBack = { selectedCategory = null })
+                "device_access" -> SettingsDeviceAccessPage(viewModel, onBack = { selectedCategory = null })
                 "proxy" -> SettingsProxyPage(viewModel, onBack = { selectedCategory = null })
                 "language" -> SettingsLanguagePage(viewModel, onBack = { selectedCategory = null })
                 "titlegen" -> SettingsTitleGenPage(viewModel, onBack = { selectedCategory = null })

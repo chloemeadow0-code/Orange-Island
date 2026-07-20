@@ -167,7 +167,14 @@ class GenerationRequestBuilder(
             transcriptionBaseUrl = resolveTranscriptionBaseUrl(),
             mcpServers = settings.mcpServers.value,
             mcpServerIds = effectiveSettings.mcpServerIds,
-            pluginIds = effectiveSettings.pluginIds
+            pluginIds = effectiveSettings.pluginIds,
+            // Device Access tools — straight pass-through (no per-conversation override yet).
+            deviceInfoEnabled = settings.deviceInfoEnabled.value,
+            locationEnabled = settings.locationEnabled.value,
+            amapApiKey = settings.amapApiKey.value,
+            calendarEnabled = settings.calendarEnabled.value,
+            notificationEnabled = settings.notificationEnabled.value,
+            usageStatsEnabled = settings.usageStatsEnabled.value
         )
         return Pair(config, genCtx)
     }
