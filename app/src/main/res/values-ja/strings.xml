@@ -536,6 +536,7 @@
     <string name="custom_color_input_field">入力欄の色</string>
     <string name="transparency_message_bubble">メッセージバブル</string>
     <string name="transparency_reasoning_panel">推論パネル</string>
+    <string name="illustration_reasoning_background">推論パネル背景</string>
     <string name="transparency_drawer_item">ドロワー項目</string>
     <string name="appearance_title">外観</string>
     <string name="theme_mode">テーマモード</string>

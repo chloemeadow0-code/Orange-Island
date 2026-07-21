@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -301,14 +302,14 @@ internal fun ChatDrawerContent(
                                 expanded = isExpanded(pid),
                                 isActive = pid != null && pid == activeProjectId,
                                 drawerItemAlpha = drawerItemAlpha,
-                                onToggle = { toggleExpanded(pid) },
-                                onActivate = {
-                                    haptics.selection()
-                                    viewModel.setActiveProject(pid)
-                                },
-                                onMenu = {
+                                onToggle = { haptics.selection(); toggleExpanded(pid) },
+                                onOpenSettings = {
                                     haptics.action()
-                                    if (project != null) onRequestProjectSettings(project.id)
+                                    viewModel.setActiveProject(pid)
+                                    if (project != null) {
+                                        onRequestProjectSettings(project.id)
+                                        scope.launch { drawerState.close() }
+                                    }
                                 }
                             )
                         }
@@ -430,8 +431,7 @@ private fun ProjectHeaderRow(
     isActive: Boolean,
     drawerItemAlpha: Float,
     onToggle: () -> Unit,
-    onActivate: () -> Unit,
-    onMenu: () -> Unit
+    onOpenSettings: () -> Unit
 ) {
     val title = project?.name ?: stringResource(R.string.ungrouped)
     val count = project?.let {
@@ -446,20 +446,26 @@ private fun ProjectHeaderRow(
             .height(38.dp)
             .padding(vertical = 2.dp)
             .clip(CircleShape)
-            .combinedClickable(
-                onClick = {
-                    onActivate()
-                    onToggle()
+            .clickable {
+                if (project != null) {
+                    onOpenSettings()
+                } else {
+                    onToggle()   // "未分组"没有设置页可进，点击整行退化成跟点箭头一样的展开/折叠
                 }
-            )
+            }
     ) {
         Spacer(modifier = Modifier.width(8.dp))
-        Icon(
-            imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = drawerItemAlpha.coerceAtLeast(0.4f))
-        )
+        Box(
+            modifier = Modifier.size(28.dp).clip(CircleShape).clickable { onToggle() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = drawerItemAlpha.coerceAtLeast(0.4f))
+            )
+        }
         Spacer(modifier = Modifier.width(4.dp))
         Icon(
             imageVector = Icons.Default.Folder,
@@ -482,18 +488,7 @@ private fun ProjectHeaderRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = drawerItemAlpha.coerceAtLeast(0.4f))
             )
         }
-        if (project != null) {
-            IconButton(onClick = onMenu, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.options),
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = drawerItemAlpha.coerceAtLeast(0.4f))
-                )
-            }
-        } else {
-            Spacer(modifier = Modifier.width(8.dp))
-        }
+        Spacer(modifier = Modifier.width(12.dp))
     }
 }
 

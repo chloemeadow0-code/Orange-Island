@@ -181,7 +181,7 @@ class OllamaProvider : LlmProvider {
 
             while (attempt < maxAttempts && !done) {
                 attempt++
-                val handle = HttpClient.streamPost(url, requestBodyJson, headers)
+                val handle = HttpClient.streamPost(url, requestBodyJson, headers, config.cancellationToken)
                 try {
                 if (handle.code == 200) {
                     done = true

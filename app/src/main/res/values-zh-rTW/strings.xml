@@ -546,6 +546,7 @@
     <string name="custom_color_input_field">輸入框顏色</string>
     <string name="transparency_message_bubble">訊息氣泡</string>
     <string name="transparency_reasoning_panel">推理面板</string>
+    <string name="illustration_reasoning_background">推理面板背景圖</string>
     <string name="transparency_drawer_item">側邊欄項目</string>
     <string name="appearance_title">外觀</string>
     <string name="theme_mode">主題模式</string>

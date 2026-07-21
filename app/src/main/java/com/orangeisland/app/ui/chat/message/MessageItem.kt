@@ -36,6 +36,7 @@ fun MessageItem(
     userBubbleCornerRadiusOverride: Float? = null,
     customAssistantBubbleColor: Long? = null,
     customReasoningPanelColor: Long? = null,
+    reasoningBackgroundImagePath: String = "",
     customChatTextColor: Long? = null,
     customGlobalTextColor: Long? = null,
     messageBubbleAlpha: Float = 1f,
@@ -203,6 +204,7 @@ fun MessageItem(
                 customAssistantBubbleColor = customAssistantBubbleColor,
                 customReasoningPanelColor = customReasoningPanelColor,
                 reasoningPanelAlpha = reasoningPanelAlpha,
+                reasoningBackgroundImagePath = reasoningBackgroundImagePath,
                 contextAlpha = contextAlpha,
                 isStreaming = isStreaming,
                 isLoading = isLoading,
@@ -241,6 +243,10 @@ fun MessageItem(
             thoughtMarkdownPadding = thoughtMarkdownPadding,
             markdownComponents = customMarkdownComponents,
             markdownFlavour = markdownFlavour,
+            customReasoningPanelColor = customReasoningPanelColor,
+            reasoningPanelAlpha = reasoningPanelAlpha,
+            reasoningBackgroundImagePath = reasoningBackgroundImagePath,
+            imageTransformer = markdownRenderContext.imageTransformer,
             onDismiss = { showSegmentDetail = false }
         )
     }

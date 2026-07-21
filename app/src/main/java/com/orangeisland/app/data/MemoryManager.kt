@@ -18,12 +18,22 @@ class MemoryManager(context: Context) {
 
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
+    @kotlinx.serialization.Serializable
+    data class MemoryFileMeta(
+        val description: String = "",
+        /** Epoch millis (UTC), 存入时自动生成，不可由用户手动编辑。UI 展示时统一
+         *  转换为北京时间（Asia/Shanghai）。旧数据（这个字段引入之前创建的文件）
+         *  没有记录，读取时用文件的 lastModified() 兜底。 */
+        val createdAt: Long = 0L
+    )
+
     data class MemoryFileInfo(
         val name: String,
         val description: String = "",
         // Origin bucket so callers (tool provider, UI) can show where a file lives.
         // null = global; non-null = the project id this file belongs to.
-        val projectId: String? = null
+        val projectId: String? = null,
+        val createdAt: Long = 0L
     )
 
     /**
@@ -81,16 +91,28 @@ class MemoryManager(context: Context) {
         }
 
     @Synchronized
-    private fun loadMeta(projectId: String?): MutableMap<String, String> {
+    private fun loadMeta(projectId: String?): MutableMap<String, MemoryFileMeta> {
         val file = metaFileFor(projectId)
-        return if (file.exists()) {
-            try { json.decodeFromString<MutableMap<String, String>>(file.readText()) }
-            catch (_: Exception) { mutableMapOf() }
-        } else mutableMapOf()
+        if (!file.exists()) return mutableMapOf()
+        val raw = file.readText()
+        return try {
+            json.decodeFromString<MutableMap<String, MemoryFileMeta>>(raw)
+        } catch (_: Exception) {
+            // 旧格式兼容：纯 Map<String, String>（文件名 -> 描述），没有时间戳。
+            try {
+                val legacy = json.decodeFromString<Map<String, String>>(raw)
+                legacy.mapValues { (fileName, desc) ->
+                    val f = File(dirFor(projectId), fileName)
+                    MemoryFileMeta(description = desc, createdAt = if (f.exists()) f.lastModified() else 0L)
+                }.toMutableMap()
+            } catch (_: Exception) {
+                mutableMapOf()
+            }
+        }
     }
 
     @Synchronized
-    private fun saveMeta(meta: Map<String, String>, projectId: String?) {
+    private fun saveMeta(meta: Map<String, MemoryFileMeta>, projectId: String?) {
         metaFileFor(projectId).writeText(json.encodeToString(meta))
     }
 
@@ -98,7 +120,7 @@ class MemoryManager(context: Context) {
     fun getDescription(name: String, projectId: String? = null): String {
         val resolved = resolveFile(name, projectId)
         if (!resolved.exists()) return ""
-        return loadMeta(projectId)[resolved.name] ?: ""
+        return loadMeta(projectId)[resolved.name]?.description ?: ""
     }
 
     @Synchronized
@@ -106,7 +128,12 @@ class MemoryManager(context: Context) {
         val resolved = resolveFile(name, projectId)
         if (!resolved.exists()) throw IllegalArgumentException("File not found: $name")
         val meta = loadMeta(projectId)
-        if (description.isBlank()) meta.remove(resolved.name) else meta[resolved.name] = description
+        val existing = meta[resolved.name] ?: MemoryFileMeta()
+        if (description.isBlank()) {
+            meta.remove(resolved.name)
+        } else {
+            meta[resolved.name] = existing.copy(description = description)
+        }
         saveMeta(meta, projectId)
     }
 
@@ -120,7 +147,7 @@ class MemoryManager(context: Context) {
         val meta = loadMeta(projectId)
         return dirFor(projectId).listFiles()
             ?.filter { it.extension == "md" }
-            ?.map { MemoryFileInfo(it.name, meta[it.name] ?: "", projectId) }
+            ?.map { MemoryFileInfo(it.name, meta[it.name]?.description ?: "", projectId, meta[it.name]?.createdAt ?: it.lastModified()) }
             ?.sortedBy { it.name } ?: emptyList()
     }
 
@@ -160,11 +187,9 @@ class MemoryManager(context: Context) {
         val file = resolveFile(name, projectId)
         if (file.exists()) throw IllegalArgumentException("File already exists: ${file.name}")
         file.writeText(content)
-        if (description.isNotBlank()) {
-            val meta = loadMeta(projectId)
-            meta[file.name] = description
-            saveMeta(meta, projectId)
-        }
+        val meta = loadMeta(projectId)
+        meta[file.name] = MemoryFileMeta(description = description, createdAt = System.currentTimeMillis())
+        saveMeta(meta, projectId)
         return "Created ${file.name}"
     }
 
@@ -192,12 +217,14 @@ class MemoryManager(context: Context) {
             renamedFile = resolveFile(newName, projectId)
             if (renamedFile.exists()) throw IllegalArgumentException("Target file already exists: ${renamedFile.name}")
             file.renameTo(renamedFile)
-            val desc = meta.remove(file.name)
-            if (desc != null) meta[renamedFile.name] = desc
+            val existing = meta.remove(file.name) ?: MemoryFileMeta()
+            meta[renamedFile.name] = existing
         }
         if (description != null) {
-            if (description.isBlank()) meta.remove((renamedFile ?: file).name)
-            else meta[(renamedFile ?: file).name] = description
+            val targetKey = (renamedFile ?: file).name
+            val existing = meta[targetKey] ?: MemoryFileMeta()
+            if (description.isBlank()) meta.remove(targetKey)
+            else meta[targetKey] = existing.copy(description = description)
         }
         saveMeta(meta, projectId)
         val targetName = newName?.let { resolveFile(it, projectId).name } ?: file.name
@@ -275,5 +302,16 @@ class MemoryManager(context: Context) {
     fun writeProjectMemoryBytes(projectId: String, name: String, bytes: ByteArray) {
         val dir = dirFor(projectId)
         java.io.File(dir, name).writeBytes(bytes)
+    }
+
+    /**
+     * 把 epoch millis 格式化为北京时间的"年月日 时:分"展示串。早于等于 0 的值返回空串
+     * （表示没有时间戳信息，UI 会选择不显示）。
+     */
+    fun formatCreatedAt(epochMillis: Long): String {
+        if (epochMillis <= 0L) return ""
+        val zone = java.time.ZoneId.of("Asia/Shanghai")
+        val dt = java.time.Instant.ofEpochMilli(epochMillis).atZone(zone)
+        return "%d年%d月%d日 %02d:%02d".format(dt.year, dt.monthValue, dt.dayOfMonth, dt.hour, dt.minute)
     }
 }

@@ -536,6 +536,7 @@
     <string name="custom_color_input_field">Farbe des Eingabefelds</string>
     <string name="transparency_message_bubble">Nachrichtenblase</string>
     <string name="transparency_reasoning_panel">Denkpanel</string>
+    <string name="illustration_reasoning_background">Hintergrund des Denkpanels</string>
     <string name="transparency_drawer_item">Menüelement</string>
     <string name="appearance_title">Erscheinungsbild</string>
     <string name="theme_mode">Design-Modus</string>

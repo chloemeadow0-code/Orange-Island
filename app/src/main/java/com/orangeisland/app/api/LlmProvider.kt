@@ -41,7 +41,8 @@ data class ProviderConfig(
     val maxTokens: Int? = null,
     val topP: Float? = null,
     val frequencyPenalty: Float? = null,
-    val presencePenalty: Float? = null
+    val presencePenalty: Float? = null,
+    val cancellationToken: Long? = null
 )
 
 @Serializable

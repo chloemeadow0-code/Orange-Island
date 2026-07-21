@@ -361,7 +361,7 @@ class GeminiProvider : LlmProvider {
 
             while (attempt < maxAttempts && !done) {
                 attempt++
-                val handle = HttpClient.streamPost(finalUrlString, requestJson, headers)
+                val handle = HttpClient.streamPost(finalUrlString, requestJson, headers, config.cancellationToken)
                 try {
                 if (handle.code == 200) {
                     done = true

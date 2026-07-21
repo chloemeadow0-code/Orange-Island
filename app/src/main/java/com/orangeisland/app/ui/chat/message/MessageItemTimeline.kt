@@ -88,6 +88,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
@@ -129,6 +130,7 @@ import com.orangeisland.app.model.ToolCallDisplayModes
 import com.orangeisland.app.ui.common.LocalOrangeIslandHaptics
 import com.orangeisland.app.ui.theme.MonoFamily
 import com.orangeisland.app.ui.theme.ChatType
+import com.orangeisland.app.ui.components.ColorMath
 import com.orangeisland.app.ui.components.*
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownColor
@@ -260,7 +262,10 @@ private fun CompactSegmentBlock(
     topPaddingExtra: Dp = 0.dp,
     bottomPaddingExtra: Dp = 6.dp,
     onSegmentClick: (Int) -> Unit,
-    onBlockHeightChanged: (Int) -> Unit = {}
+    onBlockHeightChanged: (Int) -> Unit = {},
+    customReasoningPanelColor: Long? = null,
+    reasoningPanelAlpha: Float = 1f,
+    reasoningBackgroundImagePath: String = "",
 ) {
     if (segs.isEmpty()) return
     val isExpanded by remember(expansionKey) {
@@ -291,6 +296,8 @@ private fun CompactSegmentBlock(
 
     Surface(
         tonalElevation = 2.dp,
+        color = customReasoningPanelColor?.let { ColorMath.argbToColor(it) }?.copy(alpha = reasoningPanelAlpha)
+            ?: MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = reasoningPanelAlpha),
         shape = RoundedCornerShape(18.dp),
         modifier = modifier
             .fillMaxWidth()
@@ -298,7 +305,21 @@ private fun CompactSegmentBlock(
             .noOpBringIntoView()
             .onSizeChanged { onBlockHeightChanged(it.height) }
     ) {
-        Column {
+        Box {
+            if (reasoningBackgroundImagePath.isNotBlank()) {
+                coil.compose.AsyncImage(
+                    model = reasoningBackgroundImagePath,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.matchParentSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+                )
+            }
+            Column {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -434,6 +455,7 @@ private fun CompactSegmentBlock(
                     }
                 }
             }
+            }
         }
     }
 }
@@ -448,7 +470,10 @@ internal fun TimelineSegmentsContent(
     expandedStates: SnapshotStateMap<String, Boolean>,
     renderContext: ChatMarkdownRenderContext,
     animatedBlockKeys: Set<String>,
-    onSegmentClick: (List<Int>) -> Unit
+    onSegmentClick: (List<Int>) -> Unit,
+    customReasoningPanelColor: Long? = null,
+    reasoningPanelAlpha: Float = 1f,
+    reasoningBackgroundImagePath: String = "",
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         var detailIndex = 0
@@ -515,7 +540,10 @@ internal fun TimelineSegmentsContent(
                                 expansionKey = expansionKey,
                                 topPaddingExtra = blockTopPaddingExtra,
                                 bottomPaddingExtra = 0.dp,
-                                onSegmentClick = { detailIndex -> onSegmentClick(listOf(detailIndex)) }
+                                onSegmentClick = { detailIndex -> onSegmentClick(listOf(detailIndex)) },
+                                customReasoningPanelColor = customReasoningPanelColor,
+                                reasoningPanelAlpha = reasoningPanelAlpha,
+                                reasoningBackgroundImagePath = reasoningBackgroundImagePath,
                             )
                         }
                         AnimatedTimelineBlockAppearance(
@@ -538,7 +566,10 @@ internal fun TimelineSegmentsContent(
                                 detailIndex = currentDetailIndex,
                                 isStreaming = isStreaming && index == segments.lastIndex,
                                 topPaddingExtra = cardTopPaddingExtra,
-                                onClick = { onSegmentClick(listOf(currentDetailIndex)) }
+                                onClick = { onSegmentClick(listOf(currentDetailIndex)) },
+                                customReasoningPanelColor = customReasoningPanelColor,
+                                reasoningPanelAlpha = reasoningPanelAlpha,
+                                reasoningBackgroundImagePath = reasoningBackgroundImagePath,
                             )
                         }
                         val timelineKey = "${message.id}:timeline:$currentDetailIndex"
@@ -567,10 +598,15 @@ private fun TimelineInfoSegmentCard(
     detailIndex: Int,
     isStreaming: Boolean,
     topPaddingExtra: Dp = 0.dp,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    customReasoningPanelColor: Long? = null,
+    reasoningPanelAlpha: Float = 1f,
+    reasoningBackgroundImagePath: String = "",
 ) {
     Surface(
         tonalElevation = 2.dp,
+        color = customReasoningPanelColor?.let { ColorMath.argbToColor(it) }?.copy(alpha = reasoningPanelAlpha)
+            ?: MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = reasoningPanelAlpha),
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -579,10 +615,24 @@ private fun TimelineInfoSegmentCard(
             .clickable { onClick() }
             .noOpBringIntoView()
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp)
-        ) {
+        Box {
+            if (reasoningBackgroundImagePath.isNotBlank()) {
+                coil.compose.AsyncImage(
+                    model = reasoningBackgroundImagePath,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.matchParentSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp)
+            ) {
             val isTool = seg.type == "tool"
             val isTranscription = seg.type == "transcription"
             if (isTool) {
@@ -630,6 +680,7 @@ private fun TimelineInfoSegmentCard(
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
+        }
         }
     }
 }

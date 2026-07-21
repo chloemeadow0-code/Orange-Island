@@ -148,6 +148,36 @@ object HttpClient {
      *  generation immediately by closing the underlying socket. */
     @Volatile var activeStreamHandle: StreamHandle? = null
 
+    /**
+     * 每次生成任务分配一个自增 token；调用方在发起每一轮请求前后都用同一个
+     * token 登记/校验，取消操作按 token 广播，不再依赖某个可能过期的单例。
+     */
+    private val cancelledTokens = java.util.concurrent.ConcurrentHashMap.newKeySet<Long>()
+    private val tokenCounter = java.util.concurrent.atomic.AtomicLong(0)
+
+    /** 生成任务开始时调用，取得一个专属 token。 */
+    fun newCancellationToken(): Long = tokenCounter.incrementAndGet()
+
+    /** 暂停操作调用：标记该 token 对应的生成任务已作废。
+     *  同时仍尝试 cancel 当前 activeStreamHandle（如果恰好有值），双保险。 */
+    fun cancelToken(token: Long) {
+        cancelledTokens.add(token)
+        activeStreamHandle?.cancel()
+    }
+
+    /** 每轮新请求发起前调用，检查该 token 是否已被取消；已取消则直接抛异常，
+     *  不再发起新的网络连接。 */
+    fun checkNotCancelled(token: Long) {
+        if (token in cancelledTokens) {
+            throw java.io.InterruptedIOException("Generation cancelled (token=$token)")
+        }
+    }
+
+    /** 生成任务结束时调用，清理该 token，避免 Set 无限增长。 */
+    fun releaseToken(token: Long) {
+        cancelledTokens.remove(token)
+    }
+
     class StreamHandle(private val call: okhttp3.Call, private val response: okhttp3.Response) {
         val code: Int get() = response.code
         val source: BufferedSource? get() = response.body?.source()
@@ -165,13 +195,25 @@ object HttpClient {
         fun cancel() = call.cancel()
     }
 
-    fun streamPost(url: String, jsonBody: String, headers: Map<String, String> = emptyMap()): StreamHandle {
+    fun streamPost(
+        url: String,
+        jsonBody: String,
+        headers: Map<String, String> = emptyMap(),
+        cancellationToken: Long? = null
+    ): StreamHandle {
         guardCleartextCredentials(url, headers)
+        cancellationToken?.let { checkNotCancelled(it) }
         val body = jsonBody.toRequestBody(JSON)
         val requestBuilder = Request.Builder().url(url).post(body)
         headers.forEach { (k, v) -> requestBuilder.addHeader(k, v) }
         val call = client.newCall(requestBuilder.build())
+        cancellationToken?.let { checkNotCancelled(it) }
         val handle = StreamHandle(call, call.execute())
+        // 连接建立完成后再次检查：如果这段阻塞期间任务被取消了，立即关闭刚建立的连接
+        if (cancellationToken != null && cancellationToken in cancelledTokens) {
+            handle.close()
+            throw java.io.InterruptedIOException("Generation cancelled (token=$cancellationToken)")
+        }
         activeStreamHandle = handle
         return handle
     }

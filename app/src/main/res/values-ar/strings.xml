@@ -536,6 +536,7 @@
     <string name="custom_color_input_field">لون حقل الإدخال</string>
     <string name="transparency_message_bubble">فقاعة الرسالة</string>
     <string name="transparency_reasoning_panel">لوحة التفكير</string>
+    <string name="illustration_reasoning_background">خلفية لوحة التفكير</string>
     <string name="transparency_drawer_item">عنصر القائمة الجانبية</string>
     <string name="appearance_title">المظهر</string>
     <string name="theme_mode">وضع السمة</string>

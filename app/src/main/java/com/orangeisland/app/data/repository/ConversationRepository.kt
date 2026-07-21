@@ -23,7 +23,7 @@ class ConversationRepository(
 
     fun getAllConversations(): Flow<List<ChatConversation>> =
         chatDao.getAllConversations().map { entities ->
-            entities.map { ChatConversation(id = it.id, title = it.title, systemPromptId = it.systemPromptId, modelId = it.modelId, projectId = it.projectId) }
+            entities.map { ChatConversation(id = it.id, title = it.title, systemPromptId = it.systemPromptId, modelId = it.modelId, projectId = it.projectId, lastUpdated = it.lastUpdated) }
         }
 
     suspend fun getConversation(id: String): ChatEntity? =

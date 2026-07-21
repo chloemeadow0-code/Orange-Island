@@ -30,7 +30,7 @@ import com.orangeisland.app.R
 import com.orangeisland.app.viewmodel.ChatViewModel
 import java.io.File
 
-private enum class IllustrationSlot { CHAT, INPUT, DRAWER, USER_BUBBLE, TOPBAR }
+private enum class IllustrationSlot { CHAT, INPUT, DRAWER, USER_BUBBLE, TOPBAR, REASONING }
 
 @Composable
 fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
@@ -41,6 +41,7 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val drawerPath by s.illustrationDrawerBackgroundPath.collectAsState()
     val userBubblePath by s.illustrationUserBubbleBackgroundPath.collectAsState()
     val topBarPath by s.illustrationTopBarBackgroundPath.collectAsState()
+    val reasoningPath by s.illustrationReasoningBackgroundPath.collectAsState()
     val bubbleRadius by s.illustrationUserBubbleCornerRadius.collectAsState()
 
     var pendingSlot by remember { mutableStateOf<IllustrationSlot?>(null) }
@@ -61,6 +62,7 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
             IllustrationSlot.DRAWER -> "drawer"
             IllustrationSlot.USER_BUBBLE -> "user_bubble"
             IllustrationSlot.TOPBAR -> "topbar"
+            IllustrationSlot.REASONING -> "reasoning"
         }
         val oldPath = when (slot) {
             IllustrationSlot.CHAT -> chatPath
@@ -68,6 +70,7 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
             IllustrationSlot.DRAWER -> drawerPath
             IllustrationSlot.USER_BUBBLE -> userBubblePath
             IllustrationSlot.TOPBAR -> topBarPath
+            IllustrationSlot.REASONING -> reasoningPath
         }
         // Delete previous illustration for this slot (if any) so filesDir doesn't pile up.
         if (oldPath.isNotBlank()) runCatching { File(oldPath).delete() }
@@ -85,6 +88,7 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                 IllustrationSlot.DRAWER -> s.setIllustrationDrawerBackgroundPath(target.absolutePath)
                 IllustrationSlot.USER_BUBBLE -> s.setIllustrationUserBubbleBackgroundPath(target.absolutePath)
                 IllustrationSlot.TOPBAR -> s.setIllustrationTopBarBackgroundPath(target.absolutePath)
+                IllustrationSlot.REASONING -> s.setIllustrationReasoningBackgroundPath(target.absolutePath)
             }
         }
     }
@@ -151,6 +155,17 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             onClear = {
                                 if (topBarPath.isNotBlank()) runCatching { File(topBarPath).delete() }
                                 s.setIllustrationTopBarBackgroundPath("")
+                            },
+                        )
+                    },
+                    {
+                        IllustrationRow(
+                            labelRes = R.string.illustration_reasoning_background,
+                            path = reasoningPath,
+                            onPick = { launchPick(IllustrationSlot.REASONING) },
+                            onClear = {
+                                if (reasoningPath.isNotBlank()) runCatching { File(reasoningPath).delete() }
+                                s.setIllustrationReasoningBackgroundPath("")
                             },
                         )
                     },

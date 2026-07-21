@@ -1043,10 +1043,11 @@ class ChatViewModel(
     }
 
     fun deleteConversation(id: String) {
-        if (_currentConversationId.value == id) {
-            stopGeneration()
-        }
+        val stopFinalization = if (_currentConversationId.value == id) {
+            session.stop()
+        } else null
         viewModelScope.launch(Dispatchers.IO) {
+            stopFinalization?.join()
             convRepo.deleteConversation(id)
             if (_currentConversationId.value == id) createNewChat()
         }
@@ -1103,6 +1104,12 @@ class ChatViewModel(
     fun createProjectMemoryFile(projectId: String, name: String, content: String, description: String) {
         viewModelScope.launch(Dispatchers.IO) {
             memoryManager.createFile(name, content, description, projectId)
+        }
+    }
+
+    fun editProjectMemoryFile(projectId: String, name: String, content: String, description: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            memoryManager.editFile(name, content = content, description = description, projectId = projectId)
         }
     }
 

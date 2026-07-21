@@ -84,6 +84,7 @@ internal fun rememberChatMarkdownAssets(textColor: Color): ChatMarkdownAssets {
         )
     }
     val customMarkdownColors = markdownColor(
+        text = textColor,
         codeBackground = codeBg,
         inlineCodeBackground = Color.Transparent,
     )

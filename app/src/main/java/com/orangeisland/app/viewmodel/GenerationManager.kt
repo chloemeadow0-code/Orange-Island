@@ -362,7 +362,8 @@ class GenerationManager(
         isRegenerate: Boolean,
         replaceMessageId: String?,
         config: GenerationConfig,
-        ctx: GenerationContext
+        ctx: GenerationContext,
+        cancellationToken: Long
     ): Pair<List<ChatMessage>, ProviderConfig> {
         val dbMessages = conversations.getMessagesForConversationSnapshot(conversationId)
         val pathEntities = mutableListOf<MessageEntity>()
@@ -482,7 +483,8 @@ class GenerationManager(
             maxTokens = config.maxTokens,
             topP = config.topP,
             frequencyPenalty = config.frequencyPenalty,
-            presencePenalty = config.presencePenalty
+            presencePenalty = config.presencePenalty,
+            cancellationToken = cancellationToken
         )
         return Pair(currentPath, providerConfig)
     }
@@ -497,7 +499,8 @@ class GenerationManager(
         config: GenerationConfig,
         ctx: GenerationContext,
         generationJob: kotlinx.coroutines.Job?,
-        callbacks: GenerationCallbacks
+        callbacks: GenerationCallbacks,
+        session: GenerationSession? = null
     ) {
         // Destructure into locals so the body below reads exactly as before.
         val (onStreamUpdate, onLoadingChange, onGeneratingIdChange, onStreamClear, isLatestPersist) = callbacks
@@ -507,6 +510,12 @@ class GenerationManager(
         onGeneratingIdChange(conversationId)
         com.orangeisland.app.util.CrashReporter.note("generate provider=${config.providerName} regen=$isRegenerate")
         withContext(Dispatchers.Main) { OrangeIslandForegroundService.start(app) }
+
+        val cancellationToken = com.orangeisland.app.api.HttpClient.newCancellationToken()
+        // Register the token on the session so the Stop button (session.stop →
+        // stopInternal) can flag it via HttpClient.cancelToken, covering the gap
+        // between tool-call rounds when activeStreamHandle is briefly null.
+        session?.currentCancellationToken = cancellationToken
 
         var totalText = ""
         var totalThoughts = ""
@@ -573,7 +582,7 @@ class GenerationManager(
             // Re-scan the plugins directory so freshly-installed/uninstalled plugins are visible
             // to this turn without an app restart. Cheap: reads manifest.json files only.
             pluginToolProvider?.refreshPluginList()
-            val (currentPath, rawProviderConfig) = buildApiPath(parentId, conversationId, isRegenerate, replaceMessageId, config, ctx)
+            val (currentPath, rawProviderConfig) = buildApiPath(parentId, conversationId, isRegenerate, replaceMessageId, config, ctx, cancellationToken)
             val providerConfig = if (transcriptionPerformed) rawProviderConfig.copy(includeImages = false) else rawProviderConfig
 
             var toolCallData: ToolCallData? = null
@@ -856,6 +865,10 @@ class GenerationManager(
             }
         } finally {
             withContext(NonCancellable) {
+                com.orangeisland.app.api.HttpClient.releaseToken(cancellationToken)
+                if (session?.currentCancellationToken == cancellationToken) {
+                    session.currentCancellationToken = null
+                }
                 try {
                     if (isLatestPersist()) {
                         val conversationExists = conversations.getConversation(conversationId) != null

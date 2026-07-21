@@ -41,6 +41,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
@@ -79,6 +80,7 @@ internal fun AssistantMessageContent(
     customAssistantBubbleColor: Long? = null,
     customReasoningPanelColor: Long? = null,
     reasoningPanelAlpha: Float = 1f,
+    reasoningBackgroundImagePath: String = "",
     contextAlpha: Modifier,
     isStreaming: Boolean,
     isLoading: Boolean,
@@ -308,7 +310,10 @@ internal fun AssistantMessageContent(
                         animatedBlockKeys = timelineAnimatedBlockKeys,
                         onSegmentClick = { indices ->
                             onSegmentSelected(indices)
-                        }
+                        },
+                        customReasoningPanelColor = customReasoningPanelColor,
+                        reasoningPanelAlpha = reasoningPanelAlpha,
+                        reasoningBackgroundImagePath = reasoningBackgroundImagePath,
                     )
                 }
 
@@ -367,7 +372,21 @@ internal fun AssistantMessageContent(
                             .noOpBringIntoView()
                             .onSizeChanged { setThoughtBlockHeight(it.height) }
                     ) {
-                        Column {
+                        Box {
+                            if (reasoningBackgroundImagePath.isNotBlank()) {
+                                coil.compose.AsyncImage(
+                                    model = reasoningBackgroundImagePath,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.matchParentSize()
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+                                )
+                            }
+                            Column {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -501,6 +520,7 @@ internal fun AssistantMessageContent(
                                   }
                                 }
                             }
+                        }
                         }
                         }
                     }

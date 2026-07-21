@@ -107,6 +107,11 @@ fun ChatApp(
     val isLoading by viewModel.isLoading.collectAsState()
     val currentConversationId by viewModel.currentConversationId.collectAsState()
     val generatingInConversationId by viewModel.generatingInConversationId.collectAsState()
+    val projects by viewModel.projects.collectAsState()
+    val activeProjectId by viewModel.activeProjectId.collectAsState()
+    val activeProjectName = remember(activeProjectId, projects) {
+        activeProjectId?.let { id -> projects.find { it.id == id }?.name }
+    }
     val selectedModel by viewModel.currentActiveModel.collectAsState()
     val enabledModels by viewModel.settings.enabledModels.collectAsState()
     val modelAliases by viewModel.settings.modelAliases.collectAsState()
@@ -151,6 +156,7 @@ fun ChatApp(
     val chatBackgroundImagePath by viewModel.settings.illustrationChatBackgroundPath.collectAsState()
     val inputBackgroundImagePath by viewModel.settings.illustrationInputBackgroundPath.collectAsState()
     val topBarBackgroundImagePath by viewModel.settings.illustrationTopBarBackgroundPath.collectAsState()
+    val reasoningBackgroundImagePath by viewModel.settings.illustrationReasoningBackgroundPath.collectAsState()
     val topBarAlpha by viewModel.settings.transparencyTopBar.collectAsState()
     val customInputFieldColor by viewModel.settings.customColorInputField.collectAsState()
     val customUserBubbleColor by viewModel.settings.customColorUserBubble.collectAsState()
@@ -528,6 +534,12 @@ fun ChatApp(
                 topBar = {
                     ChatTopBar(
                         isNewChatMode = isNewChatMode,
+                        activeProjectName = activeProjectName,
+                        onExitProject = {
+                            haptics.action()
+                            viewModel.setActiveProject(null)
+                            viewModel.createNewChat()
+                        },
                         conversations = conversations,
                         currentConversationId = currentConversationId,
                         totalTokens = totalTokens,
@@ -600,6 +612,7 @@ fun ChatApp(
                                 userBubbleCornerRadiusOverride = userBubbleCornerRadius,
                                 customAssistantBubbleColor = customAssistantBubbleColor,
                                 customReasoningPanelColor = customReasoningPanelColor,
+                                reasoningBackgroundImagePath = reasoningBackgroundImagePath,
                                 customChatTextColor = customChatTextColor,
                                 customGlobalTextColor = customGlobalTextColor,
                                 messageBubbleAlpha = messageBubbleAlpha,
@@ -655,7 +668,8 @@ fun ChatApp(
                                     contentAlignment = Alignment.TopCenter
                                 ) {
                                     TypewriterText(
-                                        text = stringResource(R.string.welcome_to_orange_island),
+                                        text = activeProjectName?.let { stringResource(R.string.welcome_to_project, it) }
+                                            ?: stringResource(R.string.welcome_to_orange_island),
                                         style = MaterialTheme.typography.headlineMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onBackground,
@@ -896,7 +910,6 @@ fun ChatApp(
     val projectSystemPrompts by viewModel.settings.systemPrompts.collectAsState()
     val projectActivePromptId by viewModel.settings.activeSystemPromptId.collectAsState()
     val globalSelectedModel by viewModel.settings.selectedModel.collectAsState()
-    val projects by viewModel.projects.collectAsState()
 
     val projectModelOptions = remember(projectEnabledModels, projectModelAliases) {
         projectEnabledModels.toList().map { id ->
@@ -937,12 +950,27 @@ fun ChatApp(
         )
     }
 
-    projectToSettings?.let { id ->
-        val project = projects.find { it.id == id }
-        if (project != null) {
+    // ── Project settings: full-screen sub-page (slide-in overlay) ──
+    // Replaces the old single AlertDialog. Renders as an overlay on top of chat so the
+    // look & feel matches the main Settings page (CollapsingSettingsScaffold + SettingsGroup).
+    val projectSettingsVisible = projectToSettings != null
+    androidx.compose.animation.AnimatedVisibility(
+        visible = projectSettingsVisible,
+        enter = androidx.compose.animation.slideInHorizontally(
+            animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            initialOffsetX = { it }
+        ) + androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(200)),
+        exit = androidx.compose.animation.slideOutHorizontally(
+            animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            targetOffsetX = { it }
+        ) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(200))
+    ) {
+        val id = projectToSettings
+        val project = id?.let { projects.find { p -> p.id == it } }
+        if (id != null && project != null) {
             // Refresh project memory files whenever the dialog is open for this project.
             // Simplest correct hook: re-fetch on (re)composition boundary via remember +
-            // LaunchedEffect keyed on the project id, so create/delete callbacks can refresh
+            // LaunchedEffect keyed on the project id, so create/edit/delete callbacks can refresh
             // by bumping a local counter.
             var memoryRefreshKey by remember { mutableStateOf(0) }
             var projectMemoryFiles by remember(id) {
@@ -951,7 +979,10 @@ fun ChatApp(
             LaunchedEffect(id, memoryRefreshKey) {
                 projectMemoryFiles = viewModel.listProjectMemoryFiles(id)
             }
-            ProjectSettingsDialog(
+            val conversationsInProject = remember(conversations, id) {
+                conversations.filter { it.projectId == id }
+            }
+            ProjectSettingsScreen(
                 projectName = project.name,
                 initialModelId = project.modelId,
                 initialPromptId = project.systemPromptId,
@@ -960,6 +991,7 @@ fun ChatApp(
                 globalDefaultPromptTitle = globalDefaultPromptTitle,
                 globalDefaultModelTitle = globalDefaultModelTitle,
                 memoryFiles = projectMemoryFiles,
+                conversationsInProject = conversationsInProject,
                 onCreateMemoryFile = { name, content, desc ->
                     viewModel.createProjectMemoryFile(id, name, content, desc)
                     memoryRefreshKey++  // trigger reload
@@ -968,14 +1000,29 @@ fun ChatApp(
                     viewModel.deleteProjectMemoryFile(id, name)
                     memoryRefreshKey++  // trigger reload
                 },
-                onSave = { modelId, promptId ->
+                onEditMemoryFile = { name, newContent, newDesc ->
+                    viewModel.editProjectMemoryFile(id, name, newContent, newDesc)
+                    memoryRefreshKey++  // trigger reload
+                },
+                onSave = { name, modelId, promptId ->
+                    if (name != project.name) viewModel.renameProject(id, name)
                     viewModel.setProjectDefaults(id, promptId, modelId)
+                },
+                onOpenConversation = { convId ->
+                    viewModel.selectConversation(convId)
                     projectToSettings = null
                 },
-                onDismiss = { projectToSettings = null }
+                onCreateChatInProject = {
+                    viewModel.setActiveProject(id)
+                    viewModel.createNewChat()
+                    projectToSettings = null
+                },
+                onDeleteProject = {
+                    projectToDelete = id to project.name
+                    projectToSettings = null
+                },
+                onBack = { projectToSettings = null }
             )
-        } else {
-            projectToSettings = null
         }
     }
 

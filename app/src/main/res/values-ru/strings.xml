@@ -536,6 +536,7 @@
     <string name="custom_color_input_field">Цвет поля ввода</string>
     <string name="transparency_message_bubble">Пузырь сообщения</string>
     <string name="transparency_reasoning_panel">Панель рассуждений</string>
+    <string name="illustration_reasoning_background">Фон панели рассуждений</string>
     <string name="transparency_drawer_item">Элемент бокового меню</string>
     <string name="appearance_title">Оформление</string>
     <string name="theme_mode">Режим темы</string>

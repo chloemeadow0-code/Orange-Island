@@ -128,7 +128,7 @@ abstract class BaseOpenAiProvider : LlmProvider {
 
                 while (endpointIndex < endpointUrls.size && !finished && !retryScheduled) {
                     val endpointUrl = endpointUrls[endpointIndex]
-                    val handle = HttpClient.streamPost(endpointUrl, requestBodyJson, headers)
+                    val handle = HttpClient.streamPost(endpointUrl, requestBodyJson, headers, config.cancellationToken)
                     try {
                         if (handle.code == 200) {
                             consumeSuccessfulStream(handle, config, thinkParser) { emit(it) }

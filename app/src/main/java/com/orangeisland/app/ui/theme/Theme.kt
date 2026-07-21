@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -80,6 +81,7 @@ fun OrangeIslandTheme(
     dynamicColor: Boolean = true,
     fontPreference: String = "app_default",
     customFontPath: String = "",
+    customGlobalTextColor: Color? = null,
     content: @Composable () -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
@@ -99,12 +101,22 @@ fun OrangeIslandTheme(
         }
     }
 
+    val finalColorScheme = if (customGlobalTextColor != null) {
+        colorScheme.copy(
+            onBackground = customGlobalTextColor,
+            onSurface = customGlobalTextColor,
+            onSurfaceVariant = customGlobalTextColor,
+        )
+    } else {
+        colorScheme
+    }
+
     val fontFamily = effectiveFontFamily(fontPreference, customFontPath)
     chatFontFamily = fontFamily
     val typography = remember(fontFamily) { typographyWithFont(fontFamily) }
 
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = finalColorScheme,
         typography = typography,
         content = content
     )

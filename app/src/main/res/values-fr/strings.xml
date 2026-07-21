@@ -536,6 +536,7 @@
     <string name="custom_color_input_field">Couleur du champ de saisie</string>
     <string name="transparency_message_bubble">Bulle de message</string>
     <string name="transparency_reasoning_panel">Panneau de raisonnement</string>
+    <string name="illustration_reasoning_background">Fond du panneau de raisonnement</string>
     <string name="transparency_drawer_item">Élément du tiroir</string>
     <string name="appearance_title">Apparence</string>
     <string name="theme_mode">Mode du thème</string>

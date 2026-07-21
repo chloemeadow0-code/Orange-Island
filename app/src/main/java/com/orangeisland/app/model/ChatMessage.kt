@@ -75,5 +75,6 @@ data class ChatConversation(
     val modelId: String? = null,
     // null = ungrouped. Set when the chat was created inside a project; used by the
     // drawer to render grouped conversation lists.
-    val projectId: String? = null
+    val projectId: String? = null,
+    val lastUpdated: Long = System.currentTimeMillis()
 )

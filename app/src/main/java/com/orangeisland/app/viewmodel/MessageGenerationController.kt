@@ -263,6 +263,10 @@ class MessageGenerationController(
                     providerName, modelId, activeKey, myUiToken, myPersistId,
                     callerTag = "regenerate"
                 )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                com.orangeisland.app.util.DebugLog.e("MessageGenerationController", "regenerate failed", e)
             } finally {
                 session.loadingChange(myUiToken, false)
             }
@@ -318,7 +322,8 @@ class MessageGenerationController(
                 config = config,
                 ctx = genCtx,
                 generationJob = session.generationJob,
-                callbacks = session.callbacksFor(uiToken, persistId)
+                callbacks = session.callbacksFor(uiToken, persistId),
+                session = session
             )
         } catch (e: CancellationException) {
             throw e
@@ -386,6 +391,10 @@ class MessageGenerationController(
                 providerName, modelId, activeKey, myUiToken, myPersistId,
                 callerTag = "editMessage"
             )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                com.orangeisland.app.util.DebugLog.e("MessageGenerationController", "editMessage failed", e)
             } finally {
                 session.loadingChange(myUiToken, false)
             }
@@ -489,6 +498,10 @@ class MessageGenerationController(
             if (wasNewChat && settings.titleGenerationEnabled.value && session.generationJob?.isActive == true && lastMsg?.status != MessageStatus.ERROR) {
                 generateTitle(currentId)
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            com.orangeisland.app.util.DebugLog.e("MessageGenerationController", "sendMessage failed", e)
         } finally {
             // Token-gated: only the still-current generation clears the button, so a
             // cancelled/superseded coroutine can't revert the icon mid-generation.

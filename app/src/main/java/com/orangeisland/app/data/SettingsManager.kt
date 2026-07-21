@@ -230,6 +230,7 @@ class SettingsManager(private val context: Context) {
         val ILLUSTRATION_USER_BUBBLE_BACKGROUND_PATH = stringPreferencesKey("illustration_user_bubble_background_path")
         val ILLUSTRATION_USER_BUBBLE_CORNER_RADIUS = stringPreferencesKey("illustration_user_bubble_corner_radius")
         val ILLUSTRATION_TOPBAR_BACKGROUND_PATH = stringPreferencesKey("illustration_topbar_background_path")
+        val ILLUSTRATION_REASONING_BACKGROUND_PATH = stringPreferencesKey("illustration_reasoning_background_path")
         val TRANSPARENCY_TOPBAR = stringPreferencesKey("transparency_topbar")
         // ── Transparency (0f..1f) ──────────────────────────────────
         val TRANSPARENCY_MESSAGE_BUBBLE = stringPreferencesKey("transparency_message_bubble")
@@ -461,6 +462,7 @@ class SettingsManager(private val context: Context) {
     val illustrationUserBubbleBackgroundPath: Flow<String> = context.dataStore.data.map { it[ILLUSTRATION_USER_BUBBLE_BACKGROUND_PATH] ?: "" }
     val illustrationUserBubbleCornerRadius: Flow<Float> = context.dataStore.data.map { it[ILLUSTRATION_USER_BUBBLE_CORNER_RADIUS]?.toFloatOrNull() ?: 20f }
     val illustrationTopBarBackgroundPath: Flow<String> = context.dataStore.data.map { it[ILLUSTRATION_TOPBAR_BACKGROUND_PATH] ?: "" }
+    val illustrationReasoningBackgroundPath: Flow<String> = context.dataStore.data.map { it[ILLUSTRATION_REASONING_BACKGROUND_PATH] ?: "" }
     val transparencyTopBar: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_TOPBAR]?.toFloatOrNull() ?: 1f }
     val transparencyMessageBubble: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_MESSAGE_BUBBLE]?.toFloatOrNull() ?: 1f }
     val transparencyReasoningPanel: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_REASONING_PANEL]?.toFloatOrNull() ?: 1f }
@@ -910,6 +912,7 @@ class SettingsManager(private val context: Context) {
     suspend fun saveIllustrationUserBubbleBackgroundPath(path: String) = context.dataStore.edit { it[ILLUSTRATION_USER_BUBBLE_BACKGROUND_PATH] = path }
     suspend fun saveIllustrationUserBubbleCornerRadius(radius: Float) = context.dataStore.edit { it[ILLUSTRATION_USER_BUBBLE_CORNER_RADIUS] = radius.coerceIn(0f, 32f).toString() }
     suspend fun saveIllustrationTopBarBackgroundPath(path: String) = context.dataStore.edit { it[ILLUSTRATION_TOPBAR_BACKGROUND_PATH] = path }
+    suspend fun saveIllustrationReasoningBackgroundPath(path: String) = context.dataStore.edit { it[ILLUSTRATION_REASONING_BACKGROUND_PATH] = path }
     suspend fun saveTransparencyTopBar(value: Float) = context.dataStore.edit { it[TRANSPARENCY_TOPBAR] = value.coerceIn(0f, 1f).toString() }
 
     suspend fun saveTransparencyMessageBubble(value: Float) = context.dataStore.edit { it[TRANSPARENCY_MESSAGE_BUBBLE] = value.coerceIn(0f, 1f).toString() }

@@ -42,6 +42,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -52,12 +53,14 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import com.orangeisland.app.ui.components.DialogWindowEdgeToEdge
+import com.orangeisland.app.ui.components.ColorMath
 import com.orangeisland.app.R
 import com.orangeisland.app.model.ChatMessage
 import com.orangeisland.app.ui.theme.ChatType
 import com.orangeisland.app.util.noOpBringIntoView
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.model.markdownAnimations
+import com.mikepenz.markdown.model.ImageTransformer
 import com.mikepenz.markdown.model.MarkdownColors
 import com.mikepenz.markdown.model.MarkdownPadding
 import com.mikepenz.markdown.model.MarkdownTypography
@@ -89,6 +92,10 @@ internal fun SegmentDetailSheet(
     thoughtMarkdownPadding: MarkdownPadding,
     markdownComponents: MarkdownComponents,
     markdownFlavour: MarkdownFlavourDescriptor,
+    imageTransformer: ImageTransformer,
+    customReasoningPanelColor: Long? = null,
+    reasoningPanelAlpha: Float = 1f,
+    reasoningBackgroundImagePath: String = "",
     onDismiss: () -> Unit
 ) {
     val liveSegs = remember(message.segments) {
@@ -288,9 +295,24 @@ internal fun SegmentDetailSheet(
                     modifier = Modifier.fillMaxSize(),
                     shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
                     shadowElevation = 8.dp,
-                    color = MaterialTheme.colorScheme.surfaceContainer
+                    color = customReasoningPanelColor?.let { ColorMath.argbToColor(it) }?.copy(alpha = reasoningPanelAlpha)
+                        ?: MaterialTheme.colorScheme.surfaceContainer.copy(alpha = reasoningPanelAlpha)
                 ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        if (reasoningBackgroundImagePath.isNotBlank()) {
+                            coil.compose.AsyncImage(
+                                model = reasoningBackgroundImagePath,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.matchParentSize()
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+                            )
+                        }
+                        Column(modifier = Modifier.fillMaxSize()) {
                         // Draggable header: drag handle + title + divider
                         Column(
                             modifier = Modifier
@@ -395,6 +417,7 @@ internal fun SegmentDetailSheet(
                                                     typography = thoughtTypography,
                                                     padding = thoughtMarkdownPadding,
                                                     components = markdownComponents,
+                                                    imageTransformer = imageTransformer,
                                                     flavour = markdownFlavour,
                                                     parser = markdownParser,
                                                     referenceLinkHandler = referenceLinkHandler,
@@ -457,6 +480,7 @@ internal fun SegmentDetailSheet(
                                                 typography = thoughtTypography,
                                                 padding = thoughtMarkdownPadding,
                                                 components = markdownComponents,
+                                                imageTransformer = imageTransformer,
                                                 flavour = markdownFlavour,
                                                 parser = markdownParser,
                                                 referenceLinkHandler = referenceLinkHandler,
@@ -478,6 +502,7 @@ internal fun SegmentDetailSheet(
                                             typography = thoughtTypography,
                                             padding = thoughtMarkdownPadding,
                                             components = markdownComponents,
+                                            imageTransformer = imageTransformer,
                                             flavour = markdownFlavour,
                                             parser = markdownParser,
                                             referenceLinkHandler = referenceLinkHandler,
@@ -487,6 +512,7 @@ internal fun SegmentDetailSheet(
                                 }
                             }
                         }
+                    }
                     }
                 }
                 }

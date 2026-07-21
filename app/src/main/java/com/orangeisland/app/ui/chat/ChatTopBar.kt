@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material3.Icon
@@ -34,6 +35,8 @@ import coil.compose.AsyncImage
 @Composable
 internal fun ChatTopBar(
     isNewChatMode: Boolean,
+    activeProjectName: String? = null,
+    onExitProject: () -> Unit = {},
     conversations: List<ChatConversation>,
     currentConversationId: String?,
     totalTokens: Int,
@@ -67,7 +70,7 @@ internal fun ChatTopBar(
                 // before the conversation/title has loaded. Both the brand TEXT and the
                 // brand font SIZE are gated on this single value, so the title never
                 // changes size before the text swaps (no transient "橘子岛 at 17sp").
-                val resolvedTitle = if (isNewChatMode) null
+                val resolvedTitle = if (isNewChatMode) activeProjectName?.takeIf { it.isNotBlank() }
                     else conversations.find { it.id == currentConversationId }?.title?.takeIf { it.isNotBlank() }
                 val showBrandTitle = resolvedTitle == null
 
@@ -131,6 +134,11 @@ internal fun ChatTopBar(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                             maxLines = 1
                                         )
+                                    }
+                                }
+                                if (isNewChatMode && activeProjectName != null) {
+                                    IconButton(onClick = onExitProject, modifier = Modifier.size(32.dp)) {
+                                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.project_exit), modifier = Modifier.size(16.dp))
                                     }
                                 }
                             }

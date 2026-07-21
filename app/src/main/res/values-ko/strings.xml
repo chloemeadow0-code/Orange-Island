@@ -536,6 +536,7 @@
     <string name="custom_color_input_field">입력창 색상</string>
     <string name="transparency_message_bubble">메시지 말풍선</string>
     <string name="transparency_reasoning_panel">추론 패널</string>
+    <string name="illustration_reasoning_background">추론 패널 배경</string>
     <string name="transparency_drawer_item">드로어 항목</string>
     <string name="appearance_title">모양</string>
     <string name="theme_mode">테마 모드</string>

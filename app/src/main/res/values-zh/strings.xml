@@ -552,6 +552,7 @@
     <string name="illustration_drawer_background">侧边栏背景图</string>
     <string name="illustration_user_bubble_background">用户气泡背景图</string>
     <string name="illustration_topbar_background">顶部栏背景图</string>
+    <string name="illustration_reasoning_background">推理面板背景图</string>
     <string name="illustration_pick_image">选择图片</string>
     <string name="illustration_clear">清除</string>
     <string name="illustration_bubble_corner_radius">气泡圆角</string>

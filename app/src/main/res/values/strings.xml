@@ -179,6 +179,26 @@
     <string name="project_memory_file_hint">文件名（如 notes.md）</string>
     <string name="project_memory_desc_hint">简短描述（可选）</string>
     <string name="project_memory_content_hint">文件内容（Markdown）</string>
+    <string name="project_settings_title">项目设置</string>
+    <string name="project_default_model_entry">默认模型</string>
+    <string name="project_default_prompt_entry">默认指令</string>
+    <string name="project_memory_entry">项目记忆库</string>
+    <string name="project_memory_created_at">存入于 %1$s（北京时间）</string>
+    <string name="project_memory_new_title">新建记忆</string>
+    <string name="project_memory_filename_hint">标题</string>
+    <string name="project_memory_desc_hint2">简短描述（可选）</string>
+    <string name="project_memory_content_hint2">内容（Markdown）</string>
+    <string name="project_memory_delete_confirm_title">删除记忆？</string>
+    <string name="project_memory_delete_confirm_text">确定删除 “%1$s” 吗？此操作无法撤销。</string>
+    <string name="welcome_to_project">欢迎使用 %1$s。</string>
+    <string name="project_new_chat_entry">新建对话</string>
+    <string name="project_edit_details">编辑详情</string>
+    <string name="project_recent_conversations">最近对话</string>
+    <string name="project_memory_card_title">项目记忆</string>
+    <string name="project_prompt_card_title">默认指令</string>
+    <string name="project_files_count">%1$d 条文件</string>
+    <string name="project_conversations_count">%1$d 个对话</string>
+    <string name="project_exit">退出项目</string>
 
     <!-- Settings - Main -->
     <string name="settings_title">Settings</string>
@@ -677,6 +697,7 @@
     <string name="illustration_drawer_background">Sidebar background</string>
     <string name="illustration_user_bubble_background">User bubble background</string>
     <string name="illustration_topbar_background">Top bar background</string>
+    <string name="illustration_reasoning_background">Reasoning panel background</string>
     <string name="illustration_pick_image">Choose image</string>
     <string name="illustration_clear">Clear</string>
     <string name="illustration_bubble_corner_radius">Bubble corner radius</string>

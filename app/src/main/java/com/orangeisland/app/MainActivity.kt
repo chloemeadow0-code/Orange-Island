@@ -73,6 +73,7 @@ import com.orangeisland.app.ui.auth.AuthViewModel
 import com.orangeisland.app.ui.chat.ChatApp
 import com.orangeisland.app.ui.chat.FullScreenMediaViewer
 import com.orangeisland.app.ui.settings.SettingsScreen
+import com.orangeisland.app.ui.components.ColorMath
 import com.orangeisland.app.ui.theme.OrangeIslandTheme
 import com.orangeisland.app.util.CrashReporter
 import com.orangeisland.app.viewmodel.ChatViewModel
@@ -151,6 +152,8 @@ class MainActivity : ComponentActivity() {
             val dynamicColor by settingsManager.dynamicColor.collectAsState(initial = true)
             val fontPreference by settingsManager.fontPreference.collectAsState(initial = "app_default")
             val customFontPath by settingsManager.customFontPath.collectAsState(initial = "")
+            val customGlobalTextColorArgb by settingsManager.customColorGlobalText.collectAsState(initial = null)
+            val customGlobalTextColor = customGlobalTextColorArgb?.let { ColorMath.argbToColor(it) }
 
             val themeModeEnum = try { com.orangeisland.app.ui.theme.ThemeMode.valueOf(themeMode) } catch (_: Exception) { com.orangeisland.app.ui.theme.ThemeMode.FOLLOW_DEVICE }
             val colorSchemePreset = try { com.orangeisland.app.ui.theme.ColorSchemePreset.valueOf(colorSchemeName) } catch (_: Exception) { com.orangeisland.app.ui.theme.ColorSchemePreset.MIDNIGHT }
@@ -176,7 +179,8 @@ class MainActivity : ComponentActivity() {
                 schemeStyle = schemeStyle,
                 dynamicColor = dynamicColor,
                 fontPreference = fontPreference,
-                customFontPath = customFontPath
+                customFontPath = customFontPath,
+                customGlobalTextColor = customGlobalTextColor
             ) {
                 val activity = LocalActivity.current
 

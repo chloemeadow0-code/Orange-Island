@@ -136,6 +136,7 @@ class SettingsRepository(
     val illustrationUserBubbleBackgroundPath: StateFlow<String> = hot(settingsManager.illustrationUserBubbleBackgroundPath, "")
     val illustrationUserBubbleCornerRadius: StateFlow<Float> = hot(settingsManager.illustrationUserBubbleCornerRadius, 20f)
     val illustrationTopBarBackgroundPath: StateFlow<String> = hot(settingsManager.illustrationTopBarBackgroundPath, "")
+    val illustrationReasoningBackgroundPath: StateFlow<String> = hot(settingsManager.illustrationReasoningBackgroundPath, "")
     val transparencyTopBar: StateFlow<Float> = hot(settingsManager.transparencyTopBar, 1f)
     val transparencyMessageBubble: StateFlow<Float> = hot(settingsManager.transparencyMessageBubble, 1f)
     val transparencyReasoningPanel: StateFlow<Float> = hot(settingsManager.transparencyReasoningPanel, 1f)
@@ -478,6 +479,7 @@ class SettingsRepository(
     fun setIllustrationUserBubbleBackgroundPath(path: String) = scope.launch { settingsManager.saveIllustrationUserBubbleBackgroundPath(path) }
     fun setIllustrationUserBubbleCornerRadius(radius: Float) = scope.launch { settingsManager.saveIllustrationUserBubbleCornerRadius(radius) }
     fun setIllustrationTopBarBackgroundPath(path: String) = scope.launch { settingsManager.saveIllustrationTopBarBackgroundPath(path) }
+    fun setIllustrationReasoningBackgroundPath(path: String) = scope.launch { settingsManager.saveIllustrationReasoningBackgroundPath(path) }
     fun setTransparencyTopBar(v: Float) = scope.launch { settingsManager.saveTransparencyTopBar(v) }
     fun setTransparencyMessageBubble(v: Float) = scope.launch { settingsManager.saveTransparencyMessageBubble(v) }
     fun setTransparencyReasoningPanel(v: Float) = scope.launch { settingsManager.saveTransparencyReasoningPanel(v) }
