@@ -3,6 +3,8 @@ package com.orangeisland.app.data.repository
 import com.orangeisland.app.data.local.WorkflowDao
 import com.orangeisland.app.data.local.WorkflowEntity
 import com.orangeisland.app.data.local.WorkflowRunEntity
+import com.orangeisland.app.model.LinearFireStatus
+import com.orangeisland.app.model.LinearWorkflow
 import com.orangeisland.app.model.RunStatus
 import com.orangeisland.app.model.Workflow
 import kotlinx.coroutines.Dispatchers
@@ -11,6 +13,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.UUID
 
 /**
@@ -166,4 +170,113 @@ class WorkflowRepository(
         successRuns = row.successRuns,
         failedRuns = row.failedRuns
     )
+
+    // ©¤©¤ Linear workflows (v2) ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // Linear definitions live in the same `workflows` table, distinguished by mode = "linear".
+    // The graphJson blob holds the serialized [LinearWorkflow] instead of a graph [Workflow].
+    // This keeps a single table, single observable, and single run-history stream for both modes.
+
+    /** Insert or replace a linear workflow. Stamps mode = "linear" and the cooldown/cap fields. */
+    suspend fun upsertLinear(workflow: LinearWorkflow): LinearWorkflow = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        val existing = dao.getWorkflow(workflow.id)
+        val row = WorkflowEntity(
+            id = workflow.id,
+            name = workflow.name,
+            description = workflow.description,
+            graphJson = json.encodeToString(workflow),
+            enabled = workflow.enabled,
+            createdAt = existing?.createdAt ?: now,
+            updatedAt = now,
+            lastRunAt = existing?.lastRunAt,
+            lastRunStatus = existing?.lastRunStatus,
+            totalRuns = existing?.totalRuns ?: 0,
+            successRuns = existing?.successRuns ?: 0,
+            failedRuns = existing?.failedRuns ?: 0,
+            mode = "linear",
+            cooldownMs = workflow.cooldownMs,
+            maxRunsPerDay = workflow.maxRunsPerDay,
+            runsTodayCount = existing?.runsTodayCount ?: 0,
+            runsTodayDate = existing?.runsTodayDate ?: ""
+        )
+        dao.upsertWorkflow(row)
+        workflow.copy(createdAt = row.createdAt, updatedAt = row.updatedAt)
+    }
+
+    /** Decode a linear workflow by id. Returns null if missing or if the row is graph-mode. */
+    suspend fun getLinear(id: String): LinearWorkflow? = withContext(Dispatchers.IO) {
+        val row = dao.getWorkflow(id) ?: return@withContext null
+        if (row.mode != "linear") return@withContext null
+        json.decodeFromString<LinearWorkflow>(row.graphJson)
+    }
+
+    /** All enabled linear workflows ¡ª used by [com.orangeisland.app.workflow.trigger.TriggerRegistry]
+     *  to sync OS-level listeners on app start and whenever the set changes. */
+    suspend fun getEnabledLinear(): List<LinearWorkflow> = withContext(Dispatchers.IO) {
+        dao.getEnabledByMode("linear").map { row ->
+            json.decodeFromString<LinearWorkflow>(row.graphJson)
+        }
+    }
+
+    /** One row of the linear run history, with the v2 richer status (SKIPPED_* gates). Kept as a
+     *  thin wrapper over [WorkflowRunEntity] so both modes share the same history table/screen. */
+    suspend fun recordLinearRunStart(workflowId: String, startNodeId: String? = null): String =
+        recordRunStart(workflowId, startNodeId)
+
+    /** Finalize a linear run. [status] is the linear engine's richer status; we map SKIPPED_* to
+     *  the graph [RunStatus] for the shared history table, and bump the daily counter only for
+     *  SUCCESS/FAILED (skips don't count toward the cap). */
+    suspend fun recordLinearRunEnd(
+        runId: String,
+        status: LinearFireStatus,
+        message: String,
+        logsJson: String?
+    ) = withContext(Dispatchers.IO) {
+        val row = dao.getRun(runId) ?: return@withContext
+        val now = System.currentTimeMillis()
+        // Map to the shared RunStatus for the history table.
+        val mapped = when (status) {
+            LinearFireStatus.SUCCESS -> RunStatus.SUCCESS
+            LinearFireStatus.FAILED -> RunStatus.FAILED
+            // Skips are recorded as the workflow's last status but not as a failure the UI would
+            // flag red ¡ª CANCELLED renders neutrally.
+            LinearFireStatus.SKIPPED_CONDITIONS,
+            LinearFireStatus.SKIPPED_COOLDOWN,
+            LinearFireStatus.SKIPPED_DAILY_CAP,
+            LinearFireStatus.SKIPPED_DISABLED -> RunStatus.CANCELLED
+        }
+        dao.upsertRun(row.copy(finishedAt = now, status = mapped.name, message = message, logsJson = logsJson))
+        when (status) {
+            LinearFireStatus.SUCCESS -> {
+                dao.bumpRunStats(row.workflowId, now, mapped.name, successDelta = 1, failedDelta = 0)
+                dao.bumpDailyCounter(row.workflowId, todayIso(), now)
+            }
+            LinearFireStatus.FAILED -> {
+                dao.bumpRunStats(row.workflowId, now, mapped.name, successDelta = 0, failedDelta = 1)
+                dao.bumpDailyCounter(row.workflowId, todayIso(), now)
+            }
+            else -> {
+                // Skips: update lastRun timestamp/status so the list reflects the most recent fire,
+                // but don't touch totals or the daily counter.
+                dao.bumpRunStats(row.workflowId, now, mapped.name, successDelta = 0, failedDelta = 0)
+            }
+        }
+    }
+
+    /** Cooldown check: the timestamp of the most recent SUCCESS/FAILED fire for [workflowId], or
+     *  null if there has never been an actual fire. Used by the linear engine's cooldown gate. */
+    suspend fun lastActualFireAtMs(workflowId: String): Long? = withContext(Dispatchers.IO) {
+        dao.getRecentRuns(workflowId, 50)
+            .filter { it.status == RunStatus.SUCCESS.name || it.status == RunStatus.FAILED.name }
+            .maxOfOrNull { it.finishedAt ?: it.startedAt }
+    }
+
+    /** Today's fire count (SUCCESS + FAILED) for the daily-cap gate. Resets when the stored date
+     *  no longer matches today. */
+    suspend fun runsTodayCount(workflowId: String): Int = withContext(Dispatchers.IO) {
+        val row = dao.getWorkflow(workflowId) ?: return@withContext 0
+        if (row.runsTodayDate == todayIso()) row.runsTodayCount else 0
+    }
+
+    private fun todayIso(): String = LocalDate.now(ZoneId.systemDefault()).toString()
 }

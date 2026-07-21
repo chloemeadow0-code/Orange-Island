@@ -57,6 +57,29 @@ interface WorkflowDao {
     @Query("UPDATE workflows SET enabled = :enabled, updatedAt = :updatedAt WHERE id = :id")
     suspend fun setEnabled(id: String, enabled: Boolean, updatedAt: Long)
 
+    /** Linear-mode daily-counter update. Resets to 1 when the day changes, otherwise increments.
+     *  Only called for SUCCESS/FAILED fires (skips don't count). */
+    @Query("""
+        UPDATE workflows
+        SET runsTodayCount = CASE
+                WHEN runsTodayDate = :today THEN runsTodayCount + 1
+                ELSE 1
+            END,
+            runsTodayDate = :today,
+            updatedAt = :now
+        WHERE id = :id
+    """)
+    suspend fun bumpDailyCounter(id: String, today: String, now: Long)
+
+    /** Linear-mode cooldown/daily-cap fields, updated when a definition is saved. */
+    @Query("UPDATE workflows SET cooldownMs = :cooldownMs, maxRunsPerDay = :maxRunsPerDay, updatedAt = :now WHERE id = :id")
+    suspend fun setLinearLimits(id: String, cooldownMs: Long, maxRunsPerDay: Int?, now: Long)
+
+    /** Workflows of a given mode ("linear" or "graph"). Used by the trigger registry to sync only
+     *  linear workflows (the ones that carry trigger metadata the registry reads). */
+    @Query("SELECT * FROM workflows WHERE mode = :mode AND enabled = 1")
+    suspend fun getEnabledByMode(mode: String): List<WorkflowEntity>
+
     // ── Run history ──────────────────────────────────────────
 
     @Upsert

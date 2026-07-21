@@ -281,7 +281,7 @@ abstract class ChatDatabase : RoomDatabase() {
     abstract fun workflowDao(): WorkflowDao
 
     companion object {
-        const val CURRENT_VERSION = 14
+        const val CURRENT_VERSION = 15
         const val DB_NAME = "orangeisland_db"
 
         val ALL_MIGRATIONS = listOf(
@@ -408,6 +408,19 @@ abstract class ChatDatabase : RoomDatabase() {
                         )
                     """.trimIndent())
                     db.execSQL("CREATE INDEX IF NOT EXISTS index_workflow_runs_workflowId ON workflow_runs(workflowId)")
+                }
+            },
+            object : Migration(14, 15) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Workflow v2: add columns to support AI-authored linear workflows (trigger +
+                    // conditions + actions) alongside the existing node-graph mode, plus the
+                    // per-day fire counter + cooldown/daily-cap fields the linear engine enforces.
+                    // Every new column has a default so existing rows stay valid as graph workflows.
+                    db.execSQL("ALTER TABLE workflows ADD COLUMN mode TEXT NOT NULL DEFAULT 'graph'")
+                    db.execSQL("ALTER TABLE workflows ADD COLUMN cooldownMs INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("ALTER TABLE workflows ADD COLUMN maxRunsPerDay INTEGER")
+                    db.execSQL("ALTER TABLE workflows ADD COLUMN runsTodayCount INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("ALTER TABLE workflows ADD COLUMN runsTodayDate TEXT NOT NULL DEFAULT ''")
                 }
             }
         )

@@ -32,7 +32,18 @@ data class WorkflowEntity(
     val lastRunStatus: String? = null,   // RunStatus.name — SUCCESS / FAILED / RUNNING / CANCELLED
     val totalRuns: Int = 0,
     val successRuns: Int = 0,
-    val failedRuns: Int = 0
+    val failedRuns: Int = 0,
+    /** "graph" (node-and-edge, the original engine) or "linear" (trigger+conditions+actions, AI-authored).
+     *  Defaults to "graph" so every workflow created before v15 keeps working through the graph engine. */
+    val mode: String = "graph",
+    /** Minimum gap between two consecutive fires, in ms. Linear mode only; 0 = no cooldown. */
+    val cooldownMs: Long = 0,
+    /** Max fires per local day. Linear mode only; null = unlimited. */
+    val maxRunsPerDay: Int? = null,
+    /** Mirrored daily-fire counter (only SUCCESS/FAILED count). Reset when [runsTodayDate] changes. */
+    val runsTodayCount: Int = 0,
+    /** ISO date string (yyyy-MM-dd) the counter belongs to. */
+    val runsTodayDate: String = ""
 )
 
 /**
