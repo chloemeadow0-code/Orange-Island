@@ -7,8 +7,8 @@ import com.orangeisland.app.util.DebugLog
 
 /**
  * Manifest-declared receiver for boot / package-replace broadcasts. Forwards to
- * [WorkflowBootDispatcher.onBoot]; the dispatcher is a no-op until the [BootTriggerFamily] is
- * bound by [com.orangeisland.app.di.AppContainer], which happens once the app process is up.
+ * [BootSignalSource.onBoot], which enqueues a [BootFireWorker] (the durable fire path; receivers
+ * are time-limited, WorkManager is the documented way to do background work off a boot broadcast).
  *
  * Two actions are accepted:
  *  - BOOT_COMPLETED — fired once after the device finishes booting.
@@ -22,8 +22,8 @@ class WorkflowBootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> {
-                DebugLog.d(TAG, "received ${intent.action}, dispatching to boot family")
-                WorkflowBootDispatcher.onBoot()
+                DebugLog.d(TAG, "received ${intent.action}, enqueuing boot fire worker(s)")
+                BootSignalSource.onBoot(context)
             }
             else -> Unit
         }

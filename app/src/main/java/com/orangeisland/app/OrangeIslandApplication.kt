@@ -18,10 +18,10 @@ class OrangeIslandApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         CrashReporter.install(this)
-        // Start the workflow trigger registry so a device signal (boot, schedule, WiFi, …) fires
-        // its matching linear workflow through the runner. Idempotent; wrapped so a registry
-        // failure can never prevent the rest of app init.
-        runCatching { container.startTriggerRegistry() }
-            .onFailure { com.orangeisland.app.util.DebugLog.e("OrangeIslandApp", "trigger registry start failed", it) }
+        // Start the workflow trigger host so a device signal (boot, schedule, WiFi, …) fires its
+        // matching linear workflow through the runner. Idempotent; wrapped so a host failure can
+        // never prevent the rest of app init.
+        runCatching { container.startTriggerHost() }
+            .onFailure { com.orangeisland.app.util.DebugLog.e("OrangeIslandApp", "trigger host start failed", it) }
     }
 }

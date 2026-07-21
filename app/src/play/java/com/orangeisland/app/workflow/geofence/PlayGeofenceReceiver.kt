@@ -7,18 +7,21 @@ import android.content.Intent
 import android.util.Log
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingEvent
-import com.orangeisland.app.workflow.trigger.GeofenceProvider
-import com.orangeisland.app.workflow.trigger.GeofenceTriggerDispatcher
+import com.orangeisland.app.workflow.trigger.GeofenceFireWorker
 
 /**
  * Manifest-declared receiver for Play Services geofence transitions (play flavor only).
  *
  * On fdroid this class doesn't exist (Play Services isn't available there), so the fdroid
- * manifest doesn't declare it and [FdroidGeofenceProvider] never registers a PendingIntent.
+ * manifest doesn't declare it and the no-op [FdroidGeofenceProvider] never registers a
+ * PendingIntent.
  *
- * The receiver maps Play Services transitions to [GeofenceProvider.Direction] and forwards to
- * [GeofenceTriggerDispatcher.onTransition], which routes through the live family (warm process)
- * or the cold-start repository fallback.
+ * The receiver maps Play Services transitions to triggering geofence requestIds and hands each to
+ * [GeofenceFireWorker.enqueue] (WorkManager is the documented way to do background work off a
+ * broadcast — receivers are time-limited, and a geofence-triggered workflow can outlast that
+ * window). The requestId encodes the workflow id + direction (see
+ * [com.orangeisland.app.workflow.trigger.GeofenceSignalSource.encodeRequestId]), so the worker
+ * routes the fire without any lookup table or app-wide singleton.
  *
  * Independent implementation.
  */
@@ -34,9 +37,10 @@ class PlayGeofenceReceiver : BroadcastReceiver() {
             Log.w(TAG, "geofencing error: ${event.errorCode}")
             return
         }
-        val direction = when (event.geofenceTransition) {
-            Geofence.GEOFENCE_TRANSITION_ENTER -> GeofenceProvider.Direction.ENTER
-            Geofence.GEOFENCE_TRANSITION_EXIT -> GeofenceProvider.Direction.EXIT
+        // Only ENTER / EXIT transitions are registered (see PlayGeofenceProvider), so anything
+        // else is noise.
+        when (event.geofenceTransition) {
+            Geofence.GEOFENCE_TRANSITION_ENTER, Geofence.GEOFENCE_TRANSITION_EXIT -> Unit
             else -> {
                 Log.d(TAG, "ignoring transition ${event.geofenceTransition}")
                 return
@@ -44,13 +48,11 @@ class PlayGeofenceReceiver : BroadcastReceiver() {
         }
         val ids = event.triggeringGeofences?.map { it.requestId }?.filter { it.isNotBlank() }.orEmpty()
         if (ids.isEmpty()) return
-        // Hold the broadcast lease briefly so the dispatcher's coroutine has a chance to launch.
-        // The family's fire launches onto a long-lived scope, so we release immediately — the
-        // lease protects only the launch, not the full fire (a fully-durable cold path would use
-        // WorkManager, out of scope for v2).
+        // Enqueue first, then release the broadcast lease — WorkManager persists the request, so
+        // the lease only needs to cover the enqueue (not the fire).
         val pendingResult = goAsync()
         try {
-            GeofenceTriggerDispatcher.onTransition(ids, direction)
+            ids.forEach { GeofenceFireWorker.enqueue(context, it) }
         } finally {
             runCatching { pendingResult.finish() }
         }

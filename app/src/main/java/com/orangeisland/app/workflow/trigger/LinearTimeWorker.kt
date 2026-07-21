@@ -38,15 +38,8 @@ class LinearTimeWorker(
         val workflowId = inputData.getString(KEY_WORKFLOW_ID) ?: return Result.failure()
         val appContext = applicationContext
 
-        // Fast path: the family is bound (process is alive). It handles the day-of-week filter
-        // and the registry's shared callback, and re-enqueues one-shot schedules itself.
-        val family = TimeTriggerFamily.get()
-        if (family != null) {
-            val fired = runCatching { family.onWorkerFired(workflowId) }.getOrDefault(false)
-            return if (fired) Result.success() else Result.failure()
-        }
-
-        // Cold-start path: rebuild the runner from scratch and fire directly.
+        // Rebuild the dependency graph from scratch (a Worker may run in a fresh process, so the
+        // app-wide AppContainer singletons aren't assumed) and run the workflow in BACKGROUND mode.
         val json = Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = true }
         val db = ChatDatabase.build(appContext)
         return try {

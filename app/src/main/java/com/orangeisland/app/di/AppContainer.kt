@@ -184,97 +184,31 @@ class AppContainer(private val appContext: Context) {
         )
     }
 
-    // ── Trigger Registry (workflow v2) ──────────────────────────────────────
-    // The registry coordinates every TriggerFamily. On app start (and whenever the enabled-linear
-    // workflow set changes) it buckets workflows by family and reconciles each family's OS hooks.
-    // The fire callback is a single function that resolves the workflow's mode and runs it via a
-    // background-mode WorkflowRunner; failures are logged but never crash the registry.
+    // ── Trigger Host (workflow v2) ───────────────────────────────────────────
+    // The host starts each signal source (one per trigger kind). Unlike a registry, it does not
+    // iterate a list of sources or call a sync() method on each — each source owns its own Flow
+    // subscription to the enabled-workflow set and reconciles its OS hooks itself. See
+    // [com.orangeisland.app.workflow.trigger.WorkflowTriggerHost].
 
-    /** Flavor-specific geofence backend. Play flavor provides PlayGeofenceProvider (Google Play
-     *  Services GeofencingClient); fdroid provides FdroidGeofenceProvider (a no-op). Resolved by
-     *  reflection so main/ never imports either class — mirrors the sandboxManagerFactory pattern. */
-    val geofenceProvider: com.orangeisland.app.workflow.trigger.GeofenceProvider by lazy {
-        try {
-            Class.forName("com.orangeisland.app.workflow.geofence.PlayGeofenceProvider")
-                .getDeclaredConstructor(android.content.Context::class.java)
-                .newInstance(appContext) as com.orangeisland.app.workflow.trigger.GeofenceProvider
-        } catch (_: ClassNotFoundException) {
-            try {
-                Class.forName("com.orangeisland.app.workflow.geofence.FdroidGeofenceProvider")
-                    .getDeclaredConstructor()
-                    .newInstance() as com.orangeisland.app.workflow.trigger.GeofenceProvider
-            } catch (_: ClassNotFoundException) {
-                // Should never happen — exactly one flavor source set is compiled in.
-                com.orangeisland.app.workflow.trigger.GeofenceProvider.NoopFallback
-            }
-        }
-    }
-
-    /** The registry itself, lazily constructed. Families are built once (they hold receiver / client
-     *  refs) and reused across resyncs. The boot + geofence families share a `runnerFire` closure
-     *  so their cold-start paths can fire a workflow even before the registry's flow has emitted. */
-    val triggerRegistry: com.orangeisland.app.workflow.trigger.TriggerRegistry by lazy {
-        val scope = appScope
-        val runnerFire: suspend (workflowId: String, trigger: com.orangeisland.app.model.LinearTrigger) -> Unit =
-            { id, _ ->
-                runCatching {
-                    workflowRunner().run(
-                        workflowId = id,
-                        mode = com.orangeisland.app.workflow.WorkflowRunner.Mode.BACKGROUND,
-                        source = com.orangeisland.app.workflow.TriggerSource.Targeted.Node(
-                            kind = com.orangeisland.app.workflow.TriggerKind.API
-                        )
-                    )
-                }.onFailure {
-                    com.orangeisland.app.util.DebugLog.e("TriggerRegistry", "cold-start fire failed for $id", it)
-                }
-            }
-        val bootFamily = com.orangeisland.app.workflow.trigger.BootTriggerFamily(
-            scope = scope, repository = workflowRepository, runnerFire = runnerFire
+    /** The host, lazily constructed. The [com.orangeisland.app.workflow.trigger.WorkflowStarter]
+     *  closure is shared by every source so a fire routes through a BACKGROUND-mode runner. */
+    val triggerHost: com.orangeisland.app.workflow.trigger.WorkflowTriggerHost by lazy {
+        val starter = com.orangeisland.app.workflow.trigger.workflowStarter(
+            runnerProvider = { workflowRunner() }
         )
-        com.orangeisland.app.workflow.trigger.WorkflowBootDispatcher.bind(bootFamily)
-        com.orangeisland.app.workflow.trigger.TriggerRegistry(
+        com.orangeisland.app.workflow.trigger.WorkflowTriggerHost(
             context = appContext,
             repository = workflowRepository,
-            scope = scope,
-            familyProvider = {
-                listOf(
-                    com.orangeisland.app.workflow.trigger.ManualTriggerFamily(),
-                    bootFamily,
-                    com.orangeisland.app.workflow.trigger.TimeTriggerFamily(appContext, scope).also {
-                        com.orangeisland.app.workflow.trigger.TimeTriggerFamily.bind(it)
-                    },
-                    com.orangeisland.app.workflow.trigger.BroadcastTriggerFamily(appContext, scope),
-                    com.orangeisland.app.workflow.trigger.AppForegroundTriggerFamily(scope),
-                    com.orangeisland.app.workflow.trigger.NotificationTriggerFamily(scope),
-                    com.orangeisland.app.workflow.trigger.GeofenceTriggerFamily(
-                        provider = geofenceProvider, scope = scope,
-                        repository = workflowRepository, runnerFire = runnerFire
-                    )
-                )
-            }
+            scope = appScope,
+            starter = starter
         )
     }
 
-    /** Start observing the workflow table and reconciling trigger families. Idempotent. Called from
-     *  [com.orangeisland.app.OrangeIslandApplication.onCreate]; safe to call repeatedly. The fire
-     *  callback routes every matching transition through a BACKGROUND-mode WorkflowRunner. */
-    fun startTriggerRegistry() {
-        triggerRegistry.start(
-            com.orangeisland.app.workflow.trigger.TriggerFireCallback { workflowId, _ ->
-                runCatching {
-                    workflowRunner().run(
-                        workflowId = workflowId,
-                        mode = com.orangeisland.app.workflow.WorkflowRunner.Mode.BACKGROUND,
-                        source = com.orangeisland.app.workflow.TriggerSource.Targeted.Node(
-                            kind = com.orangeisland.app.workflow.TriggerKind.API
-                        )
-                    )
-                }.onFailure {
-                    com.orangeisland.app.util.DebugLog.e("TriggerRegistry", "fire failed for $workflowId", it)
-                }
-            }
-        )
+    /** Start every signal source. Idempotent. Called from
+     *  [com.orangeisland.app.OrangeIslandApplication.onCreate]. */
+    fun startTriggerHost() {
+        runCatching { triggerHost.start() }
+            .onFailure { com.orangeisland.app.util.DebugLog.e("AppContainer", "trigger host start failed", it) }
     }
 
     // ── JS Plugins ────────────────────────────────────────────

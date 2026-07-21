@@ -814,11 +814,15 @@ Stage F adds a second workflow model alongside the node-graph engine. The two co
 │    → LinearDefinitionParser (strict validate) → WorkflowApprovalRenderer│
 │    → WorkflowApprovalGate.approval (SUSPENDS)                           │
 │    → WorkflowApprovalDialog (user Approve/Reject)                       │
-│    → repository.upsertLinear → TriggerRegistry re-syncs OS hooks        │
+│    → repository.upsertLinear → each WorkflowTriggerHost signal source   │
+│      picks up the change via its own observeEnabledLinear() subscription│
 │                                                                         │
-│  OS signal → TriggerFamily → TriggerRegistry callback → WorkflowRunner  │
-│    (BACKGROUND) → LinearEngine (cooldown → daily-cap → conditions →     │
-│    actions) → repository.recordLinearRunEnd                             │
+│  OS signal → signal source (BroadcastSignalSource / etc.) →             │
+│    WorkflowStarter → WorkflowRunner (BACKGROUND)                        │
+│    → LinearEngine (cooldown → daily-cap → conditions → actions)         │
+│    → repository.recordLinearRunEnd                                      │
+│  boot / time / geofence signals → WorkManager worker (durable fire) →   │
+│    WorkflowRunner                                                       │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -827,29 +831,38 @@ shape (one trigger + AND-list of conditions + ordered actions) is far easier to 
 validate, which is why the AI authoring surface only authors linear definitions. The graph engine
 stays for advanced users who hand-edit.
 
-**19 trigger kinds, grouped into families** (`workflow/trigger/`):
+**19 trigger kinds, grouped into signal sources** (`workflow/trigger/`):
 
-| Family | Triggers |
+| Signal source | Triggers |
 |---|---|
-| ManualTriggerFamily | `manual` (fires via UI Run / `workflow_run` tool only) |
-| BootTriggerFamily | `boot_completed` |
-| TimeTriggerFamily | `time_cron` (WorkManager; `time_of_day` + `days_of_week`, or cron subset) |
-| BroadcastTriggerFamily | wifi/power/headphones/screen/battery/bluetooth connect/disconnect (runtime receivers) |
-| AppForegroundTriggerFamily | `app_launched` / `app_closed` / `app_foreground_duration` (via `AppForegroundDispatcher`, fed by the automation accessibility service) |
-| NotificationTriggerFamily | `notification_received` (observer on `DeviceNotificationListenerService`) |
-| GeofenceTriggerFamily | `geofence_enter` / `geofence_exit` (flavor-split: `PlayGeofenceProvider` on play, `FdroidGeofenceProvider` no-op on fdroid) |
+| `ManualSignalSource` | `manual` (fires via UI Run / `workflow_run` tool only) |
+| `BootSignalSource` + `BootFireWorker` | `boot_completed` |
+| `TimeSignalSource` + `LinearTimeWorker` | `time_cron` (WorkManager; `time_of_day` + `days_of_week`, or cron subset) |
+| `BroadcastSignalSource` | wifi/power/headphones/screen/battery/bluetooth connect/disconnect (each its own `BroadcastReceiver` subclass) |
+| `AppForegroundSignalSource` | `app_launched` / `app_closed` / `app_foreground_duration` (via `AppForegroundDispatcher`, fed by the automation accessibility service) |
+| `NotificationSignalSource` | `notification_received` (observer on `DeviceNotificationListenerService`, package-indexed filter) |
+| `GeofenceSignalSource` + `GeofenceFireWorker` | `geofence_enter` / `geofence_exit` (flavor-split: `PlayGeofenceProvider` on play, `FdroidGeofenceProvider` no-op on fdroid) |
 
-**TriggerRegistry** buckets enabled linear workflows by family and reconciles each family's OS
-hooks on a debounced 500ms flow. Fire callback runs through a BACKGROUND-mode `WorkflowRunner`.
+**WorkflowTriggerHost** is a lifecycle host, **not** a registry: it does not iterate a list of
+sources or call a `sync()` method on each. Each signal source owns its own `Flow` subscription to
+`repository.observeEnabledLinear()` and reconciles its OS hooks itself — so a source that has zero
+matching workflows simply never collects anything (no centralised debounce or fan-out loop). The
+fire path is a shared `WorkflowStarter` (functional type, not a callback interface) that every
+source captures at construction.
+
+**Durable fire paths** for boot / time / geofence use WorkManager workers
+(`BootFireWorker` / `LinearTimeWorker` / `GeofenceFireWorker`), the documented way to do background
+work off a manifest receiver — receivers enqueue the worker and return immediately. Geofence
+requestIds encode `<workflowId>#<enter|exit>` so the worker routes a fire without a lookup table.
 
 **LinearEngine gates**: cooldown (`lastActualFireAtMs`) → daily cap (`runsTodayCount`) → conditions
 (`ConditionEvaluator` AND-combined, invert-aware) → actions (fail-fast, per-action timeout,
 `WorkflowGuard.preflightForLinear` for background-safe whitelist + budget).
 
 **Flavor split** (mirrors `SandboxManagerFactory`): `PlayGeofenceProvider` lives in
-`app/src/play/...`, `FdroidGeofenceProvider` in `app/src/fdroid/...`; `AppContainer` resolves the
-right one by reflection so `main/` never imports Play Services. The play flavor's manifest adds
-`ACCESS_BACKGROUND_LOCATION` + `PlayGeofenceReceiver`.
+`app/src/play/...`, `FdroidGeofenceProvider` in `app/src/fdroid/...`; `GeofenceSignalSource`
+resolves the right one by reflection so `main/` never imports Play Services. The play flavor's
+manifest adds `ACCESS_BACKGROUND_LOCATION` + `PlayGeofenceReceiver`.
 
 **AI authoring gate**: `WorkflowApprovalGate` is a `CompletableDeferred`-backed queue — the tool
 provider suspends on `approval`, the chat UI observes `pending` and pops `WorkflowApprovalDialog`.
