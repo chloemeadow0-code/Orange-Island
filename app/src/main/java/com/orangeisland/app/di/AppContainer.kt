@@ -183,6 +183,16 @@ class AppContainer(private val appContext: Context) {
         com.orangeisland.app.plugin.PluginToolProvider(pluginLoader, pluginSandbox, settingsRepository)
     }
 
+    // ── Workflow ViewModel ────────────────────────────────────
+
+    fun workflowViewModel(): com.orangeisland.app.viewmodel.WorkflowViewModel =
+        com.orangeisland.app.viewmodel.WorkflowViewModel(
+            repository = workflowRepository,
+            runnerFactory = { onConfirm, onNodeState ->
+                workflowRunner(onConfirm, onNodeState)
+            }
+        )
+
     // ── ViewModel Factory ─────────────────────────────────────
 
     fun chatViewModelFactory(): ChatViewModelFactory =

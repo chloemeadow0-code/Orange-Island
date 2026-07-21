@@ -159,5 +159,11 @@ class WorkflowRepository(
     /** Inverse of [decode], for the exporter and any caller that needs the blob form. */
     fun encode(workflow: Workflow): String = json.encodeToString(workflow)
 
-    private fun toModel(row: WorkflowEntity): Workflow = json.decodeFromString(row.graphJson)
+    private fun toModel(row: WorkflowEntity): Workflow = json.decodeFromString<Workflow>(row.graphJson).copy(
+        lastRunAt = row.lastRunAt,
+        lastRunStatus = row.lastRunStatus,
+        totalRuns = row.totalRuns,
+        successRuns = row.successRuns,
+        failedRuns = row.failedRuns
+    )
 }

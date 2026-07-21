@@ -207,6 +207,7 @@ class MainActivity : ComponentActivity() {
                     }
                     val factory = remember { container.chatViewModelFactory() }
                     val viewModel: ChatViewModel = viewModel(factory = factory)
+                    val workflowViewModel = remember { container.workflowViewModel() }
 
                     // Auth gate: if not logged in, show the login/register screen
                     // instead of the main app. Once the flag flips, recomposition
@@ -228,7 +229,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        MainNavigation(viewModel, settingsManager)
+                        MainNavigation(viewModel, settingsManager, workflowViewModel)
 
                         // Process external text (from SHARE intent or deep-link) once the UI is ready.
                         LaunchedEffect(externalTextState.value) {
@@ -422,8 +423,13 @@ private fun Modifier.consumePointerInput(): Modifier =
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainNavigation(viewModel: ChatViewModel, settingsManager: SettingsManager) {
+fun MainNavigation(
+    viewModel: ChatViewModel,
+    settingsManager: SettingsManager,
+    workflowViewModel: com.orangeisland.app.viewmodel.WorkflowViewModel
+) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    var settingsInitialCategory by remember { mutableStateOf<String?>(null) }
     var fullScreenMediaUrls by remember { mutableStateOf<List<String>?>(null) }
     var fullScreenMediaIndex by remember { mutableIntStateOf(0) }
     var pdfViewerSelection by remember { mutableStateOf(setOf<Int>()) }
@@ -738,6 +744,11 @@ fun MainNavigation(viewModel: ChatViewModel, settingsManager: SettingsManager) {
             ChatApp(
                 viewModel = viewModel,
                 onOpenSettings = {
+                    settingsInitialCategory = null
+                    showSettings = true
+                },
+                onOpenWorkflows = {
+                    settingsInitialCategory = "workflows"
                     showSettings = true
                 },
                 onMediaClick = { urls, index ->
@@ -777,8 +788,11 @@ fun MainNavigation(viewModel: ChatViewModel, settingsManager: SettingsManager) {
                 SettingsScreen(
                     viewModel = viewModel,
                     onBack = {
+                        settingsInitialCategory = null
                         showSettings = false
-                    }
+                    },
+                    workflowViewModel = workflowViewModel,
+                    initialCategory = settingsInitialCategory
                 )
             }
 

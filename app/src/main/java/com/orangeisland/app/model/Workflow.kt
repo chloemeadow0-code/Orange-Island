@@ -26,7 +26,13 @@ data class Workflow(
     val edges: List<FlowEdge> = emptyList(),
     val enabled: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    /** Runtime stats populated by [com.orangeisland.app.data.repository.WorkflowRepository]; not round-tripped through [graphJson]. */
+    val lastRunAt: Long? = null,
+    val lastRunStatus: String? = null,
+    val totalRuns: Int = 0,
+    val successRuns: Int = 0,
+    val failedRuns: Int = 0
 )
 
 // ── Run outcome (mirrored to WorkflowEntity.lastRunStatus as its name) ─────

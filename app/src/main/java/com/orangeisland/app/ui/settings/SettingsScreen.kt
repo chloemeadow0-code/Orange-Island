@@ -181,6 +181,7 @@ private val settingsGroups = listOf(
         SettingsCategory("mcp", R.string.mcp_title, R.string.mcp_desc, Icons.Default.Extension),
         SettingsCategory("plugins", R.string.plugin_title, R.string.plugin_desc, Icons.Default.Extension),
         SettingsCategory("device_access", R.string.device_access_title, R.string.device_access_desc, Icons.Default.Smartphone),
+        SettingsCategory("workflows", R.string.settings_workflows, R.string.settings_workflows_desc, Icons.Default.AccountTree),
     )),
     SettingsGroupData(titleRes = R.string.settings_group_network, items = listOf(
         SettingsCategory("proxy", R.string.settings_proxy, R.string.settings_proxy_desc, Icons.Default.Lan),
@@ -202,8 +203,19 @@ private val settingsGroups = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
-    var selectedCategory by rememberSaveable { mutableStateOf<String?>(null) }
+fun SettingsScreen(
+    viewModel: ChatViewModel,
+    onBack: () -> Unit,
+    workflowViewModel: com.orangeisland.app.viewmodel.WorkflowViewModel,
+    initialCategory: String? = null
+) {
+    var selectedCategory by rememberSaveable { mutableStateOf<String?>(initialCategory) }
+
+    LaunchedEffect(initialCategory) {
+        if (initialCategory != null) {
+            selectedCategory = initialCategory
+        }
+    }
     val listState = rememberLazyListState()
     val isSyncingModels by viewModel.isSyncingModels.collectAsState()
     val fetchingModelsMessage = stringResource(R.string.snackbar_fetching_models)
@@ -249,6 +261,10 @@ fun SettingsScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
                 "customcolors" -> SettingsCustomColorsPage(viewModel, onBack = { selectedCategory = null })
                 "illustrations" -> SettingsIllustrationsPage(viewModel, onBack = { selectedCategory = null })
                 "about" -> SettingsAboutPage(viewModel, onBack = { selectedCategory = null })
+                "workflows" -> com.orangeisland.app.ui.settings.workflow.SettingsWorkflowPage(
+                    viewModel = workflowViewModel,
+                    onBack = { selectedCategory = null }
+                )
                 else -> {
                     CollapsingSettingsLazyScaffold(
                         title = stringResource(R.string.settings_title),

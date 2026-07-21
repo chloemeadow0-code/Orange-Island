@@ -1180,4 +1180,30 @@
     <!-- Settings: account entry -->
     <string name="settings_account">账号</string>
     <string name="settings_account_desc">当前登录：%1$s</string>
+
+    <!-- Workflow -->
+    <string name="workflows_title">Workflows</string>
+    <string name="workflows_add">New Workflow</string>
+    <string name="workflow_new_name">New Workflow</string>
+    <string name="workflows_empty_title">No workflows</string>
+    <string name="workflows_empty_desc">Create a workflow to automate tasks</string>
+    <string name="workflow_run">Run</string>
+    <string name="workflow_logs">Logs</string>
+    <string name="workflow_delete_title">Delete Workflow?</string>
+    <string name="workflow_delete_text">Are you sure you want to delete \"%1$s\"? This action cannot be undone.</string>
+    <string name="workflow_editor_title">Edit Workflow</string>
+    <string name="workflow_name_hint">Name</string>
+    <string name="workflow_description_hint">Description</string>
+    <string name="workflow_save">Save</string>
+    <string name="workflow_nodes">Nodes</string>
+    <string name="workflow_edges">Edges</string>
+    <string name="workflow_add_node">Add Node</string>
+    <string name="workflow_log_title">Run History</string>
+    <string name="workflow_log_empty">No runs yet</string>
+    <string name="workflow_status_running">Running</string>
+    <string name="workflow_status_success">Success</string>
+    <string name="workflow_status_failed">Failed</string>
+    <string name="workflow_status_cancelled">Cancelled</string>
+    <string name="settings_workflows">Workflows</string>
+    <string name="settings_workflows_desc">Automate tasks with visual workflows</string>
 </resources>

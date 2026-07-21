@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
@@ -104,6 +105,7 @@ internal fun ChatDrawerContent(
     onDrawerProgress: (Float) -> Unit,
     onSettingsButtonTop: (Float) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenWorkflows: () -> Unit = {},
     onRequestRename: (String, String) -> Unit,
     onRequestDelete: (String) -> Unit,
     onPendingDrawerHaptic: (String?) -> Unit,
@@ -356,7 +358,26 @@ internal fun ChatDrawerContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            FilledTonalButton(
+                onClick = {
+                    haptics.action()
+                    focusManager.clearFocus()
+                    onOpenWorkflows()
+                    scope.launch { drawerState.close() }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp),
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.workflows_title), style = ChatType.drawerButton)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             FilledTonalButton(
                 onClick = {
