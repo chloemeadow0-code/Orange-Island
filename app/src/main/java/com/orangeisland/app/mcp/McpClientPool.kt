@@ -16,14 +16,32 @@ import io.modelcontextprotocol.kotlin.sdk.types.Tool
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import java.util.concurrent.ConcurrentHashMap
+
+/** Per-server connection status, surfaced to the UI as the leading icon on each MCP server row. */
+enum class McpStatus {
+    /** No live connection (offline, error, connected-but-zero-tools). UI shows an error icon. */
+    DISCONNECTED,
+    /** A connect / reconnect attempt is in flight. UI shows a spinner. */
+    CONNECTING,
+    /** Connected AND exposes ≥1 tool. UI shows the normal extension icon. */
+    READY;
+}
 
 /**
  * Cached tool list for an MCP server, with a short TTL so newly-added server-side tools
@@ -66,27 +84,81 @@ class McpClientPool(
         private const val TOOLS_CACHE_TTL_MS = 60_000L
         private const val CLIENT_NAME = "orangeisland"
         private const val CLIENT_VERSION = "1.0"
+        // ── Stability tuning ─────────────────────────────────────────────────
+        /** Hard cap on a single connect attempt (the SDK's client.connect transport handshake). */
+        private const val CONNECT_TIMEOUT_MS = 15_000L
+        /** Hard cap on a single listTools / callTool round-trip once connected. */
+        private const val REQUEST_TIMEOUT_MS = 20_000L
+        /** How many times to retry a failing connect, with exponential backoff. */
+        private const val MAX_CONNECT_ATTEMPTS = 3
+        /** Interval between heartbeat probes (keeps statuses fresh and reconnects after blips). */
+        private const val HEARTBEAT_INTERVAL_MS = 30_000L
+        /** Fast bounds for heartbeat probes: single attempt, short timeout. Probes run every
+         *  [HEARTBEAT_INTERVAL_MS], so a failed probe just retries next tick — there's no need to
+         *  retry-with-backoff inside one probe (that's what made the spinner last ~50s on a dead
+         *  server). Generation-time [getOrConnect] still uses the slow, retrying path. */
+        private const val PROBE_CONNECT_TIMEOUT_MS = 5_000L
+        private const val PROBE_REQUEST_TIMEOUT_MS = 8_000L
     }
 
     private val connections = ConcurrentHashMap<String, ConnectedServer>()
     private val connectLocks = ConcurrentHashMap<String, Mutex>()
     private val json = Json { ignoreUnknownKeys = true }
 
+    /** Per-server status, observed by the MCP settings UI to render the three-state icon. Every
+     *  transition goes through [setStatus] so updates are atomic + thread-safe. A server that is
+     *  configured but has never been probed is simply absent from the map (UI defaults to error). */
+    private val _statuses = MutableStateFlow<Map<String, McpStatus>>(emptyMap())
+    val statuses: StateFlow<Map<String, McpStatus>> = _statuses.asStateFlow()
+
+    private fun setStatus(id: String, status: McpStatus) {
+        _statuses.update { it + (id to status) }
+    }
+
+    private fun clearStatus(id: String) {
+        _statuses.update { it - id }
+    }
+
+    /** Heartbeat guardian: periodically probes every enabled server so the UI shows live status
+     *  and silently reconnects after a transient network blip. null until [startMonitoring]. */
+    @Volatile private var heartbeatJob: Job? = null
+
     /**
      * Lazily connects to [config] (or returns the existing connection). Throws on real
      * failure so callers can surface a concrete error message.
+     *
+     * Emits CONNECTING for the duration of the (possibly retried) attempt, and DISCONNECTED if
+     * every attempt fails. Retry uses exponential backoff so a transient blip doesn't cost the
+     * user a hard failure.
      */
     private suspend fun getOrConnect(config: McpServerConfig): ConnectedServer {
         connections[config.id]?.let { return it }
         val lock = connectLocks.computeIfAbsent(config.id) { Mutex() }
-        val connected = lock.withLock {
+        return lock.withLock {
             // Double-check after acquiring the lock — another caller may have connected.
             connections[config.id]?.let { return@withLock it }
-            val server = connectFresh(config)
-            connections[config.id] = server
-            server
+            setStatus(config.id, McpStatus.CONNECTING)
+            var lastError: Exception? = null
+            for (attempt in 1..MAX_CONNECT_ATTEMPTS) {
+                try {
+                    val server = connectFresh(config)
+                    connections[config.id] = server
+                    return@withLock server
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    lastError = e
+                    DebugLog.w(TAG, "connect attempt $attempt/$MAX_CONNECT_ATTEMPTS failed for " +
+                        "'${config.name}': ${e.message}")
+                    if (attempt < MAX_CONNECT_ATTEMPTS) {
+                        // Exponential backoff: 1s, 2s, 4s, … between retries.
+                        delay(1000L * (1L shl (attempt - 1)))
+                    }
+                }
+            }
+            setStatus(config.id, McpStatus.DISCONNECTED)
+            throw lastError ?: java.io.IOException("Failed to connect to MCP server '${config.name}'")
         }
-        return connected
     }
 
     private suspend fun connectFresh(config: McpServerConfig): ConnectedServer {
@@ -111,7 +183,9 @@ class McpClientPool(
             else -> throw IllegalArgumentException("Unknown MCP transport: ${config.transport}")
         }
         val client = Client(clientInfo = Implementation(name = CLIENT_NAME, version = CLIENT_VERSION))
-        client.connect(transport)
+        // The SDK handshake can hang indefinitely on an unresponsive/blocked server; bound it so a
+        // dead server surfaces as an error (and a retry) instead of stalling the whole generation.
+        withTimeout(CONNECT_TIMEOUT_MS) { client.connect(transport) }
         DebugLog.w(TAG, "Connected to MCP server '${config.name}' (${config.transport} @ ${config.url})")
         return ConnectedServer(client = client, config = config)
     }
@@ -164,6 +238,10 @@ class McpClientPool(
      * Lists tools exposed by [serverId], using the cache when fresh. Returns an empty list
      * on connection/protocol failure (a generation is allowed to proceed without MCP tools
      * rather than aborting the whole chat turn).
+     *
+     * Side-effects on status: a successful non-empty response marks the server READY; an empty
+     * response or any error marks it DISCONNECTED and drops the poisoned connection. This keeps
+     * the UI's three-state icon honest with what the last call actually saw.
      */
     suspend fun listTools(config: McpServerConfig): List<Tool> {
         return try {
@@ -171,10 +249,15 @@ class McpClientPool(
             val cached = server.toolsCache
             val now = System.currentTimeMillis()
             if (cached != null && now - cached.fetchedAt < TOOLS_CACHE_TTL_MS) {
+                // Cached: reflect its size into status without a network round-trip.
+                setStatus(config.id, if (cached.tools.isNotEmpty()) McpStatus.READY else McpStatus.DISCONNECTED)
                 return cached.tools
             }
-            val tools = server.client.listTools().tools
+            val tools = withTimeout(REQUEST_TIMEOUT_MS) { server.client.listTools().tools }
             server.toolsCache = CachedTools(tools, now)
+            // Per the user's decision, "connected but zero tools" is merged with "couldn't connect"
+            // into the single error icon — both mean the server isn't actually useful right now.
+            setStatus(config.id, if (tools.isNotEmpty()) McpStatus.READY else McpStatus.DISCONNECTED)
             tools
         } catch (e: CancellationException) {
             throw e
@@ -182,6 +265,7 @@ class McpClientPool(
             DebugLog.e(TAG, "listTools failed for '${config.name}'", e)
             // Drop a poisoned connection so the next call retries from scratch.
             invalidate(config.id)
+            setStatus(config.id, McpStatus.DISCONNECTED)
             emptyList()
         }
     }
@@ -194,10 +278,20 @@ class McpClientPool(
     suspend fun callTool(config: McpServerConfig, name: String, argumentsJson: String): String {
         val server = getOrConnect(config)
         val args = parseArguments(argumentsJson)
-        val result: CallToolResult = server.client.callTool(
-            name = name,
-            arguments = args,
-        )
+        val result: CallToolResult = try {
+            withTimeout(REQUEST_TIMEOUT_MS) {
+                server.client.callTool(name = name, arguments = args)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // A transport/protocol failure on a tool call means the connection is poisoned; drop it
+            // and mark DISCONNECTED so the next call rebuilds and the UI reflects the outage.
+            DebugLog.e(TAG, "callTool transport failed for '${config.name}' / '$name'", e)
+            invalidate(config.id)
+            setStatus(config.id, McpStatus.DISCONNECTED)
+            throw e
+        }
         val text = result.content
             .filterIsInstance<TextContent>()
             .joinToString("\n") { it.text }
@@ -238,6 +332,24 @@ class McpClientPool(
                 runCatching { server.client.close() }
             }
         }
+        // A dropped connection is no longer READY — the UI should stop showing the ok icon.
+        // If a monitoring loop is running it will probe again and re-promote on success.
+        setStatus(serverId, McpStatus.DISCONNECTED)
+    }
+
+    /**
+     * Drops any cached connection for [config.id] and immediately probes it once, updating [statuses]
+     * as it goes (CONNECTING → READY / DISCONNECTED). Use this when the user toggles a server back
+     * on or edits its config — without it the UI would wait up to HEARTBEAT_INTERVAL_MS for the
+     * next heartbeat tick before reflecting the change. Fire-and-forget (runs on ioScope).
+     */
+    fun refreshStatus(config: McpServerConfig) {
+        invalidate(config.id)
+        ioScope.launch {
+            setStatus(config.id, McpStatus.CONNECTING)
+            val status = probe(config)
+            setStatus(config.id, status)
+        }
     }
 
     /** Drops any connection whose config no longer appears in [activeIds]. */
@@ -245,6 +357,10 @@ class McpClientPool(
         connections.keys.toList()
             .filter { it !in activeIds }
             .forEach { invalidate(it) }
+        // Servers no longer configured at all leave the status map entirely.
+        _statuses.value.keys.toList()
+            .filter { it !in activeIds }
+            .forEach { clearStatus(it) }
     }
 
     /** Closes every connection. Called from ChatViewModel.onCleared. */
@@ -253,6 +369,123 @@ class McpClientPool(
             runCatching { ioScope.launchSafe { server.client.close() } }
         }
         connections.clear()
+        _statuses.value = emptyMap()
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+    }
+
+    /**
+     * Probes one server's health WITHOUT affecting the generation path: connects (if needed) and
+     * runs a fresh listTools (cache-busting), then returns the resulting status. Used by the
+     * heartbeat guardian so the UI's three-state icon reflects reality even between generations.
+     */
+    private suspend fun probe(config: McpServerConfig): McpStatus {
+        // Reuse a live connection if we have one; otherwise do a SINGLE fast connect attempt.
+        // We deliberately do NOT route through getOrConnect() here — that retries 3× with backoff
+        // and a 15s connect timeout, so a dead server kept the spinner spinning ~50s. The heartbeat
+        // runs every HEARTBEAT_INTERVAL_MS, so a failed probe simply retries next tick; one fast
+        // attempt per tick is the right trade-off for status display (speed) vs generation (which
+        // keeps the slow retrying path).
+        var server: ConnectedServer? = connections[config.id]
+        if (server == null) {
+            server = try {
+                connectFreshBounded(config, PROBE_CONNECT_TIMEOUT_MS)?.also { connections[config.id] = it }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                DebugLog.w(TAG, "heartbeat connect failed for '${config.name}': ${e.message}")
+                return McpStatus.DISCONNECTED
+            }
+        }
+        if (server == null) return McpStatus.DISCONNECTED
+        val conn = server
+        return try {
+            val tools = withTimeout(PROBE_REQUEST_TIMEOUT_MS) { conn.client.listTools().tools }
+            conn.toolsCache = CachedTools(tools, System.currentTimeMillis())
+            if (tools.isNotEmpty()) McpStatus.READY else McpStatus.DISCONNECTED
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            DebugLog.w(TAG, "heartbeat probe failed for '${config.name}': ${e.message}")
+            invalidate(config.id)
+            McpStatus.DISCONNECTED
+        }
+    }
+
+    /**
+     * A single connect attempt bounded by [timeoutMs] — the fast path used by [probe]. Returns the
+     * connected server, or null if a concurrent caller already established the connection (caller
+     * re-reads the map). Throws on connect failure. Mirrors [connectFresh] but with a caller-chosen
+     * timeout so probes aren't forced to use the generation-time [CONNECT_TIMEOUT_MS].
+     */
+    private suspend fun connectFreshBounded(config: McpServerConfig, timeoutMs: Long): ConnectedServer? {
+        val lock = connectLocks.computeIfAbsent(config.id) { Mutex() }
+        return lock.withLock {
+            connections[config.id]?.let { return@withLock null } // someone else connected
+            val httpClient = HttpClient(OkHttp) { install(SSE) }
+            val customHeaders = parseHeaders(config)
+            val normalizedUrl = normalizeUrlHost(config.url)
+            val transport = when (config.transport) {
+                McpServerConfig.TRANSPORT_STREAMABLE -> StreamableHttpClientTransport(
+                    client = httpClient, url = normalizedUrl,
+                    requestBuilder = { applyCustomHeaders(customHeaders) },
+                )
+                McpServerConfig.TRANSPORT_SSE -> SseClientTransport(
+                    client = httpClient, urlString = normalizedUrl,
+                    requestBuilder = { applyCustomHeaders(customHeaders) },
+                )
+                else -> throw IllegalArgumentException("Unknown MCP transport: ${config.transport}")
+            }
+            val client = Client(clientInfo = Implementation(name = CLIENT_NAME, version = CLIENT_VERSION))
+            withTimeout(timeoutMs) { client.connect(transport) }
+            DebugLog.w(TAG, "Probed connect to MCP server '${config.name}'")
+            ConnectedServer(client = client, config = config)
+        }
+    }
+
+    /**
+     * Starts (or replaces) the background heartbeat guardian. Every [HEARTBEAT_INTERVAL_MS] it
+     * probes every enabled server in [configs], keeping [statuses] fresh and silently reconnecting
+     * after a transient network blip. Disabled servers are probed too but their result is only
+     * surfaced when they're enabled — cheaper to just skip them. Idempotent: calling again
+     * cancels the previous loop. [closeAll] also cancels it.
+     */
+    fun startMonitoring(configs: kotlinx.coroutines.flow.Flow<List<McpServerConfig>>) {
+        heartbeatJob?.cancel()
+        heartbeatJob = ioScope.launch {
+            // A single collector keeps `latestEnabled` fresh; the probe loop reads it each tick.
+            // We do NOT block on configs.first() before the loop — that could stall if the Flow's
+            // first emission is delayed. Instead the loop starts immediately and reads the latest
+            // snapshot each tick (empty on the very first pass is fine; the collector catches up
+            // within a frame or two).
+            var latestEnabled: List<McpServerConfig> = emptyList()
+            val collector = launch { configs.collect { latestEnabled = it.filter { c -> c.enabled } } }
+            try {
+                // Give the collector one frame to deliver its first value so the opening tick
+                // (right after the user opens the page) actually has the server list.
+                delay(300)
+                while (isActive) {
+                    val snapshot = latestEnabled
+                    if (snapshot.isNotEmpty()) {
+                        // Probe every enabled server in PARALLEL so the spinner duration is the
+                        // slowest single probe, not the sum of all probes.
+                        kotlinx.coroutines.coroutineScope {
+                            snapshot.forEach { config ->
+                                launch {
+                                    setStatus(config.id, McpStatus.CONNECTING)
+                                    val status = probe(config)
+                                    setStatus(config.id, status)
+                                }
+                            }
+                        }
+                    }
+                    if (!isActive) break
+                    delay(HEARTBEAT_INTERVAL_MS)
+                }
+            } finally {
+                collector.cancel()
+            }
+        }
     }
 
     private fun CoroutineScope.launchSafe(block: suspend () -> Unit): Job =
