@@ -132,7 +132,20 @@ class WorkflowViewModel(
             createdAt = now,
             updatedAt = now
         )
-        viewModelScope.launch { repository.upsert(wf) }
+        // Persist, then publish as the selected workflow INSIDE the same coroutine so the editor
+        // never sees a blank page: a fire-and-forget upsert followed by an async selectWorkflow
+        // races (the select can read before the upsert commits → null → blank editor). Setting
+        // selectedWorkflow to the just-built object right after upsert guarantees the editor has
+        // a non-null workflow to render as soon as navigation lands on it.
+        viewModelScope.launch {
+            repository.upsert(wf)
+            _selectedWorkflow.value = wf
+            _selectedLinear.value = null
+        }
+        // Optimistically publish immediately too, so the editor (which reads selectedWorkflow
+        // synchronously on first composition) doesn't flash empty before the coroutine runs.
+        _selectedWorkflow.value = wf
+        _selectedLinear.value = null
         return wf
     }
 

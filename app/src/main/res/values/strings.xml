@@ -1186,6 +1186,9 @@
     <string name="workflows_title">Workflows</string>
     <string name="workflows_add">New Workflow</string>
     <string name="workflow_new_name">New Workflow</string>
+    <string name="workflow_new_graph">New Graph Workflow</string>
+    <string name="workflow_new_graph_desc">Create an empty node-and-edge graph workflow. Add nodes (start, action, branch, merge, transform) and connect them in the editor. This is the advanced, manual workflow type — linear workflows are created from chat.</string>
+    <string name="provider_create">Create</string>
     <string name="workflows_empty_title">No workflows</string>
     <string name="workflows_empty_desc">Create a workflow to automate tasks</string>
     <string name="workflow_run">Run</string>

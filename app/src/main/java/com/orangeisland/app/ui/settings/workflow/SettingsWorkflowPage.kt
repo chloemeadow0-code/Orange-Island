@@ -52,6 +52,13 @@ fun SettingsWorkflowPage(
                     viewModel.selectWorkflow(workflowId)
                     logsId = workflowId
                     screen = "logs"
+                },
+                // Create a new graph workflow: the list page has already persisted it and loaded it
+                // into selectedWorkflow, so route through the same detail_or_edit hop as a tap.
+                onCreateGraph = { workflowId ->
+                    editId = workflowId
+                    detailId = workflowId
+                    screen = "detail_or_edit"
                 }
             )
 

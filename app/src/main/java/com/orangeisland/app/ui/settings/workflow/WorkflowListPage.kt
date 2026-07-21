@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -43,13 +44,15 @@ fun WorkflowListPage(
     onBack: () -> Unit,
     onEdit: (Workflow) -> Unit,
     onLogs: (String) -> Unit,
-    onOpenLinear: (LinearWorkflow) -> Unit = {}
+    onOpenLinear: (LinearWorkflow) -> Unit = {},
+    onCreateGraph: (workflowId: String) -> Unit = {}
 ) {
     val linear by viewModel.linearWorkflows.collectAsState()
     val graphWorkflows by viewModel.workflows.collectAsState()
     val runningIds by viewModel.runningWorkflowIds.collectAsState()
     var showDeleteConfirm by remember { mutableStateOf<LinearWorkflow?>(null) }
     var showHowDialog by remember { mutableStateOf(false) }
+    var showNewDialog by remember { mutableStateOf(false) }
 
     val titleText = stringResource(R.string.workflows_title)
 
@@ -61,6 +64,17 @@ fun WorkflowListPage(
             TextButton(onClick = { showHowDialog = true }) {
                 Text(stringResource(R.string.workflow_v2_how_it_works), style = MaterialTheme.typography.labelLarge)
             }
+        },
+        floatingActionButton = {
+            // Create a new graph-mode workflow (advanced, manual). Linear (AI-authored) workflows
+            // are created from chat, so this FAB targets the graph editor exclusively.
+            ExtendedFloatingActionButton(
+                onClick = { showNewDialog = true },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = { Text(stringResource(R.string.workflow_new_graph)) }
+            )
         }
     ) {
         // ── Empty state ────────────────────────────────────────────────────────
@@ -110,7 +124,8 @@ fun WorkflowListPage(
                     onToggleEnabled = { viewModel.setEnabled(workflow.id, !workflow.enabled) },
                     onEdit = { onEdit(workflow) },
                     onDuplicate = { viewModel.duplicateWorkflow(workflow.id) },
-                    onLogs = { onLogs(workflow.id) }
+                    onLogs = { onLogs(workflow.id) },
+                    onDelete = { viewModel.deleteWorkflow(workflow.id) }
                 )
             }
         }
@@ -154,6 +169,82 @@ fun WorkflowListPage(
                 }
             }
         )
+    }
+
+    if (showNewDialog) {
+        NewGraphWorkflowDialog(
+            onCancel = { showNewDialog = false },
+            onCreate = { name ->
+                showNewDialog = false
+                // createWorkflow persists AND publishes the new workflow into selectedWorkflow, so
+                // no separate selectWorkflow() call is needed (that would race the upsert).
+                val wf = viewModel.createWorkflow(name)
+                onCreateGraph(wf.id)
+            }
+        )
+    }
+}
+
+/**
+ * Name-prompt dialog for creating a new graph-mode workflow. The workflow is persisted by the
+ * caller (via [WorkflowViewModel.createWorkflow]) once a non-blank name is entered.
+ *
+ * Uses a standalone [Dialog] (not AlertDialog) so the text field owns its own window — under the
+ * collapsing-settings scaffold + GuardedAnimatedContent, an AlertDialog's text slot does not
+ * recompose on each keystroke, so typed characters don't render until the dialog is reopened.
+ * A standalone Dialog gives the field a clean composition + IME surface and fixes live input.
+ */
+@Composable
+private fun NewGraphWorkflowDialog(
+    onCancel: () -> Unit,
+    onCreate: (name: String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    Dialog(onDismissRequest = onCancel) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 6.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    stringResource(R.string.workflow_new_graph),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.workflow_new_graph_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it.take(80) },
+                    label = { Text(stringResource(R.string.workflow_new_name)) },
+                    singleLine = true,
+                    isError = name.isBlank(),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextButton(onClick = onCancel) {
+                        Text(stringResource(R.string.provider_cancel))
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = { onCreate(name.trim()) },
+                        enabled = name.isNotBlank()
+                    ) { Text(stringResource(R.string.provider_create)) }
+                }
+            }
+        }
     }
 }
 
@@ -347,9 +438,11 @@ private fun GraphWorkflowCard(
     onToggleEnabled: () -> Unit,
     onEdit: () -> Unit,
     onDuplicate: () -> Unit,
-    onLogs: () -> Unit
+    onLogs: () -> Unit,
+    onDelete: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Surface(
         shape = RoundedCornerShape(24.dp),
@@ -464,11 +557,46 @@ private fun GraphWorkflowCard(
                                 },
                                 onClick = { showMenu = false; onDuplicate() }
                             )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(R.string.provider_delete),
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
+                                },
+                                onClick = { showMenu = false; showDeleteConfirm = true }
+                            )
                         }
                     }
                 }
             },
             leadingSpacing = 16.dp
+        )
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text(stringResource(R.string.workflow_delete_title), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.workflow_delete_text, workflow.name)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDelete()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text(stringResource(R.string.provider_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text(stringResource(R.string.provider_cancel))
+                }
+            }
         )
     }
 }
