@@ -85,6 +85,78 @@ class AppContainer(private val appContext: Context) {
         AutoBackupManager(appContext, settingsManager, chatDao, memoryManager)
     }
 
+    // ── Workflow ──────────────────────────────────────────────
+    // Shared Json for workflow graph (de)serialization — ignoreUnknownKeys so a future schema
+    // addition doesn't break older builds reading newer exports. The runner, repository, exporter,
+    // and importer all reference this same instance so encoding stays consistent.
+
+    val workflowJson: kotlinx.serialization.json.Json by lazy {
+        kotlinx.serialization.json.Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+            encodeDefaults = true
+        }
+    }
+
+    val workflowRepository: com.orangeisland.app.data.repository.WorkflowRepository by lazy {
+        com.orangeisland.app.data.repository.WorkflowRepository(database.workflowDao(), workflowJson)
+    }
+
+    /**
+     * Builds a foreground [com.orangeisland.app.workflow.WorkflowRunner] wired to the app-wide
+     * dispatcher. The [onConfirmDestructive] / [onNodeState] callbacks are caller-supplied (the UI
+     * provides them per run), so the runner itself is constructed fresh each time rather than
+     * held as a singleton. Background runners (WorkManager, Intent receiver) build their own with
+     * Mode.BACKGROUND and null callbacks.
+     */
+    fun workflowRunner(
+        onConfirmDestructive: (suspend (toolName: String, args: String) -> Boolean)? = null,
+        onNodeState: ((String, com.orangeisland.app.workflow.NodeState) -> Unit)? = null
+    ): com.orangeisland.app.workflow.WorkflowRunner = com.orangeisland.app.workflow.WorkflowRunner(
+        repository = workflowRepository,
+        dispatcher = toolDispatcher,
+        settings = settingsManager,
+        json = workflowJson,
+        onConfirmDestructive = onConfirmDestructive,
+        onNodeState = onNodeState
+    )
+
+    /**
+     * Lazily-constructed app-wide [com.orangeisland.app.tool.ToolDispatcher]. Unlike the chat path
+     * (which builds a standalone dispatcher inside GenerationManager), this one is the shared
+     * instance the workflow runner and any future non-LLM tool caller uses. It is wired with the
+     * same providers the chat path gets: memory, web search, RAG, image-gen, shell, device-access,
+     * navigation/app-lock/toast, automation, MCP (none yet — see stage C MCP lift), and JS plugins.
+     *
+     * Note: llmProviders is empty here because AutomationToolProvider only needs the provider map
+     * for sub-task LLM calls, which workflows don't trigger in this release. When they do, the
+     * provider registry should be lifted to AppContainer and passed in.
+     */
+    val workflowAiToolProvider: com.orangeisland.app.workflow.WorkflowAiToolProvider by lazy {
+        // The runnerProvider lambda is stored, not invoked, at construction — it only runs when the
+        // model actually calls workflow_run, by which point toolDispatcher below has finished
+        // initializing. This breaks what would otherwise be a constructor cycle.
+        com.orangeisland.app.workflow.WorkflowAiToolProvider(
+            repository = workflowRepository,
+            runnerProvider = { workflowRunner() }
+        )
+    }
+
+    val toolDispatcher: com.orangeisland.app.tool.ToolDispatcher by lazy {
+        com.orangeisland.app.tool.ToolDispatcher(
+            app = application,
+            conversations = conversationRepository,
+            memoryManager = memoryManager,
+            llmProviders = emptyMap(),
+            appContext = appContext,
+            sandboxFactory = sandboxManagerFactory,
+            mcpPool = null,
+            pluginToolProvider = pluginToolProvider,
+            permissionController = null,   // device tools run but cannot check permission state here yet
+            workflowToolProvider = workflowAiToolProvider
+        )
+    }
+
     // ── JS Plugins ────────────────────────────────────────────
     // Three singletons: the filesystem scanner, the QuickJS runtime pool, and the ToolProvider
     // bridge. All app-lifetime; settings reads happen lazily so this is safe to construct early.

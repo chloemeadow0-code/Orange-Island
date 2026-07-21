@@ -32,6 +32,13 @@
         </intent>
     </queries>
 
+    <!-- ── Workflow: external Intent trigger ─────────────────── -->
+    <!-- Signature-protected so only apps signed with the same key as Orange Island can fire a
+         workflow via broadcast. Prevents a malicious app from launching a destructive workflow. -->
+    <permission
+        android:name="com.orangeisland.app.permission.TRIGGER_WORKFLOW"
+        android:protectionLevel="signature" />
+
     <application
         android:name=".OrangeIslandApplication"
         android:allowBackup="false"
@@ -148,6 +155,19 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/ui_automation_accessibility_config" />
         </service>
+
+        <!-- Workflow: external Intent trigger receiver. Exported so other apps (e.g. Tasker, or a
+             companion app signed with the same key) can fire a workflow, but gated by the
+             signature-level TRIGGER_WORKFLOW permission declared above. Two intent actions are
+             accepted: the default package action and any custom action a workflow configures. -->
+        <receiver
+            android:name=".workflow.WorkflowIntentReceiver"
+            android:exported="true"
+            android:permission="com.orangeisland.app.permission.TRIGGER_WORKFLOW">
+            <intent-filter>
+                <action android:name="com.orangeisland.app.TRIGGER_WORKFLOW" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

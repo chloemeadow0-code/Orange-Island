@@ -131,6 +131,11 @@ class SettingsManager(private val context: Context) {
         val MAX_CONTEXT_WINDOW = stringPreferencesKey("max_context_window")
         val VISUALIZE_CONTEXT_ROLLOUT = booleanPreferencesKey("visualize_context_rollout")
         val CODE_EXECUTION_ENABLED = booleanPreferencesKey("code_execution_enabled")
+        val WORKFLOW_ENABLED = booleanPreferencesKey("workflow_enabled")
+        val WORKFLOW_MAX_RUN_MS = longPreferencesKey("workflow_max_run_ms")
+        val WORKFLOW_MAX_TOOL_CALLS = intPreferencesKey("workflow_max_tool_calls")
+        val WORKFLOW_CONFIRM_DESTRUCTIVE = booleanPreferencesKey("workflow_confirm_destructive")
+        val WORKFLOW_BACKGROUND_SAFE_ONLY = booleanPreferencesKey("workflow_background_safe_only")
         val GOOGLE_SEARCH_ENABLED = booleanPreferencesKey("google_search_enabled")
         val THINKING_ENABLED = booleanPreferencesKey("thinking_enabled")
         val THINKING_LEVEL = stringPreferencesKey("thinking_level")
@@ -318,6 +323,11 @@ class SettingsManager(private val context: Context) {
     val maxContextWindow: Flow<Int> = context.dataStore.data.map { it[MAX_CONTEXT_WINDOW]?.toIntOrNull() ?: 20 }
     val visualizeContextRollout: Flow<Boolean> = context.dataStore.data.map { it[VISUALIZE_CONTEXT_ROLLOUT] ?: false }
     val codeExecutionEnabled: Flow<Boolean> = context.dataStore.data.map { it[CODE_EXECUTION_ENABLED] ?: false }
+    val workflowEnabled: Flow<Boolean> = context.dataStore.data.map { it[WORKFLOW_ENABLED] ?: false }
+    val workflowMaxRunMs: Flow<Long> = context.dataStore.data.map { it[WORKFLOW_MAX_RUN_MS] ?: 300_000L }
+    val workflowMaxToolCalls: Flow<Int> = context.dataStore.data.map { it[WORKFLOW_MAX_TOOL_CALLS] ?: 100 }
+    val workflowConfirmDestructive: Flow<Boolean> = context.dataStore.data.map { it[WORKFLOW_CONFIRM_DESTRUCTIVE] ?: true }
+    val workflowBackgroundSafeOnly: Flow<Boolean> = context.dataStore.data.map { it[WORKFLOW_BACKGROUND_SAFE_ONLY] ?: true }
     val googleSearchEnabled: Flow<Boolean> = context.dataStore.data.map { it[GOOGLE_SEARCH_ENABLED] ?: false }
     val thinkingEnabled: Flow<Boolean> = context.dataStore.data.map { it[THINKING_ENABLED] ?: true }
     val thinkingLevel: Flow<String> = context.dataStore.data.map { ThinkingLevels.normalize(it[THINKING_LEVEL]) }
@@ -636,6 +646,26 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveCodeExecutionEnabled(enabled: Boolean) {
         context.dataStore.edit { it[CODE_EXECUTION_ENABLED] = enabled }
+    }
+
+    suspend fun saveWorkflowEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[WORKFLOW_ENABLED] = enabled }
+    }
+
+    suspend fun saveWorkflowMaxRunMs(ms: Long) {
+        context.dataStore.edit { it[WORKFLOW_MAX_RUN_MS] = ms }
+    }
+
+    suspend fun saveWorkflowMaxToolCalls(count: Int) {
+        context.dataStore.edit { it[WORKFLOW_MAX_TOOL_CALLS] = count }
+    }
+
+    suspend fun saveWorkflowConfirmDestructive(enabled: Boolean) {
+        context.dataStore.edit { it[WORKFLOW_CONFIRM_DESTRUCTIVE] = enabled }
+    }
+
+    suspend fun saveWorkflowBackgroundSafeOnly(enabled: Boolean) {
+        context.dataStore.edit { it[WORKFLOW_BACKGROUND_SAFE_ONLY] = enabled }
     }
 
     suspend fun saveGoogleSearchEnabled(enabled: Boolean) {

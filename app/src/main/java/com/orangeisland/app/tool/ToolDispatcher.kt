@@ -43,7 +43,10 @@ class ToolDispatcher(
     private val pluginToolProvider: PluginToolProvider? = null,
     /** Permission state for the Device Access tools. Null when device tools should not run
      *  (e.g. title generation). */
-    private val permissionController: PermissionController? = null
+    private val permissionController: PermissionController? = null,
+    /** Optional Workflow AI tool provider (workflow_list/get/run). Null when workflow tools are
+     *  disabled (e.g. title generation, or before the workflow feature is wired up). */
+    private val workflowToolProvider: ToolProvider? = null
 ) {
     companion object {
         /** Shell-provider tool names that are pure file I/O (split out from command execution). */
@@ -96,6 +99,7 @@ class ToolDispatcher(
         add(automationToolProvider)
         mcpToolProvider?.let { add(it) }
         pluginToolProvider?.let { add(it) }
+        workflowToolProvider?.let { add(it) }
     }
 
     // ── Confirmation hooks ──────────────────────────────────────────────────
