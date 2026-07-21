@@ -156,8 +156,17 @@ class AppContainer(private val appContext: Context) {
                 toolDispatcher.allDefinitions(com.orangeisland.app.viewmodel.GenerationContext())
                     .map { it.function.name }.toSet()
             },
-            approval = null   // foreground approval card is wired in stage F5 (UI layer)
+            // Foreground approval gate: when the model calls workflow_create / _update / _delete /
+            // _set_enabled, the provider renders a card and suspends on this callback. The chat
+            // screen observes workflowApprovalGate.pending and pops an AlertDialog.
+            approval = workflowApprovalGate.approval
         )
+    }
+
+    /** Shared approval gate between the AI tool provider (which suspends on it) and the chat UI
+     *  (which renders the pending card). One instance per app — held here so both sides see it. */
+    val workflowApprovalGate: com.orangeisland.app.workflow.WorkflowApprovalGate by lazy {
+        com.orangeisland.app.workflow.WorkflowApprovalGate()
     }
 
     val toolDispatcher: com.orangeisland.app.tool.ToolDispatcher by lazy {
@@ -310,6 +319,6 @@ class AppContainer(private val appContext: Context) {
         ChatViewModelFactory(
             application, chatDao, settingsManager, memoryManager, appContext, sandboxManagerFactory,
             autoBackupManager, conversationRepository, settingsRepository, workflowRepository,
-            pluginToolProvider, pluginLoader, pluginSandbox
+            workflowApprovalGate, pluginToolProvider, pluginLoader, pluginSandbox
         )
 }

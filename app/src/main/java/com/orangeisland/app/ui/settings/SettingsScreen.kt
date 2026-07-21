@@ -207,7 +207,8 @@ fun SettingsScreen(
     viewModel: ChatViewModel,
     onBack: () -> Unit,
     workflowViewModel: com.orangeisland.app.viewmodel.WorkflowViewModel,
-    initialCategory: String? = null
+    initialCategory: String? = null,
+    onEditWorkflowInChat: (prefilledPrompt: String) -> Unit = {}
 ) {
     var selectedCategory by rememberSaveable { mutableStateOf<String?>(initialCategory) }
 
@@ -263,7 +264,8 @@ fun SettingsScreen(
                 "about" -> SettingsAboutPage(viewModel, onBack = { selectedCategory = null })
                 "workflows" -> com.orangeisland.app.ui.settings.workflow.SettingsWorkflowPage(
                     viewModel = workflowViewModel,
-                    onBack = { selectedCategory = null }
+                    onBack = { selectedCategory = null },
+                    onEditInChat = onEditWorkflowInChat
                 )
                 else -> {
                     CollapsingSettingsLazyScaffold(

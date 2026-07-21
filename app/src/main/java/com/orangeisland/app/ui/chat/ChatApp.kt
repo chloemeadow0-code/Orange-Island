@@ -245,6 +245,17 @@ fun ChatApp(
     val textFieldState = rememberSaveable(saver = androidx.compose.foundation.text.input.TextFieldState.Saver) { androidx.compose.foundation.text.input.TextFieldState() }
     val inputFocusRequester = remember { FocusRequester() }
 
+    // Consume a one-shot prefilled input (set by an outside caller like the workflow detail page's
+    // "Edit in chat" button) into the chat input field. Clears the pending value afterwards.
+    val pendingPrefill by viewModel.pendingPrefillInput.collectAsState()
+    LaunchedEffect(pendingPrefill) {
+        val text = pendingPrefill ?: return@LaunchedEffect
+        if (text.isNotBlank()) {
+            textFieldState.edit { replace(0, length, text) }
+        }
+        viewModel.consumePendingPrefillInput()
+    }
+
     val messageHeights = remember { androidx.compose.runtime.mutableStateMapOf<String, Int>() }
     var viewportHeightPx by remember { mutableIntStateOf(0) }
 

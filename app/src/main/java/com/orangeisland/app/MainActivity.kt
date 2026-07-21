@@ -792,9 +792,22 @@ fun MainNavigation(
                         showSettings = false
                     },
                     workflowViewModel = workflowViewModel,
-                    initialCategory = settingsInitialCategory
+                    initialCategory = settingsInitialCategory,
+                    onEditWorkflowInChat = { prompt ->
+                        // Prefill the chat input then close the settings overlay so the user lands
+                        // in the chat ready to send (or edit) the "help me edit this workflow" text.
+                        viewModel.setPendingPrefillInput(prompt)
+                        settingsInitialCategory = null
+                        showSettings = false
+                    }
                 )
             }
+
+            // Workflow v2 approval card: pops when the model calls an AI authoring tool
+            // (workflow_create / _update / _delete / _set_enabled). The gate suspends the tool
+            // call until the user approves or rejects. Overlay so it appears above both chat
+            // and settings.
+            com.orangeisland.app.ui.chat.WorkflowApprovalDialog(viewModel.workflowApprovalGate)
 
             // Full screen image preview
             AnimatedVisibility(

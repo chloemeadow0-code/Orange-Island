@@ -23,6 +23,7 @@ class ChatViewModelFactory(
     private val conversationRepository: ConversationRepository,
     private val settingsRepository: SettingsRepository,
     private val workflowRepository: com.orangeisland.app.data.repository.WorkflowRepository? = null,
+    private val workflowApprovalGate: com.orangeisland.app.workflow.WorkflowApprovalGate? = null,
     private val pluginToolProvider: com.orangeisland.app.plugin.PluginToolProvider? = null,
     private val pluginLoader: com.orangeisland.app.plugin.PluginLoader? = null,
     private val pluginSandbox: com.orangeisland.app.plugin.PluginSandbox? = null
@@ -33,7 +34,7 @@ class ChatViewModelFactory(
             return ChatViewModel(
                 application, chatDao, settingsManager, memoryManager, context, sandboxFactory,
                 autoBackupManager, conversationRepository, settingsRepository, workflowRepository,
-                pluginToolProvider, pluginLoader, pluginSandbox
+                workflowApprovalGate, pluginToolProvider, pluginLoader, pluginSandbox
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

@@ -140,8 +140,9 @@ object WorkflowApprovalRenderer {
         "client_secret", "credential", "credentials"
     )
 
-    /** Format a millisecond duration as a short Chinese string (e.g. "5 分钟", "2 小时", "30 秒"). */
-    private fun formatDuration(ms: Long): String {
+    /** Format a millisecond duration as a short Chinese string (e.g. "5 分钟", "2 小时", "30 秒").
+     *  Public so the UI detail page can render a cooldown identically to the approval card. */
+    fun formatDuration(ms: Long): String {
         val seconds = ms / 1000
         return when {
             seconds < 60 -> "$seconds 秒"

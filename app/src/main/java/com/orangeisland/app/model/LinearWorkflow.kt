@@ -32,7 +32,11 @@ data class LinearWorkflow(
     /** Max fires per local day (SUCCESS + FAILED count toward it). null = unlimited. */
     val maxRunsPerDay: Int? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    /** Mirrored run-stat fields (denormalized from the entity for the list card). Not serialised
+     *  back to the DB — the repository copies them in on read, and they're ignored on write. */
+    val lastRunAt: Long? = null,
+    val lastRunStatus: String? = null
 )
 
 /** One step in a linear workflow. Tool name + JSON args, matching the chat tool-call shape. */

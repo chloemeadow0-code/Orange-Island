@@ -229,6 +229,20 @@ class WorkflowRepository(
             rows.map { row -> json.decodeFromString<LinearWorkflow>(row.graphJson) }
         }
 
+    /** All linear workflows (enabled + disabled), newest first ¡ª drives the v2 list screen.
+     *  Rows carry the run-statistics mirror (lastRunAt / lastRunStatus / counts) the way graph-mode
+     *  [Workflow]s do, copied from the entity so the list card renders without a second query. */
+    fun observeAllLinear(): kotlinx.coroutines.flow.Flow<List<LinearWorkflow>> =
+        dao.observeAllWorkflows().map { rows ->
+            rows.filter { it.mode == "linear" }
+                .map { row ->
+                    json.decodeFromString<LinearWorkflow>(row.graphJson).copy(
+                        lastRunAt = row.lastRunAt,
+                        lastRunStatus = row.lastRunStatus
+                    )
+                }
+        }
+
     /** One row of the linear run history, with the v2 richer status (SKIPPED_* gates). Kept as a
      *  thin wrapper over [WorkflowRunEntity] so both modes share the same history table/screen. */
     suspend fun recordLinearRunStart(workflowId: String, startNodeId: String? = null): String =

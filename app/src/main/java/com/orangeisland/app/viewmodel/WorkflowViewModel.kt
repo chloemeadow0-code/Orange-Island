@@ -40,9 +40,21 @@ class WorkflowViewModel(
     val workflows: StateFlow<List<Workflow>> = repository.observeAll()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    /** All AI-authored (linear-mode) workflows, newest first — drives the v2 list screen. Each
+     *  row carries its trigger for a summary badge and the mirrored run-stat fields. */
+    val linearWorkflows: StateFlow<List<com.orangeisland.app.model.LinearWorkflow>> =
+        repository.observeAllLinear()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     /** The workflow currently being edited or inspected. */
     private val _selectedWorkflow = MutableStateFlow<Workflow?>(null)
     val selectedWorkflow: StateFlow<Workflow?> = _selectedWorkflow.asStateFlow()
+
+    /** The linear workflow currently being inspected (detail page), or null. Set alongside
+     *  [selectedWorkflow] by [selectLinearWorkflow]; kept separate because graph-mode workflows
+     *  don't decode as [com.orangeisland.app.model.LinearWorkflow]. */
+    private val _selectedLinear = MutableStateFlow<com.orangeisland.app.model.LinearWorkflow?>(null)
+    val selectedLinear: StateFlow<com.orangeisland.app.model.LinearWorkflow?> = _selectedLinear.asStateFlow()
 
     /** Run history for the selected workflow. */
     private val _runs = MutableStateFlow<List<WorkflowRunEntity>>(emptyList())
@@ -87,16 +99,25 @@ class WorkflowViewModel(
     fun selectWorkflow(id: String?) {
         if (id == null) {
             _selectedWorkflow.value = null
+            _selectedLinear.value = null
             _runs.value = emptyList()
             return
         }
         viewModelScope.launch {
             val wf = repository.get(id)
             _selectedWorkflow.value = wf
+            // Linear workflows are decoded separately so the detail page can render the trigger /
+            // conditions / actions card. Falls back to null for graph-mode rows.
+            _selectedLinear.value = repository.getLinear(id)
             if (wf != null) {
                 loadRuns(id)
             }
         }
+    }
+
+    /** Convenience for the detail page: load by id and expose the linear model directly. */
+    fun selectLinearWorkflow(id: String?) {
+        selectWorkflow(id)
     }
 
     fun createWorkflow(name: String, description: String = ""): Workflow {
@@ -129,6 +150,7 @@ class WorkflowViewModel(
             repository.delete(id)
             if (_selectedWorkflow.value?.id == id) {
                 _selectedWorkflow.value = null
+                _selectedLinear.value = null
                 _runs.value = emptyList()
             }
         }

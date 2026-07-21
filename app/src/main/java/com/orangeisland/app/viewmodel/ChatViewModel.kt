@@ -84,6 +84,9 @@ class ChatViewModel(
     conversationRepository: ConversationRepository,
     settingsRepository: SettingsRepository,
     private val workflowRepository: com.orangeisland.app.data.repository.WorkflowRepository? = null,
+    /** Shared approval gate between the AI workflow-authoring tools and the chat UI. Null in
+     *  contexts that don't render the approval card (e.g. unit tests). */
+    val workflowApprovalGate: com.orangeisland.app.workflow.WorkflowApprovalGate? = null,
     private val pluginToolProvider: com.orangeisland.app.plugin.PluginToolProvider? = null,
     private val _pluginLoader: com.orangeisland.app.plugin.PluginLoader? = null,
     private val _pluginSandbox: com.orangeisland.app.plugin.PluginSandbox? = null
@@ -468,6 +471,24 @@ class ChatViewModel(
 
     private val _pendingSystemPromptId = MutableStateFlow<String?>(null)
     val pendingSystemPromptId: StateFlow<String?> = _pendingSystemPromptId.asStateFlow()
+
+    /**
+     * One-shot prefilled chat input set by an outside caller (e.g. the workflow detail page's
+     * "Edit in chat" button). The chat input bar observes this and consumes the value into its
+     * text field, then clears it. Null means "no pending prefill".
+     */
+    private val _pendingPrefillInput = MutableStateFlow<String?>(null)
+    val pendingPrefillInput: StateFlow<String?> = _pendingPrefillInput.asStateFlow()
+
+    /** Set the next prefilled chat input. Consumed (and cleared) by the chat input composable. */
+    fun setPendingPrefillInput(text: String?) {
+        _pendingPrefillInput.value = text
+    }
+
+    /** Clear the pending prefill after the input bar has consumed it. */
+    fun consumePendingPrefillInput() {
+        _pendingPrefillInput.value = null
+    }
 
     /**
      * Carries the project id of the next-to-be-created conversation. Set by [createNewChat]

@@ -1208,4 +1208,42 @@
     <string name="workflow_status_cancelled">Cancelled</string>
     <string name="settings_workflows">Workflows</string>
     <string name="settings_workflows_desc">Automate tasks with visual workflows</string>
+
+    <!-- Workflow v2 (AI-authored linear workflows) -->
+    <string name="workflow_v2_empty_desc">No workflows yet. Tell the assistant to create one, e.g. \"silence my phone when I connect to home Wi-Fi\".</string>
+    <string name="workflow_v2_how_it_works">How do workflows work?</string>
+    <string name="workflow_v2_how_title">How workflows work</string>
+    <string name="workflow_v2_how_body">You describe a trigger (\"when X\") and one or more actions (\"do Y\") to the assistant. The assistant builds a workflow, shows you an approval card, and on your approval saves it. The workflow then fires automatically when its trigger matches. Conditions (\"only if\") narrow when it actually runs.</string>
+    <string name="workflow_v2_how_close">Got it</string>
+    <string name="workflow_v2_edit_in_chat">Edit in chat</string>
+    <string name="workflow_v2_run_now">Run now</string>
+    <string name="workflow_v2_delete">Delete</string>
+    <string name="workflow_v2_back">Back</string>
+    <string name="workflow_v2_trigger">Trigger</string>
+    <string name="workflow_v2_conditions">Conditions</string>
+    <string name="workflow_v2_conditions_always">(always)</string>
+    <string name="workflow_v2_actions">Actions</string>
+    <string name="workflow_v2_stats">Statistics</string>
+    <string name="workflow_v2_last_run">Last run</string>
+    <string name="workflow_v2_runs_today">Runs today</string>
+    <string name="workflow_v2_cooldown">Cooldown</string>
+    <string name="workflow_v2_daily_cap">Daily cap</string>
+    <string name="workflow_v2_no_limit">No limit</string>
+    <string name="workflow_v2_none">None</string>
+    <string name="workflow_v2_run_history">Run history</string>
+    <string name="workflow_v2_never">Never</string>
+    <string name="workflow_v2_disabled">Disabled</string>
+    <string name="workflow_v2_enabled">Enabled</string>
+    <string name="workflow_v2_mode_linear">AI workflow</string>
+    <string name="workflow_v2_mode_graph">Advanced workflow</string>
+    <string name="workflow_v2_enable">Enable</string>
+    <string name="workflow_v2_disable">Disable</string>
+    <string name="workflow_v2_edit_prompt">Help me edit the workflow \"%1$s\"</string>
+    <string name="workflow_v2_args">Arguments</string>
+    <string name="workflow_v2_unavailable">This is an advanced (node-graph) workflow and can\'t be shown as an AI workflow card.</string>
+
+    <!-- Workflow v2 approval card (AI authoring gate) -->
+    <string name="workflow_v2_approval_title">Approve workflow change?</string>
+    <string name="workflow_v2_approval_approve">Approve</string>
+    <string name="workflow_v2_approval_reject">Reject</string>
 </resources>
