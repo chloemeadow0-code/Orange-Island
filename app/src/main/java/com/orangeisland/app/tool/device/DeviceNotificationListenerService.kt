@@ -55,6 +55,9 @@ class DeviceNotificationListenerService : NotificationListenerService() {
         )
         ringBuffer.add(entry)
         while (ringBuffer.size > BUFFER_SIZE) ringBuffer.poll()
+        // Fan-out to live subscribers (the workflow trigger family subscribes when at least one
+        // workflow uses a notification_received trigger). CopyOnWrite keeps this lock-free.
+        notificationObservers.forEach { runCatching { it(entry) } }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
@@ -77,6 +80,18 @@ class DeviceNotificationListenerService : NotificationListenerService() {
         /** Snapshot copy of captured notifications, newest first. Safe to call off the main thread. */
         fun snapshot(): List<CapturedNotification> = synchronized(ringBuffer) {
             ringBuffer.reversed().toList()
+        }
+
+        // ── Live observers (workflow trigger family) ────────────────────────────────────
+        // CopyOnWrite so onNotificationPosted's fan-out stays lock-free (it runs on the
+        // listener's binder thread). Subscribe returns a Runnable remover so callers can clean
+        // up on teardown without knowing the list internals.
+        private val notificationObservers = java.util.concurrent.CopyOnWriteArrayList<(CapturedNotification) -> Unit>()
+
+        /** Subscribe to live notification-posted events. Returns a remover. */
+        fun observePosted(listener: (CapturedNotification) -> Unit): Runnable {
+            notificationObservers.add(listener)
+            return Runnable { notificationObservers.remove(listener) }
         }
     }
 }

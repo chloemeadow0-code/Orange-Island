@@ -47,7 +47,18 @@ class AutomationAccessibilityService : AccessibilityService() {
         return super.onUnbind(intent)
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) { /* no-op — we never act on events */ }
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        // Forward window-state transitions to the workflow trigger layer's foreground dispatcher.
+        // The dispatcher gates on hasConsumers() and dedupes by package, so when no workflow uses
+        // an app_* trigger or foreground_app_* condition this is a cheap early-return — the
+        // service's primary job (gesture / window-tree tools) is unaffected.
+        if (event != null && event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            val pkg = event.packageName?.toString()
+            if (!pkg.isNullOrBlank()) {
+                com.orangeisland.app.workflow.trigger.AppForegroundDispatcher.onForegroundChange(pkg)
+            }
+        }
+    }
     override fun onInterrupt() { /* no-op */ }
 
     /**

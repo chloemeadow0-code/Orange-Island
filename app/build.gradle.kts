@@ -205,6 +205,10 @@ dependencies {
     testImplementation("io.mockk:mockk:1.13.12")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
+
+    // ── Flavor-specific dependencies ─────────────────────────────────────────
+    // GeofencingClient lives only on the play flavor (fdroid has no Google services).
+    "playImplementation"(libs.play.services.location)
 }
 
 tasks.whenTaskAdded {

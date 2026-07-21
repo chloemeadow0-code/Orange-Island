@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Play-flavor additions: geofence trigger support. Merged into the main manifest at build
+     time. The fdroid flavor does NOT declare these — Google Play Services isn't available
+     there, so the FdroidGeofenceProvider is a no-op and the receiver class doesn't exist in
+     that source set. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Background location for geofence triggers. GeofencingClient needs ACCESS_FINE_LOCATION
+         (declared in the main manifest) plus this background grant (Android 10+) so a
+         GeofenceEnter/Exit transition can fire a workflow while the app isn't open. The user
+         grants this via the system's "Allow all the time" location prompt. -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <application>
+
+        <!-- Play Services geofence transition receiver. The PendingIntent that
+             PlayGeofenceProvider registers points here; transitions are forwarded to
+             GeofenceTriggerDispatcher. Not exported — only Play Services delivers this
+             broadcast to our own PendingIntent. -->
+        <receiver
+            android:name=".workflow.geofence.PlayGeofenceReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.orangeisland.app.GEOFENCE_TRANSITION" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>

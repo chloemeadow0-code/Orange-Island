@@ -32,6 +32,16 @@
         </intent>
     </queries>
 
+    <!-- ── Workflow v2: OS-signal triggers ─────────────────────────────────── -->
+    <!-- Boot-triggered workflows (BootCompleted). Lets our receiver be started by the system
+         after the device finishes booting or the app is upgraded. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- WiFi / network state broadcasts for the BroadcastTriggerFamily. -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Bluetooth device connect/disconnect broadcasts (Android 12+ needs this at runtime). -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
     <!-- ── Workflow: external Intent trigger ─────────────────── -->
     <!-- Signature-protected so only apps signed with the same key as Orange Island can fire a
          workflow via broadcast. Prevents a malicious app from launching a destructive workflow. -->
@@ -166,6 +176,18 @@
             android:permission="com.orangeisland.app.permission.TRIGGER_WORKFLOW">
             <intent-filter>
                 <action android:name="com.orangeisland.app.TRIGGER_WORKFLOW" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Workflow v2: boot / package-replace receiver. Forwards to BootTriggerFamily via
+             WorkflowBootDispatcher so a workflow with a BootCompleted trigger fires after
+             reboot or app upgrade. Not exported — only the system delivers these broadcasts. -->
+        <receiver
+            android:name=".workflow.trigger.WorkflowBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
     </application>
