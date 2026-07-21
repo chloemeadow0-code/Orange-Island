@@ -80,6 +80,11 @@ interface WorkflowDao {
     @Query("SELECT * FROM workflows WHERE mode = :mode AND enabled = 1")
     suspend fun getEnabledByMode(mode: String): List<WorkflowEntity>
 
+    /** Live stream of enabled workflows of [mode], newest first. Drives the trigger registry's
+     *  re-sync whenever a linear workflow is added/edited/toggled. */
+    @Query("SELECT * FROM workflows WHERE mode = :mode AND enabled = 1 ORDER BY updatedAt DESC")
+    fun observeEnabledByMode(mode: String): Flow<List<WorkflowEntity>>
+
     // ── Run history ──────────────────────────────────────────
 
     @Upsert

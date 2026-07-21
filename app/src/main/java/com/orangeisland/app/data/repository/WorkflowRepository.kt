@@ -223,6 +223,12 @@ class WorkflowRepository(
         }
     }
 
+    /** Live stream of enabled linear workflows. Drives the trigger registry's re-sync. */
+    fun observeEnabledLinear(): kotlinx.coroutines.flow.Flow<List<LinearWorkflow>> =
+        dao.observeEnabledByMode("linear").map { rows ->
+            rows.map { row -> json.decodeFromString<LinearWorkflow>(row.graphJson) }
+        }
+
     /** One row of the linear run history, with the v2 richer status (SKIPPED_* gates). Kept as a
      *  thin wrapper over [WorkflowRunEntity] so both modes share the same history table/screen. */
     suspend fun recordLinearRunStart(workflowId: String, startNodeId: String? = null): String =
