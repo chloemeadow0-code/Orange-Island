@@ -36,6 +36,17 @@ data class CustomProviderConfig(
     val name: String
 )
 
+/** A single App Lock entry. Persisted in [SettingsManager.APP_LOCK_ENTRIES_JSON] keyed by package name. */
+@Serializable
+data class AppLockEntry(
+    val packageName: String,
+    val label: String,
+    /** AI's message shown on the lock screen explaining why the app is locked. */
+    val message: String,
+    /** Epoch millis when the lock was created (for diagnostics/auditing). */
+    val createdAt: Long = 0L
+)
+
 @Serializable
 data class ShellDeviceConfig(
     val id: String = UUID.randomUUID().toString(),
@@ -184,6 +195,14 @@ class SettingsManager(private val context: Context) {
         val CALENDAR_ENABLED = booleanPreferencesKey("calendar_enabled")
         val NOTIFICATION_ENABLED = booleanPreferencesKey("notification_enabled")
         val USAGE_STATS_ENABLED = booleanPreferencesKey("usage_stats_enabled")
+        val NAVIGATION_ENABLED = booleanPreferencesKey("navigation_enabled")
+        val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
+        // AppLock state: JSON map of package_name -> {message, label}.
+        val APP_LOCK_ENTRIES_JSON = stringPreferencesKey("app_lock_entries_json")
+        val TOAST_ENABLED = booleanPreferencesKey("toast_enabled")
+        // UI Automation (tap/swipe/scroll/global-action/inspect) — the most powerful tool surface,
+        // gated behind a separate accessibility service the user must enable explicitly.
+        val UI_AUTOMATION_ENABLED = booleanPreferencesKey("ui_automation_enabled")
         // Amap (高德) REST API key for the location tool's reverse geocoding + nearby search.
         val AMAP_API_KEY = stringPreferencesKey("amap_api_key")
         val MCP_SERVERS_JSON = stringPreferencesKey("mcp_servers_json")
@@ -223,6 +242,12 @@ class SettingsManager(private val context: Context) {
         val CUSTOM_FONT_NAME = stringPreferencesKey("custom_font_name")
         val FIRST_LAUNCH_TIME = longPreferencesKey("first_launch_time")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+        // ── Account / Auth (local mirror of the Supabase session) ──────────────
+        // Drives the login gate in MainActivity; persisted so the user stays
+        // logged in across process restarts. Cleared by AuthRepository.logout().
+        val LOGGED_IN = booleanPreferencesKey("logged_in")
+        val USER_NAME = stringPreferencesKey("user_name")
+        val USER_EMAIL = stringPreferencesKey("user_email")
         val RATING_PROMPT_SUBMITTED = booleanPreferencesKey("rating_prompt_submitted")
         val RATING_PROMPT_DISMISSED = booleanPreferencesKey("rating_prompt_dismissed")
         val SHOW_DOCUMENTATION_FAB = booleanPreferencesKey("show_documentation_fab")
@@ -395,6 +420,14 @@ class SettingsManager(private val context: Context) {
     val calendarEnabled: Flow<Boolean> = context.dataStore.data.map { it[CALENDAR_ENABLED] ?: false }
     val notificationEnabled: Flow<Boolean> = context.dataStore.data.map { it[NOTIFICATION_ENABLED] ?: false }
     val usageStatsEnabled: Flow<Boolean> = context.dataStore.data.map { it[USAGE_STATS_ENABLED] ?: false }
+    val navigationEnabled: Flow<Boolean> = context.dataStore.data.map { it[NAVIGATION_ENABLED] ?: false }
+    val appLockEnabled: Flow<Boolean> = context.dataStore.data.map { it[APP_LOCK_ENABLED] ?: false }
+    val appLockEntries: Flow<Map<String, AppLockEntry>> = context.dataStore.data.map { pref ->
+        val s = pref[APP_LOCK_ENTRIES_JSON] ?: "{}"
+        try { json.decodeFromString<Map<String, AppLockEntry>>(s) } catch (_: Exception) { emptyMap() }
+    }
+    val toastEnabled: Flow<Boolean> = context.dataStore.data.map { it[TOAST_ENABLED] ?: false }
+    val uiAutomationEnabled: Flow<Boolean> = context.dataStore.data.map { it[UI_AUTOMATION_ENABLED] ?: false }
     val amapApiKey: Flow<String> = context.dataStore.data.map { it[AMAP_API_KEY] ?: "" }
 
     // ── MCP servers ──────────────────────────────────────────
@@ -443,6 +476,10 @@ class SettingsManager(private val context: Context) {
     val customFontName: Flow<String> = context.dataStore.data.map { it[CUSTOM_FONT_NAME] ?: "" }
     val firstLaunchTime: Flow<Long?> = context.dataStore.data.map { it[FIRST_LAUNCH_TIME] }
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data.map { it[ONBOARDING_COMPLETED] ?: false }
+    // ── Account / Auth (local session mirror) ───────────────────────────────
+    val loggedIn: Flow<Boolean> = context.dataStore.data.map { it[LOGGED_IN] ?: false }
+    val userName: Flow<String> = context.dataStore.data.map { it[USER_NAME] ?: "" }
+    val userEmail: Flow<String> = context.dataStore.data.map { it[USER_EMAIL] ?: "" }
     val ratingPromptSubmitted: Flow<Boolean> = context.dataStore.data.map { it[RATING_PROMPT_SUBMITTED] ?: false }
     val ratingPromptDismissed: Flow<Boolean> = context.dataStore.data.map { it[RATING_PROMPT_DISMISSED] ?: false }
     val totalMessagesSent: Flow<Int> = context.dataStore.data.map { it[TOTAL_MESSAGES_SENT] ?: 0 }
@@ -836,6 +873,13 @@ class SettingsManager(private val context: Context) {
     suspend fun saveCalendarEnabled(enabled: Boolean) { context.dataStore.edit { it[CALENDAR_ENABLED] = enabled } }
     suspend fun saveNotificationEnabled(enabled: Boolean) { context.dataStore.edit { it[NOTIFICATION_ENABLED] = enabled } }
     suspend fun saveUsageStatsEnabled(enabled: Boolean) { context.dataStore.edit { it[USAGE_STATS_ENABLED] = enabled } }
+    suspend fun saveNavigationEnabled(enabled: Boolean) { context.dataStore.edit { it[NAVIGATION_ENABLED] = enabled } }
+    suspend fun saveAppLockEnabled(enabled: Boolean) { context.dataStore.edit { it[APP_LOCK_ENABLED] = enabled } }
+    suspend fun saveAppLockEntries(entries: Map<String, AppLockEntry>) {
+        context.dataStore.edit { it[APP_LOCK_ENTRIES_JSON] = json.encodeToString(entries) }
+    }
+    suspend fun saveToastEnabled(enabled: Boolean) { context.dataStore.edit { it[TOAST_ENABLED] = enabled } }
+    suspend fun saveUiAutomationEnabled(enabled: Boolean) { context.dataStore.edit { it[UI_AUTOMATION_ENABLED] = enabled } }
     suspend fun saveAmapApiKey(key: String) { context.dataStore.edit { it[AMAP_API_KEY] = key } }
 
     suspend fun saveThemeMode(mode: String) {
@@ -904,6 +948,24 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveOnboardingCompleted(completed: Boolean) {
         context.dataStore.edit { it[ONBOARDING_COMPLETED] = completed }
+    }
+
+    // ── Account / Auth session persistence ───────────────────────────────────
+    suspend fun saveAuthSession(loggedIn: Boolean, userName: String, userEmail: String) {
+        context.dataStore.edit {
+            it[LOGGED_IN] = loggedIn
+            it[USER_NAME] = userName
+            it[USER_EMAIL] = userEmail
+        }
+    }
+
+    /** Wipe the local session mirror (logout). */
+    suspend fun clearAuthSession() {
+        context.dataStore.edit {
+            it.remove(LOGGED_IN)
+            it.remove(USER_NAME)
+            it.remove(USER_EMAIL)
+        }
     }
 
     suspend fun saveRatingPromptSubmitted(submitted: Boolean) {

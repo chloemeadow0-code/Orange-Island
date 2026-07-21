@@ -61,6 +61,7 @@ class MessageGenerationController(
     private val isNewChatMode: MutableStateFlow<Boolean>,                  // = _isNewChatMode
     private val pendingConversationSettings: MutableStateFlow<ConversationSettings?>, // = _pendingConversationSettings
     private val pendingSystemPromptId: MutableStateFlow<String?>,          // = _pendingSystemPromptId
+    private val pendingProjectId: MutableStateFlow<String?>,               // = _pendingProjectId
     private val currentActiveModel: StateFlow<String>,                     // = currentActiveModel(只读)
     private val messages: StateFlow<List<ChatMessage>>,                    // = messages(只读)
     // ── 回调:替换掉方法体里对 ChatViewModel 私有成员/方法的调用 ──
@@ -304,7 +305,7 @@ class MessageGenerationController(
         val (config, genCtx) = requestBuilder.buildGenerationPair(
             providerName, modelId, freshKey,
             resolved.systemPrompt, resolved.userPrepend, resolved.userPostpend,
-            effectiveSettings, currentId
+            effectiveSettings, currentId, resolved.projectId
         )
         try {
             generationManager.generate(
@@ -431,7 +432,7 @@ class MessageGenerationController(
             val wasNewChat = isNewChatMode.value
             if (wasNewChat || currentId == null) {
                 val newId = UUID.randomUUID().toString()
-                convRepo.upsertConversation(ChatEntity(id = newId, title = appContext.getString(R.string.new_chat), modelId = currentActiveModel.value, systemPromptId = pendingSystemPromptId.value))
+                convRepo.upsertConversation(ChatEntity(id = newId, title = appContext.getString(R.string.new_chat), modelId = currentActiveModel.value, systemPromptId = pendingSystemPromptId.value, projectId = pendingProjectId.value))
                 // Suppress the conversation-open auto-scroll BEFORE the id change triggers it.
                 onConversationCreatedBySend()
                 currentConversationId.value = newId

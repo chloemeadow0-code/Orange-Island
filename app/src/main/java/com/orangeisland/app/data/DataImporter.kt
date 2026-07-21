@@ -6,6 +6,7 @@ import androidx.core.content.FileProvider
 import com.orangeisland.app.data.local.ChatDao
 import com.orangeisland.app.data.local.ChatEntity
 import com.orangeisland.app.data.local.MessageEntity
+import com.orangeisland.app.data.local.ProjectEntity
 import com.orangeisland.app.model.AttachmentMeta
 import com.orangeisland.app.model.MessageStatus
 import com.orangeisland.app.model.Participant
@@ -211,7 +212,7 @@ class DataImporter(
                     archive.stream("conversations.json")?.use { stream ->
                         val data = importJson.decodeFromStream<ExportConversations>(stream)
                         val convEntities = data.conversations.map { c ->
-                            ChatEntity(c.id, c.title, c.lastUpdated, c.selectedBranchesJson, c.systemPromptId, c.modelId)
+                            ChatEntity(c.id, c.title, c.lastUpdated, c.selectedBranchesJson, c.systemPromptId, c.modelId, c.projectId)
                         }
                         val msgEntities = data.messages.map { m ->
                             MessageEntity(m.id, m.conversationId, m.parentId, m.text, m.images,
@@ -299,6 +300,28 @@ class DataImporter(
                     for (f in videoCleanupList) { try { f.delete() } catch (_: Exception) {} }
                     errors.add("Conversations: ${e.localizedMessage ?: "Unknown error"}")
                 }
+
+                // Projects ride on the same CONVERSATIONS decision — they're the folders that
+                // hold the conversations. projects.json is optional (pre-projects exports have
+                // none; conversations just import as ungrouped).
+                try {
+                    archive.stream("projects.json")?.use { stream ->
+                        val data = importJson.decodeFromStream<ExportProjects>(stream)
+                        if (convDecision == ImportStrategy.REPLACE) {
+                            // Detach every conversation then drop all projects so REPLACE truly
+                            // mirrors the source state. Conversations were already cleared above,
+                            // so this only matters if the user re-imports over existing data.
+                            chatDao.getAllProjectsList().forEach { chatDao.deleteProject(it.id) }
+                        }
+                        data.projects.forEach { p ->
+                            chatDao.upsertProject(
+                                ProjectEntity(p.id, p.name, p.sortOrder, p.systemPromptId, p.modelId, p.createdAt)
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    errors.add("Projects: ${e.localizedMessage ?: "Unknown error"}")
+                }
                 step()
             }
 
@@ -318,6 +341,26 @@ class DataImporter(
                     }
                     val existingNames = memoryManager.listFiles().map { it.name }.toSet()
                     for (path in memNames) {
+                        // Project-private memory bundle: memories/projects/<projectId>/<file>.
+                        // Written as raw bytes via the project-scoped helper so each file lands
+                        // in the right project dir. These are skipped by the String-decoding
+                        // branch below.
+                        if (path.startsWith("memories/projects/")) {
+                            val rest = path.removePrefix("memories/projects/")
+                            val slashIdx = rest.indexOf('/')
+                            if (slashIdx <= 0) continue
+                            val projectId = rest.substring(0, slashIdx)
+                            val fileName = rest.substring(slashIdx + 1)
+                            if (fileName.isBlank()) continue
+                            val bytes = archive.bytes(path) ?: continue
+                            try {
+                                memoryManager.writeProjectMemoryBytes(projectId, fileName, bytes)
+                                memoriesImported++
+                            } catch (_: Exception) {
+                                // Skip files that can't be written (bad name, IO error).
+                            }
+                            continue
+                        }
                         val text = archive.bytes(path)?.decodeToString() ?: continue
                         if (path == "memories/active_memory.md" && text.isNotBlank()) {
                             if (memDecision == ImportStrategy.REPLACE || memoryManager.getActiveMemory().isEmpty()) {
@@ -543,7 +586,24 @@ class DataImporter(
         val lastUpdated: Long,
         val selectedBranchesJson: String? = null,
         val systemPromptId: String? = null,
-        val modelId: String? = null
+        val modelId: String? = null,
+        // Optional so older exports (pre-projects) import as null = ungrouped.
+        val projectId: String? = null
+    )
+
+    @Serializable
+    private data class ExportProjects(
+        val projects: List<ExportProject>
+    )
+
+    @Serializable
+    private data class ExportProject(
+        val id: String,
+        val name: String,
+        val sortOrder: Int = 0,
+        val systemPromptId: String? = null,
+        val modelId: String? = null,
+        val createdAt: Long = System.currentTimeMillis()
     )
 
     @Serializable

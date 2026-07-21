@@ -23,6 +23,7 @@ jsch = "0.2.23"
 commonsCompress = "1.27.1"
 mcpSdk = "0.14.0"
 ktor = "3.4.3"
+supabase = "3.6.0"
 quickjsKt = "1.0.5"
 
 [libraries]
@@ -59,6 +60,12 @@ commons-compress = { group = "org.apache.commons", name = "commons-compress", ve
 mcp-sdk-client = { group = "io.modelcontextprotocol", name = "kotlin-sdk-client", version.ref = "mcpSdk" }
 ktor-client-cio = { group = "io.ktor", name = "ktor-client-cio", version.ref = "ktor" }
 ktor-client-sse = { group = "io.ktor", name = "ktor-sse", version.ref = "ktor" }
+ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
+# Supabase Kotlin (Auth + Postgrest); modules share the supabase version via the BOM
+supabase-bom = { group = "io.github.jan-tennert.supabase", name = "bom", version.ref = "supabase" }
+supabase-auth = { group = "io.github.jan-tennert.supabase", name = "auth-kt" }
+supabase-postgrest = { group = "io.github.jan-tennert.supabase", name = "postgrest-kt" }
 quickjs-kt = { group = "io.github.dokar3", name = "quickjs-kt", version.ref = "quickjsKt" }
 
 [plugins]

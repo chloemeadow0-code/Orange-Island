@@ -10,9 +10,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Smartphone
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,6 +53,10 @@ fun SettingsDeviceAccessPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val calendarEnabled by settings.calendarEnabled.collectAsState()
     val notificationEnabled by settings.notificationEnabled.collectAsState()
     val usageStatsEnabled by settings.usageStatsEnabled.collectAsState()
+    val navigationEnabled by settings.navigationEnabled.collectAsState()
+    val appLockEnabled by settings.appLockEnabled.collectAsState()
+    val toastEnabled by settings.toastEnabled.collectAsState()
+    val uiAutomationEnabled by settings.uiAutomationEnabled.collectAsState()
     val amapApiKey by settings.amapApiKey.collectAsState()
     val pc = viewModel.permissionController
     var amapKeyDraft by remember(amapApiKey) { mutableStateOf(amapApiKey) }
@@ -58,13 +66,18 @@ fun SettingsDeviceAccessPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val obs = LifecycleEventObserver { _, e ->
-            if (e == Lifecycle.Event.ON_RESUME) pc.refreshNotificationListenerState()
+            if (e == Lifecycle.Event.ON_RESUME) {
+                pc.refreshNotificationListenerState()
+                pc.refreshAccessibilityState()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(obs)
         onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
     }
 
     val notificationListenerGranted by pc.notificationListenerEnabledFlow.collectAsState()
+    val accessibilityGranted by pc.accessibilityEnabledFlow.collectAsState()
+    val uiAutomationAccessibilityGranted by pc.uiAutomationAccessibilityEnabledFlow.collectAsState()
 
     // Single launcher covers both runtime-permission tools (location + calendar); the contract
     // accepts whatever permission array we hand to launch() at call time.
@@ -158,6 +171,56 @@ fun SettingsDeviceAccessPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         permissionState = if (pc.isGranted(PermissionController.Tool.USAGE_STATS))
                             PermissionState.Granted else PermissionState.SpecialNeeded(
                             onClick = { pc.openSystemSettings(PermissionController.Tool.USAGE_STATS) }
+                        )
+                    )
+                }
+                // Navigation (open URL, open app, share, settings)
+                add {
+                    ToolToggleRow(
+                        title = stringResource(R.string.device_access_navigation_title),
+                        desc = stringResource(R.string.device_access_navigation_desc),
+                        icon = Icons.Default.OpenInNew,
+                        checked = navigationEnabled,
+                        onCheckedChange = { settings.setNavigationEnabled(it) },
+                        permissionState = PermissionState.NotRequired
+                    )
+                }
+                // App Lock
+                add {
+                    ToolToggleRow(
+                        title = stringResource(R.string.device_access_app_lock_title),
+                        desc = stringResource(R.string.device_access_app_lock_desc),
+                        icon = Icons.Default.Lock,
+                        checked = appLockEnabled,
+                        onCheckedChange = { settings.setAppLockEnabled(it) },
+                        permissionState = if (accessibilityGranted)
+                            PermissionState.Granted else PermissionState.SpecialNeeded(
+                            onClick = { pc.openSystemSettings(PermissionController.Tool.ACCESSIBILITY) }
+                        )
+                    )
+                }
+                // Toast
+                add {
+                    ToolToggleRow(
+                        title = stringResource(R.string.device_access_toast_title),
+                        desc = stringResource(R.string.device_access_toast_desc),
+                        icon = Icons.Outlined.NotificationsActive,
+                        checked = toastEnabled,
+                        onCheckedChange = { settings.setToastEnabled(it) },
+                        permissionState = PermissionState.NotRequired
+                    )
+                }
+                // UI Automation (tap/swipe/scroll/global-action/inspect)
+                add {
+                    ToolToggleRow(
+                        title = stringResource(R.string.device_access_ui_automation_title),
+                        desc = stringResource(R.string.device_access_ui_automation_desc),
+                        icon = Icons.Default.TouchApp,
+                        checked = uiAutomationEnabled,
+                        onCheckedChange = { settings.setUiAutomationEnabled(it) },
+                        permissionState = if (uiAutomationAccessibilityGranted)
+                            PermissionState.Granted else PermissionState.SpecialNeeded(
+                            onClick = { pc.openSystemSettings(PermissionController.Tool.UI_AUTOMATION) }
                         )
                     )
                 }

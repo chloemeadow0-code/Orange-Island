@@ -153,6 +153,33 @@
     <string name="conversations">Conversations</string>
     <string name="new_chat">New Chat</string>
 
+    <!-- Projects (ChatGPT-style conversation grouping) -->
+    <string name="new_project">新项目</string>
+    <string name="projects">项目</string>
+    <string name="ungrouped">未分组</string>
+    <string name="create_project">新建项目</string>
+    <string name="project_default_name">未命名项目</string>
+    <string name="project_name_hint">项目名称</string>
+    <string name="project_default_model">项目默认模型</string>
+    <string name="project_default_prompt">项目默认提示词</string>
+    <string name="project_use_global">使用全局默认</string>
+    <string name="project_advanced">高级（可选）</string>
+    <string name="rename_project">重命名项目</string>
+    <string name="project_settings">项目设置</string>
+    <string name="delete_project">删除项目</string>
+    <string name="delete_project_confirm">删除项目「%1$s」？其中的对话不会被删除，会移到未分组。</string>
+    <string name="move_to_project">移动到项目</string>
+    <string name="remove_from_project">移出项目</string>
+    <string name="project_empty">这个项目还没有对话</string>
+    <string name="project_count_format">(%1$d)</string>
+    <!-- Project-private memory store -->
+    <string name="project_memory_title">项目记忆库</string>
+    <string name="project_memory_desc">这些文件只在本项目内的对话中可见，项目外的对话看不到。</string>
+    <string name="project_memory_empty">还没有项目记忆文件</string>
+    <string name="project_memory_file_hint">文件名（如 notes.md）</string>
+    <string name="project_memory_desc_hint">简短描述（可选）</string>
+    <string name="project_memory_content_hint">文件内容（Markdown）</string>
+
     <!-- Settings - Main -->
     <string name="settings_title">Settings</string>
     <string name="settings_provider">Providers</string>
@@ -307,6 +334,20 @@
     <string name="device_access_notification_desc">Read active notifications from other apps</string>
     <string name="device_access_usage_title">Screen Usage</string>
     <string name="device_access_usage_desc">Per-app usage time and last-opened timestamps</string>
+    <string name="device_access_navigation_title">Navigation</string>
+    <string name="device_access_navigation_desc">Open URLs, launch apps, system settings, and share text</string>
+    <string name="device_access_app_lock_title">App Lock</string>
+    <string name="device_access_app_lock_desc">AI locks/unlocks apps with a message the user must respect</string>
+    <string name="device_access_toast_title">Toast</string>
+    <string name="device_access_toast_desc">AI shows quick native Toast messages for non-blocking feedback</string>
+    <string name="device_access_ui_automation_title">UI Automation</string>
+    <string name="device_access_ui_automation_desc">AI taps, swipes, scrolls, and reads the on-screen window tree (requires the UI Automation accessibility service)</string>
+    <string name="app_lock_service_label">Orange Island App Lock</string>
+    <string name="app_lock_service_desc">Intercepts access to apps the AI has locked, covering them with a lock screen.</string>
+    <string name="ui_automation_service_label">Orange Island UI Automation</string>
+    <string name="ui_automation_service_desc">Allows the assistant to interact with the device screen (tap, swipe, scroll, read the current window tree) so it can drive other apps on your behalf.</string>
+    <string name="app_lock_mask_subtitle">This app is locked by your assistant</string>
+    <string name="app_lock_mask_hint">Ask your assistant in Orange Island to unlock it</string>
     <string name="device_access_perm_not_required">No permission needed</string>
     <string name="device_access_perm_granted">Permission granted</string>
     <string name="device_access_perm_runtime_needed">Permission needed -- enable to grant</string>
@@ -1068,4 +1109,40 @@
     <string name="proxy_password">Password (optional)</string>
     <string name="proxy_bypass">Bypass list</string>
     <string name="proxy_bypass_desc">Hosts and CIDR ranges that connect directly, one per line</string>
+
+    <!-- Account / Auth -->
+    <string name="auth_app_title">橘子岛</string>
+    <string name="auth_app_subtitle">登录或注册以继续</string>
+    <string name="auth_login">登录</string>
+    <string name="auth_register">注册</string>
+    <string name="auth_username">用户名</string>
+    <string name="auth_password">密码</string>
+    <string name="auth_invite_code">邀请码</string>
+    <string name="auth_invite_code_placeholder">8 位邀请码</string>
+    <string name="auth_no_account">没有账号？去注册</string>
+    <string name="auth_have_account">已有账号？去登录</string>
+    <string name="auth_logout">退出登录</string>
+
+    <!-- Auth dialogs -->
+    <string name="auth_error_title">出错了</string>
+    <string name="auth_info_title">提示</string>
+    <string name="auth_ok">好的</string>
+
+    <!-- Auth error codes (mapped by AuthScreen.authString) -->
+    <string name="auth_err_fields_required">请填写用户名和密码</string>
+    <string name="auth_err_network">网络错误，请检查连接后重试</string>
+    <string name="auth_err_generic">操作失败，请稍后重试</string>
+    <string name="auth_err_username_short">用户名至少 3 个字符</string>
+    <string name="auth_err_username_taken">该用户名已被占用</string>
+    <string name="auth_err_password_short">密码至少 6 个字符</string>
+    <string name="auth_err_invite_required">请填写邀请码</string>
+    <string name="auth_err_invite_invalid">邀请码无效、已过期或已用完</string>
+    <string name="auth_err_wrong_credentials">用户名或密码错误</string>
+    <string name="auth_err_email_provider_disabled">服务端未开启 Email 登录，请联系管理员</string>
+    <string name="auth_err_signup_disabled">服务端已关闭注册，请联系管理员</string>
+    <string name="auth_err_email_not_confirmed">服务端未关闭邮箱验证，请联系管理员</string>
+
+    <!-- Settings: account entry -->
+    <string name="settings_account">账号</string>
+    <string name="settings_account_desc">当前登录：%1$s</string>
 </resources>

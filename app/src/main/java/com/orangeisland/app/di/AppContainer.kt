@@ -47,6 +47,9 @@ class AppContainer(private val appContext: Context) {
     val settingsRepository: SettingsRepository by lazy {
         SettingsRepository(settingsManager, appScope)
     }
+    val authRepository: com.orangeisland.app.data.repository.AuthRepository by lazy {
+        com.orangeisland.app.data.repository.AuthRepository(settingsManager, appScope)
+    }
 
     // ── Sandbox (flavor-specific) ─────────────────────────────
 

@@ -5,6 +5,7 @@ import android.net.Uri
 import com.orangeisland.app.data.local.ChatDao
 import com.orangeisland.app.data.local.ChatEntity
 import com.orangeisland.app.data.local.MessageEntity
+import com.orangeisland.app.data.local.ProjectEntity
 import com.orangeisland.app.model.AttachmentMeta
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
@@ -58,7 +59,24 @@ class DataExporter(
         val lastUpdated: Long,
         val selectedBranchesJson: String? = null,
         val systemPromptId: String? = null,
-        val modelId: String? = null
+        val modelId: String? = null,
+        // null = ungrouped. Optional so older export files (pre-projects) still import.
+        val projectId: String? = null
+    )
+
+    @Serializable
+    private data class ExportProjects(
+        val projects: List<ExportProject>
+    )
+
+    @Serializable
+    private data class ExportProject(
+        val id: String,
+        val name: String,
+        val sortOrder: Int = 0,
+        val systemPromptId: String? = null,
+        val modelId: String? = null,
+        val createdAt: Long = System.currentTimeMillis()
     )
 
     @Serializable
@@ -234,7 +252,7 @@ class DataExporter(
                 }
 
                 val conversations = chatDao.getAllConversationsList().map { c ->
-                    ExportChatEntity(c.id, c.title, c.lastUpdated, c.selectedBranchesJson, c.systemPromptId, c.modelId)
+                    ExportChatEntity(c.id, c.title, c.lastUpdated, c.selectedBranchesJson, c.systemPromptId, c.modelId, c.projectId)
                 }
                 val messages = allMessages.map { m ->
                     // Only include images that were successfully exported
@@ -245,6 +263,15 @@ class DataExporter(
                 }
                 zip.putNextEntry(ZipEntry("conversations.json"))
                 Json.encodeToStream(ExportConversations(conversations, messages), zip)
+                zip.closeEntry()
+
+                // Projects — written as a sibling entry so older importers that don't know
+                // about it simply skip the unknown entry, and we can import without projects.
+                val projects = chatDao.getAllProjectsList().map { p ->
+                    ExportProject(p.id, p.name, p.sortOrder, p.systemPromptId, p.modelId, p.createdAt)
+                }
+                zip.putNextEntry(ZipEntry("projects.json"))
+                Json.encodeToStream(ExportProjects(projects), zip)
                 zip.closeEntry()
                 step()
             }
@@ -268,6 +295,23 @@ class DataExporter(
                     zip.putNextEntry(ZipEntry("memories/memory_db/memory_meta.json"))
                     zip.write(metaJson.toByteArray())
                     zip.closeEntry()
+                }
+                // Project-private memory bundles — each project's files live under a
+                // dedicated subdirectory so import can restore them to the right scope.
+                // Only projects that actually exist on disk are walked.
+                for (projectId in memoryManager.listProjectIds()) {
+                    for ((relName, file) in memoryManager.projectMemoryFilesForExport(projectId)) {
+                        if (!file.exists()) continue
+                        try {
+                            val bytes = file.readBytes()
+                            if (bytes.isEmpty()) continue
+                            zip.putNextEntry(ZipEntry("memories/projects/$projectId/$relName"))
+                            zip.write(bytes)
+                            zip.closeEntry()
+                        } catch (_: Exception) {
+                            // Skip unreadable files rather than failing the whole export.
+                        }
+                    }
                 }
                 step()
             }

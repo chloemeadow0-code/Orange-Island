@@ -107,7 +107,15 @@ data class GenerationContext(
     val amapApiKey: String = "",
     val calendarEnabled: Boolean = false,
     val notificationEnabled: Boolean = false,
-    val usageStatsEnabled: Boolean = false
+    val usageStatsEnabled: Boolean = false,
+    val navigationEnabled: Boolean = false,
+    val appLockEnabled: Boolean = false,
+    val toastEnabled: Boolean = false,
+    val uiAutomationEnabled: Boolean = false,
+    /** The project this conversation belongs to (null = ungrouped). Drives memory scoping:
+     *  when non-null, memory tools read/write the project-private memory dir on top of the
+     *  always-present global dir; RAG/search filters to the same project. */
+    val projectId: String? = null
 )
 
 internal fun applyUserTemplateToMessages(
@@ -184,6 +192,10 @@ class GenerationManager(
     private val usageStatsToolProvider = permissionController?.let {
         com.orangeisland.app.tool.device.UsageStatsToolProvider(app, it)
     }
+    private val navigationToolProvider = com.orangeisland.app.tool.NavigationToolProvider(app)
+    private val appLockToolProvider = com.orangeisland.app.tool.AppLockToolProvider(app)
+    private val toastToolProvider = com.orangeisland.app.tool.ToastToolProvider(app)
+    private val automationToolProvider = com.orangeisland.app.tool.automation.AutomationToolProvider(providers)
     private val shellToolProvider = ShellToolProvider(sandboxFactory).also { stp ->
         // Forward to the ViewModel-provided gate at call time (read the var lazily).
         stp.confirm = { server, summary -> onConfirmShellCommand?.invoke(server, summary) ?: true }
@@ -196,6 +208,10 @@ class GenerationManager(
         calendarToolProvider?.let { add(it) }
         notificationToolProvider?.let { add(it) }
         usageStatsToolProvider?.let { add(it) }
+        add(navigationToolProvider)
+        add(appLockToolProvider)
+        add(toastToolProvider)
+        add(automationToolProvider)
         mcpToolProvider?.let { add(it) }
         pluginToolProvider?.let { add(it) }
     }
@@ -248,6 +264,34 @@ class GenerationManager(
     fun buildPluginTools(ctx: GenerationContext): List<ToolDefinition> =
         pluginToolProvider?.definitions(ctx) ?: emptyList()
 
+    /** Navigation tools (open URL, open app, open settings, share text, list installed apps).
+     *  Internally checks [GenerationContext.navigationEnabled]. */
+    fun buildNavigationTools(ctx: GenerationContext): List<ToolDefinition> =
+        navigationToolProvider.definitions(ctx)
+
+    /** App Lock tools (set_pin, lock_app, unlock_app, list_locked_apps).
+     *  Internally checks [GenerationContext.appLockEnabled]. */
+    fun buildAppLockTools(ctx: GenerationContext): List<ToolDefinition> =
+        appLockToolProvider.definitions(ctx)
+
+    /** Toast tool (show_toast). Internally checks [GenerationContext.toastEnabled]. */
+    fun buildToastTools(ctx: GenerationContext): List<ToolDefinition> =
+        toastToolProvider.definitions(ctx)
+
+    /** UI automation tools (ui_tap/ui_swipe/ui_scroll/ui_global_action/ui_inspect).
+     *  Internally checks [GenerationContext.uiAutomationEnabled]. */
+    fun buildAutomationTools(ctx: GenerationContext): List<ToolDefinition> =
+        automationToolProvider.definitions(ctx)
+
+    /** Device access tools (battery, location, calendar, notifications, usage stats).
+     *  Each provider internally checks its own enable flag in [GenerationContext]. */
+    fun buildDeviceTools(ctx: GenerationContext): List<ToolDefinition> = buildList {
+        addAll(deviceInfoToolProvider.definitions(ctx))
+        locationToolProvider?.let { addAll(it.definitions(ctx)) }
+        calendarToolProvider?.let { addAll(it.definitions(ctx)) }
+        notificationToolProvider?.let { addAll(it.definitions(ctx)) }
+        usageStatsToolProvider?.let { addAll(it.definitions(ctx)) }
+    }
 
     /** Semantic message search — delegates to [RagToolProvider], which owns the
      *  embedding-search logic. Kept here as the entry point used by ChatViewModel's
@@ -413,7 +457,12 @@ class GenerationManager(
         val imageGenTool = buildImageGenTool(ctx)
         val mcpTools = buildMcpTools(ctx)
         val pluginTools = buildPluginTools(ctx)
-        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools
+        val deviceTools = buildDeviceTools(ctx)
+        val navigationTools = buildNavigationTools(ctx)
+        val appLockTools = buildAppLockTools(ctx)
+        val toastTools = buildToastTools(ctx)
+        val automationTools = buildAutomationTools(ctx)
+        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + automationTools
         val providerConfig = ProviderConfig(
             apiKey = config.apiKey,
             modelId = config.modelId,

@@ -170,6 +170,11 @@ fun ChatApp(
     var showPromptDialog by remember { mutableStateOf(false) }
     var showAdvancedDialog by remember { mutableStateOf(false) }
     var showMcpSheet by remember { mutableStateOf(false) }
+    // ── Project dialogs (parallel to rename/delete above) ──
+    var showCreateProjectDialog by remember { mutableStateOf(false) }
+    var projectToRename by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var projectToSettings by remember { mutableStateOf<String?>(null) }
+    var projectToDelete by remember { mutableStateOf<Pair<String, String>?>(null) }
     var isExpanded by remember { mutableStateOf(false) }
     var outerSpacerStartNanos by remember { mutableLongStateOf(0L) }
     var outerSpacerTickNanos by remember { mutableLongStateOf(0L) }
@@ -475,7 +480,12 @@ fun ChatApp(
                 onOpenSettings = onOpenSettings,
                 onRequestRename = { id, title -> showRenameDialog = id; conversationToRename = title },
                 onRequestDelete = { id -> showDeleteConfirmDialog = id },
-                onPendingDrawerHaptic = { pendingDrawerConversationHaptic = it }
+                onPendingDrawerHaptic = { pendingDrawerConversationHaptic = it },
+                onRequestCreateProject = { showCreateProjectDialog = true },
+                onRequestRenameProject = { id, name -> projectToRename = id to name },
+                onRequestProjectSettings = { id -> projectToSettings = id },
+                onRequestDeleteProject = { id, name -> projectToDelete = id to name },
+                onRequestMoveConversation = { convId, targetPid -> viewModel.moveConversation(convId, targetPid) }
             )
         }
     ) {
@@ -873,6 +883,111 @@ fun ChatApp(
                 showDeleteConfirmDialog = null
             },
             onDismiss = { showDeleteConfirmDialog = null }
+        )
+    }
+
+    // ── Project dialogs ──────────────────────────────────────
+    // The model/prompt option lists are built from the same settings flows used by the
+    // per-conversation dialogs, so "project default" and "chat override" see the same set.
+    // NOTE: these shadow a few top-of-composable names on purpose — here we want the GLOBAL
+    // settings defaults (not currentActiveModel / per-chat overrides) for project pickers.
+    val projectEnabledModels by viewModel.settings.enabledModels.collectAsState()
+    val projectModelAliases by viewModel.settings.modelAliases.collectAsState()
+    val projectSystemPrompts by viewModel.settings.systemPrompts.collectAsState()
+    val projectActivePromptId by viewModel.settings.activeSystemPromptId.collectAsState()
+    val globalSelectedModel by viewModel.settings.selectedModel.collectAsState()
+    val projects by viewModel.projects.collectAsState()
+
+    val projectModelOptions = remember(projectEnabledModels, projectModelAliases) {
+        projectEnabledModels.toList().map { id ->
+            id to (projectModelAliases[id]?.ifBlank { null } ?: id.substringAfter(":", id))
+        }
+    }
+    val projectPromptOptions = remember(projectSystemPrompts) {
+        projectSystemPrompts.map { it.id to it.title }
+    }
+    val globalDefaultPromptTitle = projectSystemPrompts.find { it.id == projectActivePromptId }?.title
+        ?: stringResource(R.string.no_system_prompt)
+    val globalDefaultModelTitle = remember(globalSelectedModel, projectModelAliases) {
+        projectModelAliases[globalSelectedModel]?.ifBlank { null } ?: globalSelectedModel.substringAfter(":", globalSelectedModel)
+    }
+
+    if (showCreateProjectDialog) {
+        ProjectCreateDialog(
+            availableModels = projectModelOptions,
+            promptList = projectPromptOptions,
+            globalDefaultPromptTitle = globalDefaultPromptTitle,
+            globalDefaultModelTitle = globalDefaultModelTitle,
+            onConfirm = { name, modelId, promptId ->
+                viewModel.createProject(name, modelId, promptId)
+                showCreateProjectDialog = false
+            },
+            onDismiss = { showCreateProjectDialog = false }
+        )
+    }
+
+    projectToRename?.let { (id, name) ->
+        ProjectRenameDialog(
+            initialName = name,
+            onSave = { newName ->
+                viewModel.renameProject(id, newName)
+                projectToRename = null
+            },
+            onDismiss = { projectToRename = null }
+        )
+    }
+
+    projectToSettings?.let { id ->
+        val project = projects.find { it.id == id }
+        if (project != null) {
+            // Refresh project memory files whenever the dialog is open for this project.
+            // Simplest correct hook: re-fetch on (re)composition boundary via remember +
+            // LaunchedEffect keyed on the project id, so create/delete callbacks can refresh
+            // by bumping a local counter.
+            var memoryRefreshKey by remember { mutableStateOf(0) }
+            var projectMemoryFiles by remember(id) {
+                mutableStateOf<List<com.orangeisland.app.data.MemoryManager.MemoryFileInfo>>(emptyList())
+            }
+            LaunchedEffect(id, memoryRefreshKey) {
+                projectMemoryFiles = viewModel.listProjectMemoryFiles(id)
+            }
+            ProjectSettingsDialog(
+                projectName = project.name,
+                initialModelId = project.modelId,
+                initialPromptId = project.systemPromptId,
+                availableModels = projectModelOptions,
+                promptList = projectPromptOptions,
+                globalDefaultPromptTitle = globalDefaultPromptTitle,
+                globalDefaultModelTitle = globalDefaultModelTitle,
+                memoryFiles = projectMemoryFiles,
+                onCreateMemoryFile = { name, content, desc ->
+                    viewModel.createProjectMemoryFile(id, name, content, desc)
+                    memoryRefreshKey++  // trigger reload
+                },
+                onDeleteMemoryFile = { name ->
+                    viewModel.deleteProjectMemoryFile(id, name)
+                    memoryRefreshKey++  // trigger reload
+                },
+                onSave = { modelId, promptId ->
+                    viewModel.setProjectDefaults(id, promptId, modelId)
+                    projectToSettings = null
+                },
+                onDismiss = { projectToSettings = null }
+            )
+        } else {
+            projectToSettings = null
+        }
+    }
+
+    projectToDelete?.let { (id, name) ->
+        ProjectDeleteConfirmDialog(
+            projectName = name,
+            onConfirm = {
+                haptics.reject()
+                viewModel.deleteProject(id)
+                projectToDelete = null
+            },
+            onDismiss = { projectToDelete = null }
         )
     }
 

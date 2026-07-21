@@ -60,12 +60,16 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.orangeisland.app.data.MemoryManager
 import com.orangeisland.app.data.SettingsManager
 import com.orangeisland.app.service.OrangeIslandForegroundService
 import com.orangeisland.app.service.AppForegroundTracker
 import com.orangeisland.app.data.local.ChatDatabase
 import com.orangeisland.app.di.AppContainer
+import com.orangeisland.app.ui.auth.AuthScreen
+import com.orangeisland.app.ui.auth.AuthViewModel
 import com.orangeisland.app.ui.chat.ChatApp
 import com.orangeisland.app.ui.chat.FullScreenMediaViewer
 import com.orangeisland.app.ui.settings.SettingsScreen
@@ -77,6 +81,10 @@ import kotlinx.coroutines.flow.first
 import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
+
+    /** Holds text received from an external app via SEND intent or deep-link.
+     *  Consumed by the Composable layer once the ViewModel is ready. */
+    private val externalTextState = mutableStateOf<String?>(null)
 
     override fun attachBaseContext(newBase: Context) {
         val langCode = kotlinx.coroutines.runBlocking {
@@ -127,6 +135,9 @@ class MainActivity : ComponentActivity() {
         runBlocking(Dispatchers.IO) {
             settingsManager.initializeFirstInstallDefaults(locale = java.util.Locale.getDefault())
         }
+
+        // Parse external intent on cold start
+        parseExternalIntent(intent)
 
         enableEdgeToEdge()
         // Remove navigation bar scrim so it blends with app content
@@ -185,20 +196,70 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 } else {
-                    // Create ViewModel via DI container
-                    val container = remember { AppContainer(this@MainActivity) }
+                    // Pull the app-lifetime container from the Application so the
+                    // Supabase session + all shared singletons survive activity recreation.
+                    val container = remember {
+                        (this@MainActivity.application as com.orangeisland.app.OrangeIslandApplication).container
+                    }
                     val factory = remember { container.chatViewModelFactory() }
                     val viewModel: ChatViewModel = viewModel(factory = factory)
 
-                    // Onboarding flow disabled — mark it complete (so first-install
-                    // defaults don't re-run on every launch) and go straight to the app.
-                    LaunchedEffect(Unit) {
-                        if (!settingsManager.onboardingCompleted.first()) {
-                            settingsManager.saveOnboardingCompleted(true)
+                    // Auth gate: if not logged in, show the login/register screen
+                    // instead of the main app. Once the flag flips, recomposition
+                    // takes the user straight in — no restart needed.
+                    val isLoggedIn by container.authRepository.isLoggedIn.collectAsState()
+
+                    if (!isLoggedIn) {
+                        val authViewModel: AuthViewModel = viewModel(
+                            key = "authViewModel",
+                            factory = viewModelFactory { initializer { AuthViewModel(container.authRepository) } }
+                        )
+                        AuthScreen(authViewModel)
+                    } else {
+                        // Onboarding flow disabled — mark it complete (so first-install
+                        // defaults don't re-run on every launch) and go straight to the app.
+                        LaunchedEffect(Unit) {
+                            if (!settingsManager.onboardingCompleted.first()) {
+                                settingsManager.saveOnboardingCompleted(true)
+                            }
+                        }
+
+                        MainNavigation(viewModel, settingsManager)
+
+                        // Process external text (from SHARE intent or deep-link) once the UI is ready.
+                        LaunchedEffect(externalTextState.value) {
+                            externalTextState.value?.let { text ->
+                                viewModel.sendMessage(text)
+                                externalTextState.value = null
+                            }
                         }
                     }
+                }
+            }
+        }
+    }
 
-                    MainNavigation(viewModel, settingsManager)
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        parseExternalIntent(intent)
+    }
+
+    /** Extract text from ACTION_SEND or orangeisland:// deep-link intents. */
+    private fun parseExternalIntent(intent: Intent) {
+        when {
+            Intent.ACTION_SEND == intent.action && "text/plain" == intent.type -> {
+                val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+                if (!sharedText.isNullOrBlank()) {
+                    externalTextState.value = sharedText
+                }
+            }
+            Intent.ACTION_VIEW == intent.action -> {
+                val data = intent.data
+                if (data?.scheme == "orangeisland") {
+                    val text = data.getQueryParameter("text") ?: ""
+                    if (text.isNotBlank()) {
+                        externalTextState.value = text
+                    }
                 }
             }
         }

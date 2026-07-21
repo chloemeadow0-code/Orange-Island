@@ -110,7 +110,8 @@ class GenerationRequestBuilder(
         resolvedUserPrepend: String?,
         resolvedUserPostpend: String?,
         effectiveSettings: ConversationSettings,
-        currentId: String
+        currentId: String,
+        projectId: String? = null
     ): Pair<GenerationConfig, GenerationContext> {
         val config = GenerationConfig(
             providerName = providerName,
@@ -174,7 +175,14 @@ class GenerationRequestBuilder(
             amapApiKey = settings.amapApiKey.value,
             calendarEnabled = settings.calendarEnabled.value,
             notificationEnabled = settings.notificationEnabled.value,
-            usageStatsEnabled = settings.usageStatsEnabled.value
+            usageStatsEnabled = settings.usageStatsEnabled.value,
+            navigationEnabled = settings.navigationEnabled.value,
+            appLockEnabled = settings.appLockEnabled.value,
+            toastEnabled = settings.toastEnabled.value,
+            uiAutomationEnabled = settings.uiAutomationEnabled.value,
+            // Memory + RAG scope: a conversation inside a project only sees that project's
+            // private memory store (plus the global one), and searches stay within it.
+            projectId = projectId
         )
         return Pair(config, genCtx)
     }
@@ -182,7 +190,10 @@ class GenerationRequestBuilder(
     data class ResolvedPrompt(
         val systemPrompt: String?,
         val userPrepend: String?,
-        val userPostpend: String?
+        val userPostpend: String?,
+        // Carries the conversation's project so buildGenerationPair (a non-suspend fun) can
+        // populate GenerationContext.projectId without doing its own DB lookup.
+        val projectId: String? = null
     )
 
     internal suspend fun buildEffectiveSystemPrompt(currentId: String): ResolvedPrompt {
@@ -213,10 +224,11 @@ class GenerationRequestBuilder(
             return ResolvedPrompt(
                 systemPrompt = PredefinedVariables.compile(systemItems, runtimeValues).ifBlank { null },
                 userPrepend = PredefinedVariables.compile(entry.userPrependItems, perMsgValues, emptyMap()).ifBlank { null },
-                userPostpend = PredefinedVariables.compile(entry.userPostpendItems, perMsgValues, emptyMap()).ifBlank { null }
+                userPostpend = PredefinedVariables.compile(entry.userPostpendItems, perMsgValues, emptyMap()).ifBlank { null },
+                projectId = conversation?.projectId
             )
         }
 
-        return ResolvedPrompt(null, null, null)
+        return ResolvedPrompt(null, null, null, conversation?.projectId)
     }
 }

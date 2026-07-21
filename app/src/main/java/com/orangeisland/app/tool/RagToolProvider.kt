@@ -106,11 +106,14 @@ class RagToolProvider(
 
         return try {
             // Step 1: Search — normalize to List<Pair<MessageEntity, Float>>
+            // Both paths honor ctx.projectId: in a project only that project's messages
+            // are visible; globally only ungrouped ones. This is the AI-side enforcement
+            // of "project contents never leak outside the project".
             val scoredResults: List<Pair<MessageEntity, Float>> = if (ctx.modelSearchMethod == Constants.SEARCH_METHOD_RAG && ctx.activeEmbeddingConfig != null) {
                 semanticSearch(query, limit, ctx)
                     .filter { it.second >= ctx.ragThreshold }
             } else {
-                conversations.searchMessages(query, limit).map { it to 1.0f }
+                conversations.searchMessagesScoped(query, ctx.projectId, limit).map { it to 1.0f }
             }
             if (scoredResults.isEmpty())
                 return buildJsonObject { put("type", "search_conversations"); put("query", query); put("error", "no_results") }.toString()
@@ -244,7 +247,9 @@ class RagToolProvider(
         val offset = ((args["offset"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toIntOrNull() ?: 0).coerceAtLeast(0)
 
         return try {
-            val allConversations = conversations.getAllConversationsList()
+            // Same scope rule as search: a project-scoped call only lists that project's
+            // conversations; a global call only lists ungrouped ones.
+            val allConversations = conversations.getConversationsListScoped(ctx.projectId)
             val sorted = if (order == "desc") allConversations.reversed() else allConversations
             val total = sorted.size
             val page = if (offset < total) {
@@ -300,6 +305,20 @@ class RagToolProvider(
                     put("conversation_id", conversationId)
                     put("error", "not_found")
                 }.toString()
+
+            // Scope guard: refuse to read a conversation the caller can't see. A project
+            // context can only read its own conversations; a global context only ungrouped.
+            // Without this the model could read any conversation by id despite search/list
+            // filtering.
+            val visible = if (ctx.projectId != null) conversation.projectId == ctx.projectId
+                          else conversation.projectId == null
+            if (!visible) {
+                return buildJsonObject {
+                    put("type", "read_conversation")
+                    put("conversation_id", conversationId)
+                    put("error", "not_found")
+                }.toString()
+            }
 
             val allMessages = conversations.getMessagesForConversation(conversationId).first()
                 .filter { it.participant in listOf(Participant.USER, Participant.MODEL) }
@@ -420,8 +439,16 @@ class RagToolProvider(
         DebugLog.d("OrangeIslandVM", "GM RAG: best cosine = ${"%.4f".format(best)}")
         val aboveThreshold = scored.filter { it.second > ctx.ragThreshold }
         val messagesById = conversations.getMessagesByIds(aboveThreshold.map { it.first.messageId }).associateBy { it.id }
+        // Apply the same scope rule as keyword search: a project-scoped call only sees
+        // hits from that project; a global call only sees ungrouped (projectId IS NULL).
+        // We resolve the projectId per candidate in one batch rather than per-message.
+        val projectScope = conversations.getProjectIdsForMessages(aboveThreshold.map { it.first.messageId })
         val filtered = aboveThreshold
             .filter { (messagesById[it.first.messageId]?.text?.length ?: 0) >= 10 }
+            .filter { (embed, _) ->
+                val pid = projectScope[embed.messageId]
+                if (ctx.projectId != null) pid == ctx.projectId else pid == null
+            }
             .sortedByDescending { it.second }
             .take(limit)
         filtered.mapNotNull { (embedding, score) -> messagesById[embedding.messageId]?.let { it to score } }
