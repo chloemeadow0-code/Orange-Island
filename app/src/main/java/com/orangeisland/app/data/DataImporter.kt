@@ -14,6 +14,7 @@ import com.orangeisland.app.model.ThinkingLevels
 import com.orangeisland.app.util.DebugLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -31,7 +32,8 @@ class DataImporter(
     private val context: Context,
     private val chatDao: ChatDao,
     private val settingsManager: SettingsManager,
-    private val memoryManager: MemoryManager
+    private val memoryManager: MemoryManager,
+    private val workflowRepository: com.orangeisland.app.data.repository.WorkflowRepository? = null
 ) {
     enum class ImportStrategy { MERGE, REPLACE, SKIP }
 
@@ -52,7 +54,8 @@ class DataImporter(
         val memoryCount: Int = 0,
         val systemPromptCount: Int = 0,
         val settingsPresent: Boolean = false,
-        val apiKeysPresent: Boolean = false
+        val apiKeysPresent: Boolean = false,
+        val workflowCount: Int = 0
     )
 
     data class ImportResult(
@@ -61,6 +64,7 @@ class DataImporter(
         val systemPromptsImported: Int = 0,
         val settingsImported: Boolean = false,
         val apiKeysImported: Boolean = false,
+        val workflowsImported: Int = 0,
         val errors: List<String> = emptyList()
     )
 
@@ -154,6 +158,7 @@ class DataImporter(
 
                 var conversationCount = 0
                 var systemPromptCount = 0
+                var workflowCount = 0
                 val memoryCount = archive.names().count { it.startsWith("memories/") }
                 val settingsPresent = archive.has("settings.json")
                 val apiKeysPresent = archive.has("api_keys.json")
@@ -171,13 +176,20 @@ class DataImporter(
                     } catch (e: Exception) { DebugLog.e("DataImporter", "Failed to parse system_prompts.json", e) }
                 }
 
+                archive.stream("workflows.json")?.use { stream ->
+                    try {
+                        workflowCount = importJson.decodeFromStream<List<com.orangeisland.app.model.Workflow>>(stream).size
+                    } catch (e: Exception) { DebugLog.e("DataImporter", "Failed to parse workflows.json", e) }
+                }
+
                 ImportPreview(
                     manifest = manifest,
                     conversationCount = conversationCount,
                     memoryCount = memoryCount,
                     systemPromptCount = systemPromptCount,
                     settingsPresent = settingsPresent,
-                    apiKeysPresent = apiKeysPresent
+                    apiKeysPresent = apiKeysPresent,
+                    workflowCount = workflowCount
                 )
             }
         }
@@ -198,6 +210,7 @@ class DataImporter(
             var systemPromptsImported = 0
             var settingsImported = false
             var apiKeysImported = false
+            var workflowsImported = 0
 
             val activeCategories = decisions.filter { it.value != ImportStrategy.SKIP }.keys
             val totalSteps = activeCategories.size
@@ -559,6 +572,35 @@ class DataImporter(
                 step()
             }
 
+            // Workflows
+            val wfDecision = decisions[DataExporter.ExportCategory.WORKFLOWS]
+            if (wfDecision != null && wfDecision != ImportStrategy.SKIP) {
+                try {
+                    archive["workflows.json"]?.decodeToString()?.let { json ->
+                        val workflows = importJson.decodeFromString<List<com.orangeisland.app.model.Workflow>>(json)
+                        if (wfDecision == ImportStrategy.REPLACE) {
+                            workflowRepository?.let { repo ->
+                                runBlocking { repo.getAll().forEach { repo.delete(it.id) } }
+                            }
+                        }
+                        workflowRepository?.let { repo ->
+                            runBlocking {
+                                val existingIds = repo.getAll().map { it.id }.toSet()
+                                for (wf in workflows) {
+                                    if (wfDecision == ImportStrategy.REPLACE || wf.id !in existingIds) {
+                                        repo.upsert(wf)
+                                        workflowsImported++
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    errors.add("Workflows: ${e.localizedMessage ?: "Unknown error"}")
+                }
+                step()
+            }
+
             archive.close()
             onProgress(1f)
             ImportResult(
@@ -567,6 +609,7 @@ class DataImporter(
                 systemPromptsImported = systemPromptsImported,
                 settingsImported = settingsImported,
                 apiKeysImported = apiKeysImported,
+                workflowsImported = workflowsImported,
                 errors = errors
             )
         }

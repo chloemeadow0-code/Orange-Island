@@ -10,6 +10,11 @@ Modifications made in this fork include, but are not limited to:
     native libraries, resources, themes) from "Agora" to "橘子岛 / Orange Island".
   - Rebranding the user-facing strings, documentation, and metadata.
   - Replacing upstream telemetry/update endpoints with placeholders.
+  - Workflow engine, visual editor, and automation subsystem (stage C–E):
+    an independent node-and-edge graph executor with trigger integration
+    (manual, schedule, intent, app-open, voice, API), live canvas, and
+    export/import support. Design and implementation are original to this
+    fork and not derived from upstream.
 
 Original copyright notice (preserved as required by the MIT License):
 

@@ -908,6 +908,7 @@
     <string name="export_category_memories">记忆</string>
     <string name="export_category_system_prompts">系统提示词</string>
     <string name="export_category_settings">设置</string>
+    <string name="export_category_workflows">工作流</string>
     <string name="export_category_api_keys">API 密钥</string>
     <string name="export_api_keys_warning">API 密钥将以明文形式导出。仅在信任目标位置时启用。</string>
     <string name="export_button">导出</string>
@@ -1088,4 +1089,30 @@
     <string name="proxy_password">密码(可选)</string>
     <string name="proxy_bypass">直连列表</string>
     <string name="proxy_bypass_desc">直接连接、不经过代理的主机和 CIDR 网段,每行一个</string>
+
+    <!-- Workflow -->
+    <string name="workflows_title">工作流</string>
+    <string name="workflows_add">新建工作流</string>
+    <string name="workflow_new_name">新建工作流</string>
+    <string name="workflows_empty_title">暂无工作流</string>
+    <string name="workflows_empty_desc">创建工作流以自动化任务</string>
+    <string name="workflow_run">运行</string>
+    <string name="workflow_logs">日志</string>
+    <string name="workflow_delete_title">删除工作流?</string>
+    <string name="workflow_delete_text">确定要删除"%1$s"吗?此操作无法撤销。</string>
+    <string name="workflow_editor_title">编辑工作流</string>
+    <string name="workflow_name_hint">名称</string>
+    <string name="workflow_description_hint">描述</string>
+    <string name="workflow_save">保存</string>
+    <string name="workflow_nodes">节点</string>
+    <string name="workflow_edges">边</string>
+    <string name="workflow_add_node">添加节点</string>
+    <string name="workflow_log_title">运行历史</string>
+    <string name="workflow_log_empty">尚无运行记录</string>
+    <string name="workflow_status_running">运行中</string>
+    <string name="workflow_status_success">成功</string>
+    <string name="workflow_status_failed">失败</string>
+    <string name="workflow_status_cancelled">已取消</string>
+    <string name="settings_workflows">工作流</string>
+    <string name="settings_workflows_desc">使用可视化工作流自动化任务</string>
 </resources>

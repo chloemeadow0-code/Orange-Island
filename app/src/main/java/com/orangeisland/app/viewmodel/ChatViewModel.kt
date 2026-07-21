@@ -83,6 +83,7 @@ class ChatViewModel(
     val autoBackupManager: AutoBackupManager,
     conversationRepository: ConversationRepository,
     settingsRepository: SettingsRepository,
+    private val workflowRepository: com.orangeisland.app.data.repository.WorkflowRepository? = null,
     private val pluginToolProvider: com.orangeisland.app.plugin.PluginToolProvider? = null,
     private val _pluginLoader: com.orangeisland.app.plugin.PluginLoader? = null,
     private val _pluginSandbox: com.orangeisland.app.plugin.PluginSandbox? = null
@@ -126,6 +127,7 @@ class ChatViewModel(
         chatDao = chatDao,
         settingsManager = settingsManager,
         memoryManager = memoryManager,
+        workflowRepository = workflowRepository,
         scope = viewModelScope,
         emitSnackbar = { _snackbarMessage.emit(it) },
         onDataChanged = { refreshDataCounts() },
@@ -578,6 +580,9 @@ class ChatViewModel(
 
     private val _systemPromptCount = MutableStateFlow(0)
     val systemPromptCount: StateFlow<Int> = _systemPromptCount.asStateFlow()
+
+    private val _workflowCount = MutableStateFlow(0)
+    val workflowCount: StateFlow<Int> = _workflowCount.asStateFlow()
 
     init {
         startInitJobs()
@@ -1274,6 +1279,9 @@ class ChatViewModel(
             _memoryCount.value = memoryManager.listFiles().size +
                 (if (memoryManager.getActiveMemory().isNotEmpty()) 1 else 0)
             _systemPromptCount.value = settings.getSystemPrompts().size
+            _workflowCount.value = workflowRepository?.let { repo ->
+                runCatching { kotlinx.coroutines.runBlocking { repo.getAll().size } }.getOrDefault(0)
+            } ?: 0
         }
     }
 

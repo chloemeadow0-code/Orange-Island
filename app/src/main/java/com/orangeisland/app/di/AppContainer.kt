@@ -82,7 +82,7 @@ class AppContainer(private val appContext: Context) {
     // ── Auto Backup ───────────────────────────────────────────
 
     val autoBackupManager: AutoBackupManager by lazy {
-        AutoBackupManager(appContext, settingsManager, chatDao, memoryManager)
+        AutoBackupManager(appContext, settingsManager, chatDao, memoryManager, workflowRepository)
     }
 
     // ── Workflow ──────────────────────────────────────────────
@@ -198,7 +198,7 @@ class AppContainer(private val appContext: Context) {
     fun chatViewModelFactory(): ChatViewModelFactory =
         ChatViewModelFactory(
             application, chatDao, settingsManager, memoryManager, appContext, sandboxManagerFactory,
-            autoBackupManager, conversationRepository, settingsRepository,
+            autoBackupManager, conversationRepository, settingsRepository, workflowRepository,
             pluginToolProvider, pluginLoader, pluginSandbox
         )
 }

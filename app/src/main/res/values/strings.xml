@@ -944,6 +944,7 @@
     <string name="export_category_memories">Memories</string>
     <string name="export_category_system_prompts">System Prompts</string>
     <string name="export_category_settings">Settings</string>
+    <string name="export_category_workflows">Workflows</string>
     <string name="export_category_api_keys">API Keys</string>
     <string name="export_api_keys_warning">API keys will be exported in plain text. Only enable if you trust the destination.</string>
     <string name="export_button">Export</string>

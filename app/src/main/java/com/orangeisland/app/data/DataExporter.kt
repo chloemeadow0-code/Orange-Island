@@ -22,14 +22,16 @@ class DataExporter(
     private val context: Context,
     private val chatDao: ChatDao,
     private val settingsManager: SettingsManager,
-    private val memoryManager: MemoryManager
+    private val memoryManager: MemoryManager,
+    private val workflowRepository: com.orangeisland.app.data.repository.WorkflowRepository? = null
 ) {
     enum class ExportCategory(val manifestKey: String) {
         CONVERSATIONS("conversations"),
         MEMORIES("memories"),
         SYSTEM_PROMPTS("system_prompts"),
         SETTINGS("settings"),
-        API_KEYS("api_keys");
+        API_KEYS("api_keys"),
+        WORKFLOWS("workflows");
 
         companion object {
             fun fromManifestKey(key: String): ExportCategory? =
@@ -392,6 +394,19 @@ class DataExporter(
                 zip.putNextEntry(ZipEntry("api_keys.json"))
                 Json.encodeToStream(keys, zip)
                 zip.closeEntry()
+                step()
+            }
+
+            // Workflows
+            if (ExportCategory.WORKFLOWS in categories) {
+                workflowRepository?.let { repo ->
+                    try {
+                        val workflows = repo.getAll()
+                        zip.putNextEntry(ZipEntry("workflows.json"))
+                        Json.encodeToStream(workflows, zip)
+                        zip.closeEntry()
+                    } catch (_: Exception) { /* skip on error */ }
+                }
                 step()
             }
 

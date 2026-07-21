@@ -8,8 +8,9 @@
 │  ChatApp → MessageList → MessageItem (+ RecomposeSafeMd)     │
 │          → ChatBottomBar (+ AdvancedSettingsDialog)           │
 │          → FullScreenMediaViewer / ZoomableImageItem          │
-│          → SettingsScreen (tabs → 22 sub-pages)               │
+│          → SettingsScreen (tabs → 23 sub-pages)               │
 │          → SettingsScaffold (collapsing large-title pattern)  │
+│          → WorkflowCanvas (drag + Bézier edges + live state)  │
 ├──────────────────────────────────────────────────────────────┤
 │  ViewModel Layer                                              │
 │  ChatViewModel (central orchestrator, ~2300 lines)            │
@@ -18,7 +19,8 @@
 │  ├─ TranscriptionManager (image→text for blind providers)     │
 │  ├─ RagManager (semantic/keyword search over messages)        │
 │  ├─ ImageProcessor (image decode, resize, compress, PDF)      │
-│  └─ delegate/SettingsDelegate (settings writes, ~700 lines)   │
+│  ├─ delegate/SettingsDelegate (settings writes, ~700 lines)   │
+│  └─ WorkflowViewModel (CRUD + trigger + live run state)       │
 ├──────────────────────────────────────────────────────────────┤
 │  Tool Layer (pluggable tool providers)                        │
 │  ToolProvider → Memory / WebSearch / RAG / Shell / ImageGen  │
@@ -77,10 +79,10 @@ AppContainer
 ├── settingsManager: SettingsManager
 ├── memoryManager: MemoryManager
 ├── secretCrypto: SecretCrypto
-├── database: ChatDatabase → chatDao: ChatDao
+├── database: ChatDatabase → chatDao: ChatDao / workflowDao
 ├── conversationRepository: ConversationRepository
 ├── settingsRepository: SettingsRepository
-├── memoryRepository: MemoryRepository
+├── workflowRepository: WorkflowRepository
 ├── autoBackupManager: AutoBackupManager
 ├── sandboxManagerFactory: SandboxManagerFactory
 └── chatViewModelFactory(): ChatViewModelFactory
@@ -140,6 +142,37 @@ Three tables at version 12, with 10 incremental migrations (v2→v3 through v11�
 | `dimension` | Int | Vector dimension |
 
 Unique constraint on `(messageId, modelId)`.
+
+#### `workflows` table (`WorkflowEntity`)
+
+| Column | Type | Purpose |
+|---|---|---|
+| `id` | String (PK) | UUID |
+| `name` | String | Display name |
+| `description` | String | User notes |
+| `graphJson` | String | Serialized `Workflow` (nodes + edges) |
+| `enabled` | Boolean | Whether the workflow can be triggered |
+| `createdAt` | Long | Creation timestamp |
+| `updatedAt` | Long | Last modification timestamp |
+| `lastRunAt` | Long? | Denormalized run stat |
+| `lastRunStatus` | String? | `RUNNING` / `SUCCESS` / `FAILED` / `CANCELLED` |
+| `totalRuns` | Int | Denormalized counter |
+| `successRuns` | Int | Denormalized counter |
+| `failedRuns` | Int | Denormalized counter |
+
+#### `workflow_runs` table (`WorkflowRunEntity`)
+
+| Column | Type | Purpose |
+|---|---|---|
+| `runId` | String (PK) | UUID |
+| `workflowId` | String (FK → workflows, CASCADE) | Parent workflow |
+| `workflowName` | String | Denormalized name at run time |
+| `startNodeId` | String? | Pinned start node (optional) |
+| `startedAt` | Long | Run start timestamp |
+| `finishedAt` | Long? | Run end timestamp |
+| `status` | String | `RUNNING` / `SUCCESS` / `FAILED` / `CANCELLED` |
+| `message` | String | Human-readable outcome |
+| `logsJson` | String? | Per-node log array (JSON) |
 
 **Migrations at a glance:**
 | Version | Change |
