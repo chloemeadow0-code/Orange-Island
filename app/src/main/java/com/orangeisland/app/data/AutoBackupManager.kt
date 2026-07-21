@@ -96,7 +96,7 @@ class AutoBackupManager(
             val file = File(dir, filename)
             val tmpFile = File(dir, "$filename.tmp")
 
-            val categoryKeys = settingsManager.autoBackupCategories.safeRead("conversations,memories,system_prompts,settings")
+            val categoryKeys = settingsManager.autoBackupCategories.safeRead("conversations,memories,system_prompts,settings,workflows")
                 .split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
 
             val categories = categoryKeys

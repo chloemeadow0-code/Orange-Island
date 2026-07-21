@@ -49,7 +49,30 @@ fun SettingsWorkflowPage(
                             viewModel.saveWorkflow(updated)
                             screen = "list"
                         },
-                        onBack = { screen = "list" }
+                        onBack = { screen = "list" },
+                        onOpenCanvas = {
+                            // Persist any in-flight edits before switching so the canvas sees them.
+                            screen = "canvas"
+                        }
+                    )
+                } else {
+                    LaunchedEffect(Unit) { screen = "list" }
+                }
+            }
+
+            "canvas" -> {
+                val workflow by viewModel.selectedWorkflow.collectAsState()
+                val nodeStates by viewModel.activeNodeStates.collectAsState()
+                val wf = workflow
+                if (wf != null && wf.id == editId) {
+                    WorkflowCanvasPage(
+                        workflow = wf,
+                        nodeStates = nodeStates,
+                        onSave = { updated ->
+                            viewModel.saveWorkflow(updated)
+                            screen = "edit"
+                        },
+                        onBack = { screen = "edit" }
                     )
                 } else {
                     LaunchedEffect(Unit) { screen = "list" }

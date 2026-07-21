@@ -25,7 +25,7 @@ import org.json.JSONObject
  * Security: declared in the manifest with `android:permission`, which requires senders to hold
  * [PERMISSION]. Because [PERMISSION] is `signature`-protected (defined in the same manifest), only
  * apps signed with the same key as Orange Island may send to it — so a malicious app cannot launch
- * a destructive workflow. This is the fix for the gap the Operit docs themselves call out.
+ * a destructive workflow. Only same-key apps may trigger this receiver.
  *
  * Independent implementation.
  */

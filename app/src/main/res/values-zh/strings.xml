@@ -1104,6 +1104,7 @@
     <string name="workflow_name_hint">名称</string>
     <string name="workflow_description_hint">描述</string>
     <string name="workflow_save">保存</string>
+    <string name="workflow_canvas">画布</string>
     <string name="workflow_nodes">节点</string>
     <string name="workflow_edges">边</string>
     <string name="workflow_add_node">添加节点</string>

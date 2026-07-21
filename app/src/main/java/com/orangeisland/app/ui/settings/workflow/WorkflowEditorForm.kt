@@ -38,7 +38,8 @@ import java.util.UUID
 fun WorkflowEditorForm(
     workflow: Workflow,
     onSave: (Workflow) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onOpenCanvas: (() -> Unit)? = null
 ) {
     var name by remember(workflow.id) { mutableStateOf(workflow.name) }
     var description by remember(workflow.id) { mutableStateOf(workflow.description) }
@@ -57,6 +58,11 @@ fun WorkflowEditorForm(
         title = stringResource(R.string.workflow_editor_title),
         onBack = onBack,
         actions = {
+            if (onOpenCanvas != null) {
+                IconButton(onClick = onOpenCanvas) {
+                    Icon(Icons.Default.AccountBox, contentDescription = stringResource(R.string.workflow_canvas))
+                }
+            }
             IconButton(onClick = {
                 if (name.isBlank()) {
                     nameError = true
