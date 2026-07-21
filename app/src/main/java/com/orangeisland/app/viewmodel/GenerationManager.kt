@@ -20,12 +20,6 @@ import com.orangeisland.app.service.AppForegroundTracker
 import com.orangeisland.app.api.util.projectAssistantImagesToLatestUserMessage
 import com.orangeisland.app.util.Constants
 import com.orangeisland.app.util.SearchResultFormatter
-import com.orangeisland.app.tool.ImageGenToolProvider
-import com.orangeisland.app.tool.MemoryToolProvider
-import com.orangeisland.app.tool.RagToolProvider
-import com.orangeisland.app.tool.ShellToolProvider
-import com.orangeisland.app.tool.ToolProvider
-import com.orangeisland.app.tool.WebSearchToolProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -167,63 +161,52 @@ class GenerationManager(
     private val pluginToolProvider: com.orangeisland.app.plugin.PluginToolProvider? = null,
     /** Permission state for the Device Access tools. Null during title generation
      *  (no device tools run there) — passed in for real chat from ChatViewModel. */
-    private val permissionController: com.orangeisland.app.viewmodel.PermissionController? = null
+    private val permissionController: com.orangeisland.app.viewmodel.PermissionController? = null,
+    /** Central tool dispatcher. Owns the 16 tool providers and routes execute() calls. When null
+     *  (legacy/title-generation path), a private dispatcher is constructed inline so this manager
+     *  keeps working standalone. Real chat receives the app-wide singleton from AppContainer. */
+    private val toolDispatcher: com.orangeisland.app.tool.ToolDispatcher? = null
 ) {
     var onMessagePersisted: ((messageId: String, text: String) -> Unit)? = null
+
+    /**
+     * Resolves the active dispatcher: the injected app-wide one when available, otherwise a private
+     * fallback wired with this manager's own dependencies (preserves the pre-refactor standalone
+     * behaviour used by title generation and other non-chat callers).
+     */
+    private val tools: com.orangeisland.app.tool.ToolDispatcher = toolDispatcher ?: buildStandaloneDispatcher()
+
+    private fun buildStandaloneDispatcher(): com.orangeisland.app.tool.ToolDispatcher =
+        com.orangeisland.app.tool.ToolDispatcher(
+            app = app,
+            conversations = conversations,
+            memoryManager = memoryManager,
+            llmProviders = providers,
+            appContext = context,
+            sandboxFactory = sandboxFactory,
+            mcpPool = mcpPool,
+            pluginToolProvider = pluginToolProvider,
+            permissionController = permissionController,
+        )
+
+    init {
+        // Forward the shell-confirmation gate to whichever dispatcher is in use. Read lazily inside
+        // the dispatcher's own forwarding closure, so updates to this var after construction land.
+        tools.onConfirmShellCommand = { server, summary -> onConfirmShellCommand?.invoke(server, summary) ?: true }
+    }
 
     /** User-confirmation gate for remote shell mutations. Set by the ViewModel.
      *  Returns true to proceed, false to deny. */
     var onConfirmShellCommand: (suspend (server: String, summary: String) -> Boolean)? = null
 
-    private val memoryToolProvider = MemoryToolProvider(memoryManager)
-    private val webSearchToolProvider = WebSearchToolProvider()
-    private val ragToolProvider = RagToolProvider(conversations)
-    private val imageGenToolProvider = ImageGenToolProvider(app)
-    private val deviceInfoToolProvider = com.orangeisland.app.tool.device.DeviceInfoToolProvider(app)
-    private val locationToolProvider = permissionController?.let {
-        com.orangeisland.app.tool.device.LocationToolProvider(app, it)
-    }
-    private val calendarToolProvider = permissionController?.let {
-        com.orangeisland.app.tool.device.CalendarToolProvider(app, it)
-    }
-    private val notificationToolProvider = permissionController?.let {
-        com.orangeisland.app.tool.device.NotificationToolProvider(app, it)
-    }
-    private val usageStatsToolProvider = permissionController?.let {
-        com.orangeisland.app.tool.device.UsageStatsToolProvider(app, it)
-    }
-    private val navigationToolProvider = com.orangeisland.app.tool.NavigationToolProvider(app)
-    private val appLockToolProvider = com.orangeisland.app.tool.AppLockToolProvider(app)
-    private val toastToolProvider = com.orangeisland.app.tool.ToastToolProvider(app)
-    private val automationToolProvider = com.orangeisland.app.tool.automation.AutomationToolProvider(providers)
-    private val shellToolProvider = ShellToolProvider(sandboxFactory).also { stp ->
-        // Forward to the ViewModel-provided gate at call time (read the var lazily).
-        stp.confirm = { server, summary -> onConfirmShellCommand?.invoke(server, summary) ?: true }
-    }
-    private val mcpToolProvider = mcpPool?.let { com.orangeisland.app.tool.McpToolProvider(it) }
-    private val toolProviders: List<ToolProvider> = buildList {
-        add(memoryToolProvider); add(webSearchToolProvider); add(ragToolProvider)
-        add(imageGenToolProvider); add(deviceInfoToolProvider); add(shellToolProvider)
-        locationToolProvider?.let { add(it) }
-        calendarToolProvider?.let { add(it) }
-        notificationToolProvider?.let { add(it) }
-        usageStatsToolProvider?.let { add(it) }
-        add(navigationToolProvider)
-        add(appLockToolProvider)
-        add(toastToolProvider)
-        add(automationToolProvider)
-        mcpToolProvider?.let { add(it) }
-        pluginToolProvider?.let { add(it) }
-    }
+    // The 16 tool providers and the dispatch list previously declared here now live in
+    // [com.orangeisland.app.tool.ToolDispatcher], exposed via [tools]. The per-category builders
+    // below delegate to it; direct execute() calls go through [executeTool].
 
     fun buildImageGenTool(ctx: GenerationContext): List<ToolDefinition> =
-        imageGenToolProvider.definitions(ctx)
+        tools.imageGenDefinitions(ctx)
 
     private val transcriptionManager = TranscriptionManager(providers, conversations, context)
-
-    companion object {
-        private val FILE_TOOL_NAMES = setOf("file_read", "file_write", "file_edit", "file_glob", "file_grep")
-    }
 
     private fun getProviderInstance(name: String): LlmProvider =
         providers[name] ?: providers.values.first()
@@ -237,80 +220,61 @@ class GenerationManager(
     ): List<String> = imageProcessor.processImagesAndVideos(uris, sliceConfigs)
 
     fun buildMemoryTools(ctx: GenerationContext): List<ToolDefinition> =
-        memoryToolProvider.definitions(ctx)
+        tools.memoryDefinitions(ctx)
 
     fun buildWebSearchTool(ctx: GenerationContext): List<ToolDefinition> =
-        webSearchToolProvider.definitions(ctx)
+        tools.webSearchDefinitions(ctx)
 
     fun buildRagTool(ctx: GenerationContext): List<ToolDefinition> =
-        ragToolProvider.definitions(ctx)
+        tools.ragDefinitions(ctx)
 
-    fun buildShellTool(ctx: GenerationContext): List<ToolDefinition> {
-        val all = shellToolProvider.definitions(ctx)
-        return all.filter { it.function.name !in FILE_TOOL_NAMES }
-    }
+    fun buildShellTool(ctx: GenerationContext): List<ToolDefinition> =
+        tools.shellDefinitions(ctx)
 
-    fun buildFileTool(ctx: GenerationContext): List<ToolDefinition> {
-        val all = shellToolProvider.definitions(ctx)
-        return all.filter { it.function.name in FILE_TOOL_NAMES }
-    }
+    fun buildFileTool(ctx: GenerationContext): List<ToolDefinition> =
+        tools.fileDefinitions(ctx)
 
     /** Tools exposed by active remote MCP servers. Empty when MCP is disabled or no servers
      *  are configured/active for this conversation. */
     fun buildMcpTools(ctx: GenerationContext): List<ToolDefinition> =
-        mcpToolProvider?.definitions(ctx) ?: emptyList()
+        tools.mcpDefinitions(ctx)
 
     /** Tools exposed by active JS plugins. Empty when no plugins are installed/active. */
     fun buildPluginTools(ctx: GenerationContext): List<ToolDefinition> =
-        pluginToolProvider?.definitions(ctx) ?: emptyList()
+        tools.pluginDefinitions(ctx)
 
     /** Navigation tools (open URL, open app, open settings, share text, list installed apps).
      *  Internally checks [GenerationContext.navigationEnabled]. */
     fun buildNavigationTools(ctx: GenerationContext): List<ToolDefinition> =
-        navigationToolProvider.definitions(ctx)
+        tools.navigationDefinitions(ctx)
 
     /** App Lock tools (set_pin, lock_app, unlock_app, list_locked_apps).
      *  Internally checks [GenerationContext.appLockEnabled]. */
     fun buildAppLockTools(ctx: GenerationContext): List<ToolDefinition> =
-        appLockToolProvider.definitions(ctx)
+        tools.appLockDefinitions(ctx)
 
     /** Toast tool (show_toast). Internally checks [GenerationContext.toastEnabled]. */
     fun buildToastTools(ctx: GenerationContext): List<ToolDefinition> =
-        toastToolProvider.definitions(ctx)
+        tools.toastDefinitions(ctx)
 
     /** UI automation tools (ui_tap/ui_swipe/ui_scroll/ui_global_action/ui_inspect).
      *  Internally checks [GenerationContext.uiAutomationEnabled]. */
     fun buildAutomationTools(ctx: GenerationContext): List<ToolDefinition> =
-        automationToolProvider.definitions(ctx)
+        tools.automationDefinitions(ctx)
 
     /** Device access tools (battery, location, calendar, notifications, usage stats).
      *  Each provider internally checks its own enable flag in [GenerationContext]. */
-    fun buildDeviceTools(ctx: GenerationContext): List<ToolDefinition> = buildList {
-        addAll(deviceInfoToolProvider.definitions(ctx))
-        locationToolProvider?.let { addAll(it.definitions(ctx)) }
-        calendarToolProvider?.let { addAll(it.definitions(ctx)) }
-        notificationToolProvider?.let { addAll(it.definitions(ctx)) }
-        usageStatsToolProvider?.let { addAll(it.definitions(ctx)) }
-    }
+    fun buildDeviceTools(ctx: GenerationContext): List<ToolDefinition> =
+        tools.deviceDefinitions(ctx)
 
-    /** Semantic message search — delegates to [RagToolProvider], which owns the
+    /** Semantic message search — delegates to the RAG provider via [tools], which owns the
      *  embedding-search logic. Kept here as the entry point used by ChatViewModel's
      *  in-app conversation search. */
     suspend fun semanticSearch(query: String, limit: Int, ctx: GenerationContext): List<Pair<MessageEntity, Float>> =
-        ragToolProvider.semanticSearch(query, limit, ctx)
+        tools.semanticSearch(query, limit, ctx)
 
-    private suspend fun executeTool(name: String, arguments: String, ctx: GenerationContext): String {
-        return try {
-            for (provider in toolProviders) {
-                if (provider.handles(name)) {
-                    return provider.execute(name, arguments, ctx)
-                }
-            }
-            "Unknown tool: $name"
-        } catch (e: Exception) {
-            "Error executing tool '$name': ${e.localizedMessage ?: "Unknown error"}"
-        }
-    }
+    private suspend fun executeTool(name: String, arguments: String, ctx: GenerationContext): String =
+        tools.execute(name, arguments, ctx)
 
     private fun applyUserTemplate(messages: List<ChatMessage>, prepend: String?, postpend: String?): List<ChatMessage> {
         return applyUserTemplateToMessages(messages, prepend, postpend)
@@ -581,7 +545,7 @@ class GenerationManager(
             if (currentStatus != MessageStatus.ERROR) {
             // Re-scan the plugins directory so freshly-installed/uninstalled plugins are visible
             // to this turn without an app restart. Cheap: reads manifest.json files only.
-            pluginToolProvider?.refreshPluginList()
+            tools.refreshPlugins()
             val (currentPath, rawProviderConfig) = buildApiPath(parentId, conversationId, isRegenerate, replaceMessageId, config, ctx, cancellationToken)
             val providerConfig = if (transcriptionPerformed) rawProviderConfig.copy(includeImages = false) else rawProviderConfig
 
@@ -696,7 +660,7 @@ class GenerationManager(
                         onStreamUpdate(modelMessage())
                         lastEmitMs = System.currentTimeMillis()
                         val result = executeTool(event.name, event.arguments, ctx)
-                        generatedImages.addAll(imageGenToolProvider.drainImages())
+                        generatedImages.addAll(tools.drainGeneratedImages())
                         val clipped = result.take(Constants.MAX_TOOL_RESULT_LENGTH)
                         val idx = segments.indexOfLast { it.toolCallId == event.id }
                         if (idx >= 0) {
@@ -721,7 +685,7 @@ class GenerationManager(
                         lastEmitMs = System.currentTimeMillis()
                         val tcds = event.calls.map { call ->
                             val result = executeTool(call.name, call.arguments, ctx)
-                            generatedImages.addAll(imageGenToolProvider.drainImages())
+                            generatedImages.addAll(tools.drainGeneratedImages())
                             val clipped = result.take(Constants.MAX_TOOL_RESULT_LENGTH)
                             val idx = segments.indexOfLast { it.toolCallId == call.id }
                             if (idx >= 0) {
