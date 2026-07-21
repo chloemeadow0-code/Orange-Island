@@ -272,15 +272,16 @@ interface ChatDao {
 }
 
 @Database(
-    entities = [ChatEntity::class, MessageEntity::class, EmbeddingEntity::class, ProjectEntity::class],
+    entities = [ChatEntity::class, MessageEntity::class, EmbeddingEntity::class, ProjectEntity::class, WorkflowEntity::class, WorkflowRunEntity::class],
     version = ChatDatabase.CURRENT_VERSION,
     exportSchema = true
 )@TypeConverters(MessageConverters::class)
 abstract class ChatDatabase : RoomDatabase() {
     abstract fun chatDao(): ChatDao
+    abstract fun workflowDao(): WorkflowDao
 
     companion object {
-        const val CURRENT_VERSION = 13
+        const val CURRENT_VERSION = 14
         const val DB_NAME = "orangeisland_db"
 
         val ALL_MIGRATIONS = listOf(
@@ -368,6 +369,45 @@ abstract class ChatDatabase : RoomDatabase() {
                     """.trimIndent())
                     // null = ungrouped (the default for every pre-existing conversation).
                     db.execSQL("ALTER TABLE conversations ADD COLUMN projectId TEXT")
+                }
+            },
+            object : Migration(13, 14) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // New workflows + workflow_runs tables for the Workflow feature.
+                    // The graph (nodes + edges) is stored as a JSON blob in graphJson; see
+                    // [WorkflowEntity] for the rationale. Column types/NOT NULL mirror what Room
+                    // generates from the @Entity data classes so the schema hash matches.
+                    db.execSQL("""
+                        CREATE TABLE IF NOT EXISTS workflows (
+                            id TEXT NOT NULL PRIMARY KEY,
+                            name TEXT NOT NULL,
+                            description TEXT NOT NULL,
+                            graphJson TEXT NOT NULL,
+                            enabled INTEGER NOT NULL,
+                            createdAt INTEGER NOT NULL,
+                            updatedAt INTEGER NOT NULL,
+                            lastRunAt INTEGER,
+                            lastRunStatus TEXT,
+                            totalRuns INTEGER NOT NULL,
+                            successRuns INTEGER NOT NULL,
+                            failedRuns INTEGER NOT NULL
+                        )
+                    """.trimIndent())
+                    db.execSQL("""
+                        CREATE TABLE IF NOT EXISTS workflow_runs (
+                            runId TEXT NOT NULL PRIMARY KEY,
+                            workflowId TEXT NOT NULL,
+                            workflowName TEXT NOT NULL,
+                            startNodeId TEXT,
+                            startedAt INTEGER NOT NULL,
+                            finishedAt INTEGER,
+                            status TEXT NOT NULL,
+                            message TEXT NOT NULL,
+                            logsJson TEXT,
+                            FOREIGN KEY(workflowId) REFERENCES workflows(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                        )
+                    """.trimIndent())
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_workflow_runs_workflowId ON workflow_runs(workflowId)")
                 }
             }
         )
