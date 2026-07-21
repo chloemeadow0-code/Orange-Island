@@ -13,7 +13,7 @@ import org.junit.Test
 class MemoryToolProviderTest {
 
     private val memoryManager = mockk<MemoryManager> {
-        every { listFiles() } returns listOf(
+        every { listFilesMerged(any()) } returns listOf(
             MemoryManager.MemoryFileInfo("notes.md", "My notes"),
             MemoryManager.MemoryFileInfo("data.json", "JSON data")
         )
