@@ -86,6 +86,11 @@ class WorkflowRepository(
         dao.setEnabled(id, enabled, System.currentTimeMillis())
     }
 
+    /** Cheap mode probe ("graph" | "linear" | null) ¡ª lets the runner dispatch without decoding. */
+    suspend fun modeOf(id: String): String? = withContext(Dispatchers.IO) {
+        dao.getWorkflow(id)?.mode
+    }
+
     /** All workflows whose [Workflow.enabled] is true â€?used by the scheduler on app start. */
     suspend fun getEnabled(): List<Workflow> = withContext(Dispatchers.IO) {
         dao.getEnabledWorkflows().map { toModel(it) }

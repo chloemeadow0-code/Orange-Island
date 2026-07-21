@@ -56,11 +56,22 @@ class WorkflowGuard(
      * Cooperative cancellation is also honoured: if the run's coroutine was cancelled, this
      * throws CancellationException rather than returning, so the engine's normal cancel path fires.
      */
-    suspend fun preflight(node: ActionNode, resolvedArgs: String): Verdict {
+    suspend fun preflight(node: ActionNode, resolvedArgs: String): Verdict =
+        preflightTool(node.toolName, resolvedArgs)
+
+    /**
+     * Linear-mode preflight. Same checks as [preflight] but takes a
+     * [com.orangeisland.app.model.LinearAction] directly (the linear engine doesn't deal in
+     * [ActionNode]s). The args payload is the action's JSON args object serialised by the caller.
+     */
+    suspend fun preflightForLinear(action: com.orangeisland.app.model.LinearAction): Verdict =
+        preflightTool(action.tool, action.args.toString())
+
+    /** Shared core of both preflight entry points. */
+    private suspend fun preflightTool(tool: String, resolvedArgs: String): Verdict {
         currentCoroutineContext().ensureActive()
         checkBudget()
 
-        val tool = node.toolName
         if (backgroundMode && backgroundSafeOnly && tool !in BACKGROUND_SAFE_TOOLS) {
             return Verdict.Deny("Tool '$tool' is not allowed in background-triggered workflows")
         }

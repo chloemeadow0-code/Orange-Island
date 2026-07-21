@@ -8,6 +8,8 @@ import com.orangeisland.app.model.TriggerSpec
 import com.orangeisland.app.model.Workflow
 import com.orangeisland.app.tool.ToolDispatcher
 import com.orangeisland.app.viewmodel.GenerationContext
+import com.orangeisland.app.workflow.linear.DeviceContextProvider
+import com.orangeisland.app.workflow.linear.LinearEngine
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -38,6 +40,7 @@ class WorkflowRunner(
     private val dispatcher: ToolDispatcher,
     private val settings: SettingsManager,
     private val json: Json,
+    private val contextProvider: com.orangeisland.app.workflow.linear.DeviceContextProvider,
     private val onConfirmDestructive: (suspend (toolName: String, args: String) -> Boolean)? = null,
     private val onNodeState: ((String, NodeState) -> Unit)? = null
 ) {
@@ -57,6 +60,13 @@ class WorkflowRunner(
         startNodeId: String? = null,
         triggerPayload: String = "{}"
     ): RunResult {
+        // Dispatch by stored mode: linear workflows go through LinearEngine, graph workflows
+        // through the original WorkflowEngine. A missing row is handled below.
+        val storedMode = repository.modeOf(workflowId)
+        if (storedMode == "linear") {
+            return runLinear(workflowId, mode)
+        }
+
         val workflow = repository.get(workflowId)
             ?: return failedResult(workflowId, "Workflow not found: $workflowId")
         if (!workflow.enabled) {
@@ -89,6 +99,38 @@ class WorkflowRunner(
         val logsJson = runCatching { json.encodeToString(result.logs) }.getOrNull()
         repository.recordRunEnd(runId, status, result.message, logsJson)
         return result
+    }
+
+    /** Linear-mode dispatch. Builds the same guard/context the graph path uses, then hands the
+     *  cooldown/cap/condition/action flow to [LinearEngine]. */
+    private suspend fun runLinear(workflowId: String, mode: Mode): RunResult {
+        val def = repository.getLinear(workflowId)
+            ?: return failedResult(workflowId, "Linear workflow not found: $workflowId")
+        if (!def.enabled) {
+            recordQuick(workflowId, RunStatus.FAILED, "Workflow is disabled")
+            return failedResult(workflowId, "Workflow is disabled")
+        }
+        val runId = repository.recordLinearRunStart(workflowId)
+        val startedAt = System.currentTimeMillis()
+        val guard = buildGuard(mode, startedAt)
+        val ctx = buildContext(mode)
+        val linearEngine = LinearEngine(
+            repository = repository,
+            contextProvider = { contextProvider.snapshot() },
+            toolRunner = LinearEngine.ToolRunner { action -> dispatcher.execute(action.tool, action.args.toString(), ctx) },
+            guard = guard,
+            runId = runId
+        )
+        val outcome = linearEngine.fire(workflowId)
+        return RunResult(
+            workflowId = workflowId, runId = runId,
+            success = outcome.status == com.orangeisland.app.model.LinearFireStatus.SUCCESS,
+            message = outcome.message,
+            startedAt = startedAt, finishedAt = System.currentTimeMillis(),
+            states = emptyMap(), logs = emptyList()
+        )
+        // Note: recordLinearRunEnd already ran inside LinearEngine.fire(), so unlike the graph
+        // path we must NOT call repository.recordRunEnd here — that would double-count the run.
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

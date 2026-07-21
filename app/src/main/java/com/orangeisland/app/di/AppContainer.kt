@@ -117,9 +117,17 @@ class AppContainer(private val appContext: Context) {
         dispatcher = toolDispatcher,
         settings = settingsManager,
         json = workflowJson,
+        contextProvider = deviceContextProvider,
         onConfirmDestructive = onConfirmDestructive,
         onNodeState = onNodeState
     )
+
+    /** App-wide device-state snapshot provider for the linear engine. The foreground-app field is
+     *  wired in stage F4 (when the automation accessibility service gains a foreground dispatcher);
+     *  until then it returns null and foreground conditions fail open. */
+    val deviceContextProvider: com.orangeisland.app.workflow.linear.DeviceContextProvider by lazy {
+        com.orangeisland.app.workflow.linear.DeviceContextProvider(appContext)
+    }
 
     /**
      * Lazily-constructed app-wide [com.orangeisland.app.tool.ToolDispatcher]. Unlike the chat path

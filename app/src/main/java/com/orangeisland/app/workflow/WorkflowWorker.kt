@@ -61,7 +61,8 @@ class WorkflowWorker(
             pluginToolProvider = null,
             permissionController = null
         )
-        val runner = WorkflowRunner(repository, dispatcher, settings, json)
+        val runner = WorkflowRunner(repository, dispatcher, settings, json,
+            contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(appContext))
 
         return try {
             val result = runner.run(

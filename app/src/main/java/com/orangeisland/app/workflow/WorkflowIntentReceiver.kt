@@ -104,7 +104,8 @@ class WorkflowIntentReceiver : BroadcastReceiver() {
             pluginToolProvider = null,
             permissionController = null
         )
-        return WorkflowRunner(repository, dispatcher, settings, json)
+        return WorkflowRunner(repository, dispatcher, settings, json,
+            contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(appContext))
     }
 
     /** Flatten intent extras into a JSON object string the start node can hand to downstream. */
