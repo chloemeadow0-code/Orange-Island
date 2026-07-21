@@ -141,12 +141,19 @@ class AppContainer(private val appContext: Context) {
      * provider registry should be lifted to AppContainer and passed in.
      */
     val workflowAiToolProvider: com.orangeisland.app.workflow.WorkflowAiToolProvider by lazy {
-        // The runnerProvider lambda is stored, not invoked, at construction — it only runs when the
-        // model actually calls workflow_run, by which point toolDispatcher below has finished
-        // initializing. This breaks what would otherwise be a constructor cycle.
+        // The runnerProvider / knownToolNames lambdas are stored, not invoked, at construction —
+        // they only run when the model actually calls a workflow tool, by which point
+        // toolDispatcher below has finished initializing. This breaks what would otherwise be a
+        // constructor cycle (toolDispatcher -> workflowAiToolProvider -> toolDispatcher).
         com.orangeisland.app.workflow.WorkflowAiToolProvider(
             repository = workflowRepository,
-            runnerProvider = { workflowRunner() }
+            runnerProvider = { workflowRunner() },
+            knownToolNames = {
+                // Resolve lazily so newly-installed plugins / freshly-connected MCP servers are seen.
+                toolDispatcher.allDefinitions(com.orangeisland.app.viewmodel.GenerationContext())
+                    .map { it.function.name }.toSet()
+            },
+            approval = null   // foreground approval card is wired in stage F5 (UI layer)
         )
     }
 
