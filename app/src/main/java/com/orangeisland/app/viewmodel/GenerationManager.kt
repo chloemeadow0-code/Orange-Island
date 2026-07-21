@@ -707,8 +707,8 @@ class GenerationManager(
                         if (toolCallData == null) toolCallData = tcd
                         toolCallDataList = toolCallDataList + tcd
                         currentStatus = MessageStatus.SENDING
-                        onStreamUpdate(modelMessage())
-                        lastEmitMs = System.currentTimeMillis()
+                        // 不再无条件立即刷新——交给外层统一的节流判断（后面 500ms 内的下一次
+                        // handleStreamEvent 会自然带出这次状态变化，不会丢失，只是不单独抢跑）
                     }
                     is StreamEvent.ToolCallsRequest -> {
                         flushAnswerSegment()
@@ -733,8 +733,7 @@ class GenerationManager(
                         toolCallData = tcds.firstOrNull()
                         toolCallDataList = tcds
                         currentStatus = MessageStatus.SENDING
-                        onStreamUpdate(modelMessage())
-                        lastEmitMs = System.currentTimeMillis()
+                        // 不再无条件立即刷新——交给外层统一的节流判断
                     }
                 }
 

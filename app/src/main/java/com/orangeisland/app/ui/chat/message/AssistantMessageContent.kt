@@ -361,10 +361,11 @@ internal fun AssistantMessageContent(
                         targetValue = if (isThoughtExpanded) 12.dp else 4.dp,
                         animationSpec = tween(500), label = "mergedPad"
                     )
+                    val reasoningBaseColor = customReasoningPanelColor?.let { ColorMath.argbToColor(it) }
+                        ?: MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
                     Surface(
                         tonalElevation = 2.dp,
-                        color = (customReasoningPanelColor?.let { ColorMath.argbToColor(it) } ?: MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp))
-                            .copy(alpha = reasoningPanelAlpha),
+                        color = reasoningBaseColor,
                         shape = RoundedCornerShape(18.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -383,7 +384,7 @@ internal fun AssistantMessageContent(
                                 Box(
                                     modifier = Modifier
                                         .matchParentSize()
-                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+                                        .background(reasoningBaseColor.copy(alpha = reasoningPanelAlpha))
                                 )
                             }
                             Column {

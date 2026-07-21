@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,6 +32,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -239,6 +242,7 @@ internal fun ProjectSettingsScreen(
     initialPromptId: String?,
     availableModels: List<Pair<String, String>>,
     promptList: List<Pair<String, String>>,
+    promptPreviewContent: Map<String, String> = emptyMap(),
     globalDefaultPromptTitle: String,
     globalDefaultModelTitle: String,
     memoryFiles: List<com.orangeisland.app.data.MemoryManager.MemoryFileInfo>,
@@ -697,8 +701,10 @@ private fun ProjectPickerColumn(
     options: List<Pair<String, String>>,
     selectedId: String?,
     nullLabel: String,
-    onSelect: (String?) -> Unit
+    onSelect: (String?) -> Unit,
+    previewContent: Map<String, String>? = null
 ) {
+    var previewingId by remember { mutableStateOf<String?>(null) }
     Column {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -715,8 +721,40 @@ private fun ProjectPickerColumn(
             ) {
                 RadioButton(selected = selectedId == id, onClick = { onSelect(id) })
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(title, maxLines = 1)
+                Text(title, maxLines = 1, modifier = Modifier.weight(1f))
+                if (previewContent != null) {
+                    IconButton(
+                        onClick = { previewingId = id },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(Icons.Default.Visibility, contentDescription = stringResource(R.string.project_prompt_preview), modifier = Modifier.size(16.dp))
+                    }
+                }
             }
+        }
+    }
+    if (previewContent != null) {
+        previewingId?.let { id ->
+            val title = options.find { it.first == id }?.second ?: ""
+            AlertDialog(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                onDismissRequest = { previewingId = null },
+                title = { Text(title, fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(modifier = Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
+                        SelectionContainer {
+                            Text(
+                                previewContent[id]?.ifBlank { stringResource(R.string.project_prompt_preview_empty) }
+                                    ?: stringResource(R.string.project_prompt_preview_empty),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { previewingId = null }) { Text(stringResource(R.string.ok)) }
+                }
+            )
         }
     }
 }

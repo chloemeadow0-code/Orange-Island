@@ -196,6 +196,8 @@
     <string name="project_recent_conversations">最近对话</string>
     <string name="project_memory_card_title">项目记忆</string>
     <string name="project_prompt_card_title">默认指令</string>
+    <string name="project_prompt_preview">Preview prompt</string>
+    <string name="project_prompt_preview_empty">Empty prompt</string>
     <string name="project_files_count">%1$d 条文件</string>
     <string name="project_conversations_count">%1$d 个对话</string>
     <string name="project_exit">退出项目</string>
@@ -501,6 +503,18 @@
     <string name="mcp_name_taken">A server with this name already exists</string>
     <string name="mcp_conversation_select">MCP servers</string>
     <string name="mcp_conversation_inherit">Use globally enabled servers</string>
+    <string name="mcp_tools_tab">Tools</string>
+    <string name="mcp_basic_tab">Basic</string>
+    <string name="mcp_tools_empty">No tools found. The server may not expose tools, the connection failed, or the config hasn\'t been saved yet.</string>
+    <string name="mcp_tools_loading">Fetching tool list…</string>
+    <string name="mcp_tools_refresh">Refresh</string>
+    <string name="mcp_header_name_hint">Name</string>
+    <string name="mcp_header_value_hint">Value</string>
+    <string name="mcp_add_header">Add Header</string>
+    <string name="mcp_headers_example">Example: Name = Authorization, Value = Bearer sk-xxx</string>
+    <string name="mcp_delete_server">Delete Server</string>
+    <string name="mcp_new_server_title">New MCP Server</string>
+    <string name="mcp_tool_toggle_hint">Disabling a tool removes its description from the prompt sent to the model, saving tokens per turn</string>
 
     <!-- Settings - Plugins Page -->
     <string name="plugin_title">Plugins</string>

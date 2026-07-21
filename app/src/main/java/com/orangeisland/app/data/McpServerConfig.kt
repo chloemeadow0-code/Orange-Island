@@ -24,6 +24,9 @@ data class McpServerConfig(
      *  Stored encrypted because headers commonly carry bearer tokens. */
     val headersJson: String = "{}",
     val enabled: Boolean = true,
+    /** 被用户手动关闭的工具名（原始 MCP 工具名，不是打包后的 apiName）。
+     *  这些工具不会出现在发给模型的工具定义列表里，用来控制 token 消耗。 */
+    val disabledToolNames: Set<String> = emptySet(),
 ) {
     companion object {
         const val TRANSPORT_STREAMABLE = "streamable"

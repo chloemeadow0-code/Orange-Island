@@ -3,6 +3,7 @@ package com.orangeisland.app.mcp
 import com.orangeisland.app.data.McpServerConfig
 import com.orangeisland.app.util.DebugLog
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.sse.SSE
 import io.ktor.client.request.headers
 import io.modelcontextprotocol.kotlin.sdk.client.Client
@@ -91,19 +92,20 @@ class McpClientPool(
     private suspend fun connectFresh(config: McpServerConfig): ConnectedServer {
         // One HttpClient per connection — SSE state is connection-scoped. CIO is a pure-Kotlin
         // engine (no JNI) so it's safe on Android minSdk 24+.
-        val httpClient = HttpClient {
+        val httpClient = HttpClient(OkHttp) {
             install(SSE)
         }
         val customHeaders = parseHeaders(config)
+        val normalizedUrl = normalizeUrlHost(config.url)
         val transport = when (config.transport) {
             McpServerConfig.TRANSPORT_STREAMABLE -> StreamableHttpClientTransport(
                 client = httpClient,
-                url = config.url,
+                url = normalizedUrl,
                 requestBuilder = { applyCustomHeaders(customHeaders) },
             )
             McpServerConfig.TRANSPORT_SSE -> SseClientTransport(
                 client = httpClient,
-                urlString = config.url,
+                urlString = normalizedUrl,
                 requestBuilder = { applyCustomHeaders(customHeaders) },
             )
             else -> throw IllegalArgumentException("Unknown MCP transport: ${config.transport}")
@@ -112,6 +114,29 @@ class McpClientPool(
         client.connect(transport)
         DebugLog.w(TAG, "Connected to MCP server '${config.name}' (${config.transport} @ ${config.url})")
         return ConnectedServer(client = client, config = config)
+    }
+
+    /**
+     * 把 URL 里的域名部分转换成 Punycode（ASCII 兼容编码），修复中文等非 ASCII
+     * 域名（IDN）在部分底层网络库里不会自动转换、导致 DNS 查询/连接失败的问题。
+     * 浏览器会自动做这层转换，但 HTTP 客户端库不一定会，所以在这里显式处理，
+     * 保证发出去的请求用的是 DNS 真正认识的格式。转换失败时静默回退到原始 URL，
+     * 不影响本来就是纯 ASCII 域名的正常场景。
+     */
+    private fun normalizeUrlHost(url: String): String {
+        return try {
+            val uri = java.net.URI(url)
+            val host = uri.host ?: return url
+            val asciiHost = java.net.IDN.toASCII(host)
+            if (asciiHost == host) return url
+            java.net.URI(
+                uri.scheme, uri.userInfo, asciiHost, uri.port,
+                uri.path, uri.query, uri.fragment
+            ).toString()
+        } catch (e: Exception) {
+            DebugLog.w(TAG, "Failed to normalize MCP server URL host: ${e.message}")
+            url
+        }
     }
 
     /** Parses [McpServerConfig.headersJson] into a flat header map. Unknown shapes yield an empty map. */

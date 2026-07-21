@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
 import com.orangeisland.app.data.InstalledPlugin
@@ -226,52 +227,70 @@ private fun PluginRow(
     onOpenUi: (() -> Unit)? = null,
     onConfigure: (() -> Unit)? = null,
 ) {
-    SettingsItem(
-        headlineContent = {
-            Text(
-                plugin.manifest.name.ifBlank { plugin.id },
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
+            Icon(
+                Icons.Default.Extension,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 2.dp)
             )
-        },
-        supportingContent = {
-            Column {
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    plugin.manifest.name.ifBlank { plugin.id },
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 if (plugin.manifest.description.isNotBlank()) {
-                    Text(plugin.manifest.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                }
-                Spacer(Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.plugin_version, plugin.manifest.version), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (plugin.manifest.author.isNotBlank()) {
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.plugin_author, plugin.manifest.author), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.plugin_tools_count, plugin.manifest.tools.size), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        plugin.manifest.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
-        },
-        leadingContent = { Icon(Icons.Default.Extension, null, tint = MaterialTheme.colorScheme.primary) },
-        trailingContent = {
+            Spacer(Modifier.width(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (onConfigure != null) {
-                    IconButton(onClick = onConfigure) {
+                    IconButton(onClick = onConfigure, modifier = Modifier.size(36.dp)) {
                         Icon(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Spacer(Modifier.width(2.dp))
                 }
                 if (onOpenUi != null) {
-                    IconButton(onClick = onOpenUi) {
+                    IconButton(onClick = onOpenUi, modifier = Modifier.size(36.dp)) {
                         Icon(Icons.Default.Web, null, tint = MaterialTheme.colorScheme.primary)
                     }
-                    Spacer(Modifier.width(2.dp))
                 }
                 Switch(checked = plugin.enabled, onCheckedChange = onToggle)
-                Spacer(Modifier.width(4.dp))
-                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
-        },
-    )
+        }
+        Spacer(Modifier.height(6.dp))
+        val metaParts = buildList {
+            add(stringResource(R.string.plugin_version, plugin.manifest.version))
+            if (plugin.manifest.author.isNotBlank()) {
+                add(stringResource(R.string.plugin_author, plugin.manifest.author))
+            }
+            add(stringResource(R.string.plugin_tools_count, plugin.manifest.tools.size))
+        }
+        Text(
+            metaParts.joinToString("  ·  "),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.End,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }

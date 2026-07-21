@@ -957,6 +957,18 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * Fetches the tool list for [config]. listTools() internally swallows connection
+     * errors and returns an empty list on failure (by design, so a broken MCP server
+     * doesn't abort a whole chat turn) — so an empty result here can mean either
+     * "genuinely no tools" or "couldn't connect"; the UI shows a generic message
+     * covering both cases.
+     */
+    suspend fun fetchMcpTools(config: com.orangeisland.app.data.McpServerConfig):
+        List<io.modelcontextprotocol.kotlin.sdk.types.Tool> = withContext(Dispatchers.IO) {
+        mcpClientPool.listTools(config)
+    }
+
     fun createNewChat() {
         switchingJob?.cancel()
         // Snapshot the active project once, when first entering new-chat mode. Subsequent

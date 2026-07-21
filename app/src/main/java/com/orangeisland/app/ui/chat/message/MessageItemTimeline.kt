@@ -294,10 +294,11 @@ private fun CompactSegmentBlock(
         label = "compactSegmentPad"
     )
 
+    val reasoningBaseColor = customReasoningPanelColor?.let { ColorMath.argbToColor(it) }
+        ?: MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
     Surface(
         tonalElevation = 2.dp,
-        color = customReasoningPanelColor?.let { ColorMath.argbToColor(it) }?.copy(alpha = reasoningPanelAlpha)
-            ?: MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = reasoningPanelAlpha),
+        color = reasoningBaseColor,
         shape = RoundedCornerShape(18.dp),
         modifier = modifier
             .fillMaxWidth()
@@ -316,7 +317,7 @@ private fun CompactSegmentBlock(
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+                        .background(reasoningBaseColor.copy(alpha = reasoningPanelAlpha))
                 )
             }
             Column {
@@ -603,10 +604,11 @@ private fun TimelineInfoSegmentCard(
     reasoningPanelAlpha: Float = 1f,
     reasoningBackgroundImagePath: String = "",
 ) {
+    val reasoningBaseColor = customReasoningPanelColor?.let { ColorMath.argbToColor(it) }
+        ?: MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
     Surface(
         tonalElevation = 2.dp,
-        color = customReasoningPanelColor?.let { ColorMath.argbToColor(it) }?.copy(alpha = reasoningPanelAlpha)
-            ?: MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = reasoningPanelAlpha),
+        color = reasoningBaseColor,
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -626,7 +628,7 @@ private fun TimelineInfoSegmentCard(
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+                        .background(reasoningBaseColor.copy(alpha = reasoningPanelAlpha))
                 )
             }
             Row(

@@ -147,6 +147,7 @@ class McpToolProvider(
                     emptyList()
                 }
                 for (tool in tools) {
+                    if (tool.name in server.disabledToolNames) continue
                     val apiName = allocateApiName(server.name, tool.name, used)
                     originalToolNames[apiName] = tool.name
                     all += tool.toToolDefinition(serverName = server.name, apiName = apiName)

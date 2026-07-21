@@ -291,12 +291,13 @@ internal fun SegmentDetailSheet(
                             }
                         }
                 ) {
+                val reasoningBaseColor = customReasoningPanelColor?.let { ColorMath.argbToColor(it) }
+                    ?: MaterialTheme.colorScheme.surfaceContainer
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
                     shadowElevation = 8.dp,
-                    color = customReasoningPanelColor?.let { ColorMath.argbToColor(it) }?.copy(alpha = reasoningPanelAlpha)
-                        ?: MaterialTheme.colorScheme.surfaceContainer.copy(alpha = reasoningPanelAlpha)
+                    color = reasoningBaseColor
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         if (reasoningBackgroundImagePath.isNotBlank()) {
@@ -309,7 +310,7 @@ internal fun SegmentDetailSheet(
                             Box(
                                 modifier = Modifier
                                     .matchParentSize()
-                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+                                    .background(reasoningBaseColor.copy(alpha = reasoningPanelAlpha))
                             )
                         }
                         Column(modifier = Modifier.fillMaxSize()) {
