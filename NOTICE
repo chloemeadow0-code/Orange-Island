@@ -15,6 +15,20 @@ Modifications made in this fork include, but are not limited to:
     (manual, schedule, intent, app-open, voice, API), live canvas, and
     export/import support. Design and implementation are original to this
     fork and not derived from upstream.
+  - Workflow v2 — AI-authored linear workflows (stage F1–F6): a trigger →
+    conditions → actions model that an LLM generates, a strict parser, a
+    cooldown / daily-cap / condition-gated execution engine, a trigger-family
+    registry covering 19 trigger kinds (manual, schedule, WiFi/power/
+    headphones/screen/battery/Bluetooth broadcasts, geofence via Play
+    Services GeofencingClient, app-foreground via accessibility events,
+    notification-listener, boot), an AI-authoring tool surface gated by a
+    user-approval card, and an AI-first UI (read-only detail card, list with
+    trigger-summary badges, "How do workflows work?" onboarding).
+    The general automation idea (trigger taxonomy, AI generation of a linear
+    definition, approval-card UX) was informed by open-source automation
+    projects; all class names, sealed-subclass names, field shapes, and
+    implementation code in this fork are original and written from scratch,
+    with no code copied from any third-party project.
 
 Original copyright notice (preserved as required by the MIT License):
 

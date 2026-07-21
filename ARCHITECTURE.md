@@ -159,6 +159,11 @@ Unique constraint on `(messageId, modelId)`.
 | `totalRuns` | Int | Denormalized counter |
 | `successRuns` | Int | Denormalized counter |
 | `failedRuns` | Int | Denormalized counter |
+| `mode` | String | `"graph"` (node-and-edge) or `"linear"` (AI-authored trigger+conditions+actions) |
+| `cooldownMs` | Long | Linear only: min gap between fires (0 = none) |
+| `maxRunsPerDay` | Int? | Linear only: daily SUCCESS+FAILED cap (null = unlimited) |
+| `runsTodayCount` | Int | Linear only: mirrored daily counter |
+| `runsTodayDate` | String | Linear only: ISO date the counter belongs to |
 
 #### `workflow_runs` table (`WorkflowRunEntity`)
 
@@ -793,6 +798,62 @@ ORPHAN: deleteOrphanedEmbeddings() →
   DELETE embeddings WHERE messageId NOT IN (SELECT id FROM messages)
   Called on startup + after conversation deletions
 ```
+
+---
+
+## 13a. Workflow v2 — AI-Authored Linear Workflows
+
+Stage F adds a second workflow model alongside the node-graph engine. The two coexist in the same
+`workflows` table, distinguished by `WorkflowEntity.mode` (`"graph"` vs `"linear"`).
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ AI-authored linear workflow path                                        │
+│                                                                         │
+│  user chat → model calls workflow_create → WorkflowAiToolProvider       │
+│    → LinearDefinitionParser (strict validate) → WorkflowApprovalRenderer│
+│    → WorkflowApprovalGate.approval (SUSPENDS)                           │
+│    → WorkflowApprovalDialog (user Approve/Reject)                       │
+│    → repository.upsertLinear → TriggerRegistry re-syncs OS hooks        │
+│                                                                         │
+│  OS signal → TriggerFamily → TriggerRegistry callback → WorkflowRunner  │
+│    (BACKGROUND) → LinearEngine (cooldown → daily-cap → conditions →     │
+│    actions) → repository.recordLinearRunEnd                             │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Why two models?** A node graph is expressive but hard for an LLM to emit correctly. The linear
+shape (one trigger + AND-list of conditions + ordered actions) is far easier to generate and
+validate, which is why the AI authoring surface only authors linear definitions. The graph engine
+stays for advanced users who hand-edit.
+
+**19 trigger kinds, grouped into families** (`workflow/trigger/`):
+
+| Family | Triggers |
+|---|---|
+| ManualTriggerFamily | `manual` (fires via UI Run / `workflow_run` tool only) |
+| BootTriggerFamily | `boot_completed` |
+| TimeTriggerFamily | `time_cron` (WorkManager; `time_of_day` + `days_of_week`, or cron subset) |
+| BroadcastTriggerFamily | wifi/power/headphones/screen/battery/bluetooth connect/disconnect (runtime receivers) |
+| AppForegroundTriggerFamily | `app_launched` / `app_closed` / `app_foreground_duration` (via `AppForegroundDispatcher`, fed by the automation accessibility service) |
+| NotificationTriggerFamily | `notification_received` (observer on `DeviceNotificationListenerService`) |
+| GeofenceTriggerFamily | `geofence_enter` / `geofence_exit` (flavor-split: `PlayGeofenceProvider` on play, `FdroidGeofenceProvider` no-op on fdroid) |
+
+**TriggerRegistry** buckets enabled linear workflows by family and reconciles each family's OS
+hooks on a debounced 500ms flow. Fire callback runs through a BACKGROUND-mode `WorkflowRunner`.
+
+**LinearEngine gates**: cooldown (`lastActualFireAtMs`) → daily cap (`runsTodayCount`) → conditions
+(`ConditionEvaluator` AND-combined, invert-aware) → actions (fail-fast, per-action timeout,
+`WorkflowGuard.preflightForLinear` for background-safe whitelist + budget).
+
+**Flavor split** (mirrors `SandboxManagerFactory`): `PlayGeofenceProvider` lives in
+`app/src/play/...`, `FdroidGeofenceProvider` in `app/src/fdroid/...`; `AppContainer` resolves the
+right one by reflection so `main/` never imports Play Services. The play flavor's manifest adds
+`ACCESS_BACKGROUND_LOCATION` + `PlayGeofenceReceiver`.
+
+**AI authoring gate**: `WorkflowApprovalGate` is a `CompletableDeferred`-backed queue — the tool
+provider suspends on `approval`, the chat UI observes `pending` and pops `WorkflowApprovalDialog`.
+Authoring tools return an error when no UI is observing (background context) by design.
 
 ---
 
