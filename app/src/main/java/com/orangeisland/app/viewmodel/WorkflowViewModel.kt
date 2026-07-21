@@ -257,6 +257,12 @@ class WorkflowViewModel(
                 }
             )
             _pendingConfirmations.value += confirmation
+            // Clean up if the calling coroutine is cancelled (e.g. user leaves the page or the
+            // ViewModel is cleared). Without this, the PendingConfirmation leaks in the list and
+            // its continuation is never resumed — a suspended coroutine + memory hold.
+            continuation.invokeOnCancellation {
+                _pendingConfirmations.value = _pendingConfirmations.value.filterNot { it.id == confirmation.id }
+            }
         }
     }
 }

@@ -207,7 +207,7 @@ private fun WorkflowCard(
                 val meta = buildString {
                     if (workflow.description.isNotBlank()) {
                         append(workflow.description)
-                        append(" 鈥? ")
+                        append(" \u00B7 ")
                     }
                     append(statusText(workflow))
                 }

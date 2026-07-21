@@ -1196,6 +1196,7 @@
     <string name="workflow_name_hint">Name</string>
     <string name="workflow_description_hint">Description</string>
     <string name="workflow_save">Save</string>
+    <string name="workflow_canvas">Canvas</string>
     <string name="workflow_nodes">Nodes</string>
     <string name="workflow_edges">Edges</string>
     <string name="workflow_add_node">Add Node</string>
