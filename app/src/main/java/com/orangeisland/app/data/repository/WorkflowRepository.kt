@@ -44,16 +44,22 @@ class WorkflowRepository(
 ) {
     // ── CRUD ────────────────────────────────────────────────────────────────
 
-    /** Live stream of all workflows, newest first. Drives the list screen. */
+    /** Live stream of all GRAPH-mode workflows, newest first. Drives the list screen's graph
+     *  section. Rows with mode = "linear" are excluded �� they belong to the v2 AI-authored section
+     *  (see [observeAllLinear]) and live in the same table. Without this filter every linear
+     *  workflow also showed up under the graph section, since [toModel] decodes the row's blob as a
+     *  graph [Workflow] regardless of mode. */
     fun observeAll(): Flow<List<Workflow>> =
-        dao.observeAllWorkflows().map { rows -> rows.map { toModel(it) } }
+        dao.observeAllWorkflows().map { rows ->
+            rows.filter { it.mode != "linear" }.map { toModel(it) }
+        }
 
     suspend fun getAll(): List<Workflow> = withContext(Dispatchers.IO) {
-        dao.getAllWorkflowsList().map { toModel(it) }
+        dao.getAllWorkflowsList().filter { it.mode != "linear" }.map { toModel(it) }
     }
 
     suspend fun get(id: String): Workflow? = withContext(Dispatchers.IO) {
-        dao.getWorkflow(id)?.let { toModel(it) }
+        dao.getWorkflow(id)?.takeIf { it.mode != "linear" }?.let { toModel(it) }
     }
 
     /** Insert or replace. Returns the saved model (with timestamps/ids filled in). */
@@ -91,10 +97,31 @@ class WorkflowRepository(
         dao.getWorkflow(id)?.mode
     }
 
-    /** All workflows whose [Workflow.enabled] is true �?used by the scheduler on app start. */
+    /** All enabled GRAPH-mode workflows �� used by the scheduler on app start. Linear workflows
+     *  are scheduled via [getEnabledLinear] (they carry trigger metadata the registry reads), so
+     *  they're excluded here to avoid being treated as graph-mode by the graph scheduler. */
     suspend fun getEnabled(): List<Workflow> = withContext(Dispatchers.IO) {
-        dao.getEnabledWorkflows().map { toModel(it) }
+        dao.getEnabledWorkflows().filter { it.mode != "linear" }.map { toModel(it) }
     }
+
+    /** Lightweight summary of EVERY workflow row regardless of mode �� id/name/description/enabled/
+     *  mode. Used by the AI `workflow_list` tool so the model sees both linear (AI-authored) and
+     *  graph (manual) workflows in one call. Reading via [getAll] would miss linear rows (it filters
+     *  them out for the graph UI), and decoding each row to its own type just to list ids is wasteful. */
+    suspend fun listAllSummary(): List<WorkflowSummary> = withContext(Dispatchers.IO) {
+        dao.getAllWorkflowsList().map { row ->
+            WorkflowSummary(
+                id = row.id, name = row.name, description = row.description,
+                enabled = row.enabled, mode = row.mode
+            )
+        }
+    }
+
+    /** Flat summary used by the AI list tool �� mode-agnostic so the model can branch on it. */
+    data class WorkflowSummary(
+        val id: String, val name: String, val description: String,
+        val enabled: Boolean, val mode: String
+    )
 
     // ── Run lifecycle (called by the trigger layer) ─────────────────────────
 

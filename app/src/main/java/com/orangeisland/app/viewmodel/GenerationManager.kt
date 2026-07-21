@@ -165,7 +165,12 @@ class GenerationManager(
     /** Central tool dispatcher. Owns the 16 tool providers and routes execute() calls. When null
      *  (legacy/title-generation path), a private dispatcher is constructed inline so this manager
      *  keeps working standalone. Real chat receives the app-wide singleton from AppContainer. */
-    private val toolDispatcher: com.orangeisland.app.tool.ToolDispatcher? = null
+    private val toolDispatcher: com.orangeisland.app.tool.ToolDispatcher? = null,
+    /** Optional Workflow AI tool provider (workflow_list/get/run/create/update/delete/set_enabled).
+     *  Threaded into the standalone dispatcher built when [toolDispatcher] is null. When null itself
+     *  (e.g. title generation), the LLM never sees workflow tools. Ignored when [toolDispatcher] is
+     *  non-null — that dispatcher carries its own provider wiring. */
+    private val workflowToolProvider: com.orangeisland.app.workflow.WorkflowAiToolProvider? = null
 ) {
     var onMessagePersisted: ((messageId: String, text: String) -> Unit)? = null
 
@@ -187,6 +192,7 @@ class GenerationManager(
             mcpPool = mcpPool,
             pluginToolProvider = pluginToolProvider,
             permissionController = permissionController,
+            workflowToolProvider = workflowToolProvider
         )
 
     init {
@@ -258,9 +264,15 @@ class GenerationManager(
         tools.toastDefinitions(ctx)
 
     /** UI automation tools (ui_tap/ui_swipe/ui_scroll/ui_global_action/ui_inspect).
-     *  Internally checks [GenerationContext.uiAutomationEnabled]. */
+     *  Internally checks [GenerationContext.automationEnabled]. */
     fun buildAutomationTools(ctx: GenerationContext): List<ToolDefinition> =
         tools.automationDefinitions(ctx)
+
+    /** Workflow tools (workflow_list/get/run/create/update/delete/set_enabled). Lets the model read,
+     *  fire, and AI-author linear workflows. Empty when the workflow feature is not wired into this
+     *  GenerationManager (e.g. title generation). */
+    fun buildWorkflowTools(ctx: GenerationContext): List<ToolDefinition> =
+        tools.workflowDefinitions(ctx)
 
     /** Device access tools (battery, location, calendar, notifications, usage stats).
      *  Each provider internally checks its own enable flag in [GenerationContext]. */
@@ -427,7 +439,8 @@ class GenerationManager(
         val appLockTools = buildAppLockTools(ctx)
         val toastTools = buildToastTools(ctx)
         val automationTools = buildAutomationTools(ctx)
-        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + automationTools
+        val workflowTools = buildWorkflowTools(ctx)
+        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + automationTools + workflowTools
         val providerConfig = ProviderConfig(
             apiKey = config.apiKey,
             modelId = config.modelId,

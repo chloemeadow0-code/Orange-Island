@@ -123,10 +123,11 @@ class WorkflowAiToolProvider(
     // ── Read tools ─────────────────────────────────────────────────────────
 
     private suspend fun listWorkflows(): String {
-        // Linear workflows live in the same table; the graph-mode getAll() decodes them as graph
-        // Workflow objects (mode is ignored), so we surface both kinds with a mode flag the model
-        // can branch on. We read the raw entity list to know each row's mode without re-decoding.
-        val all = repository.getAll()
+        // List BOTH linear (AI-authored) and graph (manual) workflows in one call so the model can
+        // pick the right one to run/update. We read a mode-tagged summary rather than decoding each
+        // row �� getAll() filters out linear rows (it backs the graph UI), and decoding to two
+        // different types just to list ids is wasteful.
+        val all = repository.listAllSummary()
         if (all.isEmpty()) return "{\"workflows\":[]}"
         val arr = buildJsonArray {
             all.forEach { wf ->
@@ -135,7 +136,7 @@ class WorkflowAiToolProvider(
                     put("name", wf.name)
                     put("description", wf.description)
                     put("enabled", wf.enabled)
-                    put("node_count", wf.nodes.size)
+                    put("mode", wf.mode)
                 })
             }
         }
@@ -183,25 +184,35 @@ class WorkflowAiToolProvider(
 
     private suspend fun createWorkflow(arguments: String): String {
         val def = parseAndValidate(arguments) ?: return errorJson("validation failed")
-        val card = WorkflowApprovalRenderer.renderCreate(def)
-        if (approval?.invoke(card) != true) {
-            return errorJson("authoring tools require foreground user approval")
+        when (def) {
+            is ValidateResult.Ok -> {
+                val card = WorkflowApprovalRenderer.renderCreate(def.definition)
+                if (approval?.invoke(card) != true) {
+                    return errorJson("authoring tools require foreground user approval")
+                }
+                repository.upsertLinear(def.definition)
+                return okJson("created", def.definition.id, def.definition.name)
+            }
+            is ValidateResult.Err -> return errorJson("validation failed: ${def.code} �� ${def.detail}")
         }
-        repository.upsertLinear(def)
-        return okJson("created", def.id, def.name)
     }
 
     private suspend fun updateWorkflow(arguments: String): String {
-        val def = parseAndValidate(arguments) ?: return errorJson("validation failed")
-        if (repository.getLinear(def.id) == null) {
-            return errorJson("no linear workflow with id=${def.id}; use workflow_create instead")
+        val def = parseAndValidate(arguments) ?: return errorJson("validation failed: definition object missing")
+        when (def) {
+            is ValidateResult.Ok -> {
+                if (repository.getLinear(def.definition.id) == null) {
+                    return errorJson("no linear workflow with id=${def.definition.id}; use workflow_create instead")
+                }
+                val card = WorkflowApprovalRenderer.renderCreate(def.definition)  // reuse: same fields matter to the user
+                if (approval?.invoke(card) != true) {
+                    return errorJson("authoring tools require foreground user approval")
+                }
+                repository.upsertLinear(def.definition)
+                return okJson("updated", def.definition.id, def.definition.name)
+            }
+            is ValidateResult.Err -> return errorJson("validation failed: ${def.code} �� ${def.detail}")
         }
-        val card = WorkflowApprovalRenderer.renderCreate(def)  // reuse: same fields matter to the user
-        if (approval?.invoke(card) != true) {
-            return errorJson("authoring tools require foreground user approval")
-        }
-        repository.upsertLinear(def)
-        return okJson("updated", def.id, def.name)
     }
 
     private suspend fun deleteWorkflow(arguments: String): String {
@@ -227,13 +238,26 @@ class WorkflowAiToolProvider(
 
     // ── Helpers ────────────────────────────────────────────────────────────
 
-    /** Parse + validate a `definition` argument into a [LinearWorkflow], or null on any error. */
-    private fun parseAndValidate(arguments: String): LinearWorkflow? {
-        val defJson = extractDefinition(arguments) ?: return null
+    /** Parse + validate a `definition` argument into a [LinearWorkflow]. Returns the parser's
+     *  structured error (code + human-readable detail) on failure so the caller can surface the
+     *  exact reason to the model �� swallowing it into a bare null made every malformed definition
+     *  look identical ("validation failed"), leaving the model no way to self-correct. */
+    private fun parseAndValidate(arguments: String): ValidateResult {
+        val defJson = extractDefinition(arguments)
+            ?: return ValidateResult.Err("bad_arguments",
+                "tool args must be an object with a 'definition' field containing the workflow object; " +
+                "got: ${arguments.take(200)}")
         return when (val r = LinearDefinitionParser.parse(defJson, knownToolNames())) {
-            is LinearDefinitionParser.ParseResult.Ok -> r.definition
-            is LinearDefinitionParser.ParseResult.Err -> null
+            is LinearDefinitionParser.ParseResult.Ok -> ValidateResult.Ok(r.definition)
+            is LinearDefinitionParser.ParseResult.Err -> ValidateResult.Err(r.code, r.detail)
         }
+    }
+
+    /** Outcome of [parseAndValidate]. [Ok] carries the parsed definition; [Err] carries the parser's
+     *  structured error so create/update can return a precise message. */
+    private sealed class ValidateResult {
+        data class Ok(val definition: LinearWorkflow) : ValidateResult()
+        data class Err(val code: String, val detail: String) : ValidateResult()
     }
 
     /** Pull the `definition` sub-object out of the tool args and return it as a JSON string. */

@@ -194,6 +194,12 @@ class ToolDispatcher(
     fun automationDefinitions(ctx: GenerationContext): List<ToolDefinition> =
         automationToolProvider.definitions(ctx)
 
+    /** Workflow tools (workflow_list/get/run/create/update/delete/set_enabled). Each is surfaced to
+     *  the LLM so it can read, fire, and AI-author linear workflows. Empty when the workflow feature
+     *  is not wired up (e.g. title generation). */
+    fun workflowDefinitions(ctx: GenerationContext): List<ToolDefinition> =
+        workflowToolProvider?.definitions(ctx) ?: emptyList()
+
     /** Device access tools (battery, location, calendar, notifications, usage stats). Each
      *  provider internally checks its own enable flag in [GenerationContext]. */
     fun deviceDefinitions(ctx: GenerationContext): List<ToolDefinition> = buildList {

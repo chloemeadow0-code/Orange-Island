@@ -89,7 +89,11 @@ class ChatViewModel(
     val workflowApprovalGate: com.orangeisland.app.workflow.WorkflowApprovalGate? = null,
     private val pluginToolProvider: com.orangeisland.app.plugin.PluginToolProvider? = null,
     private val _pluginLoader: com.orangeisland.app.plugin.PluginLoader? = null,
-    private val _pluginSandbox: com.orangeisland.app.plugin.PluginSandbox? = null
+    private val _pluginSandbox: com.orangeisland.app.plugin.PluginSandbox? = null,
+    /** Workflow AI tool provider (workflow_list/get/run/create/...). Wired through to the
+     *  GenerationManager's tool dispatcher so the model can read, fire, and AI-author linear
+     *  workflows from chat. Null in contexts that don't expose workflow tools (e.g. unit tests). */
+    private val workflowToolProvider: com.orangeisland.app.workflow.WorkflowAiToolProvider? = null
 ) : AndroidViewModel(application) {
 
     companion object {
@@ -277,7 +281,8 @@ class ChatViewModel(
             sandboxFactory = sandboxFactory,
             mcpPool = mcpClientPool,
             pluginToolProvider = pluginToolProvider,
-            permissionController = permissionController
+            permissionController = permissionController,
+            workflowToolProvider = workflowToolProvider
         ).also { gm ->
             gm.onMessagePersisted = { messageId, text ->
                 if (settings.autoCacheEnabled.value && (settings.modelSearchMethod.value == Constants.SEARCH_METHOD_RAG || settings.manualSearchMethod.value == Constants.SEARCH_METHOD_RAG)) {
@@ -290,11 +295,20 @@ class ChatViewModel(
 
     /** MCP (Model Context Protocol) client pool 鈥?one connection per configured server.
      *  Lazily created (only when first MCP tool is requested), eagerly closed in [onCleared].
-     *  Lives on viewModelScope so the background reconnect coroutines die with the ViewModel. */
+     *  Lives on viewModelScope so the background reconnect coroutines die with the ViewModel.
+     *  On first access it also starts the heartbeat guardian (see [McpClientPool.startMonitoring])
+     *  so the MCP settings UI's three-state icon stays live between generations. */
     private val mcpClientPoolLazy = lazy {
-        com.orangeisland.app.mcp.McpClientPool(ioScope = viewModelScope)
+        com.orangeisland.app.mcp.McpClientPool(ioScope = viewModelScope).also { pool ->
+            pool.startMonitoring(settings.mcpServers)
+        }
     }
     val mcpClientPool: com.orangeisland.app.mcp.McpClientPool get() = mcpClientPoolLazy.value
+
+    /** Per-server MCP connection status, observed by the MCP settings UI to render the three-state
+     *  leading icon (spinner / error / ok). Forces the pool lazy so monitoring is running. */
+    val mcpStatuses: kotlinx.coroutines.flow.StateFlow<Map<String, com.orangeisland.app.mcp.McpStatus>>
+        get() = mcpClientPool.statuses
 
     val sandboxManager: SandboxManager? by lazy {
         sandboxFactory?.create()

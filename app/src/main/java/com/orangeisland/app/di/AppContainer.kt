@@ -152,9 +152,21 @@ class AppContainer(private val appContext: Context) {
             repository = workflowRepository,
             runnerProvider = { workflowRunner() },
             knownToolNames = {
-                // Resolve lazily so newly-installed plugins / freshly-connected MCP servers are seen.
-                toolDispatcher.allDefinitions(com.orangeisland.app.viewmodel.GenerationContext())
-                    .map { it.function.name }.toSet()
+                // Resolve the set of tool NAMES this assistant registers — used by the parser to
+                // reject workflow definitions that reference a non-existent action tool. We pass a
+                // fully-enabled GenerationContext so EVERY gated provider (toast, shell, device,
+                // automation, …) reports its tools: the point is "does this tool exist on this
+                // assistant", not "is it enabled for the current chat turn". Passing the default
+                // GenerationContext() (all flags false) made gated providers return empty lists, so
+                // every workflow definition using e.g. show_toast/ui_global_action was rejected as
+                // unknown_tool → every workflow_create call failed with "validation failed".
+                val allEnabled = com.orangeisland.app.viewmodel.GenerationContext(
+                    shellEnabled = true, deviceInfoEnabled = true, locationEnabled = true,
+                    calendarEnabled = true, notificationEnabled = true, usageStatsEnabled = true,
+                    navigationEnabled = true, appLockEnabled = true, toastEnabled = true,
+                    uiAutomationEnabled = true, webSearchEnabled = true, imageGenEnabled = true
+                )
+                toolDispatcher.allDefinitions(allEnabled).map { it.function.name }.toSet()
             },
             // Foreground approval gate: when the model calls workflow_create / _update / _delete /
             // _set_enabled, the provider renders a card and suspends on this callback. The chat
@@ -253,6 +265,7 @@ class AppContainer(private val appContext: Context) {
         ChatViewModelFactory(
             application, chatDao, settingsManager, memoryManager, appContext, sandboxManagerFactory,
             autoBackupManager, conversationRepository, settingsRepository, workflowRepository,
-            workflowApprovalGate, pluginToolProvider, pluginLoader, pluginSandbox
+            workflowApprovalGate, pluginToolProvider, pluginLoader, pluginSandbox,
+            workflowAiToolProvider
         )
 }
