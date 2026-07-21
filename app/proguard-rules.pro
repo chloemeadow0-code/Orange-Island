@@ -28,3 +28,9 @@
 # quickjs-kt (JS engine for plugin sandbox)
 -keep class com.dokar.quickjs.** { *; }
 -dontwarn com.dokar.quickjs.**
+
+# Supabase Kotlin + ktor (auth + postgrest)
+-keep class io.github.jan.supabase.** { *; }
+-keep class io.ktor.** { *; }
+-dontwarn io.github.jan.supabase.**
+-dontwarn io.ktor.**

@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Smartphone
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material3.*
@@ -55,6 +56,7 @@ fun SettingsDeviceAccessPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val navigationEnabled by settings.navigationEnabled.collectAsState()
     val appLockEnabled by settings.appLockEnabled.collectAsState()
     val toastEnabled by settings.toastEnabled.collectAsState()
+    val uiAutomationEnabled by settings.uiAutomationEnabled.collectAsState()
     val amapApiKey by settings.amapApiKey.collectAsState()
     val pc = viewModel.permissionController
     var amapKeyDraft by remember(amapApiKey) { mutableStateOf(amapApiKey) }
@@ -75,6 +77,7 @@ fun SettingsDeviceAccessPage(viewModel: ChatViewModel, onBack: () -> Unit) {
 
     val notificationListenerGranted by pc.notificationListenerEnabledFlow.collectAsState()
     val accessibilityGranted by pc.accessibilityEnabledFlow.collectAsState()
+    val uiAutomationAccessibilityGranted by pc.uiAutomationAccessibilityEnabledFlow.collectAsState()
 
     // Single launcher covers both runtime-permission tools (location + calendar); the contract
     // accepts whatever permission array we hand to launch() at call time.
@@ -205,6 +208,20 @@ fun SettingsDeviceAccessPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         checked = toastEnabled,
                         onCheckedChange = { settings.setToastEnabled(it) },
                         permissionState = PermissionState.NotRequired
+                    )
+                }
+                // UI Automation (tap/swipe/scroll/global-action/inspect)
+                add {
+                    ToolToggleRow(
+                        title = stringResource(R.string.device_access_ui_automation_title),
+                        desc = stringResource(R.string.device_access_ui_automation_desc),
+                        icon = Icons.Default.TouchApp,
+                        checked = uiAutomationEnabled,
+                        onCheckedChange = { settings.setUiAutomationEnabled(it) },
+                        permissionState = if (uiAutomationAccessibilityGranted)
+                            PermissionState.Granted else PermissionState.SpecialNeeded(
+                            onClick = { pc.openSystemSettings(PermissionController.Tool.UI_AUTOMATION) }
+                        )
                     )
                 }
             })

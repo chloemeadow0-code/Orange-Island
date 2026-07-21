@@ -72,5 +72,8 @@ data class ChatConversation(
     val id: String = UUID.randomUUID().toString(),
     val title: String,
     val systemPromptId: String? = null,
-    val modelId: String? = null
+    val modelId: String? = null,
+    // null = ungrouped. Set when the chat was created inside a project; used by the
+    // drawer to render grouped conversation lists.
+    val projectId: String? = null
 )

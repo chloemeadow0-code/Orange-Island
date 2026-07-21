@@ -367,6 +367,19 @@ class ChatViewModel(
 
         val conversations: StateFlow<List<ChatConversation>> = convRepo.getAllConversations()
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** All projects, sorted by [ProjectEntity.sortOrder] then [ProjectEntity.createdAt]. */
+    val projects: StateFlow<List<com.orangeisland.app.data.local.ProjectEntity>> =
+        convRepo.getAllProjects().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /**
+     * The project that the next new chat (via top-bar "+") will be filed under. null = the
+     * chat goes to "ungrouped". Updated implicitly when the user opens a conversation that
+     * belongs to a project, or explicitly when they tap a project header in the drawer.
+     */
+    private val _activeProjectId = MutableStateFlow<String?>(null)
+    val activeProjectId: StateFlow<String?> = _activeProjectId.asStateFlow()
+
     private val _currentConversationId = MutableStateFlow<String?>(null)
     val currentConversationId: StateFlow<String?> = _currentConversationId.asStateFlow()
 
@@ -454,6 +467,16 @@ class ChatViewModel(
     private val _pendingSystemPromptId = MutableStateFlow<String?>(null)
     val pendingSystemPromptId: StateFlow<String?> = _pendingSystemPromptId.asStateFlow()
 
+    /**
+     * Carries the project id of the next-to-be-created conversation. Set by [createNewChat]
+     * from [_activeProjectId] and consumed by [MessageGenerationController] when it persists
+     * the new chat. Mirrors [_pendingSystemPromptId]: a snapshot taken on entering new-chat
+     * mode, so subsequent changes to [_activeProjectId] do not retroactively move a chat
+     * that the user has already started customizing.
+     */
+    private val _pendingProjectId = MutableStateFlow<String?>(null)
+    val pendingProjectId: StateFlow<String?> = _pendingProjectId.asStateFlow()
+
     fun setPendingSystemPrompt(promptId: String?) {
         _pendingSystemPromptId.value = promptId
     }
@@ -506,6 +529,7 @@ class ChatViewModel(
             isNewChatMode = _isNewChatMode,
             pendingConversationSettings = _pendingConversationSettings,
             pendingSystemPromptId = _pendingSystemPromptId,
+            pendingProjectId = _pendingProjectId,
             currentActiveModel = currentActiveModel,
             messages = messages,
             onScrollToMessage = { id -> triggerScrollToMessage(id) },
@@ -798,7 +822,7 @@ class ChatViewModel(
         mmprojPath: String = ""
     ) = modelManager.updateLocalChatModel(uuid, newModelId, newAlias, nCtx, temperature, topP, maxTokens, mmprojPath)
 
-    suspend fun semanticSearch(query: String, limit: Int = 20): List<Pair<MessageEntity, Float>> {
+    suspend fun semanticSearch(query: String, limit: Int = 20, projectId: String? = null): List<Pair<MessageEntity, Float>> {
         val ctx = GenerationContext(
             accessSavedMemories = settings.accessSavedMemories.value,
             accessActiveMemory = settings.accessActiveMemory.value,
@@ -813,7 +837,8 @@ class ChatViewModel(
             webSearchApiKeys = settings.webSearchApiKeys.value,
             webSearchProvider = settings.webSearchProvider.value,
             webSearchNumResults = settings.webSearchNumResults.value,
-            webSearchBaseUrl = settings.webSearchBaseUrl.value
+            webSearchBaseUrl = settings.webSearchBaseUrl.value,
+            projectId = projectId
         )
         return generationManager.semanticSearch(query, limit, ctx)
     }
@@ -822,7 +847,10 @@ class ChatViewModel(
         ragManager.resolveEmbeddingKeyForProviderExact(targetProvider)
 
     fun indexMessageForRag(messageId: String, text: String) = ragManager.indexMessageForRag(messageId, text)
-    suspend fun searchMessages(query: String, limit: Int = 20) = convRepo.searchMessages(query, limit)
+
+    /** Keyword search scoped by [projectId]: null = global (ungrouped only), non-null = that project. */
+    suspend fun searchMessages(query: String, limit: Int = 20, projectId: String? = null) =
+        convRepo.searchMessagesScoped(query, projectId, limit)
     // 鈹€鈹€ Auto Backup 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
     fun setAutoBackupEnabled(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -931,8 +959,18 @@ class ChatViewModel(
 
     fun createNewChat() {
         switchingJob?.cancel()
-        if (!_isNewChatMode.value) {
-            _pendingSystemPromptId.value = null
+        // Snapshot the active project once, when first entering new-chat mode. Subsequent
+        // changes to _activeProjectId (e.g. the user taps another project header while
+        // already composing) do NOT override what's already on screen. Mirrors the
+        // _pendingSystemPromptId rule just below.
+        val activeProject = if (!_isNewChatMode.value) {
+            val proj = _activeProjectId.value?.let { id -> projects.value.find { it.id == id } }
+            _pendingProjectId.value = proj?.id
+            // Project defaults become the starting point; null keeps the global default.
+            _pendingSystemPromptId.value = proj?.systemPromptId
+            proj
+        } else {
+            _activeProjectId.value?.let { id -> projects.value.find { it.id == id } }
         }
         _isNewChatMode.value = true
         _isTransitioningToNewChat.value = true
@@ -940,7 +978,9 @@ class ChatViewModel(
         switchingJob = viewModelScope.launch {
             kotlinx.coroutines.delay(SWITCH_OVERLAY_FADE_MS) // Allow overlay to fade in
             _currentConversationId.value = null
-            _currentActiveModel.value = null
+            // Pre-fill the active model with the project's default if set; otherwise fall back
+            // to the global default (null). Same single-source-of-truth rule as system prompt.
+            _currentActiveModel.value = activeProject?.modelId
             _pendingConversationSettings.value = null
             _allMessages.value = emptyList()
             _selectedChildren.value = emptyMap()
@@ -963,6 +1003,9 @@ class ChatViewModel(
             _currentConversationId.value = id
             val conversation = convRepo.getConversation(id)
             _currentActiveModel.value = conversation?.modelId
+            // Opening a conversation inside a project makes that project the active context,
+            // so the top-bar "+" continues to file new chats under the same project.
+            _activeProjectId.value = conversation?.projectId
             triggerScrollToMessage()
         }
     }
@@ -1006,6 +1049,66 @@ class ChatViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             convRepo.deleteConversation(id)
             if (_currentConversationId.value == id) createNewChat()
+        }
+    }
+
+    // ── Projects ─────────────────────────────────────────────
+
+    /**
+     * Creates a project, makes it the active context (so the next "+" chat lands inside
+     * it), and returns its id. [modelId] / [systemPromptId], when non-null, become the
+     * project-level defaults that new chats inside it inherit.
+     */
+    fun createProject(name: String, modelId: String? = null, systemPromptId: String? = null, onSuccess: (String) -> Unit = {}) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val id = convRepo.createProject(name.trim().ifBlank { appContext.getString(R.string.project_default_name) }, systemPromptId, modelId)
+            _activeProjectId.value = id
+            onSuccess(id)
+        }
+    }
+
+    fun renameProject(id: String, name: String) {
+        viewModelScope.launch(Dispatchers.IO) { convRepo.renameProject(id, name.trim()) }
+    }
+
+    fun setProjectDefaults(id: String, systemPromptId: String?, modelId: String?) {
+        viewModelScope.launch(Dispatchers.IO) { convRepo.setProjectDefaults(id, systemPromptId, modelId) }
+    }
+
+    /** Deletes the project; member conversations fall back to ungrouped (none are lost). */
+    fun deleteProject(id: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            convRepo.deleteProject(id)
+            if (_activeProjectId.value == id) _activeProjectId.value = null
+        }
+    }
+
+    /** Moves a conversation into [projectId] (null = move out to ungrouped). */
+    fun moveConversation(conversationId: String, projectId: String?) {
+        viewModelScope.launch(Dispatchers.IO) { convRepo.moveConversation(conversationId, projectId) }
+    }
+
+    /** Tap a project header in the drawer to make it the active context for new chats. */
+    fun setActiveProject(projectId: String?) {
+        _activeProjectId.value = projectId
+    }
+
+    // ── Project-private memory ───────────────────────────────
+    // Wraps MemoryManager with the project id so the UI doesn't have to thread it through.
+    // Files land in /memory_db_projects/<projectId>/ — invisible outside the project.
+
+    suspend fun listProjectMemoryFiles(projectId: String) =
+        memoryManager.listFiles(projectId)
+
+    fun createProjectMemoryFile(projectId: String, name: String, content: String, description: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            memoryManager.createFile(name, content, description, projectId)
+        }
+    }
+
+    fun deleteProjectMemoryFile(projectId: String, name: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            memoryManager.deleteFile(name, projectId)
         }
     }
 

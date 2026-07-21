@@ -4,6 +4,7 @@ import com.orangeisland.app.data.local.ChatDao
 import com.orangeisland.app.data.local.ChatEntity
 import com.orangeisland.app.data.local.EmbeddingEntity
 import com.orangeisland.app.data.local.MessageEntity
+import com.orangeisland.app.data.local.ProjectEntity
 import com.orangeisland.app.model.AttachmentMeta
 import com.orangeisland.app.model.ChatMessage
 import com.orangeisland.app.model.ChatConversation
@@ -22,7 +23,7 @@ class ConversationRepository(
 
     fun getAllConversations(): Flow<List<ChatConversation>> =
         chatDao.getAllConversations().map { entities ->
-            entities.map { ChatConversation(id = it.id, title = it.title, systemPromptId = it.systemPromptId, modelId = it.modelId) }
+            entities.map { ChatConversation(id = it.id, title = it.title, systemPromptId = it.systemPromptId, modelId = it.modelId, projectId = it.projectId) }
         }
 
     suspend fun getConversation(id: String): ChatEntity? =
@@ -44,6 +45,45 @@ class ConversationRepository(
         chatDao.deleteConversation(id)
     }
 
+    // ── Projects ─────────────────────────────────────────────
+
+    fun getAllProjects(): Flow<List<ProjectEntity>> = chatDao.getAllProjects()
+
+    suspend fun getAllProjectsList(): List<ProjectEntity> = chatDao.getAllProjectsList()
+
+    suspend fun getProject(id: String): ProjectEntity? = chatDao.getProject(id)
+
+    /** Creates a project and returns its id. [sortOrder] defaults to one past the current max. */
+    suspend fun createProject(name: String, systemPromptId: String? = null, modelId: String? = null): String {
+        val id = java.util.UUID.randomUUID().toString()
+        val existing = chatDao.getAllProjectsList()
+        val nextOrder = (existing.maxOfOrNull { it.sortOrder } ?: -1) + 1
+        chatDao.upsertProject(
+            ProjectEntity(id = id, name = name, sortOrder = nextOrder, systemPromptId = systemPromptId, modelId = modelId)
+        )
+        return id
+    }
+
+    suspend fun upsertProject(project: ProjectEntity) = chatDao.upsertProject(project)
+
+    suspend fun renameProject(id: String, name: String) {
+        chatDao.getProject(id)?.let { chatDao.upsertProject(it.copy(name = name)) }
+    }
+
+    suspend fun setProjectDefaults(id: String, systemPromptId: String?, modelId: String?) {
+        chatDao.getProject(id)?.let { chatDao.upsertProject(it.copy(systemPromptId = systemPromptId, modelId = modelId)) }
+    }
+
+    /** Deletes a project and detaches its conversations (they fall back to ungrouped). */
+    suspend fun deleteProject(id: String) {
+        chatDao.clearProjectAssignments(id)
+        chatDao.deleteProject(id)
+    }
+
+    /** Moves a conversation into (or out of, when [projectId] is null) a project. */
+    suspend fun moveConversation(conversationId: String, projectId: String?) =
+        chatDao.setConversationProject(conversationId, projectId)
+
     // ── Messages ──────────────────────────────────────────────
 
     fun getMessagesForConversation(conversationId: String): Flow<List<MessageEntity>> =
@@ -58,6 +98,10 @@ class ConversationRepository(
 
     suspend fun getMessagesByIds(ids: List<String>): List<MessageEntity> =
         chatDao.getMessagesByIds(ids)
+
+    /** MessageId → projectId mapping for RAG scope filtering. See [ChatDao.getProjectIdsForMessages]. */
+    suspend fun getProjectIdsForMessages(ids: List<String>): Map<String, String?> =
+        chatDao.getProjectIdsForMessages(ids).associate { it.messageId to it.projectId }
 
     // ── Branch Selection ──────────────────────────────────────
 
@@ -136,8 +180,23 @@ class ConversationRepository(
     suspend fun searchMessages(query: String, limit: Int = 10): List<MessageEntity> =
         chatDao.searchMessages(query, limit)
 
+    /**
+     * Scope-aware search. [projectId] = null searches only ungrouped conversations (the
+     * "global" view); non-null searches only that project's conversations. Either way the
+     * other scope is excluded — this is what enforces "project contents are invisible
+     * outside the project" for both the drawer search and the AI's RAG retrieval.
+     */
+    suspend fun searchMessagesScoped(query: String, projectId: String?, limit: Int = 10): List<MessageEntity> =
+        if (projectId == null) chatDao.searchMessagesGlobal(query, limit)
+        else chatDao.searchMessagesInProject(query, projectId, limit)
+
     suspend fun getAllConversationsList(): List<ChatEntity> =
         chatDao.getAllConversationsList()
+
+    /** Scope-filtered variant: null → ungrouped only; non-null → that project only. */
+    suspend fun getConversationsListScoped(projectId: String?): List<ChatEntity> =
+        if (projectId == null) chatDao.getGlobalConversationsList()
+        else chatDao.getConversationsInProject(projectId)
 
     suspend fun getAllMessagesList(): List<MessageEntity> =
         chatDao.getAllMessagesList()

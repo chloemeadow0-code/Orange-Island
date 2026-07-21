@@ -131,6 +131,23 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/app_lock_accessibility_config" />
         </service>
+
+        <!-- UI Automation accessibility service: exposes tap/swipe/scroll/global-action/window-tree
+             tools to the model. A SEPARATE service from App Lock because it needs the broadest
+             capability set (canRetrieveWindowContent + canPerformGestures), which we do not want
+             to grant to the lock interceptor. -->
+        <service
+            android:name=".tool.automation.AutomationAccessibilityService"
+            android:exported="false"
+            android:label="@string/ui_automation_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/ui_automation_accessibility_config" />
+        </service>
     </application>
 
 </manifest>

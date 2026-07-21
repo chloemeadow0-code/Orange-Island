@@ -108,6 +108,7 @@ class SettingsRepository(
     val appLockEntries: StateFlow<Map<String, com.orangeisland.app.data.AppLockEntry>> =
         hot(settingsManager.appLockEntries, emptyMap())
     val toastEnabled: StateFlow<Boolean> = hot(settingsManager.toastEnabled, false)
+    val uiAutomationEnabled: StateFlow<Boolean> = hot(settingsManager.uiAutomationEnabled, false)
     val amapApiKey: StateFlow<String> = hot(settingsManager.amapApiKey, "")
     val mcpServers: StateFlow<List<com.orangeisland.app.data.McpServerConfig>> = hot(settingsManager.mcpServers, emptyList())
     val enabledPluginIds: StateFlow<Set<String>> = hot(settingsManager.enabledPluginIds, emptySet())
@@ -164,6 +165,10 @@ class SettingsRepository(
     // ── Plugin device id ──────────────────────────────────────
     // Auto-injected per-install UUID (read-only — no UI, no setter).
     val appUserId: StateFlow<String> = hot(settingsManager.appUserId, "")
+    // ── Account / Auth (local session mirror; drives the login gate) ─────────
+    val loggedIn: StateFlow<Boolean> = hot(settingsManager.loggedIn, false)
+    val userName: StateFlow<String> = hot(settingsManager.userName, "")
+    val userEmail: StateFlow<String> = hot(settingsManager.userEmail, "")
     // ── Plugin configs (per-plugin user-filled values) ────────
     val pluginConfigs: StateFlow<Map<String, Map<String, String>>> = hot(settingsManager.pluginConfigs, emptyMap())
 
@@ -418,6 +423,7 @@ class SettingsRepository(
     fun setAppLockEntries(entries: Map<String, com.orangeisland.app.data.AppLockEntry>) =
         scope.launch { settingsManager.saveAppLockEntries(entries) }
     fun setToastEnabled(enabled: Boolean) = scope.launch { settingsManager.saveToastEnabled(enabled) }
+    fun setUiAutomationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveUiAutomationEnabled(enabled) }
     fun setAmapApiKey(key: String) = scope.launch { settingsManager.saveAmapApiKey(key) }
 
     // ── MCP servers ──────────────────────────────────────────

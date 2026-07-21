@@ -10,6 +10,7 @@ import android.text.TextUtils
 import androidx.core.content.ContextCompat
 import com.orangeisland.app.tool.device.AppLockAccessibilityService
 import com.orangeisland.app.tool.device.DeviceNotificationListenerService
+import com.orangeisland.app.tool.automation.AutomationAccessibilityService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,7 +36,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class PermissionController(private val appContext: Context) {
 
     /** The Device Access tools that need a system permission. */
-    enum class Tool { LOCATION, CALENDAR, NOTIFICATION, USAGE_STATS, ACCESSIBILITY }
+    enum class Tool { LOCATION, CALENDAR, NOTIFICATION, USAGE_STATS, ACCESSIBILITY, UI_AUTOMATION }
 
     /** True iff the tool's required permission(s) are currently granted. Safe to call from any thread. */
     fun isGranted(tool: Tool): Boolean = when (tool) {
@@ -47,6 +48,7 @@ class PermissionController(private val appContext: Context) {
         Tool.NOTIFICATION -> notificationListenerEnabled
         Tool.USAGE_STATS -> usageAccessEnabled
         Tool.ACCESSIBILITY -> accessibilityEnabled
+        Tool.UI_AUTOMATION -> uiAutomationAccessibilityEnabled
     }
 
     /** Launches the system Settings screen the user must visit to grant [tool]'s special permission.
@@ -55,7 +57,8 @@ class PermissionController(private val appContext: Context) {
         val intent = when (tool) {
             Tool.NOTIFICATION -> Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
             Tool.USAGE_STATS -> Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-            Tool.ACCESSIBILITY -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            // Both accessibility services are enabled from the same Settings screen.
+            Tool.ACCESSIBILITY, Tool.UI_AUTOMATION -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
             // Runtime-permission tools shouldn't reach here; the settings page uses the launcher.
             else -> return
         }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -102,7 +105,8 @@ class PermissionController(private val appContext: Context) {
             mode == android.app.AppOpsManager.MODE_ALLOWED
         } catch (_: Exception) { false }
 
-    // Accessibility state — mirrors how the system tracks enabled services.
+    // Accessibility state — mirrors how the system tracks enabled services. Two services share
+    // this lookup mechanism: the App Lock interceptor and the UI Automation driver.
     private val accessibilityEnabled: Boolean
         get() = AppLockAccessibilityService.isEnabled(appContext)
 
@@ -112,7 +116,16 @@ class PermissionController(private val appContext: Context) {
     /** Re-query accessibility state. Call from the settings page's onResume. */
     fun refreshAccessibilityState() {
         _accessibilityEnabled.value = accessibilityEnabled
+        _uiAutomationAccessibilityEnabled.value = uiAutomationAccessibilityEnabled
     }
+
+    // UI Automation accessibility state — a separate service the user must enable independently.
+    private val uiAutomationAccessibilityEnabled: Boolean
+        get() = AutomationAccessibilityService.isEnabled(appContext)
+
+    private val _uiAutomationAccessibilityEnabled = MutableStateFlow(uiAutomationAccessibilityEnabled)
+    val uiAutomationAccessibilityEnabledFlow: StateFlow<Boolean> =
+        _uiAutomationAccessibilityEnabled.asStateFlow()
 
     private fun hasPermission(perm: String): Boolean =
         ContextCompat.checkSelfPermission(appContext, perm) == PackageManager.PERMISSION_GRANTED

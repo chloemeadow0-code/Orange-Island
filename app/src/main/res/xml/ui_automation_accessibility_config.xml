@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  UI Automation accessibility service config. This is the broadest config in the app: unlike
+  the App Lock service (window-state events only), this one needs to inspect arbitrary window
+  content (for ui_inspect) and dispatch gestures (for ui_tap/ui_swipe). We still request the
+  minimum capability set: no overlay, no key-event observation, no package filter.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowContentChanged|typeWindowStateChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows"
+    android:canPerformGestures="true"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/ui_automation_service_desc"
+    android:notificationTimeout="100" />

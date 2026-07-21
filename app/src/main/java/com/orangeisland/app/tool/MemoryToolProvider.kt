@@ -28,7 +28,7 @@ class MemoryToolProvider(
                     ToolDefinition(
                         function = ToolFunction(
                             name = "list_memory_files",
-                            description = "List all files in the memory database with their names and descriptions.",
+                            description = "List all files in the memory database with their names and descriptions. When working inside a project, this also includes the project's private files (tagged scope=\"project\"); global files are tagged scope=\"global\".",
                             parameters = ToolParameters(properties = emptyMap())
                         )
                     ),
@@ -52,7 +52,7 @@ class MemoryToolProvider(
                     ToolDefinition(
                         function = ToolFunction(
                             name = "create_memory_file",
-                            description = "Create a new file in the memory database with the given content and optional description.",
+                            description = "Create a new file in the memory database with the given content and optional description. When working inside a project, new files are stored in that project's private memory (invisible outside the project); otherwise they go to the global store.",
                             parameters = ToolParameters(
                                 properties = mapOf(
                                     "name" to ToolProperty("string", "The file name to create (e.g., 'notes.md')."),
@@ -148,7 +148,9 @@ class MemoryToolProvider(
 
         return when (name) {
             "list_memory_files" -> {
-                val files = memoryManager.listFiles()
+                // When in a project, expose both the global memory store AND the project's
+                // private files — tagged with their origin so the model knows where each lives.
+                val files = memoryManager.listFilesMerged(ctx.projectId)
                 if (files.isEmpty()) {
                     buildJsonObject {
                         put("type", "list_memory_files")
@@ -157,12 +159,19 @@ class MemoryToolProvider(
                 } else {
                     buildJsonObject {
                         put("type", "list_memory_files")
+                        put("scope", if (ctx.projectId != null) "project" else "global")
                         putJsonArray("files") {
                             files.forEach { f ->
                                 add(
                                     buildJsonObject {
                                         put("name", f.name)
                                         put("description", f.description)
+                                        // Only surface the scope tag when projects are in play;
+                                        // in global-only mode every file is global, so omit the
+                                        // field to keep responses compact.
+                                        if (ctx.projectId != null) {
+                                            put("scope", if (f.projectId == null) "global" else "project")
+                                        }
                                     }
                                 )
                             }
@@ -174,15 +183,22 @@ class MemoryToolProvider(
             "read_memory_file" -> {
                 val singleName = arg("name")
                 val namesArray = args["names"] as? JsonArray
+                // Helper: try the project dir first, fall back to global. This lets the model
+                // read a file by name without knowing which scope it lives in.
+                fun readScoped(fileName: String): String =
+                    try {
+                        if (ctx.projectId != null) memoryManager.readFile(fileName, ctx.projectId)
+                        else memoryManager.readFile(fileName, null)
+                    } catch (_: IllegalArgumentException) {
+                        memoryManager.readFile(fileName, null)
+                    }
                 if (namesArray != null && namesArray.isNotEmpty()) {
                     val names = namesArray.map {
                         (it as? JsonPrimitive)?.content ?: ""
                     }.filter { it.isNotEmpty() }
-                    names.joinToString("\n\n") { name ->
-                        "--- $name ---\n${memoryManager.readFile(name)}"
-                    }
+                    names.joinToString("\n\n") { nm -> "--- $nm ---\n${readScoped(nm)}" }
                 } else if (singleName.isNotEmpty()) {
-                    memoryManager.readFile(singleName)
+                    readScoped(singleName)
                 } else {
                     "Error: No file name provided. Use 'name' for a single file or 'names' for multiple files."
                 }
@@ -191,7 +207,10 @@ class MemoryToolProvider(
             "create_memory_file" -> memoryManager.createFile(
                 arg("name"),
                 arg("content"),
-                arg("description")
+                arg("description"),
+                // New files land in the project's private store when scoped to a project;
+                // otherwise they go to the global store (existing behavior).
+                ctx.projectId
             )
 
             "edit_memory_file" -> {
@@ -201,6 +220,15 @@ class MemoryToolProvider(
                 val newName = arg("new_name").ifBlank { null }
                 val descArg = arg("description")
                 val desc = if (args.containsKey("description")) descArg else null
+                // Resolve the file's actual scope before editing: a project-scoped call may
+                // target a file that only exists globally, so look in both places.
+                fun existsInScope(fileName: String): String? {
+                    if (ctx.projectId != null && runCatching { memoryManager.readFile(fileName, ctx.projectId) }.isSuccess) return ctx.projectId
+                    if (runCatching { memoryManager.readFile(fileName, null) }.isSuccess) return null
+                    return null
+                }
+                val targetScope = existsInScope(arg("name"))
+                    ?: return "Error: File not found: ${arg("name")}"
                 if (editContent != null && oldStr != null) {
                     "Error: 'content' and 'old_string' are mutually exclusive. Use one or the other."
                 } else if (oldStr != null && !args.containsKey("new_string")) {
@@ -214,14 +242,26 @@ class MemoryToolProvider(
                         newName,
                         desc,
                         oldStr,
-                        newStr
+                        newStr,
+                        targetScope
                     )
                 }
             }
 
-            "delete_memory_file" -> memoryManager.deleteFile(arg("name"))
+            "delete_memory_file" -> {
+                // Same scope-resolution as edit: find which store actually holds the file.
+                val fileName = arg("name")
+                val targetScope = when {
+                    ctx.projectId != null && runCatching { memoryManager.readFile(fileName, ctx.projectId) }.isSuccess -> ctx.projectId
+                    runCatching { memoryManager.readFile(fileName, null) }.isSuccess -> null
+                    else -> return "Error: File not found: $fileName"
+                }
+                memoryManager.deleteFile(fileName, targetScope)
+            }
 
             "update_active_memory" -> {
+                // Active memory stays global by design — it's the always-on context injected
+                // into every request regardless of project. Projects isolate the *file* store.
                 val mode = arg("mode").ifBlank { "replace" }
                 val oldStr = arg("old_string").ifBlank { null }
                 val newStr = arg("new_string").ifBlank { null }

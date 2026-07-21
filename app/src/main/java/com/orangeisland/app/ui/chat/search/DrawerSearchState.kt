@@ -17,6 +17,11 @@ import kotlinx.coroutines.delay
  * debounced result set, and whether search mode is active. The debounce + actual search
  * (semantic vs. literal) run in [rememberDrawerSearchState]; the holder exposes read-only
  * results/isActive so the drawer UI only reads them.
+ *
+ * Search is scoped by the active project: when the user is inside a project, results come
+ * only from that project; when in the global view, results come only from ungrouped
+ * conversations. The active project id is read fresh on every [runSearch] call so it
+ * tracks the drawer's selection without rebuilding the state holder.
  */
 internal class DrawerSearchState(
     private val viewModel: ChatViewModel
@@ -34,10 +39,11 @@ internal class DrawerSearchState(
         } else {
             delay(200)
             if (query.isNotBlank()) {
+                val projectId = viewModel.activeProjectId.value
                 results = if (method == Constants.SEARCH_METHOD_RAG)
-                    viewModel.semanticSearch(query)
+                    viewModel.semanticSearch(query, projectId = projectId)
                 else
-                    viewModel.searchMessages(query).map { it to 0f }
+                    viewModel.searchMessages(query, projectId = projectId).map { it to 0f }
                 isActive = true
             }
         }
