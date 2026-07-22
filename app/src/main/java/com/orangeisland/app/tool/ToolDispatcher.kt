@@ -46,7 +46,10 @@ class ToolDispatcher(
     private val permissionController: PermissionController? = null,
     /** Optional Workflow AI tool provider (workflow_list/get/run). Null when workflow tools are
      *  disabled (e.g. title generation, or before the workflow feature is wired up). */
-    private val workflowToolProvider: ToolProvider? = null
+    private val workflowToolProvider: ToolProvider? = null,
+    /** Optional approval gate for sensitive device-access tools (location, notifications,
+     *  usage stats). Null when the gate is not installed (e.g. background workers). */
+    private val sensitiveToolApproval: SensitiveToolApprovalGate? = null
 ) {
     companion object {
         /** Shell-provider tool names that are pure file I/O (split out from command execution). */
@@ -61,16 +64,16 @@ class ToolDispatcher(
     private val imageGenToolProvider = ImageGenToolProvider(app)
     private val deviceInfoToolProvider = com.orangeisland.app.tool.device.DeviceInfoToolProvider(app)
     private val locationToolProvider = permissionController?.let {
-        com.orangeisland.app.tool.device.LocationToolProvider(app, it)
+        com.orangeisland.app.tool.device.LocationToolProvider(app, it, sensitiveToolApproval)
     }
     private val calendarToolProvider = permissionController?.let {
         com.orangeisland.app.tool.device.CalendarToolProvider(app, it)
     }
     private val notificationToolProvider = permissionController?.let {
-        com.orangeisland.app.tool.device.NotificationToolProvider(app, it)
+        com.orangeisland.app.tool.device.NotificationToolProvider(app, it, sensitiveToolApproval)
     }
     private val usageStatsToolProvider = permissionController?.let {
-        com.orangeisland.app.tool.device.UsageStatsToolProvider(app, it)
+        com.orangeisland.app.tool.device.UsageStatsToolProvider(app, it, sensitiveToolApproval)
     }
     private val navigationToolProvider = com.orangeisland.app.tool.NavigationToolProvider(app)
     private val appLockToolProvider = com.orangeisland.app.tool.AppLockToolProvider(app)

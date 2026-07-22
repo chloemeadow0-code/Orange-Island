@@ -5,6 +5,7 @@ import com.orangeisland.app.api.ToolDefinition
 import com.orangeisland.app.api.ToolFunction
 import com.orangeisland.app.api.ToolParameters
 import com.orangeisland.app.api.ToolProperty
+import com.orangeisland.app.tool.SensitiveToolApprovalGate
 import com.orangeisland.app.tool.ToolProvider
 import com.orangeisland.app.viewmodel.GenerationContext
 import com.orangeisland.app.viewmodel.PermissionController
@@ -33,6 +34,7 @@ import java.util.Locale
 class NotificationToolProvider(
     private val app: Application,
     private val permissionController: PermissionController,
+    private val approvalGate: SensitiveToolApprovalGate? = null,
 ) : ToolProvider {
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
@@ -68,6 +70,9 @@ class NotificationToolProvider(
             // the user toggles access. The next call will work once the system binds the listener.
             return error("not_yet_active",
                 "Listener permission is granted but the service hasn't bound yet. Try again in a moment.")
+        }
+        if (approvalGate?.approval?.invoke(name, "读取最近通知内容") != true) {
+            return error("approval_denied", "用户拒绝了通知读取请求。")
         }
         val parsed = json.decodeFromString<Map<String, kotlinx.serialization.json.JsonElement>>(arguments.ifBlank { "{}" })
         val limit = ((parsed["limit"] as? JsonPrimitive)?.content?.toIntOrNull() ?: 20).coerceIn(1, 100)

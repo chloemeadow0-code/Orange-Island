@@ -950,6 +950,11 @@
     <string name="shell_confirm_setting">リモートシェル操作を確認</string>
     <string name="shell_confirm_setting_desc">アシスタントがリモートの SSH/Conch サーバーでコマンドを実行したりファイルを書き込んだりする前に確認する</string>
 
+    <!-- 機密デバイスツールの承認ゲート -->
+    <string name="sensitive_tool_approval_title">AI に機密ツールの使用を許可しますか?</string>
+    <string name="sensitive_tool_approve">許可</string>
+    <string name="sensitive_tool_reject">拒否</string>
+
     <!-- Crash reporting -->
     <string name="crash_title">橘子岛 が予期せず終了しました</string>
     <string name="crash_message">申し訳ありません。匿名のクラッシュレポートを送信して修正にご協力いただけます。</string>

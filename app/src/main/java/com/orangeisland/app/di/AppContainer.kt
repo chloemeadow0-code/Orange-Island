@@ -181,6 +181,12 @@ class AppContainer(private val appContext: Context) {
         com.orangeisland.app.workflow.WorkflowApprovalGate()
     }
 
+    /** Approval gate for sensitive device-access tools (location, notifications, usage stats).
+     *  When autoApprove is false, AI-driven calls suspend until the user confirms via dialog. */
+    val sensitiveToolApprovalGate: com.orangeisland.app.tool.SensitiveToolApprovalGate by lazy {
+        com.orangeisland.app.tool.SensitiveToolApprovalGate()
+    }
+
     val toolDispatcher: com.orangeisland.app.tool.ToolDispatcher by lazy {
         com.orangeisland.app.tool.ToolDispatcher(
             app = application,
@@ -192,7 +198,8 @@ class AppContainer(private val appContext: Context) {
             mcpPool = null,
             pluginToolProvider = pluginToolProvider,
             permissionController = null,   // device tools run but cannot check permission state here yet
-            workflowToolProvider = workflowAiToolProvider
+            workflowToolProvider = workflowAiToolProvider,
+            sensitiveToolApproval = sensitiveToolApprovalGate
         )
     }
 
@@ -268,4 +275,7 @@ class AppContainer(private val appContext: Context) {
             workflowApprovalGate, pluginToolProvider, pluginLoader, pluginSandbox,
             workflowAiToolProvider
         )
+
+    fun healthViewModelFactory(): com.orangeisland.app.viewmodel.HealthViewModelFactory =
+        com.orangeisland.app.viewmodel.HealthViewModelFactory(application, settingsManager)
 }

@@ -950,6 +950,11 @@
     <string name="shell_confirm_setting">Подтверждать действия удалённой оболочки</string>
     <string name="shell_confirm_setting_desc">Спрашивать перед тем, как ассистент выполнит команды или запишет файлы на удалённых серверах SSH/Conch</string>
 
+    <!-- Шлюз одобрения чувствительных инструментов -->
+    <string name="sensitive_tool_approval_title">Разрешить ИИ использовать чувствительный инструмент?</string>
+    <string name="sensitive_tool_approve">Разрешить</string>
+    <string name="sensitive_tool_reject">Отклонить</string>
+
     <!-- Crash reporting -->
     <string name="crash_title">橘子岛 неожиданно завершилась</string>
     <string name="crash_message">Приносим извинения. Вы можете помочь исправить это, отправив анонимный отчёт о сбое.</string>

@@ -45,6 +45,7 @@ import com.orangeisland.app.sandbox.SandboxManager
 import com.orangeisland.app.sandbox.SandboxManagerFactory
 import com.orangeisland.app.service.OrangeIslandForegroundService
 import com.orangeisland.app.service.AutoBackupWorker
+import com.orangeisland.app.service.HealthSyncWorker
 import com.orangeisland.app.ui.settings.ImportStrategy
 import com.orangeisland.app.util.Constants
 import com.orangeisland.app.util.DebugLog
@@ -235,6 +236,16 @@ class ChatViewModel(
         try { AutoBackupWorker.schedule(getApplication()) } catch (_: Exception) {}
         viewModelScope.launch(Dispatchers.IO) {
             try { autoBackupManager.checkAndBackup() } catch (e: Exception) { DebugLog.e("ChatViewModel", "Auto backup check failed", e) }
+        }
+        // Health sync worker scheduling follows the setting toggle reactively
+        viewModelScope.launch {
+            settings.healthSyncEnabled.collect { enabled ->
+                if (enabled) {
+                    try { HealthSyncWorker.schedule(getApplication()) } catch (_: Exception) {}
+                } else {
+                    try { HealthSyncWorker.cancel(getApplication()) } catch (_: Exception) {}
+                }
+            }
         }
         // Sync local chat models into available models
         viewModelScope.launch {

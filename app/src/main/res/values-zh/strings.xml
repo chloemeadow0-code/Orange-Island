@@ -1070,6 +1070,11 @@
     <string name="shell_confirm_setting">确认远程 Shell 操作</string>
     <string name="shell_confirm_setting_desc">在助手于远程 SSH/Conch 服务器上运行命令或写入文件前询问</string>
 
+    <!-- 敏感设备工具审批门 -->
+    <string name="sensitive_tool_approval_title">允许 AI 调用敏感工具？</string>
+    <string name="sensitive_tool_approve">允许</string>
+    <string name="sensitive_tool_reject">拒绝</string>
+
     <!-- Crash reporting -->
     <string name="crash_title">橘子岛 意外退出</string>
     <string name="crash_message">很抱歉。您可以通过发送匿名崩溃报告来帮助修复此问题。</string>

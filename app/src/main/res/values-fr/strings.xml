@@ -950,6 +950,11 @@
     <string name="shell_confirm_setting">Confirmer les actions du shell distant</string>
     <string name="shell_confirm_setting_desc">Demander avant que l\'assistant n\'exécute des commandes ou n\'écrive des fichiers sur des serveurs SSH/Conch distants</string>
 
+    <!-- Portail d’approbation des outils sensibles -->
+    <string name="sensitive_tool_approval_title">Autoriser l\'IA à utiliser un outil sensible ?</string>
+    <string name="sensitive_tool_approve">Autoriser</string>
+    <string name="sensitive_tool_reject">Refuser</string>
+
     <!-- Crash reporting -->
     <string name="crash_title">橘子岛 s\'est fermé de façon inattendue</string>
     <string name="crash_message">Désolé pour ce désagrément. Vous pouvez aider à corriger cela en envoyant un rapport de plantage anonyme.</string>

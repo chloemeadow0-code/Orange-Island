@@ -950,6 +950,11 @@
     <string name="shell_confirm_setting">Remote-Shell-Aktionen bestätigen</string>
     <string name="shell_confirm_setting_desc">Nachfragen, bevor der Assistent Befehle ausführt oder Dateien auf Remote-SSH-/Conch-Servern schreibt</string>
 
+    <!-- Freigabetor für sensible Geräte-Tools -->
+    <string name="sensitive_tool_approval_title">Nutzung eines sensiblen Tools durch die KI erlauben?</string>
+    <string name="sensitive_tool_approve">Erlauben</string>
+    <string name="sensitive_tool_reject">Ablehnen</string>
+
     <!-- Crash reporting -->
     <string name="crash_title">橘子岛 wurde unerwartet beendet</string>
     <string name="crash_message">Das tut uns leid. Du kannst bei der Behebung helfen, indem du einen anonymen Absturzbericht sendest.</string>

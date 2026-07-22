@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -64,13 +65,14 @@ fun SettingsGroup(
     title: String,
     modifier: Modifier = Modifier,
     bottomPadding: androidx.compose.ui.unit.Dp = 24.dp,
+    titleStyle: TextStyle = MaterialTheme.typography.labelLarge,
     items: List<@Composable () -> Unit>
 ) {
     val effectiveBottom = if (LocalSettingsGroupSpacing.current) 0.dp else bottomPadding
     Column(modifier = modifier.fillMaxWidth().padding(bottom = effectiveBottom)) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelLarge,
+            style = titleStyle,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
         )
@@ -208,7 +210,8 @@ fun SettingsScreen(
     onBack: () -> Unit,
     workflowViewModel: com.orangeisland.app.viewmodel.WorkflowViewModel,
     initialCategory: String? = null,
-    onEditWorkflowInChat: (prefilledPrompt: String) -> Unit = {}
+    onEditWorkflowInChat: (prefilledPrompt: String) -> Unit = {},
+    onOpenHealthPage: () -> Unit = {}
 ) {
     var selectedCategory by rememberSaveable { mutableStateOf<String?>(initialCategory) }
 
@@ -250,7 +253,11 @@ fun SettingsScreen(
                 "shell" -> SettingsShellPage(viewModel, onBack = { selectedCategory = null })
                 "mcp" -> SettingsMcpPage(viewModel, onBack = { selectedCategory = null })
                 "plugins" -> SettingsPluginPage(viewModel, onBack = { selectedCategory = null })
-                "device_access" -> SettingsDeviceAccessPage(viewModel, onBack = { selectedCategory = null })
+                "device_access" -> SettingsDeviceAccessPage(
+                    viewModel = viewModel,
+                    onBack = { selectedCategory = null },
+                    onOpenHealthPage = onOpenHealthPage
+                )
                 "proxy" -> SettingsProxyPage(viewModel, onBack = { selectedCategory = null })
                 "language" -> SettingsLanguagePage(viewModel, onBack = { selectedCategory = null })
                 "titlegen" -> SettingsTitleGenPage(viewModel, onBack = { selectedCategory = null })

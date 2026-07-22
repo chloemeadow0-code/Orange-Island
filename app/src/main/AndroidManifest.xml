@@ -9,6 +9,10 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Saving images to the gallery on pre-Q only; Q+ uses scoped MediaStore (no permission). -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <!-- Gadgetbridge health data: read external DB file under /sdcard/Download -->
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
 
     <!-- ── Device Access tools ─────────────────────────────────── -->
     <!-- Location tool (high-accuracy reverse geocoding + nearby search via Amap REST). -->

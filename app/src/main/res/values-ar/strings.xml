@@ -950,6 +950,11 @@
     <string name="shell_confirm_setting">تأكيد إجراءات الصدفة البعيدة</string>
     <string name="shell_confirm_setting_desc">الطلب قبل أن يشغّل المساعد أوامر أو يكتب ملفات على خوادم SSH/Conch البعيدة</string>
 
+    <!-- بوابة اعتماد الأدوات الحساسة -->
+    <string name="sensitive_tool_approval_title">السماح للمساعد باستخدام أداة حساسة؟</string>
+    <string name="sensitive_tool_approve">السماح</string>
+    <string name="sensitive_tool_reject">رفض</string>
+
     <!-- Crash reporting -->
     <string name="crash_title">أُغلق 橘子岛 بشكل غير متوقع</string>
     <string name="crash_message">نعتذر عن ذلك. يمكنك المساعدة في إصلاح هذا بإرسال تقرير تعطّل مجهول.</string>

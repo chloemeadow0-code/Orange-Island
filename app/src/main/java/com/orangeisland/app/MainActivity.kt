@@ -430,6 +430,7 @@ fun MainNavigation(
 ) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var settingsInitialCategory by remember { mutableStateOf<String?>(null) }
+    var showHealthPage by rememberSaveable { mutableStateOf(false) }
     var fullScreenMediaUrls by remember { mutableStateOf<List<String>?>(null) }
     var fullScreenMediaIndex by remember { mutableIntStateOf(0) }
     var pdfViewerSelection by remember { mutableStateOf(setOf<Int>()) }
@@ -799,6 +800,13 @@ fun MainNavigation(
                         viewModel.setPendingPrefillInput(prompt)
                         settingsInitialCategory = null
                         showSettings = false
+                    },
+                    onOpenHealthPage = {
+                        // Stack the health page ABOVE settings (the AnimatedVisibility is declared
+                        // after SettingsOverlayHost, so it draws on top). Don't hide settings here —
+                        // otherwise the health back button (which only flips showHealthPage) would
+                        // reveal the chat instead of returning the user to this settings page.
+                        showHealthPage = true
                     }
                 )
             }
@@ -808,6 +816,24 @@ fun MainNavigation(
             // call until the user approves or rejects. Overlay so it appears above both chat
             // and settings.
             com.orangeisland.app.ui.chat.WorkflowApprovalDialog(viewModel.workflowApprovalGate)
+
+            // Health data page
+            AnimatedVisibility(
+                visible = showHealthPage,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                val ctx = LocalContext.current
+                val container = remember {
+                    (ctx.applicationContext as com.orangeisland.app.OrangeIslandApplication).container
+                }
+                val factory = remember { container.healthViewModelFactory() }
+                val healthViewModel: com.orangeisland.app.ui.health.HealthViewModel = viewModel(factory = factory)
+                com.orangeisland.app.ui.health.HealthPage(
+                    viewModel = healthViewModel,
+                    onBack = { showHealthPage = false }
+                )
+            }
 
             // Full screen image preview
             AnimatedVisibility(

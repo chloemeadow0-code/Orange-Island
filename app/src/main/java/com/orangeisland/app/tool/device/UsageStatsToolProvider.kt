@@ -6,6 +6,7 @@ import com.orangeisland.app.api.ToolDefinition
 import com.orangeisland.app.api.ToolFunction
 import com.orangeisland.app.api.ToolParameters
 import com.orangeisland.app.api.ToolProperty
+import com.orangeisland.app.tool.SensitiveToolApprovalGate
 import com.orangeisland.app.tool.ToolProvider
 import com.orangeisland.app.util.DebugLog
 import com.orangeisland.app.viewmodel.GenerationContext
@@ -35,6 +36,7 @@ import java.util.Locale
 class UsageStatsToolProvider(
     private val app: Application,
     private val permissionController: PermissionController,
+    private val approvalGate: SensitiveToolApprovalGate? = null,
 ) : ToolProvider {
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
@@ -64,6 +66,9 @@ class UsageStatsToolProvider(
         if (!permissionController.isGranted(PermissionController.Tool.USAGE_STATS)) {
             return error("permission_denied",
                 "Usage access not granted. Ask the user to enable Screen Usage in Settings → Device Access (it opens the system Usage access screen).")
+        }
+        if (approvalGate?.approval?.invoke(name, "读取应用使用时长统计") != true) {
+            return error("approval_denied", "用户拒绝了应用使用统计请求。")
         }
         val parsed = json.decodeFromString<Map<String, kotlinx.serialization.json.JsonElement>>(arguments.ifBlank { "{}" })
         val range = (parsed["range"] as? JsonPrimitive)?.content?.lowercase()?.takeIf { it.isNotBlank() } ?: "today"

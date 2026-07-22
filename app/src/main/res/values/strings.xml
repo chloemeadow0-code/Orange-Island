@@ -1126,6 +1126,11 @@
     <string name="shell_confirm_setting">Confirm remote shell actions</string>
     <string name="shell_confirm_setting_desc">Ask before the assistant runs commands or writes files on remote SSH/Conch servers</string>
 
+    <!-- Sensitive device-tool approval gate -->
+    <string name="sensitive_tool_approval_title">Allow AI to use a sensitive tool?</string>
+    <string name="sensitive_tool_approve">Allow</string>
+    <string name="sensitive_tool_reject">Deny</string>
+
     <!-- Crash reporting -->
     <string name="crash_title">橘子岛 quit unexpectedly</string>
     <string name="crash_message">Sorry about that. You can help fix this by sending an anonymous crash report.</string>
@@ -1249,4 +1254,31 @@
     <string name="workflow_v2_approval_title">Approve workflow change?</string>
     <string name="workflow_v2_approval_approve">Approve</string>
     <string name="workflow_v2_approval_reject">Reject</string>
+
+    <!-- Health / Gadgetbridge / Sync -->
+    <string name="health_title">Health Data</string>
+    <string name="health_realtime_hr">Real-time Heart Rate</string>
+    <string name="health_today_overview">Today Overview</string>
+    <string name="health_steps">Steps</string>
+    <string name="health_calories">Calories</string>
+    <string name="health_spo2">SpO2</string>
+    <string name="health_stress">Stress</string>
+    <string name="health_steps_stats">Step Statistics</string>
+    <string name="health_7_days">7 Days</string>
+    <string name="health_30_days">30 Days</string>
+    <string name="health_hr_stats">Heart Rate Trend</string>
+    <string name="health_sleep_summary">Sleep Records</string>
+    <string name="health_no_data">No data</string>
+    <string name="health_permission_required">Storage permission required to read health data</string>
+    <string name="health_db_not_found">Gadgetbridge database not found</string>
+    <string name="health_db_path_hint">Database path (leave blank for default)</string>
+    <string name="health_view_data">View Health Data</string>
+    <string name="device_access_health_sync_title">Health &amp; Background Sync</string>
+    <string name="device_access_gadgetbridge_title">Gadgetbridge</string>
+    <string name="device_access_gadgetbridge_desc">Read fitness band health data</string>
+    <string name="device_access_sync_title">Background Sync to Supabase</string>
+    <string name="device_access_sync_desc">Upload health + device data every 15 minutes</string>
+    <string name="device_access_sync_url">Supabase URL</string>
+    <string name="device_access_sync_key">Supabase Anon Key</string>
+    <string name="device_access_sync_table">Table Name</string>
 </resources>

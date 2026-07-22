@@ -950,6 +950,11 @@
     <string name="shell_confirm_setting">Confirmar ações de shell remoto</string>
     <string name="shell_confirm_setting_desc">Perguntar antes de o assistente executar comandos ou gravar arquivos em servidores SSH/Conch remotos</string>
 
+    <!-- Portão de aprovação de ferramenta sensível -->
+    <string name="sensitive_tool_approval_title">Permitir que a IA use uma ferramenta sensível?</string>
+    <string name="sensitive_tool_approve">Permitir</string>
+    <string name="sensitive_tool_reject">Negar</string>
+
     <!-- Crash reporting -->
     <string name="crash_title">O 橘子岛 fechou inesperadamente</string>
     <string name="crash_message">Sentimos muito. Você pode ajudar a corrigir isso enviando um relatório de falha anônimo.</string>

@@ -163,6 +163,14 @@ class SettingsRepository(
     val autoDeleteEnabled: StateFlow<Boolean> = hot(settingsManager.autoDeleteEnabled, true)
     val autoDeletePeriodHours: StateFlow<Int> = hot(settingsManager.autoDeletePeriodHours, 168)
     val lastBackupTimestamp: StateFlow<Long> = hot(settingsManager.lastBackupTimestamp, 0L)
+    // ── Health / Gadgetbridge / Sync ──────────────────────────
+    val gadgetbridgeEnabled: StateFlow<Boolean> = hot(settingsManager.gadgetbridgeEnabled, false)
+    val gadgetbridgeDbPath: StateFlow<String> = hot(settingsManager.gadgetbridgeDbPath, "")
+    val healthSyncEnabled: StateFlow<Boolean> = hot(settingsManager.healthSyncEnabled, false)
+    val healthSyncSupabaseUrl: StateFlow<String> = hot(settingsManager.healthSyncSupabaseUrl, "")
+    val healthSyncSupabaseApiKey: StateFlow<String> = hot(settingsManager.healthSyncSupabaseApiKey, "")
+    val healthSyncTableName: StateFlow<String> = hot(settingsManager.healthSyncTableName, "device_data")
+    val autoApproveSensitiveTools: StateFlow<Boolean> = hot(settingsManager.autoApproveSensitiveTools, false)
     // ── Plugin device id ──────────────────────────────────────
     // Auto-injected per-install UUID (read-only — no UI, no setter).
     val appUserId: StateFlow<String> = hot(settingsManager.appUserId, "")
@@ -498,6 +506,15 @@ class SettingsRepository(
     fun setSearchMatchLimit(n: Int) = scope.launch { settingsManager.saveSearchMatchLimit(n) }
     fun setSearchContextWindow(n: Int) = scope.launch { settingsManager.saveSearchContextWindow(n) }
     fun setRagThreshold(threshold: Float) = scope.launch { settingsManager.saveRagThreshold(threshold) }
+
+    // ── Health / Gadgetbridge / Sync ──────────────────────────
+    fun setGadgetbridgeEnabled(enabled: Boolean) = scope.launch { settingsManager.saveGadgetbridgeEnabled(enabled) }
+    fun setGadgetbridgeDbPath(path: String) = scope.launch { settingsManager.saveGadgetbridgeDbPath(path) }
+    fun setHealthSyncEnabled(enabled: Boolean) = scope.launch { settingsManager.saveHealthSyncEnabled(enabled) }
+    fun setHealthSyncSupabaseUrl(url: String) = scope.launch { settingsManager.saveHealthSyncSupabaseUrl(url) }
+    fun setHealthSyncSupabaseApiKey(key: String) = scope.launch { settingsManager.saveHealthSyncSupabaseApiKey(key) }
+    fun setHealthSyncTableName(name: String) = scope.launch { settingsManager.saveHealthSyncTableName(name) }
+    fun setAutoApproveSensitiveTools(enabled: Boolean) = scope.launch { settingsManager.saveAutoApproveSensitiveTools(enabled) }
 
     fun setShellConfirmEnabled(enabled: Boolean) = scope.launch { settingsManager.saveShellConfirmEnabled(enabled) }
     fun addShellDevice(device: ShellDeviceConfig) = scope.launch { settingsManager.saveShellDevices(shellDevices.value + device) }

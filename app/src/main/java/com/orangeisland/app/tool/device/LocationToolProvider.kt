@@ -10,6 +10,7 @@ import com.orangeisland.app.api.ToolDefinition
 import com.orangeisland.app.api.ToolFunction
 import com.orangeisland.app.api.ToolParameters
 import com.orangeisland.app.api.ToolProperty
+import com.orangeisland.app.tool.SensitiveToolApprovalGate
 import com.orangeisland.app.tool.ToolProvider
 import com.orangeisland.app.util.DebugLog
 import com.orangeisland.app.viewmodel.GenerationContext
@@ -38,6 +39,7 @@ import kotlinx.serialization.json.put
 class LocationToolProvider(
     private val app: Application,
     private val permissionController: PermissionController,
+    private val approvalGate: SensitiveToolApprovalGate? = null,
 ) : ToolProvider {
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
@@ -79,6 +81,14 @@ class LocationToolProvider(
         if (ctx.amapApiKey.isBlank()) {
             return error("no_api_key",
                 "Amap API key not configured. Ask the user to fill it in Settings → Device Access → Location.")
+        }
+        val desc = when (name) {
+            "get_current_location" -> "获取当前 GPS 坐标并逆地理编码为地址"
+            "explore_nearby" -> "基于当前位置搜索附近 POI"
+            else -> name
+        }
+        if (approvalGate?.approval?.invoke(name, desc) != true) {
+            return error("approval_denied", "用户拒绝了定位工具调用请求。")
         }
         return when (name) {
             "get_current_location" -> currentLocation(ctx.amapApiKey)

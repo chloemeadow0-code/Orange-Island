@@ -273,6 +273,14 @@ class SettingsManager(private val context: Context) {
         val AUTO_DELETE_PERIOD_HOURS = intPreferencesKey("auto_delete_period_hours")
         val LAST_BACKUP_TIMESTAMP = longPreferencesKey("last_backup_timestamp")
         val LAST_MODELS_FETCH_FINGERPRINT = stringPreferencesKey("last_models_fetch_fingerprint")
+        // ── Health / Gadgetbridge / Sync ──────────────────────────
+        val GADGETBRIDGE_ENABLED = booleanPreferencesKey("gadgetbridge_enabled")
+        val GADGETBRIDGE_DB_PATH = stringPreferencesKey("gadgetbridge_db_path")
+        val HEALTH_SYNC_ENABLED = booleanPreferencesKey("health_sync_enabled")
+        val HEALTH_SYNC_SUPABASE_URL = stringPreferencesKey("health_sync_supabase_url")
+        val HEALTH_SYNC_SUPABASE_API_KEY = stringPreferencesKey("health_sync_supabase_api_key")
+        val HEALTH_SYNC_TABLE_NAME = stringPreferencesKey("health_sync_table_name")
+        val AUTO_APPROVE_SENSITIVE_TOOLS = booleanPreferencesKey("auto_approve_sensitive_tools")
         // ── Plugin device id ──────────────────────────────────────
         // A stable per-install UUID auto-injected into every plugin sandbox / WebView as
         // __OI_USER_ID so plugins can attribute actions to this device without learning
@@ -505,6 +513,15 @@ class SettingsManager(private val context: Context) {
     val autoDeletePeriodHours: Flow<Int> = context.dataStore.data.map { it[AUTO_DELETE_PERIOD_HOURS] ?: 168 }
     val lastBackupTimestamp: Flow<Long> = context.dataStore.data.map { it[LAST_BACKUP_TIMESTAMP] ?: 0L }
     val lastModelsFetchFingerprint: Flow<String> = context.dataStore.data.map { it[LAST_MODELS_FETCH_FINGERPRINT] ?: "" }
+
+    // ── Health / Gadgetbridge / Sync ──────────────────────────
+    val gadgetbridgeEnabled: Flow<Boolean> = context.dataStore.data.map { it[GADGETBRIDGE_ENABLED] ?: false }
+    val gadgetbridgeDbPath: Flow<String> = context.dataStore.data.map { it[GADGETBRIDGE_DB_PATH] ?: "" }
+    val healthSyncEnabled: Flow<Boolean> = context.dataStore.data.map { it[HEALTH_SYNC_ENABLED] ?: false }
+    val healthSyncSupabaseUrl: Flow<String> = context.dataStore.data.map { it[HEALTH_SYNC_SUPABASE_URL] ?: "" }
+    val healthSyncSupabaseApiKey: Flow<String> = context.dataStore.data.map { it[HEALTH_SYNC_SUPABASE_API_KEY] ?: "" }
+    val healthSyncTableName: Flow<String> = context.dataStore.data.map { it[HEALTH_SYNC_TABLE_NAME] ?: "device_data" }
+    val autoApproveSensitiveTools: Flow<Boolean> = context.dataStore.data.map { it[AUTO_APPROVE_SENSITIVE_TOOLS] ?: false }
 
     // ── Plugin device id ──────────────────────────────────────
     // Lazily minted per-install UUID, exposed to plugins as __OI_USER_ID. No setter: it is
@@ -1039,6 +1056,15 @@ class SettingsManager(private val context: Context) {
     suspend fun saveLastModelsFetchFingerprint(fingerprint: String) {
         context.dataStore.edit { it[LAST_MODELS_FETCH_FINGERPRINT] = fingerprint }
     }
+
+    // ── Health / Gadgetbridge / Sync ──────────────────────────
+    suspend fun saveGadgetbridgeEnabled(enabled: Boolean) { context.dataStore.edit { it[GADGETBRIDGE_ENABLED] = enabled } }
+    suspend fun saveGadgetbridgeDbPath(path: String) { context.dataStore.edit { it[GADGETBRIDGE_DB_PATH] = path } }
+    suspend fun saveHealthSyncEnabled(enabled: Boolean) { context.dataStore.edit { it[HEALTH_SYNC_ENABLED] = enabled } }
+    suspend fun saveHealthSyncSupabaseUrl(url: String) { context.dataStore.edit { it[HEALTH_SYNC_SUPABASE_URL] = url } }
+    suspend fun saveHealthSyncSupabaseApiKey(key: String) { context.dataStore.edit { it[HEALTH_SYNC_SUPABASE_API_KEY] = key } }
+    suspend fun saveHealthSyncTableName(name: String) { context.dataStore.edit { it[HEALTH_SYNC_TABLE_NAME] = name } }
+    suspend fun saveAutoApproveSensitiveTools(enabled: Boolean) { context.dataStore.edit { it[AUTO_APPROVE_SENSITIVE_TOOLS] = enabled } }
 
     /**
      * Stores the user-filled config values for one plugin. [values] is a map of field name → value;
