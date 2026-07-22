@@ -29,7 +29,7 @@ object ToolCallDisplayModes {
     const val TIMELINE = "timeline"
     const val GROUPED_TIMELINE = "grouped_timeline"
     const val COMPACT = "compact"
-    const val DEFAULT = GROUPED_TIMELINE
+    const val DEFAULT = TIMELINE
 
     fun normalize(value: String?): String = when (value) {
         COMPACT -> COMPACT

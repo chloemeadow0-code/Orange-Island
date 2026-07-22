@@ -87,15 +87,16 @@ class GenerationSession(
     fun isLatestPersist(id: Long): Boolean = persistId.get() == id
 
     /**
-     * Bundles the five token-gated callbacks for one generation so each call site
+     * Bundles the token-gated callbacks for one generation so each call site
      * wires the ownership tokens once instead of re-threading them per lambda.
      */
-    fun callbacksFor(uiToken: Long, persistId: Long) = GenerationCallbacks(
+    fun callbacksFor(uiToken: Long, persistId: Long, onTitleTriggerReady: ((String, String) -> Unit)? = null) = GenerationCallbacks(
         onStreamUpdate = { streamUpdate(uiToken, it) },
         onLoadingChange = { loadingChange(uiToken, it) },
         onGeneratingIdChange = { generatingIdChange(uiToken, it) },
         onStreamClear = { streamClear(uiToken) },
         isLatestPersist = { isLatestPersist(persistId) },
+        onTitleTriggerReady = onTitleTriggerReady,
     )
 
     // ── Token-gated UI mutators ───────────────────────────────────────────
@@ -192,7 +193,9 @@ class GenerationSession(
                 val conversationExists = convRepo.getConversation(conversationId) != null
                 if (!conversationExists) return@launch
                 for (message in messages) {
+                    DebugLog.d("GenStopRace", "[stopInternal] BEFORE upsert id=${message.id} textLen=${message.text.length} time=${System.currentTimeMillis()}")
                     convRepo.upsertMessage(message.toStoppedEntity(conversationId))
+                    DebugLog.d("GenStopRace", "[stopInternal] AFTER  upsert id=${message.id} textLen=${message.text.length} time=${System.currentTimeMillis()}")
                     if (message.text.isNotBlank() && settings.autoCacheEnabled.value &&
                         (settings.modelSearchMethod.value == Constants.SEARCH_METHOD_RAG || settings.manualSearchMethod.value == Constants.SEARCH_METHOD_RAG)
                     ) {

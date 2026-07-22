@@ -1038,16 +1038,16 @@ class ChatViewModel(
         _isNewChatMode.value = true
         _isTransitioningToNewChat.value = true
         _isSwitching.value = true
+        // Apply data changes immediately so content is visible right away;
+        // the overlay fade-out plays in the background.
+        _currentConversationId.value = null
+        _currentActiveModel.value = activeProject?.modelId
+        _pendingConversationSettings.value = null
+        _allMessages.value = emptyList()
+        _selectedChildren.value = emptyMap()
+        _branchSwitchTrigger.value = null
         switchingJob = viewModelScope.launch {
-            kotlinx.coroutines.delay(SWITCH_OVERLAY_FADE_MS) // Allow overlay to fade in
-            _currentConversationId.value = null
-            // Pre-fill the active model with the project's default if set; otherwise fall back
-            // to the global default (null). Same single-source-of-truth rule as system prompt.
-            _currentActiveModel.value = activeProject?.modelId
-            _pendingConversationSettings.value = null
-            _allMessages.value = emptyList()
-            _selectedChildren.value = emptyMap()
-            _branchSwitchTrigger.value = null
+            kotlinx.coroutines.delay(SWITCH_OVERLAY_FADE_MS)
             _isSwitching.value = false
             _isTransitioningToNewChat.value = false
         }
@@ -1060,7 +1060,6 @@ class ChatViewModel(
         _isTransitioningToNewChat.value = false
         _isSwitching.value = true
         switchingJob = viewModelScope.launch {
-            kotlinx.coroutines.delay(SWITCH_OVERLAY_FADE_MS) // Allow overlay to fade in
             _isNewChatMode.value = false
             _branchSwitchTrigger.value = null
             _currentConversationId.value = id
@@ -1070,6 +1069,8 @@ class ChatViewModel(
             // so the top-bar "+" continues to file new chats under the same project.
             _activeProjectId.value = conversation?.projectId
             triggerScrollToMessage()
+            kotlinx.coroutines.delay(SWITCH_OVERLAY_FADE_MS)
+            _isSwitching.value = false
         }
     }
 

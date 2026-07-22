@@ -363,7 +363,7 @@ private fun CompactSegmentBlock(
                 Column(
                     modifier = Modifier
                         .then(
-                            if (contentMaxHeightPx > 0)
+                            if (isStreaming && contentMaxHeightPx > 0)
                                 Modifier.heightIn(min = with(LocalDensity.current) { contentMaxHeightPx.toDp() })
                             else Modifier
                         )

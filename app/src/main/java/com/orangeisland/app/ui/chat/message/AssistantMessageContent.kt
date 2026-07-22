@@ -531,7 +531,7 @@ internal fun AssistantMessageContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(
-                            if (streamingMaxHeightPx > 0)
+                            if (isStreaming && streamingMaxHeightPx > 0)
                                 Modifier.heightIn(min = with(LocalDensity.current) { streamingMaxHeightPx.toDp() })
                             else Modifier
                         )

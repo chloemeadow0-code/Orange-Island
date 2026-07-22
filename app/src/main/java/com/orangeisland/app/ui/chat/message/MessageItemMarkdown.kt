@@ -91,6 +91,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -518,11 +519,11 @@ private fun RecomposeSafeMarkdownNode(
     var buf0 by remember { mutableStateOf<StreamingMarkdownNode?>(null) }
     var buf1 by remember { mutableStateOf<StreamingMarkdownNode?>(null) }
     var front by remember { mutableIntStateOf(0) }
-    var fading by remember { mutableStateOf(false) }
     var fadeAlpha by remember { mutableFloatStateOf(0f) }
-    var fadeKey by remember { mutableIntStateOf(0) }
-    var wasStreaming by remember { mutableStateOf(false) }
-    var waitingForFade by remember { mutableStateOf(false) }
+
+    val currentContent by rememberUpdatedState(content)
+    val currentIsStreaming by rememberUpdatedState(isStreaming)
+    val fadeChannel = remember { Channel<Unit>(Channel.CONFLATED) }
 
     fun sameContent(a: StreamingMarkdownNode?, b: StreamingMarkdownNode): Boolean =
         a?.startOffset == b.startOffset &&
@@ -530,63 +531,87 @@ private fun RecomposeSafeMarkdownNode(
             a.contentHash == b.contentHash &&
             a.node.type == b.node.type
 
-    LaunchedEffect(content, isStreaming, fading) {
-        if (isStreaming) {
-            waitingForFade = false
-            val cur = if (front == 0) buf0 else buf1
-            if (!sameContent(cur, content) && !fading) {
-                if (front == 0) buf1 = content else buf0 = content
-                fadeKey++
-                fading = true
-                fadeAlpha = 0f
-            }
+    // Detect content changes and enqueue a fade.  Non-streaming content is
+    // written straight into the front buffer so settled messages render
+    // immediately without any cross-fade overhead.
+    LaunchedEffect(content, isStreaming) {
+        if (!currentIsStreaming) {
+            // Non-streaming: always render from buf0, clear buf1, reset fade.
+            // Also drain any pending fade signal so the fade effect does not
+            // flip front after we have already settled on buf0.
+            if (!sameContent(buf0, currentContent)) buf0 = currentContent
+            buf1 = null
+            front = 0
+            fadeAlpha = 0f
+            fadeChannel.tryReceive()
         } else {
-            if (wasStreaming) {
-                waitingForFade = true
+            val cur = if (front == 0) buf0 else buf1
+            if (cur == null || !sameContent(cur, currentContent)) {
+                fadeChannel.trySend(Unit)
             }
-            if (waitingForFade) {
-                if (!fading) {
-                    if (front == 0) buf1 = content else buf0 = content
-                    waitingForFade = false
-                    fadeKey++
-                    fading = true
+        }
+    }
+
+    // Consume the fade queue.  Because the channel is CONFLATED, multiple
+    // rapid updates collapse to a single pending signal; the loop simply
+    // catches up with the latest content once the current fade ends.
+    LaunchedEffect(Unit) {
+        for (_signal in fadeChannel) {
+            // If we have already switched to non-streaming, abort immediately.
+            if (!currentIsStreaming) {
+                fadeAlpha = 0f
+                continue
+            }
+
+            val incoming = 1 - front
+            if (front == 0) buf1 = currentContent else buf0 = currentContent
+
+            val startNs = withFrameNanos { it }
+            val durationNs = 180_000_000L
+            while (true) {
+                val nowNs = withFrameNanos { it }
+                val p = ((nowNs - startNs).toFloat() / durationNs).coerceAtMost(1f)
+                fadeAlpha = p
+                if (p >= 1f) break
+                // Abort early if streaming ended mid-fade.
+                if (!currentIsStreaming) {
                     fadeAlpha = 0f
+                    break
                 }
             }
-            if (!waitingForFade && !fading) {
-                if (front == 0) {
-                    if (!sameContent(buf0, content)) buf0 = content
-                    buf1 = null
-                } else {
-                    if (!sameContent(buf1, content)) buf1 = content
-                    buf0 = null
-                }
+            if (currentIsStreaming) {
+                front = incoming
             }
+            fadeAlpha = 0f
         }
-        wasStreaming = isStreaming
     }
 
-    LaunchedEffect(fadeKey) {
-        if (!fading) return@LaunchedEffect
-        withFrameNanos { }
-        val startNs = withFrameNanos { it }
-        val durationNs = 180_000_000L
-        while (true) {
-            val nowNs = withFrameNanos { it }
-            val p = ((nowNs - startNs).toFloat() / durationNs).coerceAtMost(1f)
-            fadeAlpha = p
-            if (p >= 1f) break
-        }
-        front = 1 - front
-        fading = false
-        fadeAlpha = 0f
-    }
-
+    val isFading = fadeAlpha > 0f
     val incoming = 1 - front
-    val z0 = when { fading && incoming == 0 -> 2f; fading && front == 0 -> 0f; front == 0 -> 2f; else -> 0f }
-    val a0 = when { fading && incoming == 0 -> fadeAlpha; fading && front == 0 -> 1f; front == 0 -> 1f; else -> 0f }
-    val z1 = when { fading && incoming == 1 -> 2f; fading && front == 1 -> 0f; front == 1 -> 2f; else -> 0f }
-    val a1 = when { fading && incoming == 1 -> fadeAlpha; fading && front == 1 -> 1f; front == 1 -> 1f; else -> 0f }
+    val z0 = when {
+        isFading && incoming == 0 -> 2f
+        isFading && front == 0 -> 0f
+        front == 0 -> 2f
+        else -> 0f
+    }
+    val a0 = when {
+        isFading && incoming == 0 -> fadeAlpha
+        isFading && front == 0 -> 1f
+        front == 0 -> 1f
+        else -> 0f
+    }
+    val z1 = when {
+        isFading && incoming == 1 -> 2f
+        isFading && front == 1 -> 0f
+        front == 1 -> 2f
+        else -> 0f
+    }
+    val a1 = when {
+        isFading && incoming == 1 -> fadeAlpha
+        isFading && front == 1 -> 1f
+        front == 1 -> 1f
+        else -> 0f
+    }
 
     Box(modifier = modifier) {
         buf0?.let { node ->

@@ -145,6 +145,7 @@ data class GenerationCallbacks(
     val onGeneratingIdChange: (String?) -> Unit,
     val onStreamClear: () -> Unit,
     val isLatestPersist: () -> Boolean,
+    val onTitleTriggerReady: ((String, String) -> Unit)? = null,
 )
 
 class GenerationManager(
@@ -480,7 +481,7 @@ class GenerationManager(
         session: GenerationSession? = null
     ) {
         // Destructure into locals so the body below reads exactly as before.
-        val (onStreamUpdate, onLoadingChange, onGeneratingIdChange, onStreamClear, isLatestPersist) = callbacks
+        val (onStreamUpdate, onLoadingChange, onGeneratingIdChange, onStreamClear, isLatestPersist, onTitleTriggerReady) = callbacks
         val provider = getProviderInstance(config.providerName)
 
         onLoadingChange(true)
@@ -513,6 +514,8 @@ class GenerationManager(
         val placeholder = conversations.getMessagesForConversationSnapshot(conversationId).find { it.id == modelMessageId }
         val parentId = placeholder?.parentId
         var toolPath = emptyList<ChatMessage>()
+        var titleTriggerFired = false
+        var streamStartMs = 0L
 
         fun liveThoughtDurationMs(): Long? {
             val liveElapsed = currentThoughtStartMs?.let { System.currentTimeMillis() - it } ?: 0L
@@ -558,8 +561,13 @@ class GenerationManager(
             if (currentStatus != MessageStatus.ERROR) {
             // Re-scan the plugins directory so freshly-installed/uninstalled plugins are visible
             // to this turn without an app restart. Cheap: reads manifest.json files only.
+            val tRefresh = System.currentTimeMillis()
             tools.refreshPlugins()
+            DebugLog.d("GenPerf", "refreshPlugins: ${System.currentTimeMillis() - tRefresh}ms")
+
+            val tApiPath = System.currentTimeMillis()
             val (currentPath, rawProviderConfig) = buildApiPath(parentId, conversationId, isRegenerate, replaceMessageId, config, ctx, cancellationToken)
+            DebugLog.d("GenPerf", "buildApiPath: ${System.currentTimeMillis() - tApiPath}ms, pathSize=${currentPath.size}, toolCount=${rawProviderConfig.tools?.size ?: 0}")
             val providerConfig = if (transcriptionPerformed) rawProviderConfig.copy(includeImages = false) else rawProviderConfig
 
             var toolCallData: ToolCallData? = null
@@ -714,6 +722,15 @@ class GenerationManager(
                     }
                 }
 
+                if (!titleTriggerFired && onTitleTriggerReady != null) {
+                    val elapsed = System.currentTimeMillis() - streamStartMs
+                    val totalContentLength = totalText.length + totalThoughts.length
+                    if (totalContentLength >= 100 || elapsed >= 6000) {
+                        titleTriggerFired = true
+                        onTitleTriggerReady(totalText, totalThoughts)
+                    }
+                }
+
                 val now = System.currentTimeMillis()
                 val isSignificant = event is StreamEvent.Error
                 if (now - lastEmitMs >= 500 || isSignificant) {
@@ -724,7 +741,14 @@ class GenerationManager(
 
             val projectedPath = projectAssistantImagesToLatestUserMessage(currentPath, providerConfig.includeImages)
             val apiPath = applyUserTemplate(projectedPath, config.userPrepend, config.userPostpend)
+            streamStartMs = System.currentTimeMillis()
+            val tFirstToken = System.currentTimeMillis()
+            var firstTokenLogged = false
             provider.generateResponse(apiPath, providerConfig).collect { event ->
+                if (!firstTokenLogged && event is StreamEvent.TextChunk) {
+                    DebugLog.d("GenPerf", "firstToken: ${System.currentTimeMillis() - tFirstToken}ms")
+                    firstTokenLogged = true
+                }
                 handleStreamEvent(event)
             }
             finishCurrentThoughtTiming()
@@ -860,6 +884,7 @@ class GenerationManager(
                                 ?: segments.toList().ifEmpty { null }
                             val segmentsJson = finalSegments?.let { Json.encodeToString(it) }
                             val effectiveParentId = parentId
+                            DebugLog.d("GenStopRace", "[generateFinally] BEFORE upsert id=$modelMessageId textLen=${totalText.length} status=$currentStatus time=${System.currentTimeMillis()}")
                             conversations.upsertMessage(MessageEntity(
                                 id = modelMessageId, conversationId = conversationId, parentId = effectiveParentId,
                                 text = totalText, images = generatedImages.toList(),
@@ -868,6 +893,7 @@ class GenerationManager(
                                 status = currentStatus, participant = Participant.MODEL, timestamp = startTime,
                                 thoughtTimeMs = totalThoughtTimeMs, modelName = modelName, toolCallJson = segmentsJson
                             ))
+                            DebugLog.d("GenStopRace", "[generateFinally] AFTER  upsert id=$modelMessageId textLen=${totalText.length} status=$currentStatus time=${System.currentTimeMillis()}")
                             if (totalText.isNotBlank()) {
                                 onMessagePersisted?.invoke(modelMessageId, totalText)
                             }

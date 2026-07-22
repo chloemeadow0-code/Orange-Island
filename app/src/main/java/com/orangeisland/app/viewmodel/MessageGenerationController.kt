@@ -297,20 +297,32 @@ class MessageGenerationController(
         activeKey: String,
         uiToken: Long,
         persistId: Long,
-        callerTag: String
+        callerTag: String,
+        onTitleTriggerReady: ((String, String) -> Unit)? = null
     ) {
+        val t0 = System.currentTimeMillis()
         val resolved = requestBuilder.buildEffectiveSystemPrompt(currentId)
+        DebugLog.d("GenPerf", "buildSystemPrompt: ${System.currentTimeMillis() - t0}ms")
+
+        val t1 = System.currentTimeMillis()
         val effectiveSettings = requestBuilder.buildEffectiveConversationSettings(currentId)
+        DebugLog.d("GenPerf", "buildSettings: ${System.currentTimeMillis() - t1}ms")
+
         // Re-resolve the key against on-disk settings here (the suspend convergence
         // point for all entry paths). The synchronous [activeKey] resolved by the
         // callers can be blank if DataStore had not finished loading when Send was
         // tapped, which would build the request with an empty key → 401.
+        val t2 = System.currentTimeMillis()
         val freshKey = settings.awaitActiveKey(providerName)?.takeIf { it.isNotBlank() } ?: activeKey
+        DebugLog.d("GenPerf", "awaitActiveKey: ${System.currentTimeMillis() - t2}ms")
+
+        val t3 = System.currentTimeMillis()
         val (config, genCtx) = requestBuilder.buildGenerationPair(
             providerName, modelId, freshKey,
             resolved.systemPrompt, resolved.userPrepend, resolved.userPostpend,
             effectiveSettings, currentId, resolved.projectId
         )
+        DebugLog.d("GenPerf", "buildGenerationPair: ${System.currentTimeMillis() - t3}ms")
         try {
             generationManager.generate(
                 conversationId = currentId,
@@ -322,7 +334,7 @@ class MessageGenerationController(
                 config = config,
                 ctx = genCtx,
                 generationJob = session.generationJob,
-                callbacks = session.callbacksFor(uiToken, persistId),
+                callbacks = session.callbacksFor(uiToken, persistId, onTitleTriggerReady),
                 session = session
             )
         } catch (e: CancellationException) {
@@ -434,9 +446,14 @@ class MessageGenerationController(
             try {
             // Wait only for the short STOPPED DB finalization. The cancelled provider
             // may still be unwinding, but it no longer owns the next generation path.
+            val tStopJoin = System.currentTimeMillis()
             stopFinalization?.join()
+            DebugLog.d("GenPerf", "stopJoin: ${System.currentTimeMillis() - tStopJoin}ms")
+
             val myPersistId = session.nextPersistId()
+            val tPayload = System.currentTimeMillis()
             val (allImages, attachmentMeta) = payloadBuilder.buildMessagePayload(application, images, attachments)
+            DebugLog.d("GenPerf", "buildPayload: ${System.currentTimeMillis() - tPayload}ms, images=${allImages.size}, attachments=${attachments.size}")
             var currentId = currentConversationId.value
             val wasNewChat = isNewChatMode.value
             if (wasNewChat || currentId == null) {
@@ -487,16 +504,28 @@ class MessageGenerationController(
             selectedChildren.value = newChildren
             onScrollToMessage(userMessageId)
 
+            val titleGenerated = java.util.concurrent.atomic.AtomicBoolean(false)
+
+            fun triggerTitle(partialAnswer: String, partialThoughts: String) {
+                if (!titleGenerated.compareAndSet(false, true)) return
+                viewModelScope.launch {
+                    generateTitleFromPartialContent(currentId, partialAnswer, partialThoughts)
+                }
+            }
+
             launchGeneration(
                 currentId, modelMessageId, startTime,
                 isRegenerate = false, replaceMessageId = null,
                 providerName, modelId, activeKey, myUiToken, myPersistId,
-                callerTag = "sendMessage"
+                callerTag = "sendMessage",
+                onTitleTriggerReady = if (wasNewChat && settings.titleGenerationEnabled.value) ::triggerTitle else null
             )
 
-            val lastMsg = allMessages.value.find { it.id == modelMessageId }
-            if (wasNewChat && settings.titleGenerationEnabled.value && session.generationJob?.isActive == true && lastMsg?.status != MessageStatus.ERROR) {
-                generateTitle(currentId)
+            if (wasNewChat && settings.titleGenerationEnabled.value && !titleGenerated.get()) {
+                val lastMsg = allMessages.value.find { it.id == modelMessageId }
+                if (lastMsg?.status != MessageStatus.ERROR) {
+                    generateTitle(currentId)
+                }
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
@@ -515,6 +544,100 @@ class MessageGenerationController(
         if (!committed) session.sendGate.set(false)
     }
         return true
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // generateTitleFromPartialContent
+    // ════════════════════════════════════════════════════════════════════
+
+    private fun generateTitleFromPartialContent(
+        conversationId: String,
+        partialAnswer: String,
+        partialThoughts: String
+    ) {
+        viewModelScope.launch {
+            val conversation = convRepo.getConversation(conversationId) ?: return@launch
+            val entities = convRepo.getMessagesForConversationSnapshot(conversationId)
+            val path = ConversationUiState.resolvePath(
+                allMessages = entities.map {
+                    ChatMessage(
+                        id = it.id,
+                        parentId = it.parentId,
+                        text = it.text,
+                        participant = it.participant,
+                        timestamp = it.timestamp,
+                        status = it.status,
+                        modelName = it.modelName
+                    )
+                },
+                streamingMsg = null,
+                selectedChildren = emptyMap()
+            )
+            val firstUserMsg = path.firstOrNull { it.participant == Participant.USER } ?: return@launch
+
+            val titleModelId = settings.titleGenerationModel.value
+            val modelIdWithPrefix = if (!titleModelId.isNullOrBlank()) titleModelId else (conversation.modelId ?: settings.selectedModel.value)
+            val modelId = ModelId.parse(modelIdWithPrefix).modelName
+            val (providerName, activeKey) = requestBuilder.resolveProviderKey(modelIdWithPrefix) ?: return@launch
+
+            val assistantPreview = partialAnswer.takeIf { it.isNotBlank() } ?: partialThoughts
+            val summaryText = if (assistantPreview.isNotBlank()) {
+                "User: ${firstUserMsg.text}\nAssistant: ${assistantPreview.take(500)}"
+            } else {
+                firstUserMsg.text
+            }
+
+            val titlePrompt = listOf(
+                ChatMessage(
+                    text = "Generate a short title (5 words maximum) for this conversation:\n\n$summaryText\n\nRespond with ONLY the title text, no quotes, no punctuation, no explanation.",
+                    participant = Participant.USER,
+                    status = MessageStatus.SUCCESS
+                )
+            )
+
+            val provider = providerRegistry.getInstance(providerName)
+            val config = ProviderConfig(
+                apiKey = activeKey,
+                modelId = modelId,
+                systemPrompt = settings.titleGenerationPrompt.value.ifBlank { BuiltInPrompts.TITLE_GENERATION_SYSTEM },
+                maxContextWindow = 1,
+                thinkingEnabled = false,
+                baseUrl = providerRegistry.getEffectiveBaseUrl(providerName)
+            )
+
+            var title = ""
+            try {
+                if (providerName == Constants.PROVIDER_LOCAL) {
+                    LlamaEngine.modelMutex.withLock {
+                        withContext(Dispatchers.IO) {
+                            provider.generateResponse(titlePrompt, config).collect { event ->
+                                if (event is StreamEvent.TextChunk) title += event.text
+                                else if (event is StreamEvent.Error) DebugLog.e("OrangeIslandVM", "Title generation error: ${event.message}")
+                            }
+                        }
+                        localProvider.releaseEngine()
+                    }
+                } else {
+                    provider.generateResponse(titlePrompt, config).collect { event ->
+                        if (event is StreamEvent.TextChunk) title += event.text
+                        else if (event is StreamEvent.Error) DebugLog.e("OrangeIslandVM", "Title generation error: ${event.message}")
+                    }
+                }
+            } catch (e: Exception) {
+                DebugLog.e("OrangeIslandVM", "Title generation failed for provider=$providerName model=$modelId", e)
+                return@launch
+            }
+
+            title = title.trim().replace("\n", " ").take(60)
+            if (title.isNotBlank()) {
+                convRepo.getConversation(conversationId)?.let { existing ->
+                    convRepo.upsertConversation(existing.copy(title = title))
+                }
+                onSnackbarSuspend(appContext.getString(R.string.snackbar_title_generated))
+            } else {
+                onSnackbarSuspend(appContext.getString(R.string.snackbar_title_error))
+            }
+        }
     }
 
     // ════════════════════════════════════════════════════════════════════
