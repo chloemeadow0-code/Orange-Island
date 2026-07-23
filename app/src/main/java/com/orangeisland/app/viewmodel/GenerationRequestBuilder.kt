@@ -5,6 +5,7 @@ import com.orangeisland.app.R
 import com.orangeisland.app.data.ConversationSettings
 import com.orangeisland.app.data.MemoryManager
 import com.orangeisland.app.data.PredefinedVariables
+import com.orangeisland.app.data.environment.AppContextCollector
 import com.orangeisland.app.data.repository.ConversationRepository
 import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.model.ModelId
@@ -29,6 +30,7 @@ class GenerationRequestBuilder(
     private val pendingConversationSettings: StateFlow<ConversationSettings?>,
     // resolveProviderKey 需要 emit snackbar
     private val onSnackbar: (String) -> Unit,
+    private val appContextCollector: AppContextCollector? = null,
 ) {
     data class ProviderKey(val providerName: String, val apiKey: String)
 
@@ -111,7 +113,8 @@ class GenerationRequestBuilder(
         resolvedUserPostpend: String?,
         effectiveSettings: ConversationSettings,
         currentId: String,
-        projectId: String? = null
+        projectId: String? = null,
+        systemPromptId: String? = null
     ): Pair<GenerationConfig, GenerationContext> {
         val config = GenerationConfig(
             providerName = providerName,
@@ -183,7 +186,9 @@ class GenerationRequestBuilder(
             userInteractionEnabled = settings.userInteractionEnabled.value,
             // Memory + RAG scope: a conversation inside a project only sees that project's
             // private memory store (plus the global one), and searches stay within it.
-            projectId = projectId
+            projectId = projectId,
+            modelId = modelId,
+            systemPromptId = systemPromptId
         )
         return Pair(config, genCtx)
     }
@@ -194,7 +199,8 @@ class GenerationRequestBuilder(
         val userPostpend: String?,
         // Carries the conversation's project so buildGenerationPair (a non-suspend fun) can
         // populate GenerationContext.projectId without doing its own DB lookup.
-        val projectId: String? = null
+        val projectId: String? = null,
+        val systemPromptId: String? = null
     )
 
     internal suspend fun buildEffectiveSystemPrompt(currentId: String): ResolvedPrompt {
@@ -215,7 +221,8 @@ class GenerationRequestBuilder(
             PredefinedVariables.SENT_TIME to sdf.format(now),
             PredefinedVariables.SENT_DATE to dateSdf.format(now),
             PredefinedVariables.MODEL_ID to modelId,
-            PredefinedVariables.ACTIVE_MEMORY to if (includeActiveMemory && activeMemory.isNotBlank()) activeMemory else ""
+            PredefinedVariables.ACTIVE_MEMORY to if (includeActiveMemory && activeMemory.isNotBlank()) activeMemory else "",
+            PredefinedVariables.APP_CONTEXT to (appContextCollector?.getSnapshot() ?: "")
         )
 
         if (entry != null) {
@@ -226,10 +233,11 @@ class GenerationRequestBuilder(
                 systemPrompt = PredefinedVariables.compile(systemItems, runtimeValues).ifBlank { null },
                 userPrepend = PredefinedVariables.compile(entry.userPrependItems, perMsgValues, emptyMap()).ifBlank { null },
                 userPostpend = PredefinedVariables.compile(entry.userPostpendItems, perMsgValues, emptyMap()).ifBlank { null },
-                projectId = conversation?.projectId
+                projectId = conversation?.projectId,
+                systemPromptId = targetPromptId
             )
         }
 
-        return ResolvedPrompt(null, null, null, conversation?.projectId)
+        return ResolvedPrompt(null, null, null, conversation?.projectId, targetPromptId)
     }
 }

@@ -77,7 +77,7 @@ private val SCROLL_EASING = CubicBezierEasing(0.3f, 0.0f, 0.0f, 1.0f)
 fun ChatApp(
     viewModel: ChatViewModel,
     onOpenSettings: () -> Unit,
-    onOpenWorkflows: () -> Unit = {},
+    onOpenMiniApp: () -> Unit = {},
     onMediaClick: (List<String>, Int) -> Unit,
     onFileContentClick: ((String, String) -> Unit)? = null,
     onPdfPagesClick: ((List<String>, Int) -> Unit)? = null,
@@ -497,7 +497,7 @@ fun ChatApp(
                 onDrawerProgress = { drawerProgress = it },
                 onSettingsButtonTop = { settingsButtonTopDp = it },
                 onOpenSettings = onOpenSettings,
-                onOpenWorkflows = onOpenWorkflows,
+                onOpenMiniApp = onOpenMiniApp,
                 onRequestRename = { id, title -> showRenameDialog = id; conversationToRename = title },
                 onRequestDelete = { id -> showDeleteConfirmDialog = id },
                 onPendingDrawerHaptic = { pendingDrawerConversationHaptic = it },

@@ -87,7 +87,7 @@ class LocationToolProvider(
             "explore_nearby" -> "基于当前位置搜索附近 POI"
             else -> name
         }
-        if (approvalGate?.approval?.invoke(name, desc) != true) {
+        if (approvalGate?.approval?.invoke(name, desc) == false) {
             return error("approval_denied", "用户拒绝了定位工具调用请求。")
         }
         return when (name) {

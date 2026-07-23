@@ -67,7 +67,7 @@ class UsageStatsToolProvider(
             return error("permission_denied",
                 "Usage access not granted. Ask the user to enable Screen Usage in Settings → Device Access (it opens the system Usage access screen).")
         }
-        if (approvalGate?.approval?.invoke(name, "读取应用使用时长统计") != true) {
+        if (approvalGate?.approval?.invoke(name, "读取应用使用时长统计") == false) {
             return error("approval_denied", "用户拒绝了应用使用统计请求。")
         }
         val parsed = json.decodeFromString<Map<String, kotlinx.serialization.json.JsonElement>>(arguments.ifBlank { "{}" })

@@ -98,7 +98,10 @@ class ChatViewModel(
     /** Shared gate for interactive card-style user choices (ask_user_choice). Wired through to
      *  the GenerationManager so the model can suspend on user input. Null when the UI observer
      *  is not available (e.g. unit tests). */
-    val userInteractionGate: com.orangeisland.app.tool.UserInteractionGate? = null
+    val userInteractionGate: com.orangeisland.app.tool.UserInteractionGate? = null,
+    /** Collects environment changes (foreground app, model, prompt, wallpaper, theme, battery,
+     *  WiFi, Bluetooth) and formats them for injection into the system prompt via {app_context}. */
+    private val appContextCollector: com.orangeisland.app.data.environment.AppContextCollector? = null
 ) : AndroidViewModel(application) {
 
     companion object {
@@ -558,6 +561,7 @@ class ChatViewModel(
         currentActiveModel = currentActiveModel,
         pendingConversationSettings = _pendingConversationSettings,
         onSnackbar = { msg -> emitSnackbar(msg) },
+        appContextCollector = appContextCollector,
     )
 
     private val generationController by lazy {

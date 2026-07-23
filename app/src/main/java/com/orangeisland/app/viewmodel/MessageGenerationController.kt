@@ -320,7 +320,7 @@ class MessageGenerationController(
         val (config, genCtx) = requestBuilder.buildGenerationPair(
             providerName, modelId, freshKey,
             resolved.systemPrompt, resolved.userPrepend, resolved.userPostpend,
-            effectiveSettings, currentId, resolved.projectId
+            effectiveSettings, currentId, resolved.projectId, resolved.systemPromptId
         )
         DebugLog.d("GenPerf", "buildGenerationPair: ${System.currentTimeMillis() - t3}ms")
         try {

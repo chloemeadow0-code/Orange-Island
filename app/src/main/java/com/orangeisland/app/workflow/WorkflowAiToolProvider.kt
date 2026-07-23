@@ -296,12 +296,12 @@ class WorkflowAiToolProvider(
     // ── Helpers ────────────────────────────────────────────────────────────
 
     /** Copies a [LinearWorkflow] with project / system-prompt / model bindings resolved from
-     *  the current [GenerationContext] and [settingsRepository]. Called by the create tools so
-     *  a workflow created in a project automatically inherits the conversation's scope. */
+     *  the current [GenerationContext]. Called by the create tools so a workflow created in a
+     *  conversation automatically inherits that conversation's project, model, and system prompt. */
     private fun LinearWorkflow.copyBindings(ctx: GenerationContext): LinearWorkflow {
         val projectId = ctx.projectId
-        val systemPromptId = settingsRepository?.activeSystemPromptId?.value
-        val modelId = settingsRepository?.selectedModel?.value
+        val systemPromptId = ctx.systemPromptId
+        val modelId = ctx.modelId
         return if (projectId != null || systemPromptId != null || modelId != null) {
             copy(projectId = projectId, systemPromptId = systemPromptId, modelId = modelId)
         } else this
@@ -310,8 +310,8 @@ class WorkflowAiToolProvider(
     /** Same binding logic for graph [Workflow]s. */
     private fun Workflow.copyBindings(ctx: GenerationContext): Workflow {
         val projectId = ctx.projectId
-        val systemPromptId = settingsRepository?.activeSystemPromptId?.value
-        val modelId = settingsRepository?.selectedModel?.value
+        val systemPromptId = ctx.systemPromptId
+        val modelId = ctx.modelId
         return if (projectId != null || systemPromptId != null || modelId != null) {
             copy(projectId = projectId, systemPromptId = systemPromptId, modelId = modelId)
         } else this

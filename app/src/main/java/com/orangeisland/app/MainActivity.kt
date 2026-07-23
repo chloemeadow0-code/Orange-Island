@@ -342,11 +342,13 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         AppForegroundTracker.setInForeground(true)
+        (application as? OrangeIslandApplication)?.container?.appContextCollector?.start()
     }
 
     override fun onPause() {
         super.onPause()
         AppForegroundTracker.setInForeground(false)
+        (application as? OrangeIslandApplication)?.container?.appContextCollector?.stop()
     }
 }
 
@@ -499,6 +501,8 @@ fun MainNavigation(
 ) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var settingsInitialCategory by remember { mutableStateOf<String?>(null) }
+    var showMiniAppList by rememberSaveable { mutableStateOf(false) }
+    var selectedMiniApp by remember { mutableStateOf<com.orangeisland.app.data.MiniAppEntry?>(null) }
     var showHealthPage by rememberSaveable { mutableStateOf(false) }
     var fullScreenMediaUrls by remember { mutableStateOf<List<String>?>(null) }
     var fullScreenMediaIndex by remember { mutableIntStateOf(0) }
@@ -817,9 +821,8 @@ fun MainNavigation(
                     settingsInitialCategory = null
                     showSettings = true
                 },
-                onOpenWorkflows = {
-                    settingsInitialCategory = "workflows"
-                    showSettings = true
+                onOpenMiniApp = {
+                    showMiniAppList = true
                 },
                 onMediaClick = { urls, index ->
                     focusManager.clearFocus()
@@ -850,6 +853,31 @@ fun MainNavigation(
                 fullScreenViewerUrls = fullScreenMediaUrls,
                 onSnackbarOffsetChanged = { chatSnackbarOffset = it }
             )
+
+            // Mini App list overlay
+            if (showMiniAppList) {
+                val miniAppEntries by viewModel.settings.miniAppEntries.collectAsState()
+                com.orangeisland.app.ui.chat.MiniAppListPage(
+                    entries = miniAppEntries,
+                    onBack = { showMiniAppList = false },
+                    onAdd = { entry ->
+                        viewModel.settings.setMiniAppEntries(miniAppEntries + entry)
+                    },
+                    onDelete = { id ->
+                        viewModel.settings.setMiniAppEntries(miniAppEntries.filter { it.id != id })
+                    },
+                    onOpen = { entry -> selectedMiniApp = entry }
+                )
+            }
+
+            // Mini App browser overlay
+            selectedMiniApp?.let { entry ->
+                com.orangeisland.app.ui.chat.MiniAppPage(
+                    name = entry.name,
+                    url = entry.url,
+                    onBack = { selectedMiniApp = null }
+                )
+            }
 
             SettingsOverlayHost(
                 visible = showSettings,

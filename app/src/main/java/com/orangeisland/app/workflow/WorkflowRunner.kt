@@ -14,6 +14,7 @@ import com.orangeisland.app.model.TriggerSpec
 import com.orangeisland.app.model.Workflow
 import com.orangeisland.app.tool.ToolDispatcher
 import com.orangeisland.app.viewmodel.GenerationContext
+import com.orangeisland.app.viewmodel.ProviderRegistry
 import com.orangeisland.app.workflow.linear.DeviceContextProvider
 import com.orangeisland.app.workflow.linear.LinearEngine
 import kotlinx.coroutines.flow.first
@@ -48,6 +49,7 @@ class WorkflowRunner(
     private val settingsRepository: SettingsRepository? = null,
     private val json: Json,
     private val contextProvider: com.orangeisland.app.workflow.linear.DeviceContextProvider,
+    private val providerRegistry: ProviderRegistry? = null,
     private val llmProviders: Map<String, LlmProvider> = emptyMap(),
     private val chatDao: com.orangeisland.app.data.local.ChatDao? = null,
     private val onConfirmDestructive: (suspend (toolName: String, args: String) -> Boolean)? = null,
@@ -188,7 +190,9 @@ class WorkflowRunner(
      * dangerous ones before dispatch. Sensitive credentials (API keys) are read from settings.
      */
     private fun buildLLMRunner(workflow: Workflow): NodeExecutor.LLMRunner? {
-        if (llmProviders.isEmpty() || settingsRepository == null) return null
+        // Prefer the dynamic ProviderRegistry (built-in + user custom providers); fall back to
+        // the static llmProviders map in background workers that rebuild deps from scratch.
+        if ((providerRegistry == null && llmProviders.isEmpty()) || settingsRepository == null) return null
         return NodeExecutor.LLMRunner { nodeProvider, nodeModelId, nodeSystemPrompt, prompt ->
             // ── Resolve overrides from workflow bindings ─────────────────────────
             val effectiveProvider: String
@@ -238,7 +242,8 @@ class WorkflowRunner(
                 status = MessageStatus.SUCCESS
             )
 
-            val llmProvider = llmProviders[effectiveProvider]
+            val llmProvider = providerRegistry?.getInstance(effectiveProvider)
+                ?: llmProviders[effectiveProvider]
                 ?: error("Provider '$effectiveProvider' not available")
             val apiKey = settingsRepository.awaitActiveKey(effectiveProvider).orEmpty()
             val baseUrl = settingsRepository.providerBaseUrls.value[effectiveProvider]

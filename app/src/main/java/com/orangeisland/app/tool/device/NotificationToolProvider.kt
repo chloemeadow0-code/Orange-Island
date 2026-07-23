@@ -71,7 +71,7 @@ class NotificationToolProvider(
             return error("not_yet_active",
                 "Listener permission is granted but the service hasn't bound yet. Try again in a moment.")
         }
-        if (approvalGate?.approval?.invoke(name, "读取最近通知内容") != true) {
+        if (approvalGate?.approval?.invoke(name, "读取最近通知内容") == false) {
             return error("approval_denied", "用户拒绝了通知读取请求。")
         }
         val parsed = json.decodeFromString<Map<String, kotlinx.serialization.json.JsonElement>>(arguments.ifBlank { "{}" })

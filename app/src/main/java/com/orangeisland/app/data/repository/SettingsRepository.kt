@@ -173,6 +173,8 @@ class SettingsRepository(
     val healthSyncSupabaseApiKey: StateFlow<String> = hot(settingsManager.healthSyncSupabaseApiKey, "")
     val healthSyncTableName: StateFlow<String> = hot(settingsManager.healthSyncTableName, "device_data")
     val autoApproveSensitiveTools: StateFlow<Boolean> = hot(settingsManager.autoApproveSensitiveTools, false)
+    val environmentAwarenessEnabled: StateFlow<Boolean> = hot(settingsManager.environmentAwarenessEnabled, false)
+    val miniAppEntries: StateFlow<List<com.orangeisland.app.data.MiniAppEntry>> = hot(settingsManager.miniAppEntries, emptyList())
     // ── Plugin device id ──────────────────────────────────────
     // Auto-injected per-install UUID (read-only — no UI, no setter).
     val appUserId: StateFlow<String> = hot(settingsManager.appUserId, "")
@@ -437,6 +439,7 @@ class SettingsRepository(
     fun setUiAutomationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveUiAutomationEnabled(enabled) }
     fun setUserInteractionEnabled(enabled: Boolean) = scope.launch { settingsManager.saveUserInteractionEnabled(enabled) }
     fun setAmapApiKey(key: String) = scope.launch { settingsManager.saveAmapApiKey(key) }
+    fun setEnvironmentAwarenessEnabled(enabled: Boolean) = scope.launch { settingsManager.saveEnvironmentAwarenessEnabled(enabled) }
 
     // ── MCP servers ──────────────────────────────────────────
     fun saveMcpServers(servers: List<com.orangeisland.app.data.McpServerConfig>) =
@@ -472,6 +475,7 @@ class SettingsRepository(
     fun setDefaultTopP(v: Float?) = scope.launch { settingsManager.saveDefaultTopP(v) }
     fun setDefaultFrequencyPenalty(v: Float?) = scope.launch { settingsManager.saveDefaultFrequencyPenalty(v) }
     fun setDefaultPresencePenalty(v: Float?) = scope.launch { settingsManager.saveDefaultPresencePenalty(v) }
+    fun setMiniAppEntries(entries: List<com.orangeisland.app.data.MiniAppEntry>) = scope.launch { settingsManager.saveMiniAppEntries(entries) }
     fun setThemeMode(mode: String) = scope.launch { settingsManager.saveThemeMode(mode) }
     fun setColorScheme(scheme: String) = scope.launch { settingsManager.saveColorScheme(scheme) }
     fun setDynamicColor(enabled: Boolean) = scope.launch { settingsManager.saveDynamicColor(enabled) }

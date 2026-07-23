@@ -20,9 +20,10 @@ object PredefinedVariables {
     const val SENT_DATE = "sent_date"
     const val ACTIVE_MEMORY = "active_memory"
     const val MODEL_ID = "model_id"
+    const val APP_CONTEXT = "app_context"
 
     // Ordered for the variable picker
-    val ALL = listOf(TIME, DATE, SENT_TIME, SENT_DATE, ACTIVE_MEMORY, MODEL_ID)
+    val ALL = listOf(TIME, DATE, SENT_TIME, SENT_DATE, ACTIVE_MEMORY, MODEL_ID, APP_CONTEXT)
 
     // Placeholders resolved per-message by applyUserTemplate
     val PER_MESSAGE_VARS = setOf(SENT_TIME, SENT_DATE)
@@ -33,7 +34,8 @@ object PredefinedVariables {
         SENT_TIME to "10:05:00",
         SENT_DATE to "2026-05-11",
         ACTIVE_MEMORY to "[Example memory content]",
-        MODEL_ID to Constants.EXAMPLE_MODEL_ID
+        MODEL_ID to Constants.EXAMPLE_MODEL_ID,
+        APP_CONTEXT to "[Example app context]"
     )
 
     fun compile(

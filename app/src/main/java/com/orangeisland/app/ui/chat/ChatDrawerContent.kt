@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -105,7 +106,7 @@ internal fun ChatDrawerContent(
     onDrawerProgress: (Float) -> Unit,
     onSettingsButtonTop: (Float) -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenWorkflows: () -> Unit = {},
+    onOpenMiniApp: () -> Unit = {},
     onRequestRename: (String, String) -> Unit,
     onRequestDelete: (String) -> Unit,
     onPendingDrawerHaptic: (String?) -> Unit,
@@ -364,7 +365,7 @@ internal fun ChatDrawerContent(
                 onClick = {
                     haptics.action()
                     focusManager.clearFocus()
-                    onOpenWorkflows()
+                    onOpenMiniApp()
                     scope.launch { drawerState.close() }
                 },
                 modifier = Modifier
@@ -372,9 +373,9 @@ internal fun ChatDrawerContent(
                     .height(42.dp),
                 shape = CircleShape
             ) {
-                Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Apps, null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.workflows_title), style = ChatType.drawerButton)
+                Text(stringResource(R.string.mini_app_title), style = ChatType.drawerButton)
             }
 
             Spacer(modifier = Modifier.height(8.dp))

@@ -111,7 +111,13 @@ data class GenerationContext(
     /** The project this conversation belongs to (null = ungrouped). Drives memory scoping:
      *  when non-null, memory tools read/write the project-private memory dir on top of the
      *  always-present global dir; RAG/search filters to the same project. */
-    val projectId: String? = null
+    val projectId: String? = null,
+    /** The model id used for this generation turn (format "provider:modelId"). Captured by
+     *  the workflow authoring tools so a created workflow inherits the conversation's model. */
+    val modelId: String? = null,
+    /** The system prompt id used for this generation turn. Captured by the workflow authoring
+     *  tools so a created workflow inherits the conversation's system prompt. */
+    val systemPromptId: String? = null
 )
 
 internal fun applyUserTemplateToMessages(

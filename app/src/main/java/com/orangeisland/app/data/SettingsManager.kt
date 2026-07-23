@@ -284,6 +284,10 @@ class SettingsManager(private val context: Context) {
         val HEALTH_SYNC_SUPABASE_API_KEY = stringPreferencesKey("health_sync_supabase_api_key")
         val HEALTH_SYNC_TABLE_NAME = stringPreferencesKey("health_sync_table_name")
         val AUTO_APPROVE_SENSITIVE_TOOLS = booleanPreferencesKey("auto_approve_sensitive_tools")
+        // ── Environment awareness ─────────────────────────────────
+        val ENVIRONMENT_AWARENESS_ENABLED = booleanPreferencesKey("environment_awareness_enabled")
+        // ── Mini App ──────────────────────────────────────────────
+        val MINI_APP_ENTRIES_JSON = stringPreferencesKey("mini_app_entries_json")
         // ── Plugin device id ──────────────────────────────────────
         // A stable per-install UUID auto-injected into every plugin sandbox / WebView as
         // __OI_USER_ID so plugins can attribute actions to this device without learning
@@ -528,6 +532,11 @@ class SettingsManager(private val context: Context) {
     val healthSyncSupabaseApiKey: Flow<String> = context.dataStore.data.map { it[HEALTH_SYNC_SUPABASE_API_KEY] ?: "" }
     val healthSyncTableName: Flow<String> = context.dataStore.data.map { it[HEALTH_SYNC_TABLE_NAME] ?: "device_data" }
     val autoApproveSensitiveTools: Flow<Boolean> = context.dataStore.data.map { it[AUTO_APPROVE_SENSITIVE_TOOLS] ?: false }
+    val environmentAwarenessEnabled: Flow<Boolean> = context.dataStore.data.map { it[ENVIRONMENT_AWARENESS_ENABLED] ?: false }
+    val miniAppEntries: Flow<List<com.orangeisland.app.data.MiniAppEntry>> = context.dataStore.data.map { pref ->
+        val jsonStr = pref[MINI_APP_ENTRIES_JSON] ?: "[]"
+        try { json.decodeFromString(jsonStr) } catch (_: Exception) { emptyList() }
+    }
 
     // ── Plugin device id ──────────────────────────────────────
     // Lazily minted per-install UUID, exposed to plugins as __OI_USER_ID. No setter: it is
@@ -1080,6 +1089,10 @@ class SettingsManager(private val context: Context) {
     suspend fun saveHealthSyncSupabaseApiKey(key: String) { context.dataStore.edit { it[HEALTH_SYNC_SUPABASE_API_KEY] = key } }
     suspend fun saveHealthSyncTableName(name: String) { context.dataStore.edit { it[HEALTH_SYNC_TABLE_NAME] = name } }
     suspend fun saveAutoApproveSensitiveTools(enabled: Boolean) { context.dataStore.edit { it[AUTO_APPROVE_SENSITIVE_TOOLS] = enabled } }
+    suspend fun saveEnvironmentAwarenessEnabled(enabled: Boolean) { context.dataStore.edit { it[ENVIRONMENT_AWARENESS_ENABLED] = enabled } }
+    suspend fun saveMiniAppEntries(entries: List<com.orangeisland.app.data.MiniAppEntry>) {
+        context.dataStore.edit { it[MINI_APP_ENTRIES_JSON] = json.encodeToString(entries) }
+    }
 
     /**
      * Stores the user-filled config values for one plugin. [values] is a map of field name → value;

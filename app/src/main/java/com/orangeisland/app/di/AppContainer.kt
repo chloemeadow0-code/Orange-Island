@@ -128,6 +128,7 @@ class AppContainer(private val appContext: Context) {
         settingsRepository = settingsRepository,
         json = workflowJson,
         contextProvider = deviceContextProvider,
+        providerRegistry = providerRegistry,
         llmProviders = llmProviders,
         chatDao = database.chatDao(),
         onConfirmDestructive = onConfirmDestructive,
@@ -205,6 +206,16 @@ class AppContainer(private val appContext: Context) {
         com.orangeisland.app.tool.SensitiveToolApprovalGate()
     }
 
+    /** Collects environment changes (app foreground, model, prompt, wallpaper, theme, battery,
+     *  WiFi, Bluetooth) into a ring buffer for injection into the system prompt via {app_context}. */
+    val appContextCollector: com.orangeisland.app.data.environment.AppContextCollector by lazy {
+        com.orangeisland.app.data.environment.AppContextCollector(
+            context = appContext,
+            settingsRepository = settingsRepository,
+            scope = appScope
+        )
+    }
+
     /** Interactive choice gate for card-style user prompts (ask_user_choice). Shared between
      *  the tool provider (which suspends on it) and the chat UI (which renders the dialog). */
     val userInteractionGate: com.orangeisland.app.tool.UserInteractionGate by lazy {
@@ -223,6 +234,20 @@ class AppContainer(private val appContext: Context) {
             Constants.PROVIDER_OLLAMA to OllamaProvider(),
             Constants.PROVIDER_OPEN_ROUTER to OpenRouterProvider()
         )
+    }
+
+    /** App-wide provider registry including built-in + user-defined custom providers. Unlike
+     *  [llmProviders] (static, built-in only), this registry is dynamic and reflects the user's
+     *  configured custom OpenAI-compatible providers at runtime. Used by the workflow runner so
+     *  an LLM node bound to a custom provider can resolve to a real [LlmProvider] instance. */
+    val providerRegistry: com.orangeisland.app.viewmodel.ProviderRegistry by lazy {
+        val localProvider = com.orangeisland.app.api.local.LocalProvider(appContext, settingsRepository)
+        val registry = com.orangeisland.app.viewmodel.ProviderRegistry(settingsRepository, localProvider, appScope)
+        // Sync persisted custom providers into the live map now, so a workflow firing before the
+        // user opens the chat (e.g. a boot trigger) still resolves custom providers.
+        registry.ensureCustomProvidersRegistered()
+        registry.launchSyncJobs()
+        registry
     }
 
     val toolDispatcher: com.orangeisland.app.tool.ToolDispatcher by lazy {
@@ -313,7 +338,7 @@ class AppContainer(private val appContext: Context) {
             application, chatDao, settingsManager, memoryManager, appContext, sandboxManagerFactory,
             autoBackupManager, conversationRepository, settingsRepository, workflowRepository,
             workflowApprovalGate, pluginToolProvider, pluginLoader, pluginSandbox,
-            workflowAiToolProvider, userInteractionGate
+            workflowAiToolProvider, userInteractionGate, appContextCollector
         )
 
     fun healthViewModelFactory(): com.orangeisland.app.viewmodel.HealthViewModelFactory =

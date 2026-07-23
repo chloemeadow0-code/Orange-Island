@@ -64,6 +64,7 @@ fun SettingsDeviceAccessPage(
     val toastEnabled by settings.toastEnabled.collectAsState()
     val uiAutomationEnabled by settings.uiAutomationEnabled.collectAsState()
     val userInteractionEnabled by settings.userInteractionEnabled.collectAsState()
+    val environmentAwarenessEnabled by settings.environmentAwarenessEnabled.collectAsState()
     val amapApiKey by settings.amapApiKey.collectAsState()
     val pc = viewModel.permissionController
     var amapKeyDraft by remember(amapApiKey) { mutableStateOf(amapApiKey) }
@@ -255,6 +256,17 @@ fun SettingsDeviceAccessPage(
                             PermissionState.Granted else PermissionState.SpecialNeeded(
                             onClick = { pc.openSystemSettings(PermissionController.Tool.UI_AUTOMATION) }
                         )
+                    )
+                }
+                // Environment Awareness — injects {app_context} into the system prompt
+                add {
+                    ToolToggleRow(
+                        title = stringResource(R.string.device_access_env_awareness_title),
+                        desc = stringResource(R.string.device_access_env_awareness_desc),
+                        icon = Icons.Default.Smartphone,
+                        checked = environmentAwarenessEnabled,
+                        onCheckedChange = { settings.setEnvironmentAwarenessEnabled(it) },
+                        permissionState = PermissionState.NotRequired
                     )
                 }
             })
