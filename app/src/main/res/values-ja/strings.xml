@@ -1000,4 +1000,7 @@ THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMP
     <string name="oi_keepalive_snackbar_fallback">Could not recognize your device manufacturer settings. Opened app details page. Please manually look for battery / auto-start options.</string>
     <string name="oi_keepalive_notification_title">Orange Island is monitoring automation triggers</string>
     <string name="oi_keepalive_worker_notification_title">Running workflow: %s</string>
+    <string name="logs_type_request">REQUEST</string>
+    <string name="logs_type_conversation">CONVERSATION</string>
+    <string name="logs_type_sync">SYNC</string>
 </resources>

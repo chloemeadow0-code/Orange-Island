@@ -886,6 +886,12 @@ class GenerationManager(
             currentStatus = if (isCancelled) MessageStatus.STOPPED else MessageStatus.ERROR
             if (!isCancelled) {
                 totalText = "Error: ${e.localizedMessage ?: "An unexpected error occurred."}"
+                UsageLogManager.logModel(
+                    name = "${config.providerName} / ${config.modelId}",
+                    conversationId = conversationId,
+                    details = "生成失败: ${e.message}",
+                    isError = true
+                )
             }
         } finally {
             withContext(NonCancellable) {
@@ -909,14 +915,19 @@ class GenerationManager(
                             val segmentsJson = finalSegments?.let { Json.encodeToString(it) }
                             val effectiveParentId = parentId
                             DebugLog.d("GenStopRace", "[generateFinally] BEFORE upsert id=$modelMessageId textLen=${totalText.length} status=$currentStatus time=${System.currentTimeMillis()}")
-                            conversations.upsertMessage(MessageEntity(
+                            val entity = MessageEntity(
                                 id = modelMessageId, conversationId = conversationId, parentId = effectiveParentId,
                                 text = totalText, images = generatedImages.toList(),
                                 thoughts = totalThoughts.ifBlank { null },
                                 thoughtTitle = totalThoughtTitle, tokenCount = totalTokenCount,
                                 status = currentStatus, participant = Participant.MODEL, timestamp = startTime,
                                 thoughtTimeMs = totalThoughtTimeMs, modelName = modelName, toolCallJson = segmentsJson
-                            ))
+                            )
+                            if (session != null) {
+                                session.withMessageWriteLock { conversations.upsertMessage(entity) }
+                            } else {
+                                conversations.upsertMessage(entity)
+                            }
                             DebugLog.d("GenStopRace", "[generateFinally] AFTER  upsert id=$modelMessageId textLen=${totalText.length} status=$currentStatus time=${System.currentTimeMillis()}")
                             if (totalText.isNotBlank()) {
                                 onMessagePersisted?.invoke(modelMessageId, totalText)

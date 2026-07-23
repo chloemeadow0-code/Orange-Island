@@ -9,6 +9,7 @@ import com.orangeisland.app.api.StreamEvent
 import com.orangeisland.app.api.local.LocalProvider
 import com.orangeisland.app.data.BuiltInPrompts
 import com.orangeisland.app.data.ConversationSettings
+import com.orangeisland.app.data.UsageLogManager
 import com.orangeisland.app.data.local.ChatEntity
 import com.orangeisland.app.data.local.MessageEntity
 import com.orangeisland.app.data.repository.ConversationRepository
@@ -263,10 +264,27 @@ class MessageGenerationController(
                     providerName, modelId, activeKey, myUiToken, myPersistId,
                     callerTag = "regenerate"
                 )
+                val finalMsg = allMessages.value.find { it.id == modelMessageId }
+                if (finalMsg?.status == MessageStatus.ERROR) {
+                    UsageLogManager.log(
+                        UsageLogManager.Type.CONVERSATION,
+                        name = "regenerate",
+                        conversationId = currentId,
+                        details = "生成失败: 消息状态为 ERROR",
+                        isError = true
+                    )
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 com.orangeisland.app.util.DebugLog.e("MessageGenerationController", "regenerate failed", e)
+                UsageLogManager.log(
+                    UsageLogManager.Type.CONVERSATION,
+                    name = "regenerate",
+                    conversationId = currentId,
+                    details = "重新生成失败: ${e.message}",
+                    isError = true
+                )
             } finally {
                 session.loadingChange(myUiToken, false)
             }
@@ -341,6 +359,13 @@ class MessageGenerationController(
             throw e
         } catch (e: Exception) {
             DebugLog.e("OrangeIslandVM", "Generation failed in $callerTag", e)
+            UsageLogManager.log(
+                UsageLogManager.Type.CONVERSATION,
+                name = callerTag,
+                conversationId = currentId,
+                details = "生成失败: ${e.message}",
+                isError = true
+            )
         }
     }
 
@@ -403,10 +428,27 @@ class MessageGenerationController(
                 providerName, modelId, activeKey, myUiToken, myPersistId,
                 callerTag = "editMessage"
             )
+            val finalMsg = allMessages.value.find { it.id == modelMessageId }
+            if (finalMsg?.status == MessageStatus.ERROR) {
+                UsageLogManager.log(
+                    UsageLogManager.Type.CONVERSATION,
+                    name = "editMessage",
+                    conversationId = currentId,
+                    details = "生成失败: 消息状态为 ERROR",
+                    isError = true
+                )
+            }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 com.orangeisland.app.util.DebugLog.e("MessageGenerationController", "editMessage failed", e)
+                UsageLogManager.log(
+                    UsageLogManager.Type.CONVERSATION,
+                    name = "editMessage",
+                    conversationId = currentId,
+                    details = "编辑消息失败: ${e.message}",
+                    isError = true
+                )
             } finally {
                 session.loadingChange(myUiToken, false)
             }
@@ -443,6 +485,7 @@ class MessageGenerationController(
 
         committed = true
         session.generationJob = session.scope.launch {
+            var currentId: String? = null
             try {
             // Wait only for the short STOPPED DB finalization. The cancelled provider
             // may still be unwinding, but it no longer owns the next generation path.
@@ -454,7 +497,7 @@ class MessageGenerationController(
             val tPayload = System.currentTimeMillis()
             val (allImages, attachmentMeta) = payloadBuilder.buildMessagePayload(application, images, attachments)
             DebugLog.d("GenPerf", "buildPayload: ${System.currentTimeMillis() - tPayload}ms, images=${allImages.size}, attachments=${attachments.size}")
-            var currentId = currentConversationId.value
+            currentId = currentConversationId.value
             val wasNewChat = isNewChatMode.value
             if (wasNewChat || currentId == null) {
                 val newId = UUID.randomUUID().toString()
@@ -521,16 +564,30 @@ class MessageGenerationController(
                 onTitleTriggerReady = if (wasNewChat && settings.titleGenerationEnabled.value) ::triggerTitle else null
             )
 
-            if (wasNewChat && settings.titleGenerationEnabled.value && !titleGenerated.get()) {
-                val lastMsg = allMessages.value.find { it.id == modelMessageId }
-                if (lastMsg?.status != MessageStatus.ERROR) {
-                    generateTitle(currentId)
-                }
+            val lastMsg = allMessages.value.find { it.id == modelMessageId }
+            if (lastMsg?.status == MessageStatus.ERROR) {
+                UsageLogManager.log(
+                    UsageLogManager.Type.CONVERSATION,
+                    name = "sendMessage",
+                    conversationId = currentId,
+                    details = "生成失败: 消息状态为 ERROR",
+                    isError = true
+                )
+            }
+            if (wasNewChat && settings.titleGenerationEnabled.value && !titleGenerated.get() && lastMsg?.status != MessageStatus.ERROR) {
+                generateTitle(currentId)
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
             com.orangeisland.app.util.DebugLog.e("MessageGenerationController", "sendMessage failed", e)
+            UsageLogManager.log(
+                UsageLogManager.Type.CONVERSATION,
+                name = "sendMessage",
+                conversationId = currentId,
+                details = "发送消息失败: ${e.message}",
+                isError = true
+            )
         } finally {
             // Token-gated: only the still-current generation clears the button, so a
             // cancelled/superseded coroutine can't revert the icon mid-generation.

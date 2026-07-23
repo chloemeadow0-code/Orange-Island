@@ -1,7 +1,7 @@
 package com.orangeisland.app.api
 
 import okhttp3.MediaType.Companion.toMediaType
-import com.orangeisland.app.util.DebugLog
+import com.orangeisland.app.data.UsageLogManager
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -201,6 +201,7 @@ object HttpClient {
         headers: Map<String, String> = emptyMap(),
         cancellationToken: Long? = null
     ): StreamHandle {
+        val t0 = System.currentTimeMillis()
         guardCleartextCredentials(url, headers)
         cancellationToken?.let { checkNotCancelled(it) }
         val body = jsonBody.toRequestBody(JSON)
@@ -215,30 +216,47 @@ object HttpClient {
             throw java.io.InterruptedIOException("Generation cancelled (token=$cancellationToken)")
         }
         activeStreamHandle = handle
+        val elapsed = System.currentTimeMillis() - t0
+        UsageLogManager.log(
+            UsageLogManager.Type.REQUEST,
+            name = "POST ${url.substringBefore("?")}",
+            details = "${handle.code} | ${elapsed}ms"
+        )
         return handle
     }
 
     fun post(url: String, jsonBody: String, headers: Map<String, String> = emptyMap()): String? {
+        val t0 = System.currentTimeMillis()
         guardCleartextCredentials(url, headers)
         val body = jsonBody.toRequestBody(JSON)
         val requestBuilder = Request.Builder().url(url).post(body)
         headers.forEach { (k, v) -> requestBuilder.addHeader(k, v) }
         val response = client.newCall(requestBuilder.build()).execute()
         return response.use {
+            val elapsed = System.currentTimeMillis() - t0
+            UsageLogManager.log(
+                UsageLogManager.Type.REQUEST,
+                name = "POST ${url.substringBefore("?")}",
+                details = "${it.code} | ${elapsed}ms${if (!it.isSuccessful) " | failed" else ""}"
+            )
             if (it.isSuccessful) it.body?.string()
-            else {
-                DebugLog.e("HttpClient", "POST $url failed: ${it.code} ${it.body?.string()}")
-                null
-            }
+            else null
         }
     }
 
     fun fetchModels(url: String, headers: Map<String, String> = emptyMap()): String? {
+        val t0 = System.currentTimeMillis()
         guardCleartextCredentials(url, headers)
         val requestBuilder = Request.Builder().url(url).get()
         headers.forEach { (k, v) -> requestBuilder.addHeader(k, v) }
         val response = client.newCall(requestBuilder.build()).execute()
         return response.use {
+            val elapsed = System.currentTimeMillis() - t0
+            UsageLogManager.log(
+                UsageLogManager.Type.REQUEST,
+                name = "GET ${url.substringBefore("?")}",
+                details = "${it.code} | ${elapsed}ms${if (!it.isSuccessful) " | failed" else ""}"
+            )
             if (it.isSuccessful) it.body?.string() else null
         }
     }
@@ -246,16 +264,19 @@ object HttpClient {
     /** Plain GET returning the response body as a string, or null on non-2xx / failure.
      *  Used by device-access tools (e.g. Amap reverse geocoding) for simple REST calls. */
     fun get(url: String, headers: Map<String, String> = emptyMap()): String? {
+        val t0 = System.currentTimeMillis()
         guardCleartextCredentials(url, headers)
         val requestBuilder = Request.Builder().url(url).get()
         headers.forEach { (k, v) -> requestBuilder.addHeader(k, v) }
         val response = client.newCall(requestBuilder.build()).execute()
         return response.use {
-            if (it.isSuccessful) it.body?.string()
-            else {
-                DebugLog.e("HttpClient", "GET $url failed: ${it.code} ${it.body?.string()}")
-                null
-            }
+            val elapsed = System.currentTimeMillis() - t0
+            UsageLogManager.log(
+                UsageLogManager.Type.REQUEST,
+                name = "GET ${url.substringBefore("?")}",
+                details = "${it.code} | ${elapsed}ms${if (!it.isSuccessful) " | failed" else ""}"
+            )
+            if (it.isSuccessful) it.body?.string() else null
         }
     }
 

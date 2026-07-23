@@ -86,7 +86,7 @@
     <string name="settings_prompts">系统指令</string>
     <string name="settings_prompts_desc">创建和管理系统指令</string>
     <string name="settings_models">模型</string>
-    <string name="settings_models_desc">启用、禁用和配置 AI 模型</string>
+    <string name="settings_models_desc">默认模型、可用模型与多模态模型</string>
     <string name="settings_generation">生成</string>
     <string name="settings_generation_desc">LLM 参数和上下文窗口</string>
     <string name="settings_web_search">网页搜索</string>
@@ -195,6 +195,8 @@
     <string name="models_default">默认模型</string>
     <string name="models_no_models">未启用模型</string>
     <string name="models_available">可用模型</string>
+    <string name="models_multimodal">多模态模型</string>
+    <string name="models_embedding_vector">嵌入 / 向量模型</string>
     <string name="models_sync">从所有提供商同步</string>
     <string name="models_sync_desc">获取所有已配置 API 的最新模型列表</string>
     <string name="provider_test_connection">测试连接</string>
@@ -256,6 +258,10 @@
     <string name="models_rename_current">当前 ID：%1$s</string>
     <string name="models_alias_hint">别名</string>
     <string name="models_select_default">选择默认模型</string>
+    <string name="models_available_desc">按供应商浏览，进入后精准搜索</string>
+    <string name="models_multimodal_desc">图片转述、图像生成、嵌入向量模型</string>
+    <string name="models_search_hint">在此供应商内搜索模型</string>
+    <string name="models_no_matches">没有匹配的模型</string>
 
     <!-- Settings - Generation Page -->
     <string name="generation_title">生成</string>
@@ -1194,4 +1200,7 @@
     <string name="oi_keepalive_snackbar_fallback">未识别到你的设备厂商设置项，已为你打开应用详情页，请手动查找电池/自启动相关选项</string>
     <string name="oi_keepalive_notification_title">Orange Island 正在监听自动化触发条件</string>
     <string name="oi_keepalive_worker_notification_title">正在运行工作流：%s</string>
+    <string name="logs_type_request">REQUEST</string>
+    <string name="logs_type_conversation">CONVERSATION</string>
+    <string name="logs_type_sync">SYNC</string>
 </resources>

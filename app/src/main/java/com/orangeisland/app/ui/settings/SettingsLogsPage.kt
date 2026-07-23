@@ -31,6 +31,13 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsLogsPage(onBack: () -> Unit) {
     val entries by UsageLogManager.entries.collectAsState()
+    val visibleEntries = entries.filter { entry ->
+        when (entry.type) {
+            UsageLogManager.Type.REQUEST, UsageLogManager.Type.TOOL -> true
+            UsageLogManager.Type.MODEL, UsageLogManager.Type.CONVERSATION -> entry.isError
+            else -> true
+        }
+    }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var showClearDialog by remember { mutableStateOf(false) }
@@ -47,7 +54,7 @@ fun SettingsLogsPage(onBack: () -> Unit) {
                 actions = {
                     TextButton(
                         onClick = { showClearDialog = true },
-                        enabled = entries.isNotEmpty()
+                        enabled = visibleEntries.isNotEmpty()
                     ) {
                         Text(stringResource(R.string.logs_clear))
                     }
@@ -55,7 +62,7 @@ fun SettingsLogsPage(onBack: () -> Unit) {
             )
         }
     ) { padding ->
-        if (entries.isEmpty()) {
+        if (visibleEntries.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -86,7 +93,7 @@ fun SettingsLogsPage(onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(vertical = 12.dp)
             ) {
-                items(entries.asReversed(), key = { it.id }) { entry ->
+                items(visibleEntries.asReversed(), key = { it.id }) { entry ->
                     LogItemCard(entry)
                 }
             }
@@ -118,11 +125,35 @@ fun SettingsLogsPage(onBack: () -> Unit) {
 @Composable
 private fun LogItemCard(entry: UsageLogManager.Entry) {
     var expanded by remember { mutableStateOf(false) }
-    val isModel = entry.type == UsageLogManager.Type.MODEL
-    val containerColor = if (isModel)
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-    else
-        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+
+    val icon = when (entry.type) {
+        UsageLogManager.Type.MODEL -> Icons.Default.Chat
+        UsageLogManager.Type.TOOL -> Icons.Default.Build
+        UsageLogManager.Type.REQUEST -> Icons.Default.Cloud
+        UsageLogManager.Type.CONVERSATION -> Icons.Default.Message
+        UsageLogManager.Type.SYNC -> Icons.Default.Sync
+    }
+    val color = when (entry.type) {
+        UsageLogManager.Type.MODEL -> MaterialTheme.colorScheme.primary
+        UsageLogManager.Type.TOOL -> MaterialTheme.colorScheme.secondary
+        UsageLogManager.Type.REQUEST -> MaterialTheme.colorScheme.tertiary
+        UsageLogManager.Type.CONVERSATION -> Color(0xFFFF9800)
+        UsageLogManager.Type.SYNC -> Color(0xFF009688)
+    }
+    val containerColor = when (entry.type) {
+        UsageLogManager.Type.MODEL -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+        UsageLogManager.Type.TOOL -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+        UsageLogManager.Type.REQUEST -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f)
+        UsageLogManager.Type.CONVERSATION -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        UsageLogManager.Type.SYNC -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    }
+    val labelRes = when (entry.type) {
+        UsageLogManager.Type.MODEL -> R.string.logs_type_model
+        UsageLogManager.Type.TOOL -> R.string.logs_type_tool
+        UsageLogManager.Type.REQUEST -> R.string.logs_type_request
+        UsageLogManager.Type.CONVERSATION -> R.string.logs_type_conversation
+        UsageLogManager.Type.SYNC -> R.string.logs_type_sync
+    }
 
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -136,16 +167,16 @@ private fun LogItemCard(entry: UsageLogManager.Entry) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = if (isModel) Icons.Default.Chat else Icons.Default.Build,
+                    imageVector = icon,
                     contentDescription = null,
-                    tint = if (isModel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+                    tint = color,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (isModel) stringResource(R.string.logs_type_model) else stringResource(R.string.logs_type_tool),
+                    text = stringResource(labelRes),
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isModel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+                    color = color,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.width(8.dp))

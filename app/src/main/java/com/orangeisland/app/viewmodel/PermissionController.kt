@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 import com.orangeisland.app.tool.device.AppLockAccessibilityService
 import com.orangeisland.app.tool.device.DeviceNotificationListenerService
 import com.orangeisland.app.tool.automation.AutomationAccessibilityService
+import com.orangeisland.app.util.DebugLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -89,7 +90,10 @@ class PermissionController(private val appContext: Context) {
             ) ?: ""
             if (flat.isBlank()) false
             else TextUtils.split(flat, ":").any { ComponentName.unflattenFromString(it) == notificationListenerComponent }
-        } catch (_: Exception) { false }
+        } catch (e: Throwable) {
+            DebugLog.w("PermissionController", "notificationListenerEnabled query failed: ${e.javaClass.simpleName}")
+            false
+        }
 
     // UsageStatsManager has no checkSelfPermission equivalent; the documented check is
     // "an app with our package name appears in the system's granted usage-access set".
@@ -103,7 +107,10 @@ class PermissionController(private val appContext: Context) {
                     appContext.packageName
                 )
             mode == android.app.AppOpsManager.MODE_ALLOWED
-        } catch (_: Exception) { false }
+        } catch (e: Throwable) {
+            DebugLog.w("PermissionController", "usageAccessEnabled query failed: ${e.javaClass.simpleName}")
+            false
+        }
 
     // Accessibility state — mirrors how the system tracks enabled services. Two services share
     // this lookup mechanism: the App Lock interceptor and the UI Automation driver.
