@@ -46,6 +46,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val schemeStyleName by viewModel.settings.schemeStyle.collectAsState()
     val dynamicColor by viewModel.settings.dynamicColor.collectAsState()
     val blurEffectsEnabled by viewModel.settings.blurEffectsEnabled.collectAsState()
+    val codeBlockWrapEnabled by viewModel.settings.codeBlockWrapEnabled.collectAsState()
     val hapticsEnabled by viewModel.settings.hapticsEnabled.collectAsState()
     val toolCallDisplayMode by viewModel.settings.toolCallDisplayMode.collectAsState()
     val fontPreference by viewModel.settings.fontPreference.collectAsState()
@@ -214,6 +215,19 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     )
                                 },
                                 modifier = Modifier.clickable { viewModel.settings.setBlurEffectsEnabled(!blurEffectsEnabled) }
+                            )
+                        }
+                        add {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.code_block_wrap)) },
+                                supportingContent = { Text(stringResource(R.string.code_block_wrap_desc)) },
+                                trailingContent = {
+                                    Switch(
+                                        checked = codeBlockWrapEnabled,
+                                        onCheckedChange = { viewModel.settings.setCodeBlockWrapEnabled(it) }
+                                    )
+                                },
+                                modifier = Modifier.clickable { viewModel.settings.setCodeBlockWrapEnabled(!codeBlockWrapEnabled) }
                             )
                         }
                         add {

@@ -41,6 +41,9 @@ class BootFireWorker(
 
     override suspend fun doWork(): Result {
         val appContext = applicationContext
+        runCatching { setForeground(buildWorkerForegroundInfo(appContext, "boot")) }
+            .onFailure { DebugLog.w(TAG, "setForeground failed", it) }
+
         val json = Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = true }
         val db = ChatDatabase.build(appContext)
         return try {

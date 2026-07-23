@@ -1,9 +1,16 @@
 package com.orangeisland.app.ui.chat.message
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,7 +47,7 @@ internal class ChatMarkdownAssets(
 )
 
 @Composable
-internal fun rememberChatMarkdownAssets(textColor: Color): ChatMarkdownAssets {
+internal fun rememberChatMarkdownAssets(textColor: Color, codeBlockWrapEnabled: Boolean = false): ChatMarkdownAssets {
     val customTypography = markdownTypography(
         text = ChatType.body,
         paragraph = ChatType.body,
@@ -93,7 +100,7 @@ internal fun rememberChatMarkdownAssets(textColor: Color): ChatMarkdownAssets {
 
     val defaultComponents = remember { markdownComponents() }
 
-    val customMarkdownComponents = remember(defaultComponents) {
+    val customMarkdownComponents = remember(defaultComponents, codeBlockWrapEnabled) {
         markdownComponents(
             table = { model ->
                 MarkdownTable(
@@ -132,6 +139,12 @@ internal fun rememberChatMarkdownAssets(textColor: Color): ChatMarkdownAssets {
 
                 if (match != null && language in PREVIEWABLE_LANGUAGES) {
                     HtmlCodeFenceBlock(code = body, language = language)
+                } else if (codeBlockWrapEnabled) {
+                    WrappedCodeFenceBlock(
+                        code = body,
+                        textColor = textColor,
+                        codeBg = codeBg,
+                    )
                 } else {
                     defaultComponents.codeFence(model)
                 }
@@ -179,6 +192,33 @@ internal fun rememberChatMarkdownAssets(textColor: Color): ChatMarkdownAssets {
             thoughtPadding = thoughtMarkdownPadding,
             components = customMarkdownComponents,
             flavour = markdownFlavour,
+        )
+    }
+}
+
+/**
+ * Auto-wrapping code block used when [codeBlockWrapEnabled] is true.
+ * Replaces the library's horizontally-scrolling default with a soft-wrapping
+ * Text inside a rounded box that matches the default code block visuals.
+ */
+@Composable
+private fun WrappedCodeFenceBlock(
+    code: String,
+    textColor: Color,
+    codeBg: Color,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(codeBg, RoundedCornerShape(8.dp))
+            .padding(12.dp)
+    ) {
+        Text(
+            text = code,
+            style = ChatType.code,
+            color = textColor,
+            softWrap = true,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }

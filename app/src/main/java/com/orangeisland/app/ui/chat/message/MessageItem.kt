@@ -61,7 +61,8 @@ fun MessageItem(
     onFileContentClick: ((fileName: String, content: String) -> Unit)? = null,
     onPdfPagesClick: ((pages: List<String>, startIndex: Int) -> Unit)? = null,
     onHeightChanged: (Int) -> Unit = {},
-    thoughtExpandedStates: SnapshotStateMap<String, Boolean> = remember { mutableStateMapOf() }
+    thoughtExpandedStates: SnapshotStateMap<String, Boolean> = remember { mutableStateMapOf() },
+    codeBlockWrapEnabled: Boolean = false,
 ) {
     var isFirstComposition by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) { isFirstComposition = false }
@@ -152,7 +153,7 @@ fun MessageItem(
         Participant.ERROR -> RoundedCornerShape(12.dp)
     }
 
-    val markdownAssets = rememberChatMarkdownAssets(textColor)
+    val markdownAssets = rememberChatMarkdownAssets(textColor, codeBlockWrapEnabled)
     val markdownRenderContext = markdownAssets.renderContext
     val customMarkdownColors = markdownAssets.colors
     val thoughtTypography = markdownAssets.thoughtTypography

@@ -1,0 +1,11 @@
+values: OK | old removed
+values-zh: OK | old removed
+values-zh-rTW: OK | old removed
+values-ar: OK | old removed
+values-de: OK | old removed
+values-es: OK | old removed
+values-fr: OK | old removed
+values-ja: OK | old removed
+values-ko: OK | old removed
+values-pt-rBR: OK | old removed
+values-ru: OK | old removed

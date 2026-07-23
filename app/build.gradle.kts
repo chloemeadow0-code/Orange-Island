@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.aboutlibraries)
     // Build-time bytecode fix for the Android 15 removeFirst()/removeLast() crash (see build-logic).
     id("buildlogic.removefirstlast-fix")
 }
@@ -178,6 +179,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.compose.markdown)
     implementation(libs.jetbrains.markdown)
+    implementation(libs.aboutlibraries.compose.m3)
     implementation(libs.coil.compose)
     implementation(libs.jlatexmath.android)
     implementation(libs.media3.exoplayer)

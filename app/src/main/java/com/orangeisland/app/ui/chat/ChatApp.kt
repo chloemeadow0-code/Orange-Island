@@ -151,6 +151,7 @@ fun ChatApp(
     val shellEnabled = globalShell && (convOverride?.shellEnabled ?: true)
     val contextWindow = convOverride?.contextWindow ?: maxContextWindow
     val blurEffectsEnabled by viewModel.settings.blurEffectsEnabled.collectAsState()
+    val codeBlockWrapEnabled by viewModel.settings.codeBlockWrapEnabled.collectAsState()
     val hapticsEnabled by viewModel.settings.hapticsEnabled.collectAsState()
     val haptics = rememberOrangeIslandHaptics(hapticsEnabled)
     val customChatBackground by viewModel.settings.customColorChatBackground.collectAsState()
@@ -660,6 +661,7 @@ fun ChatApp(
                                 onFileContentClick = onFileContentClick,
                                 onPdfPagesClick = { pages, idx -> haptics.action(); onPdfPagesClick?.invoke(pages, idx) },
                                 thoughtExpandedStates = thoughtExpandedStates,
+                                codeBlockWrapEnabled = codeBlockWrapEnabled,
                                 contentPadding = PaddingValues(
                                     start = 8.dp,
                                     end = 8.dp,

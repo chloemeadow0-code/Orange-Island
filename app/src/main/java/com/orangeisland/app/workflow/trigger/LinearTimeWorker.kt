@@ -40,8 +40,11 @@ class LinearTimeWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        val workflowId = inputData.getString(KEY_WORKFLOW_ID) ?: return Result.failure()
         val appContext = applicationContext
+        runCatching { setForeground(buildWorkerForegroundInfo(appContext, "time")) }
+            .onFailure { DebugLog.w(TAG, "setForeground failed", it) }
+
+        val workflowId = inputData.getString(KEY_WORKFLOW_ID) ?: return Result.failure()
 
         // Rebuild the dependency graph from scratch (a Worker may run in a fresh process, so the
         // app-wide AppContainer singletons aren't assumed) and run the workflow in BACKGROUND mode.

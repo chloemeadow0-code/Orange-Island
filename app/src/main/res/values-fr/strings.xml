@@ -569,6 +569,8 @@
     <string name="visual_effects">Effets visuels</string>
     <string name="blur_effects">Effets de flou</string>
     <string name="blur_effects_desc">Floute le haut de la liste de discussion sous la barre d’outils. Désactivez cette option pour économiser les performances.</string>
+    <string name="code_block_wrap">Retour à la ligne automatique des blocs de code</string>
+    <string name="code_block_wrap_desc">Lorsqu’activé, les blocs de code passent automatiquement à la ligne au lieu de défiler horizontalement. Désactivez pour conserver le défilement horizontal, plus adapté aux structures de code alignées.</string>
 
     <!-- Language -->
     <string name="language_title">Langue</string>
@@ -729,8 +731,21 @@
     <string name="about_title">À propos</string>
     <string name="about_info">Infos</string>
     <string name="about_links">Liens</string>
-    <string name="about_developer">Développeur</string>
-    <string name="about_developer_name">Newo Ether · Développeur indépendant</string>
+    <string name="about_developer">Developpeur</string>
+    <string name="about_developer_name_line1">Original: newo-ether</string>
+    <string name="about_developer_name_line2">Modified: 小橘、猫猫</string>
+    <string name="about_licenses">Licences</string>
+    <string name="about_oss_notice_title">Avis de licence open source</string>
+    <string name="about_oss_notice_body">Cette application est basee sur un logiciel open source et modifiee sous la licence MIT. L\'avis de copyright original et le texte complet de la licence sont affiches ci-dessous. Cette version modifiee n\'est pas affiliee a l\'auteur original ni au projet original. En cas de probleme, contactez-nous via le canal de retour de l\'application - ne contactez pas l\'auteur original.</string>
+    <string name="mit_license_full">MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</string>
+    <string name="about_third_party_licenses">Licences open source tierces</string>
+    <string name="about_third_party_licenses_desc">Afficher les licences de toutes les bibliotheques tierces utilisees dans cette application</string>
     <string name="about_github">GitHub</string>
     <string name="about_issue_tracker">Suivi des problèmes</string>
     <string name="about_contribute">Contribuer</string>
@@ -974,4 +989,15 @@
     <string name="proxy_password">Mot de passe (facultatif)</string>
     <string name="proxy_bypass">Liste de contournement</string>
     <string name="proxy_bypass_desc">Hôtes et plages CIDR connectés directement, un par ligne</string>
+
+    <!-- Keep-Alive -->
+    <string name="oi_keepalive_title">Background Keep-Alive</string>
+    <string name="oi_keepalive_desc">Some phone manufacturers actively restrict background apps. The settings below can significantly improve the success rate of automated triggers, but cannot guarantee 100% reliability.</string>
+    <string name="oi_keepalive_allowed">Background running allowed</string>
+    <string name="oi_keepalive_allow_background">Allow background running</string>
+    <string name="oi_keepalive_open_auto_start">Open system auto-start / background settings</string>
+    <string name="oi_keepalive_snackbar_vendor">Redirected to %s settings. Please manually allow auto-start / unrestricted background running.</string>
+    <string name="oi_keepalive_snackbar_fallback">Could not recognize your device manufacturer settings. Opened app details page. Please manually look for battery / auto-start options.</string>
+    <string name="oi_keepalive_notification_title">Orange Island is monitoring automation triggers</string>
+    <string name="oi_keepalive_worker_notification_title">Running workflow: %s</string>
 </resources>

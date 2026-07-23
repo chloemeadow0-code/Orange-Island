@@ -928,6 +928,7 @@ class GenerationManager(
                 onLoadingChange(false)
                 onGeneratingIdChange(null)
                 OrangeIslandForegroundService.stop(app)
+                OrangeIslandForegroundService.releaseFallbackWakeLock()
                 if (!AppForegroundTracker.isInForeground && currentStatus == MessageStatus.SUCCESS && totalText.isNotBlank()) {
                     OrangeIslandForegroundService.showCompletionNotification(app, totalText)
                 }

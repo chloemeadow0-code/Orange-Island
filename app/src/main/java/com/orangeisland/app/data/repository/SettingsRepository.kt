@@ -123,6 +123,7 @@ class SettingsRepository(
     val colorScheme: StateFlow<String> = hot(settingsManager.colorScheme, "DEFAULT")
     val dynamicColor: StateFlow<Boolean> = hot(settingsManager.dynamicColor, true)
     val blurEffectsEnabled: StateFlow<Boolean> = hot(settingsManager.blurEffectsEnabled, true)
+    val codeBlockWrapEnabled: StateFlow<Boolean> = hot(settingsManager.codeBlockWrapEnabled, false)
     val customColorChatText: StateFlow<Long?> = hot(settingsManager.customColorChatText, null)
     val customColorGlobalText: StateFlow<Long?> = hot(settingsManager.customColorGlobalText, null)
     val customColorUserBubble: StateFlow<Long?> = hot(settingsManager.customColorUserBubble, null)
@@ -475,6 +476,7 @@ class SettingsRepository(
     fun setColorScheme(scheme: String) = scope.launch { settingsManager.saveColorScheme(scheme) }
     fun setDynamicColor(enabled: Boolean) = scope.launch { settingsManager.saveDynamicColor(enabled) }
     fun setBlurEffectsEnabled(enabled: Boolean) = scope.launch { settingsManager.saveBlurEffectsEnabled(enabled) }
+    fun setCodeBlockWrapEnabled(enabled: Boolean) = scope.launch { settingsManager.saveCodeBlockWrapEnabled(enabled) }
     fun setCustomColorChatText(v: Long?) = scope.launch { settingsManager.saveCustomColorChatText(v) }
     fun setCustomColorGlobalText(v: Long?) = scope.launch { settingsManager.saveCustomColorGlobalText(v) }
     fun setCustomColorUserBubble(v: Long?) = scope.launch { settingsManager.saveCustomColorUserBubble(v) }

@@ -580,6 +580,8 @@
     <string name="visual_effects">視覺效果</string>
     <string name="blur_effects">模糊效果</string>
     <string name="blur_effects_desc">對聊天列表頂部工具列下方套用模糊。關閉可節省效能。</string>
+    <string name="code_block_wrap">程式碼區塊自動換行</string>
+    <string name="code_block_wrap_desc">開啟後程式碼區塊自動換行顯示，不再橫向滾動；關閉則保持橫向滾動，便於檢視對齊的程式碼結構</string>
     <string name="message_display">訊息顯示</string>
     <string name="tool_call_display_mode">思考與工具區塊</string>
     <string name="tool_call_display_mode_timeline">時間軸</string>
@@ -851,7 +853,20 @@
     <string name="about_info">資訊</string>
     <string name="about_links">連結</string>
     <string name="about_developer">開發者</string>
-    <string name="about_developer_name">Newo Ether · 獨立開發者</string>
+    <string name="about_developer_name_line1">原創：newo-ether</string>
+    <string name="about_developer_name_line2">二改：小橘、貓貓</string>
+    <string name="about_licenses">授權</string>
+    <string name="about_oss_notice_title">開源授權聲明</string>
+    <string name="about_oss_notice_body">本應用基於開源軟體二次修改而成，遵循 MIT 授權條款，原始版權聲明與授權全文見下方。本二改版本與原作者及原專案不存在隸屬關係，如使用中遇到問題，請透過本應用內的回饋管道聯絡我們，不要打擾原作者。</string>
+    <string name="mit_license_full">MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</string>
+    <string name="about_third_party_licenses">第三方開源授權</string>
+    <string name="about_third_party_licenses_desc">檢視本應用使用的所有第三方函式庫的開源授權</string>
     <string name="about_github">GitHub</string>
     <string name="about_issue_tracker">問題追蹤</string>
     <string name="about_contribute">參與貢獻</string>
@@ -1078,4 +1093,15 @@
     <string name="proxy_password">密碼(選填)</string>
     <string name="proxy_bypass">直連清單</string>
     <string name="proxy_bypass_desc">直接連線、不經過代理的主機與 CIDR 範圍,每行一個</string>
+
+    <!-- Keep-Alive -->
+    <string name="oi_keepalive_title">Background Keep-Alive</string>
+    <string name="oi_keepalive_desc">Some phone manufacturers actively restrict background apps. The settings below can significantly improve the success rate of automated triggers, but cannot guarantee 100% reliability.</string>
+    <string name="oi_keepalive_allowed">Background running allowed</string>
+    <string name="oi_keepalive_allow_background">Allow background running</string>
+    <string name="oi_keepalive_open_auto_start">Open system auto-start / background settings</string>
+    <string name="oi_keepalive_snackbar_vendor">Redirected to %s settings. Please manually allow auto-start / unrestricted background running.</string>
+    <string name="oi_keepalive_snackbar_fallback">Could not recognize your device manufacturer settings. Opened app details page. Please manually look for battery / auto-start options.</string>
+    <string name="oi_keepalive_notification_title">Orange Island is monitoring automation triggers</string>
+    <string name="oi_keepalive_worker_notification_title">Running workflow: %s</string>
 </resources>

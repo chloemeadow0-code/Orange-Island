@@ -5,7 +5,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Saving images to the gallery on pre-Q only; Q+ uses scoped MediaStore (no permission). -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
@@ -124,6 +127,23 @@
             android:name=".service.OrangeIslandForegroundService"
             android:foregroundServiceType="dataSync"
             android:exported="false" />
+
+        <service
+            android:name=".service.WorkflowKeepAliveService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="workflow_automation_listener" />
+        </service>
+
+        <!-- Override WorkManager's SystemForegroundService so workers that call
+             setForeground() use the dataSync type. WorkManager 2.10.0 does not
+             declare a foregroundServiceType on this service, so we add it here.
+             The manifest merger combines attributes for duplicate service names. -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync" />
 
         <!-- Notification-listener: captures other apps' notifications into a ring buffer the
              NotificationToolProvider reads. Bound by the system only after the user enables it

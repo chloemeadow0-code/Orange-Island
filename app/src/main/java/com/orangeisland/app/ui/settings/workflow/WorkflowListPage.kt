@@ -11,11 +11,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import android.os.Build
 import com.orangeisland.app.R
 import com.orangeisland.app.model.RunStatus
 import com.orangeisland.app.model.LinearWorkflow
@@ -33,8 +35,10 @@ import com.orangeisland.app.model.TriggerSpec
 import com.orangeisland.app.model.TransformOp
 import com.orangeisland.app.ui.settings.CollapsingSettingsLazyScaffold
 import com.orangeisland.app.ui.settings.SettingsItem
+import com.orangeisland.app.util.PowerWhitelistHelper
 import com.orangeisland.app.viewmodel.WorkflowViewModel
 import com.orangeisland.app.workflow.WorkflowApprovalRenderer
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -66,32 +70,56 @@ fun WorkflowListPage(
     var showNewDialog by remember { mutableStateOf(false) }
 
     val titleText = stringResource(R.string.workflows_title)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
-    CollapsingSettingsLazyScaffold(
-        title = titleText,
-        onBack = onBack,
-        actions = {
-            // "How do workflows work?" — opens an explanatory dialog for first-time users.
-            TextButton(onClick = { showHowDialog = true }) {
-                Text(stringResource(R.string.workflow_v2_how_it_works), style = MaterialTheme.typography.labelLarge)
+    Box(modifier = Modifier.fillMaxSize()) {
+        CollapsingSettingsLazyScaffold(
+            title = titleText,
+            onBack = onBack,
+            actions = {
+                // "How do workflows work?" — opens an explanatory dialog for first-time users.
+                TextButton(onClick = { showHowDialog = true }) {
+                    Text(stringResource(R.string.workflow_v2_how_it_works), style = MaterialTheme.typography.labelLarge)
+                }
+            },
+            floatingActionButton = {
+                // Create a new graph-mode workflow (advanced, manual). Linear (AI-authored) workflows
+                // are created from chat, so this FAB targets the graph editor exclusively.
+                ExtendedFloatingActionButton(
+                    onClick = { showNewDialog = true },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.workflow_new_graph)) }
+                )
             }
-        },
-        floatingActionButton = {
-            // Create a new graph-mode workflow (advanced, manual). Linear (AI-authored) workflows
-            // are created from chat, so this FAB targets the graph editor exclusively.
-            ExtendedFloatingActionButton(
-                onClick = { showNewDialog = true },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.workflow_new_graph)) }
-            )
-        }
-    ) {
-        // ── Empty state ────────────────────────────────────────────────────────
-        if (linear.isEmpty() && graphWorkflows.isEmpty()) {
-            item(key = "empty") { EmptyWorkflowItem() }
-        }
+        ) {
+            // ── Background keep-alive card ─────────────────────────────────────────
+            item(key = "keepalive") {
+                KeepAliveCard(
+                    onRequestIgnoreBattery = {
+                        PowerWhitelistHelper.requestIgnoreBatteryOptimizations(context)
+                    },
+                    onOpenAutoStart = { result ->
+                        val message = when (result) {
+                            PowerWhitelistHelper.AutoStartResult.VENDOR_PAGE ->
+                                context.getString(R.string.oi_keepalive_snackbar_vendor, Build.MANUFACTURER)
+                            PowerWhitelistHelper.AutoStartResult.APP_DETAIL_FALLBACK ->
+                                context.getString(R.string.oi_keepalive_snackbar_fallback)
+                            PowerWhitelistHelper.AutoStartResult.FAILED ->
+                                context.getString(R.string.oi_keepalive_snackbar_fallback)
+                        }
+                        scope.launch { snackbarHostState.showSnackbar(message) }
+                    }
+                )
+            }
+
+            // ── Empty state ────────────────────────────────────────────────────────
+            if (linear.isEmpty() && graphWorkflows.isEmpty()) {
+                item(key = "empty") { EmptyWorkflowItem() }
+            }
 
         // ── Linear (AI-authored) workflows ─────────────────────────────────────
         if (linear.isNotEmpty()) {
@@ -143,6 +171,12 @@ fun WorkflowListPage(
 
         // Extra space so nothing is hidden behind system bars.
         item { Spacer(modifier = Modifier.height(80.dp)) }
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 
     showDeleteConfirm?.let { wf ->
@@ -197,6 +231,91 @@ fun WorkflowListPage(
                 onCreateGraph(wf.id)
             }
         )
+    }
+}
+
+/**
+ * Background keep-alive settings card shown at the top of the workflow list.
+ * Guides the user to battery-optimisation and auto-start whitelist pages.
+ */
+@Composable
+private fun KeepAliveCard(
+    onRequestIgnoreBattery: () -> Unit,
+    onOpenAutoStart: (PowerWhitelistHelper.AutoStartResult) -> Unit
+) {
+    val context = LocalContext.current
+    var isIgnoringBattery by remember {
+        mutableStateOf(PowerWhitelistHelper.isIgnoringBatteryOptimizations(context))
+    }
+
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                stringResource(R.string.oi_keepalive_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                stringResource(R.string.oi_keepalive_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Battery optimisation row
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isIgnoringBattery) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.oi_keepalive_allowed),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Button(
+                        onClick = {
+                            onRequestIgnoreBattery()
+                            // Refresh status when the user returns.
+                            isIgnoringBattery = PowerWhitelistHelper.isIgnoringBatteryOptimizations(context)
+                        },
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(stringResource(R.string.oi_keepalive_allow_background))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Auto-start settings row
+            OutlinedButton(
+                onClick = {
+                    val result = PowerWhitelistHelper.openAutoStartSettings(context)
+                    onOpenAutoStart(result)
+                },
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.oi_keepalive_open_auto_start))
+            }
+        }
     }
 }
 

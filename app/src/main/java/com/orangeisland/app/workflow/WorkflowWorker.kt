@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
+import androidx.work.NetworkType
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -30,6 +31,7 @@ import com.orangeisland.app.model.Workflow
 import com.orangeisland.app.tool.ToolDispatcher
 import com.orangeisland.app.util.Constants
 import com.orangeisland.app.util.DebugLog
+import com.orangeisland.app.workflow.trigger.buildWorkerForegroundInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
@@ -53,9 +55,12 @@ class WorkflowWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
+        val appContext = applicationContext
+        runCatching { setForeground(buildWorkerForegroundInfo(appContext, "workflow")) }
+            .onFailure { DebugLog.w(TAG, "setForeground failed", it) }
+
         val workflowId = inputData.getString(KEY_WORKFLOW_ID) ?: return Result.failure()
         val startNodeId = inputData.getString(KEY_START_NODE_ID)
-        val appContext = applicationContext
 
         val json = Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = true }
         val db = ChatDatabase.build(appContext)
@@ -153,6 +158,7 @@ class WorkflowWorker(
             )
             val constraints = Constraints.Builder()
                 .setRequiresBatteryNotLow(false)
+                .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
 
             val periodicMs = ScheduleCalculator.periodicIntervalMs(trigger)

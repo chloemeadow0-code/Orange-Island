@@ -13,6 +13,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import android.app.ActivityManager
+import android.os.PowerManager
 import com.orangeisland.app.MainActivity
 import com.orangeisland.app.R
 import com.orangeisland.app.util.CrashReporter
@@ -27,6 +28,7 @@ class OrangeIslandForegroundService : Service() {
         private const val COMPLETION_NOTIFICATION_ID = 2
         private const val TAG = "OrangeIslandForegroundService"
         private var instance: OrangeIslandForegroundService? = null
+        private var fallbackWakeLock: PowerManager.WakeLock? = null
 
         fun start(context: Context) {
             val appContext = context.applicationContext
@@ -49,7 +51,29 @@ class OrangeIslandForegroundService : Service() {
             } catch (e: RuntimeException) {
                 CrashReporter.note("FGS.startForegroundService threw ${e.javaClass.simpleName}")
                 DebugLog.w(TAG, "Failed to start foreground service", e)
+                // Fallback: acquire a partial WakeLock so generation does not run
+                // unprotected when the foreground service cannot be started.
+                try {
+                    val pm = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+                    fallbackWakeLock = pm.newWakeLock(
+                        PowerManager.PARTIAL_WAKE_LOCK,
+                        "OrangeIsland:generation_fallback"
+                    )
+                    fallbackWakeLock?.acquire(10 * 60 * 1000L)
+                    CrashReporter.note("FGS.fallbackWakeLock acquired")
+                } catch (wl: Exception) {
+                    DebugLog.w(TAG, "Failed to acquire fallback WakeLock", wl)
+                }
             }
+        }
+
+        fun releaseFallbackWakeLock() {
+            runCatching {
+                fallbackWakeLock?.let {
+                    if (it.isHeld) it.release()
+                    fallbackWakeLock = null
+                }
+            }.onFailure { DebugLog.w(TAG, "Failed to release fallback WakeLock", it) }
         }
 
         fun updateText(text: String) {

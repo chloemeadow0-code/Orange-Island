@@ -42,10 +42,12 @@ class GeofenceFireWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
+        val appContext = applicationContext
+        runCatching { setForeground(buildWorkerForegroundInfo(appContext, "geofence")) }
+            .onFailure { DebugLog.w(TAG, "setForeground failed", it) }
+
         val requestId = inputData.getString(KEY_REQUEST_ID) ?: return Result.failure()
         val (workflowId, direction) = GeofenceSignalSource.decodeRequestId(requestId) ?: return Result.failure()
-
-        val appContext = applicationContext
         val json = Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = true }
         val db = ChatDatabase.build(appContext)
         return try {

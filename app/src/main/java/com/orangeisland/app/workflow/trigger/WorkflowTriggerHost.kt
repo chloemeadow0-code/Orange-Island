@@ -2,9 +2,12 @@ package com.orangeisland.app.workflow.trigger
 
 import android.content.Context
 import com.orangeisland.app.data.repository.WorkflowRepository
+import com.orangeisland.app.service.WorkflowKeepAliveService
 import com.orangeisland.app.util.DebugLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -43,6 +46,15 @@ class WorkflowTriggerHost(
             .onFailure { DebugLog.e(TAG, "time source failed", it) }.getOrDefault(scope.launch { })
         jobs += runCatching { BroadcastSignalSource.start(context, scope, repository, starter) }
             .onFailure { DebugLog.e(TAG, "broadcast source failed", it) }.getOrDefault(scope.launch { })
+        jobs += scope.launch {
+            repository.observeEnabledLinear()
+                .map { KeepAliveNeedEvaluator.needsKeepAlive(it) }
+                .distinctUntilChanged()
+                .collect { needs ->
+                    if (needs) WorkflowKeepAliveService.start(context)
+                    else WorkflowKeepAliveService.stop(context)
+                }
+        }
         jobs += runCatching { AppForegroundSignalSource.start(scope, repository, starter) }
             .onFailure { DebugLog.e(TAG, "app-foreground source failed", it) }.getOrDefault(scope.launch { })
         jobs += runCatching { NotificationSignalSource.start(scope, repository, starter) }
@@ -52,10 +64,11 @@ class WorkflowTriggerHost(
         DebugLog.d(TAG, "host started")
     }
 
-    /** Cancel every source's subscription. */
+    /** Cancel every source's subscription and stop the keep-alive service. */
     fun shutdown() {
         jobs.forEach { runCatching { it.cancel() } }
         jobs.clear()
+        WorkflowKeepAliveService.stop(context)
     }
 
     companion object { private const val TAG = "WorkflowTriggerHost" }

@@ -198,9 +198,6 @@ private val settingsGroups = listOf(
         SettingsCategory("illustrations", R.string.illustrations_title, R.string.illustration_chat_background, Icons.Default.Wallpaper),
         SettingsCategory("language", R.string.language_title, R.string.language_desc, Icons.Default.Translate),
     )),
-    SettingsGroupData(titleRes = R.string.settings_group_logs, items = listOf(
-        SettingsCategory("logs", R.string.settings_logs, R.string.settings_logs_desc, Icons.Default.History),
-    )),
     SettingsGroupData(titleRes = R.string.settings_group_about, items = listOf(
         SettingsCategory("about", R.string.settings_about, R.string.settings_about_desc, Icons.Default.Info),
     )),
