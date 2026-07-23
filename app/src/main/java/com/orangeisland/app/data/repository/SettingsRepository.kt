@@ -109,6 +109,7 @@ class SettingsRepository(
         hot(settingsManager.appLockEntries, emptyMap())
     val toastEnabled: StateFlow<Boolean> = hot(settingsManager.toastEnabled, false)
     val uiAutomationEnabled: StateFlow<Boolean> = hot(settingsManager.uiAutomationEnabled, false)
+    val userInteractionEnabled: StateFlow<Boolean> = hot(settingsManager.userInteractionEnabled, true)
     val amapApiKey: StateFlow<String> = hot(settingsManager.amapApiKey, "")
     val mcpServers: StateFlow<List<com.orangeisland.app.data.McpServerConfig>> = hot(settingsManager.mcpServers, emptyList())
     val enabledPluginIds: StateFlow<Set<String>> = hot(settingsManager.enabledPluginIds, emptySet())
@@ -433,6 +434,7 @@ class SettingsRepository(
         scope.launch { settingsManager.saveAppLockEntries(entries) }
     fun setToastEnabled(enabled: Boolean) = scope.launch { settingsManager.saveToastEnabled(enabled) }
     fun setUiAutomationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveUiAutomationEnabled(enabled) }
+    fun setUserInteractionEnabled(enabled: Boolean) = scope.launch { settingsManager.saveUserInteractionEnabled(enabled) }
     fun setAmapApiKey(key: String) = scope.launch { settingsManager.saveAmapApiKey(key) }
 
     // ── MCP servers ──────────────────────────────────────────

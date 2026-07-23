@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Smartphone
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.outlined.NotificationsActive
@@ -62,6 +63,7 @@ fun SettingsDeviceAccessPage(
     val appLockEnabled by settings.appLockEnabled.collectAsState()
     val toastEnabled by settings.toastEnabled.collectAsState()
     val uiAutomationEnabled by settings.uiAutomationEnabled.collectAsState()
+    val userInteractionEnabled by settings.userInteractionEnabled.collectAsState()
     val amapApiKey by settings.amapApiKey.collectAsState()
     val pc = viewModel.permissionController
     var amapKeyDraft by remember(amapApiKey) { mutableStateOf(amapApiKey) }
@@ -227,6 +229,17 @@ fun SettingsDeviceAccessPage(
                         icon = Icons.Outlined.NotificationsActive,
                         checked = toastEnabled,
                         onCheckedChange = { settings.setToastEnabled(it) },
+                        permissionState = PermissionState.NotRequired
+                    )
+                }
+                // User Interaction (ask_user_choice card dialog)
+                add {
+                    ToolToggleRow(
+                        title = stringResource(R.string.device_access_user_interaction_title),
+                        desc = stringResource(R.string.device_access_user_interaction_desc),
+                        icon = Icons.Default.Chat,
+                        checked = userInteractionEnabled,
+                        onCheckedChange = { settings.setUserInteractionEnabled(it) },
                         permissionState = PermissionState.NotRequired
                     )
                 }

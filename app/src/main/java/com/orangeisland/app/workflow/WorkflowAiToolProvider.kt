@@ -4,10 +4,13 @@ import com.orangeisland.app.api.ToolDefinition
 import com.orangeisland.app.api.ToolFunction
 import com.orangeisland.app.api.ToolParameters
 import com.orangeisland.app.api.ToolProperty
+import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.data.repository.WorkflowRepository
 import com.orangeisland.app.model.LinearWorkflow
+import com.orangeisland.app.model.Workflow
 import com.orangeisland.app.tool.ToolProvider
 import com.orangeisland.app.viewmodel.GenerationContext
+import com.orangeisland.app.workflow.graph.GraphDefinitionParser
 import com.orangeisland.app.workflow.linear.LinearDefinitionParser
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -45,7 +48,8 @@ class WorkflowAiToolProvider(
     private val repository: WorkflowRepository,
     private val runnerProvider: () -> WorkflowRunner,
     private val knownToolNames: () -> Set<String> = { emptySet() },
-    private val approval: (suspend (card: String) -> Boolean)? = null
+    private val approval: (suspend (card: String) -> Boolean)? = null,
+    private val settingsRepository: SettingsRepository? = null
 ) : ToolProvider {
 
     override fun definitions(ctx: GenerationContext): List<ToolDefinition> = listOf(
@@ -79,10 +83,26 @@ class WorkflowAiToolProvider(
             )
         )),
         ToolDefinition(function = ToolFunction(
-            name = "workflow_update",
-            description = "Replace an existing workflow's definition. The definition.id must match an existing workflow. Same schema as workflow_create.",
+            name = "workflow_create_graph",
+            description = CREATE_GRAPH_DESCRIPTION,
             parameters = ToolParameters(
-                properties = mapOf("definition" to ToolProperty("object", "Full workflow definition with id matching an existing workflow.")),
+                properties = mapOf("definition" to ToolProperty("object", "Graph workflow blueprint: name, nodes[], edges[]. See description for full schema.")),
+                required = listOf("definition")
+            )
+        )),
+        ToolDefinition(function = ToolFunction(
+            name = "workflow_update",
+            description = "Replace an existing linear workflow's definition. The definition.id must match an existing linear workflow. Same schema as workflow_create.",
+            parameters = ToolParameters(
+                properties = mapOf("definition" to ToolProperty("object", "Full workflow definition with id matching an existing linear workflow.")),
+                required = listOf("definition")
+            )
+        )),
+        ToolDefinition(function = ToolFunction(
+            name = "workflow_update_graph",
+            description = "Replace an existing graph workflow's definition. The definition.id must match an existing graph workflow. Same schema as workflow_create_graph.",
+            parameters = ToolParameters(
+                properties = mapOf("definition" to ToolProperty("object", "Full graph workflow blueprint with id matching an existing graph workflow.")),
                 required = listOf("definition")
             )
         )),
@@ -113,8 +133,10 @@ class WorkflowAiToolProvider(
         "workflow_list" -> listWorkflows()
         "workflow_get" -> getWorkflow(arguments)
         "workflow_run" -> runWorkflow(arguments)
-        "workflow_create" -> createWorkflow(arguments)
+        "workflow_create" -> createWorkflow(arguments, ctx)
+        "workflow_create_graph" -> createGraphWorkflow(arguments, ctx)
         "workflow_update" -> updateWorkflow(arguments)
+        "workflow_update_graph" -> updateGraphWorkflow(arguments)
         "workflow_delete" -> deleteWorkflow(arguments)
         "workflow_set_enabled" -> setEnabledWorkflow(arguments)
         else -> "Unknown workflow tool: $name"
@@ -182,16 +204,17 @@ class WorkflowAiToolProvider(
 
     // ── Authoring tools (all gated by [approval]) ──────────────────────────
 
-    private suspend fun createWorkflow(arguments: String): String {
+    private suspend fun createWorkflow(arguments: String, ctx: GenerationContext): String {
         val def = parseAndValidate(arguments) ?: return errorJson("validation failed")
         when (def) {
             is ValidateResult.Ok -> {
-                val card = WorkflowApprovalRenderer.renderCreate(def.definition)
+                val bound = def.definition.copyBindings(ctx)
+                val card = WorkflowApprovalRenderer.renderCreate(bound)
                 if (approval?.invoke(card) != true) {
                     return errorJson("authoring tools require foreground user approval")
                 }
-                repository.upsertLinear(def.definition)
-                return okJson("created", def.definition.id, def.definition.name)
+                repository.upsertLinear(bound)
+                return okJson("created", bound.id, bound.name)
             }
             is ValidateResult.Err -> return errorJson("validation failed: ${def.code} �� ${def.detail}")
         }
@@ -212,6 +235,40 @@ class WorkflowAiToolProvider(
                 return okJson("updated", def.definition.id, def.definition.name)
             }
             is ValidateResult.Err -> return errorJson("validation failed: ${def.code} �� ${def.detail}")
+        }
+    }
+
+    private suspend fun createGraphWorkflow(arguments: String, ctx: GenerationContext): String {
+        val def = parseAndValidateGraph(arguments) ?: return errorJson("validation failed")
+        when (def) {
+            is GraphValidateResult.Ok -> {
+                val bound = def.workflow.copyBindings(ctx)
+                val card = WorkflowApprovalRenderer.renderGraphCreate(bound)
+                if (approval?.invoke(card) != true) {
+                    return errorJson("authoring tools require foreground user approval")
+                }
+                repository.upsert(bound)
+                return okJson("created", bound.id, bound.name)
+            }
+            is GraphValidateResult.Err -> return errorJson("validation failed: ${def.code} �� ${def.detail}")
+        }
+    }
+
+    private suspend fun updateGraphWorkflow(arguments: String): String {
+        val def = parseAndValidateGraph(arguments) ?: return errorJson("validation failed: definition object missing")
+        when (def) {
+            is GraphValidateResult.Ok -> {
+                if (repository.get(def.workflow.id) == null) {
+                    return errorJson("no graph workflow with id=${def.workflow.id}; use workflow_create_graph instead")
+                }
+                val card = WorkflowApprovalRenderer.renderGraphCreate(def.workflow)
+                if (approval?.invoke(card) != true) {
+                    return errorJson("authoring tools require foreground user approval")
+                }
+                repository.upsert(def.workflow)
+                return okJson("updated", def.workflow.id, def.workflow.name)
+            }
+            is GraphValidateResult.Err -> return errorJson("validation failed: ${def.code} �� ${def.detail}")
         }
     }
 
@@ -238,6 +295,28 @@ class WorkflowAiToolProvider(
 
     // ── Helpers ────────────────────────────────────────────────────────────
 
+    /** Copies a [LinearWorkflow] with project / system-prompt / model bindings resolved from
+     *  the current [GenerationContext] and [settingsRepository]. Called by the create tools so
+     *  a workflow created in a project automatically inherits the conversation's scope. */
+    private fun LinearWorkflow.copyBindings(ctx: GenerationContext): LinearWorkflow {
+        val projectId = ctx.projectId
+        val systemPromptId = settingsRepository?.activeSystemPromptId?.value
+        val modelId = settingsRepository?.selectedModel?.value
+        return if (projectId != null || systemPromptId != null || modelId != null) {
+            copy(projectId = projectId, systemPromptId = systemPromptId, modelId = modelId)
+        } else this
+    }
+
+    /** Same binding logic for graph [Workflow]s. */
+    private fun Workflow.copyBindings(ctx: GenerationContext): Workflow {
+        val projectId = ctx.projectId
+        val systemPromptId = settingsRepository?.activeSystemPromptId?.value
+        val modelId = settingsRepository?.selectedModel?.value
+        return if (projectId != null || systemPromptId != null || modelId != null) {
+            copy(projectId = projectId, systemPromptId = systemPromptId, modelId = modelId)
+        } else this
+    }
+
     /** Parse + validate a `definition` argument into a [LinearWorkflow]. Returns the parser's
      *  structured error (code + human-readable detail) on failure so the caller can surface the
      *  exact reason to the model �� swallowing it into a bare null made every malformed definition
@@ -253,11 +332,28 @@ class WorkflowAiToolProvider(
         }
     }
 
+    /** Parse + validate a `definition` argument into a graph [Workflow]. */
+    private fun parseAndValidateGraph(arguments: String): GraphValidateResult {
+        val defJson = extractDefinition(arguments)
+            ?: return GraphValidateResult.Err("bad_arguments",
+                "tool args must be an object with a 'definition' field containing the workflow object; " +
+                "got: ${arguments.take(200)}")
+        return when (val r = GraphDefinitionParser.parse(defJson, knownToolNames())) {
+            is GraphDefinitionParser.ParseResult.Ok -> GraphValidateResult.Ok(r.workflow)
+            is GraphDefinitionParser.ParseResult.Err -> GraphValidateResult.Err(r.code, r.detail)
+        }
+    }
+
     /** Outcome of [parseAndValidate]. [Ok] carries the parsed definition; [Err] carries the parser's
      *  structured error so create/update can return a precise message. */
     private sealed class ValidateResult {
         data class Ok(val definition: LinearWorkflow) : ValidateResult()
         data class Err(val code: String, val detail: String) : ValidateResult()
+    }
+
+    private sealed class GraphValidateResult {
+        data class Ok(val workflow: Workflow) : GraphValidateResult()
+        data class Err(val code: String, val detail: String) : GraphValidateResult()
     }
 
     /** Pull the `definition` sub-object out of the tool args and return it as a JSON string. */
@@ -289,7 +385,9 @@ class WorkflowAiToolProvider(
     companion object {
         val TOOL_NAMES = setOf(
             "workflow_list", "workflow_get", "workflow_run",
-            "workflow_create", "workflow_update", "workflow_delete", "workflow_set_enabled"
+            "workflow_create", "workflow_create_graph",
+            "workflow_update", "workflow_update_graph",
+            "workflow_delete", "workflow_set_enabled"
         )
 
         /** The workflow_create parameter spec, written as a teaching prompt: lists every supported
@@ -341,6 +439,89 @@ ACTIONS: each {tool, args, timeout_seconds?}. tool must be an EXISTING tool regi
 If the user wants "fire once at a time and never again", set a time_cron trigger and tell them to delete it after it fires, or just use workflow_run at that moment.
 
 Prefer specific triggers and a clear name. Example: user says "silence my phone when I get home" -> trigger wifi_connected ssid:"Home", action set_ringer_mode args:{mode:"silent"}, name "Home silent".
+        """
+
+        /** The workflow_create_graph parameter spec. Graph workflows are node-and-edge directed graphs
+         *  (not linear trigger��conditions��actions). Use this when the user asks for branching logic,
+         *  parallel paths, or when a linear model cannot express the flow naturally.
+         *
+         *  Nodes are listed in order; edges reference nodes by array index (0-based). The system auto-
+         *  assigns UUIDs and positions �� you do NOT need to provide ids or coordinates. */
+        const val CREATE_GRAPH_DESCRIPTION = """
+Create a new graph workflow (node-and-edge directed graph). Use this when the user needs branching logic, conditional paths, or parallel execution that a linear workflow cannot express. The user approves via a card before it is saved.
+
+definition shape:
+{
+  "name": string (required, <=80 chars),
+  "description": string (optional, <=500),
+  "enabled": boolean (optional, default true),
+  "nodes": [  // 1..64 nodes
+    { "kind": "start", "label": "...", "trigger": { "type": "manual" } },
+    { "kind": "action", "label": "...", "tool": "<existing tool name>", "args": { "key": {"type":"literal","value":"..."} or {"type":"ref","node_index":0} } },
+    { "kind": "branch", "label": "...", "lhs": {"type":"literal","value":"..."}, "cmp": "EQ", "rhs": {"type":"literal","value":"..."} },
+    { "kind": "merge", "label": "...", "reducer": "ALL_TRUE" },
+    { "kind": "transform", "label": "...", "op": { "kind": "regex", "pattern": "...", "group": 0, "fallback": "" } },
+    { "kind": "llm", "label": "...", "prompt": {"type":"literal","value":"..."}, "provider": "OpenAI", "model_id": "gpt-4o-mini" }
+  ],
+  "edges": [  // 0..128 edges
+    { "from_index": 0, "to_index": 1, "guard": { "type": "on_success" } },
+    { "from_index": 1, "to_index": 2, "guard": { "type": "bool", "expected": true } }
+  ]
+}
+
+NODE KINDS:
+  start - Entry point. Must have a "trigger" object. Supported trigger types: manual, schedule {mode, config}, intent {action}, app_open, voice {keyword?}, api.
+  action - Calls a tool. Fields: tool (string, required), args (object of NodeValues), script (optional).
+  branch - Compares two values, emits boolean. Fields: lhs (NodeValue), cmp (EQ/NE/LT/LE/GT/GE/CONTAINS/NOT_CONTAINS/IN/NOT_IN), rhs (NodeValue).
+  merge - Reduces multiple incoming booleans. Field: reducer (ALL_TRUE or ANY_TRUE).
+  transform - Shapes a string. Field: op (one of the below).
+  llm - Runs an LLM inference. Fields: prompt (NodeValue), provider (default OpenAI), model_id (default gpt-4o-mini), system_prompt, temperature (default 0.7).
+
+NODEVALUE format (used in action args, branch lhs/rhs, transform join, llm prompt):
+  {"type": "literal", "value": "..."}  - a plain string
+  {"type": "ref", "node_index": 0}       - reference to another node's output (by nodes-array index)
+
+TRANSFORM OP kinds:
+  regex {pattern, group?, fallback?}
+  jsonpath {path, fallback?}
+  slice {start?, length?, fallback?}
+  join {input: NodeValue, extras: [NodeValue]}
+  random_int {min?, max?, fixed?}
+  random_text {length?, charset?, fixed?}
+  fixed {value}
+
+EDGE GUARD types (optional; omit for unconditional edge):
+  on_success - fires when source node succeeds
+  on_failure - fires when source node fails
+  bool {expected: true/false} - fires when source output parses to this boolean
+  regex {pattern} - fires when source output contains a match
+
+RULES:
+  - At least one node. First node should usually be "start".
+  - Edge indices must be valid (0 <= from_index/to_index < nodes.length).
+  - No self-loops (from_index == to_index).
+  - No duplicate edges (same from+to pair).
+  - Tool names in action nodes must be EXISTING tools registered for this assistant.
+  - workflow_run is NOT allowed as an action tool (no chaining).
+
+Example: "Every morning at 8:00, if it's a weekday, check my calendar; if the first event is a meeting, send a reminder; otherwise just say good morning."
+  nodes: [
+    {kind:"start", label:"����", trigger:{type:"schedule", mode:"cronlike", config:{expr:"0 8 * * 1-5"}}},
+    {kind:"branch", label:"������?", lhs:{type:"literal",value:"true"}, cmp:"EQ", rhs:{type:"literal",value:"true"}},
+    {kind:"action", label:"������", tool:"calendar_query", args:{count:{type:"literal",value:"1"}}},
+    {kind:"branch", label:"�л���?", lhs:{type:"ref",node_index:2}, cmp:"CONTAINS", rhs:{type:"literal",value:"����"}},
+    {kind:"action", label:"����", tool:"send_notification", args:{message:{type:"literal",value:"���Ϻã������л���"}}},
+    {kind:"action", label:"�ʺ�", tool:"send_notification", args:{message:{type:"literal",value:"���Ϻã�����û�л���"}}}
+  ],
+  edges: [
+    {from_index:0, to_index:1, guard:{type:"on_success"}},
+    {from_index:1, to_index:2, guard:{type:"bool", expected:true}},
+    {from_index:2, to_index:3, guard:{type:"on_success"}},
+    {from_index:3, to_index:4, guard:{type:"bool", expected:true}},
+    {from_index:3, to_index:5, guard:{type:"bool", expected:false}}
+  ]
+
+For device-event triggers (WiFi, battery, notifications, etc.), use workflow_create (linear mode) instead �� graph workflows currently support manual, schedule, intent, app_open, voice, and api triggers.
         """
     }
 }

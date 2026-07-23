@@ -4,6 +4,8 @@ import android.app.Application
 import com.orangeisland.app.api.LlmProvider
 import com.orangeisland.app.api.ToolDefinition
 import com.orangeisland.app.data.MemoryManager
+import com.orangeisland.app.data.UsageLogManager
+import com.orangeisland.app.data.local.ChatDao
 import com.orangeisland.app.data.repository.ConversationRepository
 import com.orangeisland.app.mcp.McpClientPool
 import com.orangeisland.app.plugin.PluginToolProvider
@@ -49,7 +51,12 @@ class ToolDispatcher(
     private val workflowToolProvider: ToolProvider? = null,
     /** Optional approval gate for sensitive device-access tools (location, notifications,
      *  usage stats). Null when the gate is not installed (e.g. background workers). */
-    private val sensitiveToolApproval: SensitiveToolApprovalGate? = null
+    private val sensitiveToolApproval: SensitiveToolApprovalGate? = null,
+    /** Optional ChatDao for chat-context tools (time_since_last_chat, count_conversation_messages). */
+    private val chatDao: ChatDao? = null,
+    /** Optional gate for interactive card-style user choices (ask_user_choice). Null when the
+     *  UI observer is not available (e.g. background workers). */
+    private val userInteractionGate: UserInteractionGate? = null
 ) {
     companion object {
         /** Shell-provider tool names that are pure file I/O (split out from command execution). */
@@ -85,6 +92,8 @@ class ToolDispatcher(
         stp.confirm = { server, summary -> onConfirmShellCommand?.invoke(server, summary) ?: true }
     }
     private val mcpToolProvider = mcpPool?.let { com.orangeisland.app.tool.McpToolProvider(it) }
+    private val chatContextToolProvider = chatDao?.let { com.orangeisland.app.tool.ChatContextToolProvider(it) }
+    private val userInteractionToolProvider = UserInteractionToolProvider(userInteractionGate)
 
     /** Every active provider, in dispatch order. [handles] is queried in this order, so earlier
      *  providers win on name collisions. Names are namespaced (plugin__/mcp__) to avoid this in
@@ -100,9 +109,11 @@ class ToolDispatcher(
         add(appLockToolProvider)
         add(toastToolProvider)
         add(automationToolProvider)
+        chatContextToolProvider?.let { add(it) }
         mcpToolProvider?.let { add(it) }
         pluginToolProvider?.let { add(it) }
         workflowToolProvider?.let { add(it) }
+        add(userInteractionToolProvider)
     }
 
     // ── Confirmation hooks ──────────────────────────────────────────────────
@@ -123,14 +134,33 @@ class ToolDispatcher(
      *  "Unknown tool" / "Error executing" message string on failure — never throws, matching the
      *  original GenerationManager.executeTool contract so LLM-loop callers are unaffected. */
     suspend fun execute(name: String, arguments: String, ctx: GenerationContext): String {
+        val t0 = System.currentTimeMillis()
+        UsageLogManager.logTool(
+            name = name,
+            conversationId = ctx.conversationId,
+            details = "args: ${arguments.take(800)}"
+        )
         return try {
             for (provider in all) {
                 if (provider.handles(name)) {
-                    return provider.execute(name, arguments, ctx)
+                    val result = provider.execute(name, arguments, ctx)
+                    val elapsed = System.currentTimeMillis() - t0
+                    val summary = result.take(400).replace("\n", " ")
+                    UsageLogManager.logTool(
+                        name = "$name ✓",
+                        conversationId = ctx.conversationId,
+                        details = "${elapsed}ms | result: $summary"
+                    )
+                    return result
                 }
             }
             "Unknown tool: $name"
         } catch (e: Exception) {
+            UsageLogManager.logTool(
+                name = "$name ✗",
+                conversationId = ctx.conversationId,
+                details = "error: ${e.localizedMessage ?: "Unknown error"}"
+            )
             "Error executing tool '$name': ${e.localizedMessage ?: "Unknown error"}"
         }
     }
@@ -211,6 +241,13 @@ class ToolDispatcher(
         calendarToolProvider?.let { addAll(it.definitions(ctx)) }
         notificationToolProvider?.let { addAll(it.definitions(ctx)) }
         usageStatsToolProvider?.let { addAll(it.definitions(ctx)) }
+    }
+
+    /** User-interaction tools (ask_user_choice). Exposed when the UI gate is installed and
+     *  the feature is enabled in settings. */
+    fun userInteractionDefinitions(ctx: GenerationContext): List<ToolDefinition> {
+        if (!ctx.userInteractionEnabled) return emptyList()
+        return userInteractionToolProvider.definitions(ctx)
     }
 
     // ── Pass-through helpers ────────────────────────────────────────────────

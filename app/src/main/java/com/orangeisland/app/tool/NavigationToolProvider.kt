@@ -8,6 +8,7 @@ import com.orangeisland.app.api.ToolFunction
 import com.orangeisland.app.api.ToolParameters
 import com.orangeisland.app.api.ToolProperty
 import com.orangeisland.app.viewmodel.GenerationContext
+import com.orangeisland.app.workflow.trigger.AppForegroundDispatcher
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -96,6 +97,12 @@ class NavigationToolProvider(private val app: Application) : ToolProvider {
                     ),
                     required = emptyList()
                 )
+            )),
+            ToolDefinition(function = ToolFunction(
+                name = "get_foreground_app",
+                description = "Get the currently foreground app package name. " +
+                    "Returns the package name (e.g. com.tencent.mm) or null if unknown.",
+                parameters = ToolParameters(properties = emptyMap(), required = emptyList())
             ))
         )
     }
@@ -108,6 +115,7 @@ class NavigationToolProvider(private val app: Application) : ToolProvider {
                 "open_settings" -> openSettings(arguments)
                 "share_text" -> shareText(arguments)
                 "get_installed_apps" -> getInstalledApps(arguments)
+                "get_foreground_app" -> getForegroundApp()
                 else -> unknownTool(name)
             }
         } catch (e: Exception) {
@@ -116,7 +124,7 @@ class NavigationToolProvider(private val app: Application) : ToolProvider {
     }
 
     override fun handles(name: String): Boolean = name in setOf(
-        "open_url", "open_app", "open_settings", "share_text", "get_installed_apps"
+        "open_url", "open_app", "open_settings", "share_text", "get_installed_apps", "get_foreground_app"
     )
 
     // ── Implementation ─────────────────────────────────────
@@ -191,6 +199,21 @@ class NavigationToolProvider(private val app: Application) : ToolProvider {
         } catch (e: Exception) {
             error("share_failed", "Failed to open share sheet: ${e.message}")
         }
+    }
+
+    private fun getForegroundApp(): String {
+        val pkg = AppForegroundDispatcher.lastKnown
+        return buildJsonObject {
+            put("success", JsonPrimitive(true))
+            put("package_name", JsonPrimitive(pkg))
+            put("app_name", JsonPrimitive(pkg?.let {
+                try {
+                    app.packageManager.getApplicationLabel(
+                        app.packageManager.getApplicationInfo(it, 0)
+                    ).toString()
+                } catch (_: Exception) { it }
+            }))
+        }.toString()
     }
 
     private fun getInstalledApps(arguments: String): String {

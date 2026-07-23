@@ -1,8 +1,6 @@
 package com.orangeisland.app.workflow
 
-import com.orangeisland.app.model.LinearCondition
-import com.orangeisland.app.model.LinearTrigger
-import com.orangeisland.app.model.LinearWorkflow
+import com.orangeisland.app.model.*
 
 /**
  * Renders a [LinearWorkflow] as a human-readable approval card — the text the user sees in the
@@ -29,7 +27,7 @@ import com.orangeisland.app.model.LinearWorkflow
  */
 object WorkflowApprovalRenderer {
 
-    /** Full plain-text rendering of a create/update card. */
+    /** Full plain-text rendering of a linear create/update card. */
     fun renderCreate(def: LinearWorkflow): String = buildString {
         appendLine("创建工作流 \"${def.name}\"")
         if (def.description.isNotBlank()) appendLine(def.description)
@@ -43,6 +41,67 @@ object WorkflowApprovalRenderer {
         appendLine()
         append("冷却：${if (def.cooldownMs == 0L) "无" else formatDuration(def.cooldownMs)}")
         append(" · 每日上限：${def.maxRunsPerDay?.let { "$it 次" } ?: "无限"}")
+    }
+
+    /** Full plain-text rendering of a graph workflow create/update card. */
+    fun renderGraphCreate(def: Workflow): String = buildString {
+        appendLine("创建图谱工作流 \"${def.name}\"")
+        if (def.description.isNotBlank()) appendLine(def.description)
+        appendLine()
+        appendLine("节点 (${def.nodes.size})：")
+        def.nodes.forEachIndexed { idx, node ->
+            appendLine("  ${idx + 1}. ${node.kind}: ${node.label.ifBlank { "(未命名)" }}${nodeDetail(node)}")
+        }
+        if (def.edges.isNotEmpty()) {
+            appendLine()
+            appendLine("连接 (${def.edges.size})：")
+            val nodeById = def.nodes.associateBy { it.id }
+            def.edges.forEachIndexed { idx, edge ->
+                val fromLabel = nodeById[edge.from]?.label?.takeIf { it.isNotBlank() } ?: "?"
+                val toLabel = nodeById[edge.to]?.label?.takeIf { it.isNotBlank() } ?: "?"
+                val guardText = edge.guard?.let { guardDetail(it) } ?: ""
+                appendLine("  ${idx + 1}. \"$fromLabel\" → \"$toLabel\"$guardText")
+            }
+        }
+    }
+
+    private fun nodeDetail(node: FlowNode): String = when (node) {
+        is StartNode -> triggerText(node.trigger)
+        is ActionNode -> " [${node.toolName}]"
+        is BranchNode -> " [分支: ${comparisonText(node.cmp)}]"
+        is MergeNode -> " [合并: ${if (node.reducer == Reducer.ALL_TRUE) "全部真" else "任一真"}]"
+        is TransformNode -> " [转换: ${transformOpText(node.op)}]"
+        is LLMNode -> " [LLM: ${node.provider}/${node.modelId}]"
+    }
+
+    private fun guardDetail(guard: EdgeGuard): String = when (guard) {
+        is EdgeGuard.OnSuccess -> " (成功时)"
+        is EdgeGuard.OnFailure -> " (失败时)"
+        is EdgeGuard.Bool -> " (=${guard.expected})"
+        is EdgeGuard.Regex -> " (匹配 /${guard.pattern}/)"
+    }
+
+    private fun comparisonText(cmp: Comparison): String = when (cmp) {
+        Comparison.EQ -> "等于"
+        Comparison.NE -> "不等于"
+        Comparison.LT -> "小于"
+        Comparison.LE -> "小于等于"
+        Comparison.GT -> "大于"
+        Comparison.GE -> "大于等于"
+        Comparison.CONTAINS -> "包含"
+        Comparison.NOT_CONTAINS -> "不包含"
+        Comparison.IN -> "在列表中"
+        Comparison.NOT_IN -> "不在列表中"
+    }
+
+    private fun transformOpText(op: TransformOp): String = when (op) {
+        is TransformOp.Regex -> "正则"
+        is TransformOp.JsonPath -> "JSON路径"
+        is TransformOp.Slice -> "切片"
+        is TransformOp.Join -> "拼接"
+        is TransformOp.RandomInt -> "随机整数"
+        is TransformOp.RandomText -> "随机文本"
+        is TransformOp.Fixed -> "固定值"
     }
 
     /** Short one-line summary for the list/detail screens. */
@@ -83,6 +142,16 @@ object WorkflowApprovalRenderer {
         is LinearTrigger.BootCompleted -> "设备开机"
         is LinearTrigger.ScreenOn -> "亮屏"
         is LinearTrigger.ScreenOff -> "息屏"
+    }
+
+    /** One-line summary for graph-mode StartNode triggers. */
+    fun triggerText(trigger: TriggerSpec): String = when (trigger) {
+        is TriggerSpec.Manual -> "手动触发"
+        is TriggerSpec.Schedule -> "定时触发"
+        is TriggerSpec.IntentAction -> "Intent: ${trigger.action}"
+        is TriggerSpec.AppOpen -> "App 启动"
+        is TriggerSpec.Voice -> "语音唤醒" + (trigger.keyword?.let { "（$it）" } ?: "")
+        is TriggerSpec.Api -> "API 触发"
     }
 
     /** Plain-text rendering of one condition. Applies the invert prefix when set. */

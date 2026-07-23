@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
 import com.orangeisland.app.model.*
+import com.orangeisland.app.model.LLMNode
 import com.orangeisland.app.ui.settings.CollapsingSettingsScaffold
 import com.orangeisland.app.ui.settings.SettingsItem
 import java.util.UUID
@@ -196,6 +197,19 @@ fun WorkflowEditorForm(
                         op = TransformOp.Fixed("")
                     )
                 )
+            },
+            onAddLLM = {
+                nodes.add(
+                    LLMNode(
+                        id = "node_${UUID.randomUUID()}",
+                        label = "思考",
+                        prompt = NodeValue.Literal(""),
+                        provider = "OpenAI",
+                        modelId = "gpt-4o-mini",
+                        systemPrompt = "",
+                        temperature = 0.7f
+                    )
+                )
             }
         )
 
@@ -245,7 +259,7 @@ fun WorkflowEditorForm(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Add Edge", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                Text("添加连线", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
             }
         }
 
@@ -286,11 +300,12 @@ private fun NodeEditorCard(
                 supportingContent = {
                     Text(
                         when (node) {
-                            is StartNode -> "Trigger: ${triggerLabel(node.trigger)}"
-                            is ActionNode -> "Tool: ${node.toolName}"
-                            is BranchNode -> "Branch"
-                            is MergeNode -> "Merge (${node.reducer.name})"
-                            is TransformNode -> "Transform"
+                            is StartNode -> "触发器: ${triggerLabel(node.trigger)}"
+                            is ActionNode -> "工具: ${node.toolName}"
+                            is BranchNode -> "分支"
+                            is MergeNode -> "合并 (${node.reducer.name})"
+                            is TransformNode -> "转换"
+                            is LLMNode -> "思考 · ${node.provider}:${node.modelId}"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -304,6 +319,7 @@ private fun NodeEditorCard(
                             is BranchNode -> Icons.Default.CallSplit
                             is MergeNode -> Icons.Default.MergeType
                             is TransformNode -> Icons.Default.Transform
+                            is LLMNode -> Icons.Default.Psychology
                         },
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
@@ -362,10 +378,11 @@ private fun NodeDetailEditor(
 ) {
     when (node) {
         is StartNode -> StartNodeEditor(node, onUpdate)
-        is ActionNode -> ActionNodeEditor(node, onUpdate)
+        is ActionNode -> ActionNodeEditor(node, allNodes, onUpdate)
         is BranchNode -> BranchNodeEditor(node, onUpdate)
         is MergeNode -> MergeNodeEditor(node, onUpdate)
-        is TransformNode -> TransformNodeEditor(node, onUpdate)
+        is TransformNode -> TransformNodeEditor(node, allNodes, onUpdate)
+        is LLMNode -> LLMNodeEditor(node, allNodes, onUpdate)
     }
 }
 
@@ -377,14 +394,14 @@ private fun StartNodeEditor(node: StartNode, onUpdate: (FlowNode) -> Unit) {
     OutlinedTextField(
         value = label,
         onValueChange = { label = it; onUpdate(node.copy(label = label)) },
-        label = { Text("Label") },
+        label = { Text("名称") },
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
     )
     Spacer(modifier = Modifier.height(8.dp))
 
-    val kinds = listOf("Manual", "AppOpen", "Api", "Schedule", "Intent", "Voice")
+    val kinds = listOf("手动", "打开应用", "接口", "定时", "意图", "语音")
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         kinds.forEachIndexed { index, kind ->
             SegmentedButton(
@@ -402,14 +419,14 @@ private fun StartNodeEditor(node: StartNode, onUpdate: (FlowNode) -> Unit) {
 }
 
 @Composable
-private fun ActionNodeEditor(node: ActionNode, onUpdate: (FlowNode) -> Unit) {
+private fun ActionNodeEditor(node: ActionNode, allNodes: List<FlowNode>, onUpdate: (FlowNode) -> Unit) {
     var label by remember(node.id) { mutableStateOf(node.label) }
     var toolName by remember(node.id) { mutableStateOf(node.toolName) }
 
     OutlinedTextField(
         value = label,
         onValueChange = { label = it; onUpdate(node.copy(label = label)) },
-        label = { Text("Label") },
+        label = { Text("名称") },
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
@@ -418,11 +435,123 @@ private fun ActionNodeEditor(node: ActionNode, onUpdate: (FlowNode) -> Unit) {
     OutlinedTextField(
         value = toolName,
         onValueChange = { toolName = it; onUpdate(node.copy(toolName = toolName)) },
-        label = { Text("Tool Name") },
+        label = { Text("工具名") },
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
     )
+
+    Spacer(modifier = Modifier.height(12.dp))
+    Text(
+        "参数",
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+
+    node.args.forEach { (key, value) ->
+        ArgRow(
+            argKey = key,
+            argValue = value,
+            allNodes = allNodes,
+            onUpdate = { newKey, newValue ->
+                val newArgs = node.args.toMutableMap()
+                if (newKey != key) newArgs.remove(key)
+                newArgs[newKey] = newValue
+                onUpdate(node.copy(args = newArgs))
+            },
+            onDelete = { onUpdate(node.copy(args = node.args - key)) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+    }
+
+    TextButton(
+        onClick = {
+            var idx = 1
+            while ("arg$idx" in node.args.keys) idx++
+            onUpdate(node.copy(args = node.args + ("arg$idx" to NodeValue.Literal(""))))
+        }
+    ) {
+        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text("添加参数")
+    }
+}
+
+@Composable
+private fun ArgRow(
+    argKey: String,
+    argValue: NodeValue,
+    allNodes: List<FlowNode>,
+    onUpdate: (String, NodeValue) -> Unit,
+    onDelete: () -> Unit
+) {
+    var key by remember(argKey) { mutableStateOf(argKey) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(
+            value = key,
+            onValueChange = { key = it; onUpdate(key, argValue) },
+            label = { Text("键") },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.weight(0.35f),
+            singleLine = true
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Box(modifier = Modifier.weight(0.55f)) {
+            NodeValueEditor(value = argValue, allNodes = allNodes) {
+                onUpdate(key, it)
+            }
+        }
+        IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
+            Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+@Composable
+private fun NodeValueEditor(
+    value: NodeValue,
+    allNodes: List<FlowNode>,
+    onUpdate: (NodeValue) -> Unit
+) {
+    val isRef = value is NodeValue.Ref
+    Column {
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = !isRef,
+                onClick = { if (isRef) onUpdate(NodeValue.Literal(if (value is NodeValue.Ref) "" else (value as NodeValue.Literal).value)) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+            ) { Text("文本", style = MaterialTheme.typography.labelSmall) }
+            SegmentedButton(
+                selected = isRef,
+                onClick = {
+                    if (!isRef) {
+                        val firstId = allNodes.firstOrNull()?.id ?: ""
+                        onUpdate(NodeValue.Ref(firstId))
+                    }
+                },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+            ) { Text("引用", style = MaterialTheme.typography.labelSmall) }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        when (value) {
+            is NodeValue.Literal -> OutlinedTextField(
+                value = value.value,
+                onValueChange = { onUpdate(NodeValue.Literal(it)) },
+                label = { Text("值") },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            is NodeValue.Ref -> NodeDropdown(
+                label = "节点",
+                selected = value.nodeId,
+                options = allNodes.map { it.id },
+                nodes = allNodes,
+                onSelect = { onUpdate(NodeValue.Ref(it)) }
+            )
+        }
+    }
 }
 
 @Composable
@@ -434,7 +563,7 @@ private fun BranchNodeEditor(node: BranchNode, onUpdate: (FlowNode) -> Unit) {
     OutlinedTextField(
         value = label,
         onValueChange = { label = it; onUpdate(node.copy(label = label)) },
-        label = { Text("Label") },
+        label = { Text("名称") },
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
@@ -465,7 +594,7 @@ private fun MergeNodeEditor(node: MergeNode, onUpdate: (FlowNode) -> Unit) {
     OutlinedTextField(
         value = label,
         onValueChange = { label = it; onUpdate(node.copy(label = label)) },
-        label = { Text("Label") },
+        label = { Text("名称") },
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
@@ -487,32 +616,306 @@ private fun MergeNodeEditor(node: MergeNode, onUpdate: (FlowNode) -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TransformNodeEditor(node: TransformNode, onUpdate: (FlowNode) -> Unit) {
+private fun TransformNodeEditor(node: TransformNode, allNodes: List<FlowNode>, onUpdate: (FlowNode) -> Unit) {
     var label by remember(node.id) { mutableStateOf(node.label) }
+    var expanded by remember { mutableStateOf(false) }
+    val opKind = opKindOf(node.op)
+    val opKinds = listOf("固定值", "正则提取", "JSON路径", "切片", "拼接", "随机整数", "随机文本")
 
     OutlinedTextField(
         value = label,
         onValueChange = { label = it; onUpdate(node.copy(label = label)) },
-        label = { Text("Label") },
+        label = { Text("名称") },
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
     )
-    // Simplified: only Fixed op exposed in form editor. Full op set belongs on canvas.
     Spacer(modifier = Modifier.height(8.dp))
-    val fixedValue = (node.op as? TransformOp.Fixed)?.value ?: ""
-    var value by remember(node.id) { mutableStateOf(fixedValue) }
+
+    // Op kind dropdown
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = opKind,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("操作") },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            opKinds.forEach { kind ->
+                DropdownMenuItem(
+                    text = { Text(kind) },
+                    onClick = {
+                        expanded = false
+                        onUpdate(node.copy(op = defaultOpForKind(kind)))
+                    }
+                )
+            }
+        }
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    when (val op = node.op) {
+        is TransformOp.Fixed -> {
+            var value by remember(node.id) { mutableStateOf(op.value) }
+            OutlinedTextField(
+                value = value,
+                onValueChange = { value = it; onUpdate(node.copy(op = op.copy(value = value))) },
+                label = { Text("值") },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
+        is TransformOp.Regex -> {
+            var pattern by remember(node.id) { mutableStateOf(op.pattern) }
+            var group by remember(node.id) { mutableIntStateOf(op.group) }
+            var fallback by remember(node.id) { mutableStateOf(op.fallback) }
+            OutlinedTextField(
+                value = pattern,
+                onValueChange = { pattern = it; onUpdate(node.copy(op = op.copy(pattern = pattern))) },
+                label = { Text("正则表达式") },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row {
+                OutlinedTextField(
+                    value = group.toString(),
+                    onValueChange = {
+                        group = it.toIntOrNull() ?: 0
+                        onUpdate(node.copy(op = op.copy(group = group)))
+                    },
+                    label = { Text("捕获组") },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                OutlinedTextField(
+                    value = fallback,
+                    onValueChange = { fallback = it; onUpdate(node.copy(op = op.copy(fallback = fallback))) },
+                    label = { Text("默认值") },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+        }
+        is TransformOp.JsonPath -> {
+            var path by remember(node.id) { mutableStateOf(op.path) }
+            var fallback by remember(node.id) { mutableStateOf(op.fallback) }
+            OutlinedTextField(
+                value = path,
+                onValueChange = { path = it; onUpdate(node.copy(op = op.copy(path = path))) },
+                label = { Text("路径") },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            OutlinedTextField(
+                value = fallback,
+                onValueChange = { fallback = it; onUpdate(node.copy(op = op.copy(fallback = fallback))) },
+                label = { Text("Fallback") },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
+        is TransformOp.Slice -> {
+            var start by remember(node.id) { mutableIntStateOf(op.start) }
+            var length by remember(node.id) { mutableIntStateOf(op.length) }
+            var fallback by remember(node.id) { mutableStateOf(op.fallback) }
+            Row {
+                OutlinedTextField(
+                    value = start.toString(),
+                    onValueChange = {
+                        start = it.toIntOrNull() ?: 0
+                        onUpdate(node.copy(op = op.copy(start = start)))
+                    },
+                    label = { Text("起始位置") },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                OutlinedTextField(
+                    value = length.toString(),
+                    onValueChange = {
+                        length = it.toIntOrNull() ?: -1
+                        onUpdate(node.copy(op = op.copy(length = length)))
+                    },
+                    label = { Text("长度") },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                OutlinedTextField(
+                    value = fallback,
+                    onValueChange = { fallback = it; onUpdate(node.copy(op = op.copy(fallback = fallback))) },
+                    label = { Text("默认值") },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+        }
+        is TransformOp.Join -> {
+            Text(
+                "输入",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            NodeValueEditor(value = op.input, allNodes = allNodes) {
+                onUpdate(node.copy(op = op.copy(input = it)))
+            }
+        }
+        is TransformOp.RandomInt -> {
+            var min by remember(node.id) { mutableIntStateOf(op.min) }
+            var max by remember(node.id) { mutableIntStateOf(op.max) }
+            Row {
+                OutlinedTextField(
+                    value = min.toString(),
+                    onValueChange = {
+                        min = it.toIntOrNull() ?: 0
+                        onUpdate(node.copy(op = op.copy(min = min)))
+                    },
+                    label = { Text("最小值") },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                OutlinedTextField(
+                    value = max.toString(),
+                    onValueChange = {
+                        max = it.toIntOrNull() ?: 100
+                        onUpdate(node.copy(op = op.copy(max = max)))
+                    },
+                    label = { Text("最大值") },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+        }
+        is TransformOp.RandomText -> {
+            var length by remember(node.id) { mutableIntStateOf(op.length) }
+            var charset by remember(node.id) { mutableStateOf(op.charset) }
+            Row {
+                OutlinedTextField(
+                    value = length.toString(),
+                    onValueChange = {
+                        length = it.toIntOrNull() ?: 8
+                        onUpdate(node.copy(op = op.copy(length = length)))
+                    },
+                    label = { Text("长度") },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(0.4f),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                OutlinedTextField(
+                    value = charset,
+                    onValueChange = { charset = it; onUpdate(node.copy(op = op.copy(charset = charset))) },
+                    label = { Text("字符集") },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(0.6f),
+                    singleLine = true
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LLMNodeEditor(node: LLMNode, allNodes: List<FlowNode>, onUpdate: (FlowNode) -> Unit) {
+    var label by remember(node.id) { mutableStateOf(node.label) }
+    var provider by remember(node.id) { mutableStateOf(node.provider) }
+    var modelId by remember(node.id) { mutableStateOf(node.modelId) }
+    var systemPrompt by remember(node.id) { mutableStateOf(node.systemPrompt) }
+    var temperature by remember(node.id) { mutableFloatStateOf(node.temperature) }
+    var expanded by remember { mutableStateOf(false) }
+
+    val providers = listOf("Google", "OpenAI", "Anthropic", "DeepSeek", "Qwen", "Ollama", "Open Router")
+
     OutlinedTextField(
-        value = value,
-        onValueChange = {
-            value = it
-            onUpdate(node.copy(op = TransformOp.Fixed(value)))
-        },
-        label = { Text("Fixed Value") },
+        value = label,
+        onValueChange = { label = it; onUpdate(node.copy(label = label)) },
+        label = { Text("名称") },
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+
+    Text("提示词", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    NodeValueEditor(value = node.prompt, allNodes = allNodes) {
+        onUpdate(node.copy(prompt = it))
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = provider,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("提供商") },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            providers.forEach { p ->
+                DropdownMenuItem(text = { Text(p) }, onClick = { expanded = false; provider = p; onUpdate(node.copy(provider = provider)) })
+            }
+        }
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+
+    OutlinedTextField(
+        value = modelId,
+        onValueChange = { modelId = it; onUpdate(node.copy(modelId = modelId)) },
+        label = { Text("模型 ID") },
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+
+    OutlinedTextField(
+        value = systemPrompt,
+        onValueChange = { systemPrompt = it; onUpdate(node.copy(systemPrompt = systemPrompt)) },
+        label = { Text("系统提示词（可选）") },
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth(),
+        minLines = 2,
+        maxLines = 4
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+
+    Text("温度: ${"%.1f".format(temperature)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Slider(
+        value = temperature,
+        onValueChange = {
+            temperature = (kotlin.math.round(it * 10) / 10f).coerceIn(0f, 2f)
+            onUpdate(node.copy(temperature = temperature))
+        },
+        valueRange = 0f..2f,
+        steps = 19,
+        modifier = Modifier.fillMaxWidth()
     )
 }
 
@@ -547,7 +950,7 @@ private fun EdgeEditorCard(
                 },
                 supportingContent = {
                     Text(
-                        edge.guard?.let { "Guard: ${guardLabel(it)}" } ?: "No guard",
+                        edge.guard?.let { "守卫: ${guardLabel(it)}" } ?: "无守卫",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -617,21 +1020,21 @@ private fun EdgeDetailEditor(
     val nodeIds = allNodes.map { it.id }
 
     // From
-    NodeDropdown(label = "From", selected = fromId, options = nodeIds, nodes = allNodes) {
+    NodeDropdown(label = "来源", selected = fromId, options = nodeIds, nodes = allNodes) {
         fromId = it
         onUpdate(edge.copy(from = fromId))
     }
     Spacer(modifier = Modifier.height(8.dp))
 
     // To
-    NodeDropdown(label = "To", selected = toId, options = nodeIds, nodes = allNodes) {
+    NodeDropdown(label = "目标", selected = toId, options = nodeIds, nodes = allNodes) {
         toId = it
         onUpdate(edge.copy(to = toId))
     }
     Spacer(modifier = Modifier.height(8.dp))
 
     // Guard
-    val guardTypes = listOf("None", "OnSuccess", "OnFailure", "BoolTrue", "BoolFalse")
+    val guardTypes = listOf("无", "成功", "失败", "为真", "为假", "正则匹配")
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         guardTypes.forEachIndexed { index, type ->
             SegmentedButton(
@@ -645,6 +1048,25 @@ private fun EdgeDetailEditor(
                 Text(type, style = MaterialTheme.typography.labelSmall)
             }
         }
+    }
+
+    // Regex pattern input when Regex guard is selected
+    if (guardType == "正则匹配") {
+        Spacer(modifier = Modifier.height(8.dp))
+        var pattern by remember(edge.id) {
+            mutableStateOf((edge.guard as? EdgeGuard.Regex)?.pattern ?: "")
+        }
+        OutlinedTextField(
+            value = pattern,
+            onValueChange = {
+                pattern = it
+                onUpdate(edge.copy(guard = EdgeGuard.Regex(pattern)))
+            },
+            label = { Text("Pattern") },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
     }
 }
 
@@ -694,7 +1116,8 @@ private fun AddNodeRow(
     onAddAction: () -> Unit,
     onAddBranch: () -> Unit,
     onAddMerge: () -> Unit,
-    onAddTransform: () -> Unit
+    onAddTransform: () -> Unit,
+    onAddLLM: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -715,11 +1138,12 @@ private fun AddNodeRow(
 
     AnimatedVisibility(visible = expanded) {
         Column {
-            DropdownMenuItem(text = { Text("Start") }, leadingIcon = { Icon(Icons.Default.PlayArrow, null) }, onClick = { expanded = false; onAddStart() })
-            DropdownMenuItem(text = { Text("Action") }, leadingIcon = { Icon(Icons.Default.AutoAwesome, null) }, onClick = { expanded = false; onAddAction() })
-            DropdownMenuItem(text = { Text("Branch") }, leadingIcon = { Icon(Icons.Default.CallSplit, null) }, onClick = { expanded = false; onAddBranch() })
-            DropdownMenuItem(text = { Text("Merge") }, leadingIcon = { Icon(Icons.Default.MergeType, null) }, onClick = { expanded = false; onAddMerge() })
-            DropdownMenuItem(text = { Text("Transform") }, leadingIcon = { Icon(Icons.Default.Transform, null) }, onClick = { expanded = false; onAddTransform() })
+            DropdownMenuItem(text = { Text("开始") }, leadingIcon = { Icon(Icons.Default.PlayArrow, null) }, onClick = { expanded = false; onAddStart() })
+            DropdownMenuItem(text = { Text("动作") }, leadingIcon = { Icon(Icons.Default.AutoAwesome, null) }, onClick = { expanded = false; onAddAction() })
+            DropdownMenuItem(text = { Text("分支") }, leadingIcon = { Icon(Icons.Default.CallSplit, null) }, onClick = { expanded = false; onAddBranch() })
+            DropdownMenuItem(text = { Text("合并") }, leadingIcon = { Icon(Icons.Default.MergeType, null) }, onClick = { expanded = false; onAddMerge() })
+            DropdownMenuItem(text = { Text("转换") }, leadingIcon = { Icon(Icons.Default.Transform, null) }, onClick = { expanded = false; onAddTransform() })
+            DropdownMenuItem(text = { Text("思考") }, leadingIcon = { Icon(Icons.Default.Psychology, null) }, onClick = { expanded = false; onAddLLM() })
         }
     }
 }
@@ -736,42 +1160,63 @@ private fun triggerLabel(trigger: TriggerSpec): String = when (trigger) {
 }
 
 private fun triggerKindOf(trigger: TriggerSpec): String = when (trigger) {
-    is TriggerSpec.Manual -> "Manual"
-    is TriggerSpec.AppOpen -> "AppOpen"
-    is TriggerSpec.Api -> "Api"
-    is TriggerSpec.Schedule -> "Schedule"
-    is TriggerSpec.IntentAction -> "Intent"
-    is TriggerSpec.Voice -> "Voice"
+    is TriggerSpec.Manual -> "手动"
+    is TriggerSpec.AppOpen -> "打开应用"
+    is TriggerSpec.Api -> "接口"
+    is TriggerSpec.Schedule -> "定时"
+    is TriggerSpec.IntentAction -> "意图"
+    is TriggerSpec.Voice -> "语音"
 }
 
 private fun triggerFromKind(kind: String): TriggerSpec = when (kind) {
-    "AppOpen" -> TriggerSpec.AppOpen
-    "Api" -> TriggerSpec.Api
-    "Schedule" -> TriggerSpec.Schedule(ScheduleMode.Interval, emptyMap())
-    "Intent" -> TriggerSpec.IntentAction("")
-    "Voice" -> TriggerSpec.Voice()
+    "打开应用" -> TriggerSpec.AppOpen
+    "接口" -> TriggerSpec.Api
+    "定时" -> TriggerSpec.Schedule(ScheduleMode.Interval, emptyMap())
+    "意图" -> TriggerSpec.IntentAction("")
+    "语音" -> TriggerSpec.Voice()
     else -> TriggerSpec.Manual
 }
 
 private fun guardLabel(guard: EdgeGuard): String = when (guard) {
-    is EdgeGuard.OnSuccess -> "OnSuccess"
-    is EdgeGuard.OnFailure -> "OnFailure"
-    is EdgeGuard.Bool -> "Bool(${guard.expected})"
-    is EdgeGuard.Regex -> "Regex"
+    is EdgeGuard.OnSuccess -> "成功"
+    is EdgeGuard.OnFailure -> "失败"
+    is EdgeGuard.Bool -> "布尔(${guard.expected})"
+    is EdgeGuard.Regex -> "正则匹配"
 }
 
 private fun guardTypeOf(guard: EdgeGuard?): String = when (guard) {
-    is EdgeGuard.OnSuccess -> "OnSuccess"
-    is EdgeGuard.OnFailure -> "OnFailure"
-    is EdgeGuard.Bool -> if (guard.expected) "BoolTrue" else "BoolFalse"
-    is EdgeGuard.Regex -> "Regex"
-    null -> "None"
+    is EdgeGuard.OnSuccess -> "成功"
+    is EdgeGuard.OnFailure -> "失败"
+    is EdgeGuard.Bool -> if (guard.expected) "为真" else "为假"
+    is EdgeGuard.Regex -> "正则匹配"
+    null -> "无"
 }
 
 private fun guardFromType(type: String): EdgeGuard? = when (type) {
-    "OnSuccess" -> EdgeGuard.OnSuccess
-    "OnFailure" -> EdgeGuard.OnFailure
-    "BoolTrue" -> EdgeGuard.Bool(true)
-    "BoolFalse" -> EdgeGuard.Bool(false)
+    "成功" -> EdgeGuard.OnSuccess
+    "失败" -> EdgeGuard.OnFailure
+    "为真" -> EdgeGuard.Bool(true)
+    "为假" -> EdgeGuard.Bool(false)
+    "正则匹配" -> EdgeGuard.Regex("")
     else -> null
+}
+
+private fun opKindOf(op: TransformOp): String = when (op) {
+    is TransformOp.Fixed -> "固定值"
+    is TransformOp.Regex -> "正则提取"
+    is TransformOp.JsonPath -> "JSON路径"
+    is TransformOp.Slice -> "切片"
+    is TransformOp.Join -> "拼接"
+    is TransformOp.RandomInt -> "随机整数"
+    is TransformOp.RandomText -> "随机文本"
+}
+
+private fun defaultOpForKind(kind: String): TransformOp = when (kind) {
+    "正则提取" -> TransformOp.Regex(pattern = "", group = 0, fallback = "")
+    "JSON路径" -> TransformOp.JsonPath(path = "", fallback = "")
+    "切片" -> TransformOp.Slice(start = 0, length = -1, fallback = "")
+    "拼接" -> TransformOp.Join(input = NodeValue.Literal(""), extras = emptyList())
+    "随机整数" -> TransformOp.RandomInt(min = 0, max = 100, fixed = null)
+    "随机文本" -> TransformOp.RandomText(length = 8, charset = TransformOp.RandomText.ALNUM, fixed = null)
+    else -> TransformOp.Fixed("")
 }

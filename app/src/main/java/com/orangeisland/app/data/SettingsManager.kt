@@ -208,6 +208,7 @@ class SettingsManager(private val context: Context) {
         // UI Automation (tap/swipe/scroll/global-action/inspect) — the most powerful tool surface,
         // gated behind a separate accessibility service the user must enable explicitly.
         val UI_AUTOMATION_ENABLED = booleanPreferencesKey("ui_automation_enabled")
+        val USER_INTERACTION_ENABLED = booleanPreferencesKey("user_interaction_enabled")
         // Amap (高德) REST API key for the location tool's reverse geocoding + nearby search.
         val AMAP_API_KEY = stringPreferencesKey("amap_api_key")
         val MCP_SERVERS_JSON = stringPreferencesKey("mcp_servers_json")
@@ -248,6 +249,7 @@ class SettingsManager(private val context: Context) {
         val CUSTOM_FONT_NAME = stringPreferencesKey("custom_font_name")
         val FIRST_LAUNCH_TIME = longPreferencesKey("first_launch_time")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+        val PRIVACY_POLICY_ACCEPTED = booleanPreferencesKey("privacy_policy_accepted")
         // ── Account / Auth (local mirror of the Supabase session) ──────────────
         // Drives the login gate in MainActivity; persisted so the user stays
         // logged in across process restarts. Cleared by AuthRepository.logout().
@@ -447,6 +449,7 @@ class SettingsManager(private val context: Context) {
     }
     val toastEnabled: Flow<Boolean> = context.dataStore.data.map { it[TOAST_ENABLED] ?: false }
     val uiAutomationEnabled: Flow<Boolean> = context.dataStore.data.map { it[UI_AUTOMATION_ENABLED] ?: false }
+    val userInteractionEnabled: Flow<Boolean> = context.dataStore.data.map { it[USER_INTERACTION_ENABLED] ?: true }
     val amapApiKey: Flow<String> = context.dataStore.data.map { it[AMAP_API_KEY] ?: "" }
 
     // ── MCP servers ──────────────────────────────────────────
@@ -496,6 +499,7 @@ class SettingsManager(private val context: Context) {
     val customFontName: Flow<String> = context.dataStore.data.map { it[CUSTOM_FONT_NAME] ?: "" }
     val firstLaunchTime: Flow<Long?> = context.dataStore.data.map { it[FIRST_LAUNCH_TIME] }
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data.map { it[ONBOARDING_COMPLETED] ?: false }
+    val privacyPolicyAccepted: Flow<Boolean> = context.dataStore.data.map { it[PRIVACY_POLICY_ACCEPTED] ?: false }
     // ── Account / Auth (local session mirror) ───────────────────────────────
     val loggedIn: Flow<Boolean> = context.dataStore.data.map { it[LOGGED_IN] ?: false }
     val userName: Flow<String> = context.dataStore.data.map { it[USER_NAME] ?: "" }
@@ -929,6 +933,7 @@ class SettingsManager(private val context: Context) {
     }
     suspend fun saveToastEnabled(enabled: Boolean) { context.dataStore.edit { it[TOAST_ENABLED] = enabled } }
     suspend fun saveUiAutomationEnabled(enabled: Boolean) { context.dataStore.edit { it[UI_AUTOMATION_ENABLED] = enabled } }
+    suspend fun saveUserInteractionEnabled(enabled: Boolean) { context.dataStore.edit { it[USER_INTERACTION_ENABLED] = enabled } }
     suspend fun saveAmapApiKey(key: String) { context.dataStore.edit { it[AMAP_API_KEY] = key } }
 
     suspend fun saveThemeMode(mode: String) {
@@ -998,6 +1003,10 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveOnboardingCompleted(completed: Boolean) {
         context.dataStore.edit { it[ONBOARDING_COMPLETED] = completed }
+    }
+
+    suspend fun savePrivacyPolicyAccepted(accepted: Boolean) {
+        context.dataStore.edit { it[PRIVACY_POLICY_ACCEPTED] = accepted }
     }
 
     // ── Account / Auth session persistence ───────────────────────────────────

@@ -99,6 +99,11 @@ class ConversationRepository(
     suspend fun getMessagesByIds(ids: List<String>): List<MessageEntity> =
         chatDao.getMessagesByIds(ids)
 
+    /** Recent messages across every conversation in [projectId], newest first.
+     *  Used by the workflow engine to inject project chat history into LLMNode context. */
+    suspend fun getRecentMessagesForProject(projectId: String, limit: Int = 20): List<MessageEntity> =
+        chatDao.getRecentMessagesForProject(projectId, limit)
+
     /** MessageId → projectId mapping for RAG scope filtering. See [ChatDao.getProjectIdsForMessages]. */
     suspend fun getProjectIdsForMessages(ids: List<String>): Map<String, String?> =
         chatDao.getProjectIdsForMessages(ids).associate { it.messageId to it.projectId }

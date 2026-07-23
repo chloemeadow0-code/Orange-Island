@@ -2,6 +2,14 @@ package com.orangeisland.app.di
 
 import android.app.Application
 import android.content.Context
+import com.orangeisland.app.api.LlmProvider
+import com.orangeisland.app.api.anthropic.AnthropicProvider
+import com.orangeisland.app.api.gemini.GeminiProvider
+import com.orangeisland.app.api.ollama.OllamaProvider
+import com.orangeisland.app.api.openai.DeepSeekProvider
+import com.orangeisland.app.api.openai.OpenAiProvider
+import com.orangeisland.app.api.openai.OpenRouterProvider
+import com.orangeisland.app.api.openai.QwenProvider
 import com.orangeisland.app.data.MemoryManager
 import com.orangeisland.app.data.SettingsManager
 import com.orangeisland.app.data.local.ChatDao
@@ -10,6 +18,7 @@ import com.orangeisland.app.data.repository.ConversationRepository
 import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.data.AutoBackupManager
 import com.orangeisland.app.sandbox.SandboxManagerFactory
+import com.orangeisland.app.util.Constants
 import com.orangeisland.app.viewmodel.ChatViewModel
 import com.orangeisland.app.viewmodel.ChatViewModelFactory
 
@@ -116,8 +125,11 @@ class AppContainer(private val appContext: Context) {
         repository = workflowRepository,
         dispatcher = toolDispatcher,
         settings = settingsManager,
+        settingsRepository = settingsRepository,
         json = workflowJson,
         contextProvider = deviceContextProvider,
+        llmProviders = llmProviders,
+        chatDao = database.chatDao(),
         onConfirmDestructive = onConfirmDestructive,
         onNodeState = onNodeState
     )
@@ -128,7 +140,12 @@ class AppContainer(private val appContext: Context) {
     val deviceContextProvider: com.orangeisland.app.workflow.linear.DeviceContextProvider by lazy {
         com.orangeisland.app.workflow.linear.DeviceContextProvider(
             context = appContext,
-            foregroundProvider = { com.orangeisland.app.workflow.trigger.AppForegroundDispatcher.lastKnown }
+            foregroundProvider = { com.orangeisland.app.workflow.trigger.AppForegroundDispatcher.lastKnown },
+            lastChatMsProvider = {
+                kotlinx.coroutines.runBlocking {
+                    database.chatDao().getLatestMessageTimestamp()
+                }
+            }
         )
     }
 
@@ -151,6 +168,7 @@ class AppContainer(private val appContext: Context) {
         com.orangeisland.app.workflow.WorkflowAiToolProvider(
             repository = workflowRepository,
             runnerProvider = { workflowRunner() },
+            settingsRepository = settingsRepository,
             knownToolNames = {
                 // Resolve the set of tool NAMES this assistant registers — used by the parser to
                 // reject workflow definitions that reference a non-existent action tool. We pass a
@@ -187,19 +205,41 @@ class AppContainer(private val appContext: Context) {
         com.orangeisland.app.tool.SensitiveToolApprovalGate()
     }
 
+    /** Interactive choice gate for card-style user prompts (ask_user_choice). Shared between
+     *  the tool provider (which suspends on it) and the chat UI (which renders the dialog). */
+    val userInteractionGate: com.orangeisland.app.tool.UserInteractionGate by lazy {
+        com.orangeisland.app.tool.UserInteractionGate()
+    }
+
+    /** Built-in LLM providers (excludes LocalProvider which needs a ViewModelScope). Used by both
+     *  the chat path and the workflow LLM node executor. */
+    val llmProviders: Map<String, LlmProvider> by lazy {
+        mapOf(
+            Constants.PROVIDER_GOOGLE to GeminiProvider(),
+            Constants.PROVIDER_OPENAI to OpenAiProvider(),
+            Constants.PROVIDER_ANTHROPIC to AnthropicProvider(),
+            Constants.PROVIDER_DEEPSEEK to DeepSeekProvider(),
+            Constants.PROVIDER_QWEN to QwenProvider(),
+            Constants.PROVIDER_OLLAMA to OllamaProvider(),
+            Constants.PROVIDER_OPEN_ROUTER to OpenRouterProvider()
+        )
+    }
+
     val toolDispatcher: com.orangeisland.app.tool.ToolDispatcher by lazy {
         com.orangeisland.app.tool.ToolDispatcher(
             app = application,
             conversations = conversationRepository,
             memoryManager = memoryManager,
-            llmProviders = emptyMap(),
+            llmProviders = llmProviders,
             appContext = appContext,
             sandboxFactory = sandboxManagerFactory,
             mcpPool = null,
             pluginToolProvider = pluginToolProvider,
             permissionController = null,   // device tools run but cannot check permission state here yet
             workflowToolProvider = workflowAiToolProvider,
-            sensitiveToolApproval = sensitiveToolApprovalGate
+            sensitiveToolApproval = sensitiveToolApprovalGate,
+            chatDao = chatDao,
+            userInteractionGate = userInteractionGate
         )
     }
 
@@ -273,7 +313,7 @@ class AppContainer(private val appContext: Context) {
             application, chatDao, settingsManager, memoryManager, appContext, sandboxManagerFactory,
             autoBackupManager, conversationRepository, settingsRepository, workflowRepository,
             workflowApprovalGate, pluginToolProvider, pluginLoader, pluginSandbox,
-            workflowAiToolProvider
+            workflowAiToolProvider, userInteractionGate
         )
 
     fun healthViewModelFactory(): com.orangeisland.app.viewmodel.HealthViewModelFactory =

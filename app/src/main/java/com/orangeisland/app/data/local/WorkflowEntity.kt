@@ -43,7 +43,13 @@ data class WorkflowEntity(
     /** Mirrored daily-fire counter (only SUCCESS/FAILED count). Reset when [runsTodayDate] changes. */
     val runsTodayCount: Int = 0,
     /** ISO date string (yyyy-MM-dd) the counter belongs to. */
-    val runsTodayDate: String = ""
+    val runsTodayDate: String = "",
+    /** Bound project id — when set, the workflow's LLM nodes can see this project's recent chat history. */
+    val projectId: String? = null,
+    /** Bound system prompt id — resolved at runtime from SettingsRepository. */
+    val systemPromptId: String? = null,
+    /** Bound model id (format "provider:modelId") — overrides LLMNode defaults when set. */
+    val modelId: String? = null
 )
 
 /**

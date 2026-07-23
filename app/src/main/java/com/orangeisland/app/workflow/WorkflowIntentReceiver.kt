@@ -93,19 +93,30 @@ class WorkflowIntentReceiver : BroadcastReceiver() {
         val db = ChatDatabase.build(appContext)
         val repository = WorkflowRepository(db.workflowDao(), json)
         val settings = SettingsManager(appContext)
+        val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
+        val settingsRepository = com.orangeisland.app.data.repository.SettingsRepository(settings, scope)
+        val llmProviders = WorkflowWorker.buildLlmProviders()
         val dispatcher = ToolDispatcher(
             app = appContext as android.app.Application,
             conversations = com.orangeisland.app.data.repository.ConversationRepository(db.chatDao()),
             memoryManager = com.orangeisland.app.data.MemoryManager(appContext),
-            llmProviders = emptyMap(),
+            llmProviders = llmProviders,
             appContext = appContext,
             sandboxFactory = null,
             mcpPool = null,
             pluginToolProvider = null,
-            permissionController = null
+            permissionController = null,
+            chatDao = db.chatDao()
         )
-        return WorkflowRunner(repository, dispatcher, settings, json,
-            contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(appContext))
+        return WorkflowRunner(
+            repository = repository,
+            dispatcher = dispatcher,
+            settings = settings,
+            settingsRepository = settingsRepository,
+            json = json,
+            contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(appContext),
+            llmProviders = llmProviders
+        )
     }
 
     /** Flatten intent extras into a JSON object string the start node can hand to downstream. */

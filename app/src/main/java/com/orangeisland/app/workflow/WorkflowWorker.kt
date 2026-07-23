@@ -11,15 +11,28 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.orangeisland.app.api.LlmProvider
+import com.orangeisland.app.api.anthropic.AnthropicProvider
+import com.orangeisland.app.api.gemini.GeminiProvider
+import com.orangeisland.app.api.ollama.OllamaProvider
+import com.orangeisland.app.api.openai.DeepSeekProvider
+import com.orangeisland.app.api.openai.OpenAiProvider
+import com.orangeisland.app.api.openai.OpenRouterProvider
+import com.orangeisland.app.api.openai.QwenProvider
 import com.orangeisland.app.data.SettingsManager
 import com.orangeisland.app.data.local.ChatDatabase
+import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.data.repository.WorkflowRepository
 import com.orangeisland.app.model.ScheduleMode
 import com.orangeisland.app.model.StartNode
 import com.orangeisland.app.model.TriggerSpec
 import com.orangeisland.app.model.Workflow
 import com.orangeisland.app.tool.ToolDispatcher
+import com.orangeisland.app.util.Constants
 import com.orangeisland.app.util.DebugLog
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 import java.util.concurrent.TimeUnit
 
@@ -48,21 +61,30 @@ class WorkflowWorker(
         val db = ChatDatabase.build(appContext)
         val repository = WorkflowRepository(db.workflowDao(), json)
         val settings = SettingsManager(appContext)
-        // Background dispatcher: no permission controller (device tools limited by the guard's
-        // background whitelist anyway), no MCP (lifted in a later stage), llmProviders empty.
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val settingsRepository = SettingsRepository(settings, scope)
+        val llmProviders = buildLlmProviders()
         val dispatcher = ToolDispatcher(
             app = applicationContext as android.app.Application,
             conversations = com.orangeisland.app.data.repository.ConversationRepository(db.chatDao()),
             memoryManager = com.orangeisland.app.data.MemoryManager(appContext),
-            llmProviders = emptyMap(),
+            llmProviders = llmProviders,
             appContext = appContext,
             sandboxFactory = null,
             mcpPool = null,
             pluginToolProvider = null,
-            permissionController = null
+            permissionController = null,
+            chatDao = db.chatDao()
         )
-        val runner = WorkflowRunner(repository, dispatcher, settings, json,
-            contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(appContext))
+        val runner = WorkflowRunner(
+            repository = repository,
+            dispatcher = dispatcher,
+            settings = settings,
+            settingsRepository = settingsRepository,
+            json = json,
+            contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(appContext),
+            llmProviders = llmProviders
+        )
 
         return try {
             val result = runner.run(
@@ -95,6 +117,17 @@ class WorkflowWorker(
     companion object {
         private const val TAG = "WorkflowWorker"
         private const val MAX_ATTEMPTS = 3
+
+        /** Builds the built-in LLM provider map (no LocalProvider — it needs a ViewModelScope). */
+        fun buildLlmProviders(): Map<String, LlmProvider> = mapOf(
+            Constants.PROVIDER_GOOGLE to GeminiProvider(),
+            Constants.PROVIDER_OPENAI to OpenAiProvider(),
+            Constants.PROVIDER_ANTHROPIC to AnthropicProvider(),
+            Constants.PROVIDER_DEEPSEEK to DeepSeekProvider(),
+            Constants.PROVIDER_QWEN to QwenProvider(),
+            Constants.PROVIDER_OLLAMA to OllamaProvider(),
+            Constants.PROVIDER_OPEN_ROUTER to OpenRouterProvider()
+        )
         const val KEY_WORKFLOW_ID = "workflow_id"
         const val KEY_START_NODE_ID = "start_node_id"
 

@@ -1,0 +1,266 @@
+1:diff --git a/app/src/main/java/com/orangeisland/app/data/MemoryManager.kt b/app/src/main/java/com/orangeisland/app/data/MemoryManager.kt
+2:index 28424ff..e0a8f1b 100644
+3:--- a/app/src/main/java/com/orangeisland/app/data/MemoryManager.kt
+4:+++ b/app/src/main/java/com/orangeisland/app/data/MemoryManager.kt
+5:@@ -6,22 +6,42 @@ import kotlinx.serialization.json.Json
+6: import java.io.File
+7: 
+8: class MemoryManager(context: Context) {
+9:+    private val appContext: Context = context
+10:     private val memoryDir: File =
+11:         File(context.filesDir, "memory_db").also { it.mkdirs() }
+12: 
+13:     private val activeMemoryFile: File =
+14:         File(context.filesDir, "active_memory.md")
+15: 
+16:-    private val metaFile: File =
+17:-        File(memoryDir, "memory_meta.json")
+18:+    private val projectsMemoryRoot: File =
+19:+        File(context.filesDir, "memory_db_projects").also { it.mkdirs() }
+20: 
+21:     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
+22: 
+23:     data class MemoryFileInfo(
+24:         val name: String,
+25:-        val description: String = ""
+26:+        val description: String = "",
+27:+        // Origin bucket so callers (tool provider, UI) can show where a file lives.
+28:+        // null = global; non-null = the project id this file belongs to.
+29:+        val projectId: String? = null
+30:     )
+31: 
+32:+    /**
+33:+     * Resolves the memory directory for [projectId]. null → the global `memory_db/`
+34:+     * (shared with every conversation). Non-null → a project-private subdirectory
+35:+     * `memory_db_projects/<projectId>/`, created on demand. The project-private area is
+36:+     * invisible to conversations outside that project.
+37:+     */
+38:+    private fun dirFor(projectId: String?): File =
+39:+        if (projectId == null) memoryDir
+40:+        else File(projectsMemoryRoot, sanitizeProjectId(projectId)).also { it.mkdirs() }
+41:+
+42:+    private fun metaFileFor(projectId: String?): File = File(dirFor(projectId), "memory_meta.json")
+43:+
+44:+    /** Project ids are UUIDs but we sanitize defensively against path traversal all the same. */
+45:+    private fun sanitizeProjectId(projectId: String): String =
+46:+        projectId.replace(Regex("""[^A-Za-z0-9_-]"""), "_")
+47:+
+48:     @Synchronized
+49:     fun getActiveMemory(): String =
+50:         if (activeMemoryFile.exists()) activeMemoryFile.readText() else ""
+51:@@ -61,74 +81,101 @@ class MemoryManager(context: Context) {
+52:         }
+53: 
+54:     @Synchronized
+55:-    private fun loadMeta(): MutableMap<String, String> =
+56:-        if (metaFile.exists()) {
+57:-            try { json.decodeFromString<MutableMap<String, String>>(metaFile.readText()) }
+58:+    private fun loadMeta(projectId: String?): MutableMap<String, String> {
+59:+        val file = metaFileFor(projectId)
+60:+        return if (file.exists()) {
+61:+            try { json.decodeFromString<MutableMap<String, String>>(file.readText()) }
+62:             catch (_: Exception) { mutableMapOf() }
+63:         } else mutableMapOf()
+64:+    }
+65: 
+66:     @Synchronized
+67:-    private fun saveMeta(meta: Map<String, String>) {
+68:-        metaFile.writeText(json.encodeToString(meta))
+69:+    private fun saveMeta(meta: Map<String, String>, projectId: String?) {
+70:+        metaFileFor(projectId).writeText(json.encodeToString(meta))
+71:     }
+72: 
+73:     @Synchronized
+74:-    fun getDescription(name: String): String {
+75:-        val resolved = resolveFile(name)
+76:+    fun getDescription(name: String, projectId: String? = null): String {
+77:+        val resolved = resolveFile(name, projectId)
+78:         if (!resolved.exists()) return ""
+79:-        return loadMeta()[resolved.name] ?: ""
+80:+        return loadMeta(projectId)[resolved.name] ?: ""
+81:     }
+82: 
+83:     @Synchronized
+84:-    fun setDescription(name: String, description: String) {
+85:-        val resolved = resolveFile(name)
+86:+    fun setDescription(name: String, description: String, projectId: String? = null) {
+87:+        val resolved = resolveFile(name, projectId)
+88:         if (!resolved.exists()) throw IllegalArgumentException("File not found: $name")
+89:-        val meta = loadMeta()
+90:+        val meta = loadMeta(projectId)
+91:         if (description.isBlank()) meta.remove(resolved.name) else meta[resolved.name] = description
+92:-        saveMeta(meta)
+93:+        saveMeta(meta, projectId)
+94:     }
+95: 
+96:+    /**
+97:+     * Lists `.md` files in the given scope. With [projectId] = null only the global memory_db
+98:+     * is listed (existing behavior). Callers that need "global + project" should use
+99:+     * [listFilesMerged] instead.
+100:+     */
+101:     @Synchronized
+102:-    fun listFiles(): List<MemoryFileInfo> {
+103:-        val meta = loadMeta()
+104:-        return memoryDir.listFiles()
+105:+    fun listFiles(projectId: String? = null): List<MemoryFileInfo> {
+106:+        val meta = loadMeta(projectId)
+107:+        return dirFor(projectId).listFiles()
+108:             ?.filter { it.extension == "md" }
+109:-            ?.map { MemoryFileInfo(it.name, meta[it.name] ?: "") }
+110:+            ?.map { MemoryFileInfo(it.name, meta[it.name] ?: "", projectId) }
+111:             ?.sortedBy { it.name } ?: emptyList()
+112:     }
+113: 
+114:-    fun getMetaJson(): String =
+115:-        if (metaFile.exists()) metaFile.readText() else "{}"
+116:+    /**
+117:+     * Convenience for tool calls: returns global files + (when [projectId] is non-null)
+118:+     * the project's private files in one list, tagged with [MemoryFileInfo.projectId] so
+119:+     * the caller can disambiguate or display the origin.
+120:+     */
+121:+    @Synchronized
+122:+    fun listFilesMerged(projectId: String?): List<MemoryFileInfo> {
+123:+        val global = listFiles(null)
+124:+        return if (projectId == null) global else global + listFiles(projectId)
+125:+    }
+126:+
+127:+    /**
+128:+     * Global memory_meta.json accessor (kept for export/import which operates on the
+129:+     * global scope only). Prefer the project-aware overloads elsewhere.
+130:+     */
+131:+    fun getMetaJson(projectId: String? = null): String {
+132:+        val file = metaFileFor(projectId)
+133:+        return if (file.exists()) file.readText() else "{}"
+134:+    }
+135: 
+136:-    fun saveMetaJson(jsonStr: String) {
+137:-        metaFile.writeText(jsonStr)
+138:+    fun saveMetaJson(jsonStr: String, projectId: String? = null) {
+139:+        metaFileFor(projectId).writeText(jsonStr)
+140:     }
+141: 
+142:     @Synchronized
+143:-    fun readFile(name: String): String {
+144:-        val file = resolveFile(name)
+145:+    fun readFile(name: String, projectId: String? = null): String {
+146:+        val file = resolveFile(name, projectId)
+147:         if (!file.exists()) throw IllegalArgumentException("File not found: $name")
+148:         return file.readText()
+149:     }
+150: 
+151:     @Synchronized
+152:-    fun createFile(name: String, content: String, description: String = ""): String {
+153:-        val file = resolveFile(name)
+154:+    fun createFile(name: String, content: String, description: String = "", projectId: String? = null): String {
+155:+        val file = resolveFile(name, projectId)
+156:         if (file.exists()) throw IllegalArgumentException("File already exists: ${file.name}")
+157:         file.writeText(content)
+158:         if (description.isNotBlank()) {
+159:-            val meta = loadMeta()
+160:+            val meta = loadMeta(projectId)
+161:             meta[file.name] = description
+162:-            saveMeta(meta)
+163:+            saveMeta(meta, projectId)
+164:         }
+165:         return "Created ${file.name}"
+166:     }
+167: 
+168:     @Synchronized
+169:-    fun editFile(name: String, content: String? = null, newName: String? = null, description: String? = null, oldString: String? = null, newString: String? = null): String {
+170:-        val file = resolveFile(name)
+171:+    fun editFile(
+172:+        name: String, content: String? = null, newName: String? = null, description: String? = null,
+173:+        oldString: String? = null, newString: String? = null, projectId: String? = null
+174:+    ): String {
+175:+        val file = resolveFile(name, projectId)
+176:         if (!file.exists()) throw IllegalArgumentException("File not found: $name")
+177:-        val meta = loadMeta()
+178:+        val meta = loadMeta(projectId)
+179:         var renamedFile: File? = null
+180:         if (oldString != null) {
+181:             val fileText = file.readText()
+182:@@ -142,7 +189,7 @@ class MemoryManager(context: Context) {
+183:             file.writeText(content)
+184:         }
+185:         if (newName != null && newName != name) {
+186:-            renamedFile = resolveFile(newName)
+187:+            renamedFile = resolveFile(newName, projectId)
+188:             if (renamedFile.exists()) throw IllegalArgumentException("Target file already exists: ${renamedFile.name}")
+189:             file.renameTo(renamedFile)
+190:             val desc = meta.remove(file.name)
+191:@@ -152,8 +199,8 @@ class MemoryManager(context: Context) {
+192:             if (description.isBlank()) meta.remove((renamedFile ?: file).name)
+193:             else meta[(renamedFile ?: file).name] = description
+194:         }
+195:-        saveMeta(meta)
+196:-        val targetName = newName?.let { resolveFile(it).name } ?: file.name
+197:+        saveMeta(meta, projectId)
+198:+        val targetName = newName?.let { resolveFile(it, projectId).name } ?: file.name
+199:         if (oldString != null && newName != null) return "Replaced in and renamed to $targetName"
+200:         if (oldString != null) return "Replaced in $targetName"
+201:         if (content != null && newName != null) return "Updated and renamed to $targetName"
+202:@@ -176,24 +223,57 @@ class MemoryManager(context: Context) {
+203:     }
+204: 
+205:     @Synchronized
+206:-    fun deleteFile(name: String): String {
+207:-        val file = resolveFile(name)
+208:+    fun deleteFile(name: String, projectId: String? = null): String {
+209:+        val file = resolveFile(name, projectId)
+210:         if (!file.exists()) throw IllegalArgumentException("File not found: $name")
+211:         file.delete()
+212:-        val meta = loadMeta()
+213:+        val meta = loadMeta(projectId)
+214:         meta.remove(file.name)
+215:-        saveMeta(meta)
+216:+        saveMeta(meta, projectId)
+217:         return "Deleted ${file.name}"
+218:     }
+219: 
+220:-    private fun resolveFile(name: String): File {
+221:+    private fun resolveFile(name: String, projectId: String? = null): File {
+222:         val sanitized = name.replace(Regex("""[/\\]"""), "_")
+223:-        val file = File(memoryDir, if (sanitized.endsWith(".md")) sanitized else "$sanitized.md")
+224:+        val file = File(dirFor(projectId), if (sanitized.endsWith(".md")) sanitized else "$sanitized.md")
+225:         val canonicalPath = file.canonicalPath
+226:-        val canonicalDir = memoryDir.canonicalPath
+227:+        val canonicalDir = dirFor(projectId).canonicalPath
+228:         if (!canonicalPath.startsWith(canonicalDir)) {
+229:             throw IllegalArgumentException("Invalid file name: $name")
+230:         }
+231:         return file
+232:     }
+233:+
+234:+    /**
+235:+     * Lists every project id that currently has a private memory directory. Used by the
+236:+     * exporter to walk project memory bundles without knowing project ids ahead of time.
+237:+     */
+238:+    fun listProjectIds(): List<String> =
+239:+        projectsMemoryRoot.listFiles()
+240:+            ?.filter { it.isDirectory }
+241:+            ?.map { it.name }
+242:+            ?: emptyList()
+243:+
+244:+    /**
+245:+     * Export helper: returns the raw files (md + meta) for a project's private memory, so
+246:+     * DataExporter can stream them into the zip without poking private paths. Each pair is
+247:+     * (relativeName, absoluteFile) — the caller controls zip layout.
+248:+     */
+249:+    fun projectMemoryFilesForExport(projectId: String): List<Pair<String, java.io.File>> {
+250:+        val dir = dirFor(projectId)
+251:+        val files = dir.listFiles()?.toList() ?: emptyList()
+252:+        // Skip nothing here — meta + md all go in, mirror of the global export.
+253:+        return files.map { it.name to it }
+254:+    }
+255:+
+256:+    /**
+257:+     * Import helper: writes a single memory file (content bytes) into a project's private
+258:+     * store, used by DataImporter when restoring project bundles. Idempotent — overwrites
+259:+     * any existing file with the same name.
+260:+     */
+261:+    @Synchronized
+262:+    fun writeProjectMemoryBytes(projectId: String, name: String, bytes: ByteArray) {
+263:+        val dir = dirFor(projectId)
+264:+        java.io.File(dir, name).writeBytes(bytes)
+265:+    }
+266: }

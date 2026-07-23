@@ -120,14 +120,19 @@ class WorkflowViewModel(
         selectWorkflow(id)
     }
 
-    fun createWorkflow(name: String, description: String = ""): Workflow {
+    fun createWorkflow(
+        name: String,
+        description: String = "",
+        nodes: List<com.orangeisland.app.model.FlowNode> = emptyList(),
+        edges: List<com.orangeisland.app.model.FlowEdge> = emptyList()
+    ): Workflow {
         val now = System.currentTimeMillis()
         val wf = Workflow(
             id = "wf_${UUID.randomUUID()}",
             name = name.trim(),
             description = description.trim(),
-            nodes = emptyList(),
-            edges = emptyList(),
+            nodes = nodes,
+            edges = edges,
             enabled = true,
             createdAt = now,
             updatedAt = now

@@ -362,6 +362,8 @@
     <string name="device_access_app_lock_desc">AI locks/unlocks apps with a message the user must respect</string>
     <string name="device_access_toast_title">Toast</string>
     <string name="device_access_toast_desc">AI shows quick native Toast messages for non-blocking feedback</string>
+    <string name="device_access_user_interaction_title">Card Inquiry</string>
+    <string name="device_access_user_interaction_desc">Allow AI to ask multiple-choice questions via card dialogs, with optional custom input</string>
     <string name="device_access_ui_automation_title">UI Automation</string>
     <string name="device_access_ui_automation_desc">AI taps, swipes, scrolls, and reads the on-screen window tree (requires the UI Automation accessibility service)</string>
     <string name="app_lock_service_label">Orange Island App Lock</string>
@@ -905,6 +907,17 @@
     <string name="settings_group_services">Services</string>
     <string name="settings_group_responses">Responses</string>
     <string name="settings_group_tools">Tools</string>
+    <string name="settings_group_logs">Logs</string>
+    <string name="settings_logs">Usage Logs</string>
+    <string name="settings_logs_desc">Model calls and tool calls history</string>
+    <string name="logs_title">Usage Logs</string>
+    <string name="logs_clear">Clear</string>
+    <string name="logs_empty">No logs yet</string>
+    <string name="logs_type_model">MODEL</string>
+    <string name="logs_type_tool">TOOL</string>
+    <string name="logs_clear_confirm_title">Clear all logs?</string>
+    <string name="logs_clear_confirm_message">This will permanently delete all usage logs. This action cannot be undone.</string>
+
     <string name="settings_group_about">About</string>
 
     <!-- About -->
@@ -1254,6 +1267,10 @@
     <string name="workflow_v2_approval_title">Approve workflow change?</string>
     <string name="workflow_v2_approval_approve">Approve</string>
     <string name="workflow_v2_approval_reject">Reject</string>
+
+    <!-- User interaction card (ask_user_choice) -->
+    <string name="user_interaction_confirm">Confirm</string>
+    <string name="user_interaction_cancel">Cancel</string>
 
     <!-- Health / Gadgetbridge / Sync -->
     <string name="health_title">Health Data</string>

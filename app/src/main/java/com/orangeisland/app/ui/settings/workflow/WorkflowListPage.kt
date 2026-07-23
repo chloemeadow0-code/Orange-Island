@@ -20,6 +20,17 @@ import com.orangeisland.app.R
 import com.orangeisland.app.model.RunStatus
 import com.orangeisland.app.model.LinearWorkflow
 import com.orangeisland.app.model.Workflow
+import com.orangeisland.app.model.FlowNode
+import com.orangeisland.app.model.FlowEdge
+import com.orangeisland.app.model.StartNode
+import com.orangeisland.app.model.ActionNode
+import com.orangeisland.app.model.BranchNode
+import com.orangeisland.app.model.TransformNode
+import com.orangeisland.app.model.NodeValue
+import com.orangeisland.app.model.Comparison
+import com.orangeisland.app.model.EdgeGuard
+import com.orangeisland.app.model.TriggerSpec
+import com.orangeisland.app.model.TransformOp
 import com.orangeisland.app.ui.settings.CollapsingSettingsLazyScaffold
 import com.orangeisland.app.ui.settings.SettingsItem
 import com.orangeisland.app.viewmodel.WorkflowViewModel
@@ -172,34 +183,121 @@ fun WorkflowListPage(
     }
 
     if (showNewDialog) {
-        NewGraphWorkflowDialog(
+        GraphWorkflowTemplateDialog(
             onCancel = { showNewDialog = false },
-            onCreate = { name ->
+            onCreate = { name, templateId ->
                 showNewDialog = false
-                // createWorkflow persists AND publishes the new workflow into selectedWorkflow, so
-                // no separate selectWorkflow() call is needed (that would race the upsert).
-                val wf = viewModel.createWorkflow(name)
+                val template = graphWorkflowTemplates().find { it.id == templateId }
+                val wf = viewModel.createWorkflow(
+                    name = name,
+                    description = template?.description ?: "",
+                    nodes = template?.nodes ?: emptyList(),
+                    edges = template?.edges ?: emptyList()
+                )
                 onCreateGraph(wf.id)
             }
         )
     }
 }
 
+/** A preset template for graph workflows: pre-built nodes + edges so users don't start blank. */
+private data class GraphWorkflowTemplate(
+    val id: String,
+    val name: String,
+    val description: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val nodes: List<FlowNode>,
+    val edges: List<FlowEdge>
+)
+
+/** Returns the built-in template set. */
+private fun graphWorkflowTemplates(): List<GraphWorkflowTemplate> {
+    val nStart = StartNode(id = "node_start", label = "开始", trigger = TriggerSpec.Manual)
+    val nSearch = ActionNode(
+        id = "node_search", label = "搜索", toolName = "web_search",
+        args = mapOf("query" to NodeValue.Literal("新闻"))
+    )
+    val nNotify = ActionNode(
+        id = "node_notify", label = "通知", toolName = "send_notification",
+        args = mapOf("title" to NodeValue.Literal("完成"))
+    )
+    val nBranch = BranchNode(
+        id = "node_branch", label = "判断",
+        lhs = NodeValue.Literal("是"), cmp = Comparison.EQ, rhs = NodeValue.Literal("是")
+    )
+    val nYes = ActionNode(id = "node_yes", label = "执行", toolName = "web_search", args = emptyMap())
+    val nNo = ActionNode(id = "node_no", label = "跳过", toolName = "send_notification", args = emptyMap())
+    val nTx = TransformNode(
+        id = "node_tx", label = "提取",
+        op = TransformOp.Regex(pattern = "\\d+", group = 0, fallback = "")
+    )
+    val nUse = ActionNode(
+        id = "node_use", label = "使用结果", toolName = "web_search",
+        args = mapOf("query" to NodeValue.Ref("node_tx"))
+    )
+
+    return listOf(
+        GraphWorkflowTemplate(
+            id = "sequential",
+            name = "顺序执行",
+            description = "依次执行多个动作：先搜索，再通知。",
+            icon = Icons.Default.PlayArrow,
+            nodes = listOf(nStart, nSearch, nNotify),
+            edges = listOf(
+                FlowEdge(id = "e1", from = nStart.id, to = nSearch.id),
+                FlowEdge(id = "e2", from = nSearch.id, to = nNotify.id)
+            )
+        ),
+        GraphWorkflowTemplate(
+            id = "branch",
+            name = "条件分支",
+            description = "判断条件为真/假，分别执行不同的动作。",
+            icon = Icons.Default.CallSplit,
+            nodes = listOf(nStart, nBranch, nYes, nNo),
+            edges = listOf(
+                FlowEdge(id = "e1", from = nStart.id, to = nBranch.id),
+                FlowEdge(id = "e2", from = nBranch.id, to = nYes.id, guard = EdgeGuard.Bool(true)),
+                FlowEdge(id = "e3", from = nBranch.id, to = nNo.id, guard = EdgeGuard.Bool(false))
+            )
+        ),
+        GraphWorkflowTemplate(
+            id = "extract",
+            name = "提取数据",
+            description = "用正则表达式提取数据，再传给下游动作使用。",
+            icon = Icons.Default.Transform,
+            nodes = listOf(nStart, nTx, nUse),
+            edges = listOf(
+                FlowEdge(id = "e1", from = nStart.id, to = nTx.id),
+                FlowEdge(id = "e2", from = nTx.id, to = nUse.id)
+            )
+        ),
+        GraphWorkflowTemplate(
+            id = "blank",
+            name = "空白",
+            description = "从零开始，自己搭建整个工作流。",
+            icon = Icons.Default.Add,
+            nodes = emptyList(),
+            edges = emptyList()
+        )
+    )
+}
+
 /**
- * Name-prompt dialog for creating a new graph-mode workflow. The workflow is persisted by the
- * caller (via [WorkflowViewModel.createWorkflow]) once a non-blank name is entered.
+ * Template-picker dialog for creating a new graph-mode workflow.
  *
- * Uses a standalone [Dialog] (not AlertDialog) so the text field owns its own window — under the
+ * Uses a standalone [Dialog] (not AlertDialog) so text fields own their own window — under the
  * collapsing-settings scaffold + GuardedAnimatedContent, an AlertDialog's text slot does not
  * recompose on each keystroke, so typed characters don't render until the dialog is reopened.
- * A standalone Dialog gives the field a clean composition + IME surface and fixes live input.
  */
 @Composable
-private fun NewGraphWorkflowDialog(
+private fun GraphWorkflowTemplateDialog(
     onCancel: () -> Unit,
-    onCreate: (name: String) -> Unit
+    onCreate: (name: String, templateId: String) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
+    val templates = remember { graphWorkflowTemplates() }
+    var selectedId by remember { mutableStateOf(templates.first().id) }
+    var name by remember { mutableStateOf(templates.first().name) }
+
     Dialog(onDismissRequest = onCancel) {
         Surface(
             shape = RoundedCornerShape(28.dp),
@@ -215,10 +313,67 @@ private fun NewGraphWorkflowDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    stringResource(R.string.workflow_new_graph_desc),
+                    "选择一个模板快速开始，或者从零开始搭建。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Template grid
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    templates.forEach { t ->
+                        val selected = selectedId == t.id
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (selected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    selectedId = t.id
+                                    if (name.isBlank()) name = t.name
+                                }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                            ) {
+                                Icon(
+                                    t.icon,
+                                    contentDescription = null,
+                                    tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        t.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium,
+                                        color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                        else MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        t.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                if (selected) {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = name,
@@ -239,7 +394,7 @@ private fun NewGraphWorkflowDialog(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
-                        onClick = { onCreate(name.trim()) },
+                        onClick = { onCreate(name.trim(), selectedId) },
                         enabled = name.isNotBlank()
                     ) { Text(stringResource(R.string.provider_create)) }
                 }

@@ -2,6 +2,7 @@ package com.orangeisland.app.viewmodel
 
 import android.app.Application
 import com.orangeisland.app.util.DebugLog
+import com.orangeisland.app.data.UsageLogManager
 import com.orangeisland.app.api.LlmProvider
 import com.orangeisland.app.api.ProviderConfig
 import com.orangeisland.app.api.StreamEvent
@@ -106,6 +107,7 @@ data class GenerationContext(
     val appLockEnabled: Boolean = false,
     val toastEnabled: Boolean = false,
     val uiAutomationEnabled: Boolean = false,
+    val userInteractionEnabled: Boolean = true,
     /** The project this conversation belongs to (null = ungrouped). Drives memory scoping:
      *  when non-null, memory tools read/write the project-private memory dir on top of the
      *  always-present global dir; RAG/search filters to the same project. */
@@ -171,7 +173,10 @@ class GenerationManager(
      *  Threaded into the standalone dispatcher built when [toolDispatcher] is null. When null itself
      *  (e.g. title generation), the LLM never sees workflow tools. Ignored when [toolDispatcher] is
      *  non-null — that dispatcher carries its own provider wiring. */
-    private val workflowToolProvider: com.orangeisland.app.workflow.WorkflowAiToolProvider? = null
+    private val workflowToolProvider: com.orangeisland.app.workflow.WorkflowAiToolProvider? = null,
+    /** Optional gate for interactive card-style user choices (ask_user_choice). Threaded into the
+     *  standalone dispatcher when [toolDispatcher] is null. Ignored when [toolDispatcher] is non-null. */
+    private val userInteractionGate: com.orangeisland.app.tool.UserInteractionGate? = null
 ) {
     var onMessagePersisted: ((messageId: String, text: String) -> Unit)? = null
 
@@ -193,7 +198,8 @@ class GenerationManager(
             mcpPool = mcpPool,
             pluginToolProvider = pluginToolProvider,
             permissionController = permissionController,
-            workflowToolProvider = workflowToolProvider
+            workflowToolProvider = workflowToolProvider,
+            userInteractionGate = userInteractionGate
         )
 
     init {
@@ -279,6 +285,11 @@ class GenerationManager(
      *  Each provider internally checks its own enable flag in [GenerationContext]. */
     fun buildDeviceTools(ctx: GenerationContext): List<ToolDefinition> =
         tools.deviceDefinitions(ctx)
+
+    /** User-interaction tools (ask_user_choice). Lets the model ask the user a multiple-choice
+     *  question via a card-style dialog. Only exposed when the UI gate is installed. */
+    fun buildUserInteractionTools(ctx: GenerationContext): List<ToolDefinition> =
+        tools.userInteractionDefinitions(ctx)
 
     /** Semantic message search — delegates to the RAG provider via [tools], which owns the
      *  embedding-search logic. Kept here as the entry point used by ChatViewModel's
@@ -441,7 +452,8 @@ class GenerationManager(
         val toastTools = buildToastTools(ctx)
         val automationTools = buildAutomationTools(ctx)
         val workflowTools = buildWorkflowTools(ctx)
-        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + automationTools + workflowTools
+        val userInteractionTools = buildUserInteractionTools(ctx)
+        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + automationTools + workflowTools + userInteractionTools
         val providerConfig = ProviderConfig(
             apiKey = config.apiKey,
             modelId = config.modelId,
@@ -742,6 +754,12 @@ class GenerationManager(
             val projectedPath = projectAssistantImagesToLatestUserMessage(currentPath, providerConfig.includeImages)
             val apiPath = applyUserTemplate(projectedPath, config.userPrepend, config.userPostpend)
             streamStartMs = System.currentTimeMillis()
+            val toolList = providerConfig.tools?.map { it.function.name }?.joinToString(", ") ?: "none"
+            UsageLogManager.logModel(
+                name = "${config.providerName} / ${config.modelId}",
+                conversationId = conversationId,
+                details = "tools=[$toolList] | messages=${apiPath.size}"
+            )
             val tFirstToken = System.currentTimeMillis()
             var firstTokenLogged = false
             provider.generateResponse(apiPath, providerConfig).collect { event ->

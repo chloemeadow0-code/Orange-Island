@@ -200,42 +200,111 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 } else {
-                    // Pull the app-lifetime container from the Application so the
-                    // Supabase session + all shared singletons survive activity recreation.
-                    val container = remember {
-                        (this@MainActivity.application as com.orangeisland.app.OrangeIslandApplication).container
-                    }
-                    val factory = remember { container.chatViewModelFactory() }
-                    val viewModel: ChatViewModel = viewModel(factory = factory)
-                    val workflowViewModel = remember { container.workflowViewModel() }
+                    val privacyAccepted by settingsManager.privacyPolicyAccepted.collectAsState(initial = false)
 
-                    // Auth gate: if not logged in, show the login/register screen
-                    // instead of the main app. Once the flag flips, recomposition
-                    // takes the user straight in — no restart needed.
-                    val isLoggedIn by container.authRepository.isLoggedIn.collectAsState()
-
-                    if (!isLoggedIn) {
-                        val authViewModel: AuthViewModel = viewModel(
-                            key = "authViewModel",
-                            factory = viewModelFactory { initializer { AuthViewModel(container.authRepository) } }
-                        )
-                        AuthScreen(authViewModel)
-                    } else {
-                        // Onboarding flow disabled — mark it complete (so first-install
-                        // defaults don't re-run on every launch) and go straight to the app.
-                        LaunchedEffect(Unit) {
-                            if (!settingsManager.onboardingCompleted.first()) {
-                                settingsManager.saveOnboardingCompleted(true)
+                    if (!privacyAccepted) {
+                        // Privacy policy gate — must accept before entering the app.
+                        Dialog(
+                            onDismissRequest = { },
+                            properties = androidx.compose.ui.window.DialogProperties(
+                                dismissOnBackPress = false,
+                                dismissOnClickOutside = false,
+                                usePlatformDefaultWidth = false
+                            )
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(28.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                tonalElevation = 6.dp,
+                                modifier = Modifier
+                                    .fillMaxWidth(0.92f)
+                                    .fillMaxHeight(0.85f)
+                        ) {
+                            Column(modifier = Modifier.padding(24.dp)) {
+                                Text(
+                                    "用户协议与隐私声明",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    "欢迎使用橘子岛。\n\n" +
+                                    "1. 本应用使用设备本地存储保存您的对话记录与记忆内容，所有数据仅在您的设备上处理。\n" +
+                                    "2. 调用第三方大模型 API 时，仅传输必要的对话内容，我们不会收集或存储您的个人信息。\n" +
+                                    "3. 位置、通知、使用统计等敏感权限仅在您主动开启相关功能时申请，您可以随时在系统设置中撤回。\n" +
+                                    "4. 本应用提供的自动化工作流、UI 操作等功能仅供个人辅助使用，因使用不当造成的任何后果由用户自行承担。\n" +
+                                    "5. 未成年人应在监护人指导下使用本应用。\n\n" +
+                                    "点击\"同意\"即表示您已阅读并同意以上内容。如不同意，请退出应用。",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .verticalScroll(rememberScrollState())
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.End,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    TextButton(
+                                        onClick = { activity?.finish() }
+                                    ) {
+                                        Text(
+                                            "不同意并退出",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Button(
+                                        onClick = {
+                                            kotlinx.coroutines.runBlocking {
+                                                settingsManager.savePrivacyPolicyAccepted(true)
+                                            }
+                                        }
+                                    ) {
+                                        Text("同意")
+                                    }
+                                }
                             }
                         }
+                        }
+                    } else {
+                        // Pull the app-lifetime container from the Application so the
+                        // Supabase session + all shared singletons survive activity recreation.
+                        val container = remember {
+                            (this@MainActivity.application as com.orangeisland.app.OrangeIslandApplication).container
+                        }
+                        val factory = remember { container.chatViewModelFactory() }
+                        val viewModel: ChatViewModel = viewModel(factory = factory)
+                        val workflowViewModel = remember { container.workflowViewModel() }
 
-                        MainNavigation(viewModel, settingsManager, workflowViewModel)
+                        // Auth gate: if not logged in, show the login/register screen
+                        // instead of the main app. Once the flag flips, recomposition
+                        // takes the user straight in — no restart needed.
+                        val isLoggedIn by container.authRepository.isLoggedIn.collectAsState()
 
-                        // Process external text (from SHARE intent or deep-link) once the UI is ready.
-                        LaunchedEffect(externalTextState.value) {
-                            externalTextState.value?.let { text ->
-                                viewModel.sendMessage(text)
-                                externalTextState.value = null
+                        if (!isLoggedIn) {
+                            val authViewModel: AuthViewModel = viewModel(
+                                key = "authViewModel",
+                                factory = viewModelFactory { initializer { AuthViewModel(container.authRepository) } }
+                            )
+                            AuthScreen(authViewModel)
+                        } else {
+                            // Onboarding flow disabled — mark it complete (so first-install
+                            // defaults don't re-run on every launch) and go straight to the app.
+                            LaunchedEffect(Unit) {
+                                if (!settingsManager.onboardingCompleted.first()) {
+                                    settingsManager.saveOnboardingCompleted(true)
+                                }
+                            }
+
+                            MainNavigation(viewModel, settingsManager, workflowViewModel)
+
+                            // Process external text (from SHARE intent or deep-link) once the UI is ready.
+                            LaunchedEffect(externalTextState.value) {
+                                externalTextState.value?.let { text ->
+                                    viewModel.sendMessage(text)
+                                    externalTextState.value = null
+                                }
                             }
                         }
                     }
@@ -816,6 +885,10 @@ fun MainNavigation(
             // call until the user approves or rejects. Overlay so it appears above both chat
             // and settings.
             com.orangeisland.app.ui.chat.WorkflowApprovalDialog(viewModel.workflowApprovalGate)
+
+            // User interaction card: pops when the model calls ask_user_choice.
+            // Renders a card-style option list (single/multiple) and suspends until confirmed.
+            com.orangeisland.app.ui.chat.UserInteractionDialog(viewModel.userInteractionGate)
 
             // Health data page
             AnimatedVisibility(

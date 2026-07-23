@@ -8,6 +8,7 @@ import com.orangeisland.app.data.InstalledPlugin
 import com.orangeisland.app.data.PluginToolParam
 import com.orangeisland.app.tool.ToolProvider
 import com.orangeisland.app.viewmodel.GenerationContext
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Bridges user-installed JS plugins into the LLM tool-calling pipeline.
@@ -38,6 +39,14 @@ class PluginToolProvider(
     /** Latest snapshot of installed plugins (re-scanned on demand at request-build time). */
     private var cachedPlugins: List<InstalledPlugin>? = null
 
+    /**
+     * Maps the API-safe mangled name the LLM sees back to the original (un-sanitized) plugin
+     * tool name, so [execute] can call the real tool after sanitization. Populated on every
+     * [definitions] pass; overwrites are idempotent and the LLM only ever emits names from the
+     * most recent pass, so stale entries are harmless.
+     */
+    private val originalToolNames = ConcurrentHashMap<String, String>()
+
     /** Resolves the active plugin set for this generation. See [GenerationContext.pluginIds]. */
     private fun activePlugins(ctx: GenerationContext): List<InstalledPlugin> {
         // ToolProvider.definitions() is synchronous, but plugin scanning reads disk. runBlocking
@@ -67,11 +76,14 @@ class PluginToolProvider(
     override fun definitions(ctx: GenerationContext): List<ToolDefinition> {
         val plugins = activePlugins(ctx)
         if (plugins.isEmpty()) return emptyList()
+        val used = mutableSetOf<String>()
         return plugins.flatMap { plugin ->
             plugin.manifest.tools.map { tool ->
+                val apiName = allocateApiName(plugin.id, tool.name, used)
+                originalToolNames[apiName] = tool.name
                 ToolDefinition(
                     function = ToolFunction(
-                        name = prefixedName(plugin.id, tool.name),
+                        name = apiName,
                         description = buildString {
                             append(tool.description.ifBlank { tool.name })
                             append("  [Plugin: ${plugin.manifest.name}]")
@@ -85,10 +97,12 @@ class PluginToolProvider(
 
     override suspend fun execute(name: String, arguments: String, ctx: GenerationContext): String {
         val parsed = parsePrefixedName(name) ?: return "Unknown plugin tool: $name"
-        val (pluginId, toolName) = parsed
+        val (pluginId, _) = parsed
         val plugin = activePlugins(ctx).firstOrNull { sanitizeId(it.id) == pluginId }
             ?: return "Plugin not active: $pluginId"
-        return sandbox.callTool(plugin, toolName, arguments)
+        // Recover the original tool name in case [name] was sanitized for API compliance.
+        val originalName = originalToolNames[name] ?: return "Unknown plugin tool: $name"
+        return sandbox.callTool(plugin, originalName, arguments)
     }
 
     override fun handles(name: String): Boolean = name.startsWith(PREFIX)
@@ -110,11 +124,26 @@ class PluginToolProvider(
 
     // ── Name (de)mangling ──────────────────────────────────────
 
-    /** Builds the namespaced tool name seen by the LLM. */
-    private fun prefixedName(pluginId: String, toolName: String): String =
-        PREFIX + sanitizeId(pluginId) + SEPARATOR + toolName
+    /**
+     * Builds a unique, API-safe function name for one plugin tool. Both segments are sanitized
+     * (see [sanitizeToolName]); on collision a `_2`, `_3`, … suffix is appended.
+     */
+    private fun allocateApiName(pluginId: String, toolName: String, used: MutableSet<String>): String {
+        val sanitizedPluginId = sanitizeId(pluginId)
+        val sanitizedToolName = sanitizeToolName(toolName)
+        var name = PREFIX + sanitizedPluginId + SEPARATOR + sanitizedToolName
+        if (used.add(name)) return name
+        var n = 2
+        while (n < 100) {
+            val candidate = PREFIX + sanitizedPluginId + SEPARATOR + sanitizedToolName + "_$n"
+            if (used.add(candidate)) return candidate
+            n++
+        }
+        return name // 99-way collision is absurd; give up dedupping.
+    }
 
-    /** Inverts [prefixedName]. Returns null if [name] isn't a valid plugin-prefixed tool. */
+    /** Inverts a plugin-prefixed name back to its two sanitized segments. Returns null if [name]
+     *  isn't a valid plugin-prefixed tool. */
     private fun parsePrefixedName(name: String): Pair<String, String>? {
         if (!name.startsWith(PREFIX)) return null
         val rest = name.removePrefix(PREFIX)
@@ -129,10 +158,29 @@ class PluginToolProvider(
     /**
      * Sanitizes a plugin id for use in the tool-name segment. Plugin ids are validated at
      * install time (`[a-z0-9_.-]`), but `.`, `-` are replaced with `_` here so the `__`
-     * separator stays unambiguous — a tool name like `plugin__com_example_my_plugin__tool`
-     * parses cleanly because the id segment never contains `__` itself.
+     * separator stays unambiguous.
      */
     private fun sanitizeId(id: String): String = id.replace('.', '_').replace('-', '_')
+
+    /**
+     * Collapses every run of non-`[A-Za-z0-9]` characters in [s] to a single `_` and trims
+     * leading/trailing `_`. Plugin tool names come from third-party manifest.json and may contain
+     * spaces, Unicode, or symbols — without this the LLM provider rejects the whole request.
+     */
+    private fun sanitizeToolName(s: String): String {
+        val out = StringBuilder(s.length)
+        var prevUnderscore = true // start in "underscore just emitted" state → trims leading runs
+        for (c in s) {
+            if (c.isLetterOrDigit()) {
+                out.append(c)
+                prevUnderscore = false
+            } else if (!prevUnderscore) {
+                out.append('_')
+                prevUnderscore = true
+            }
+        }
+        return out.toString().trimEnd('_').ifEmpty { "tool" }
+    }
 
     // ── Manifest → Orange Island schema ─────────────────────────────
 

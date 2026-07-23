@@ -36,7 +36,13 @@ data class LinearWorkflow(
     /** Mirrored run-stat fields (denormalized from the entity for the list card). Not serialised
      *  back to the DB — the repository copies them in on read, and they're ignored on write. */
     val lastRunAt: Long? = null,
-    val lastRunStatus: String? = null
+    val lastRunStatus: String? = null,
+    /** Bound project — LLM nodes see this project's recent history on execution. */
+    val projectId: String? = null,
+    /** Bound system prompt id — resolved at runtime from SettingsRepository. */
+    val systemPromptId: String? = null,
+    /** Bound model id (format "provider:modelId") — overrides action defaults. */
+    val modelId: String? = null
 )
 
 /** One step in a linear workflow. Tool name + JSON args, matching the chat tool-call shape. */

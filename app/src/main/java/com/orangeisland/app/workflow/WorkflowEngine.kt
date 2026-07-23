@@ -43,6 +43,7 @@ class WorkflowEngine {
         triggerPayload: String = "{}",
         guard: WorkflowGuard? = null,
         toolRunner: NodeExecutor.ToolRunner,
+        llmRunner: NodeExecutor.LLMRunner? = null,
         onState: (String, NodeState) -> Unit = { _, _ -> }
     ): RunResult {
         val startedAt = System.currentTimeMillis()
@@ -90,7 +91,7 @@ class WorkflowEngine {
                 }
 
                 // 5. Topological walk.
-                val executor = NodeExecutor(states, ValueResolver(states), guard, toolRunner, logger, onState)
+                val executor = NodeExecutor(states, ValueResolver(states), guard, toolRunner, llmRunner, logger, onState)
                 walk(executor, workflow, graph, reachable, entries, states, logger, onState, triggerPayload)
 
                 // 6. Final judgement: any Errored node without a satisfied OnFailure exit â†?run failed.

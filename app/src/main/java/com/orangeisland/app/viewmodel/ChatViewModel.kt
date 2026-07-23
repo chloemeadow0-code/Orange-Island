@@ -94,7 +94,11 @@ class ChatViewModel(
     /** Workflow AI tool provider (workflow_list/get/run/create/...). Wired through to the
      *  GenerationManager's tool dispatcher so the model can read, fire, and AI-author linear
      *  workflows from chat. Null in contexts that don't expose workflow tools (e.g. unit tests). */
-    private val workflowToolProvider: com.orangeisland.app.workflow.WorkflowAiToolProvider? = null
+    private val workflowToolProvider: com.orangeisland.app.workflow.WorkflowAiToolProvider? = null,
+    /** Shared gate for interactive card-style user choices (ask_user_choice). Wired through to
+     *  the GenerationManager so the model can suspend on user input. Null when the UI observer
+     *  is not available (e.g. unit tests). */
+    val userInteractionGate: com.orangeisland.app.tool.UserInteractionGate? = null
 ) : AndroidViewModel(application) {
 
     companion object {
@@ -293,7 +297,8 @@ class ChatViewModel(
             mcpPool = mcpClientPool,
             pluginToolProvider = pluginToolProvider,
             permissionController = permissionController,
-            workflowToolProvider = workflowToolProvider
+            workflowToolProvider = workflowToolProvider,
+            userInteractionGate = userInteractionGate
         ).also { gm ->
             gm.onMessagePersisted = { messageId, text ->
                 if (settings.autoCacheEnabled.value && (settings.modelSearchMethod.value == Constants.SEARCH_METHOD_RAG || settings.manualSearchMethod.value == Constants.SEARCH_METHOD_RAG)) {

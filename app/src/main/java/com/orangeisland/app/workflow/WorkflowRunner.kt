@@ -1,7 +1,13 @@
 package com.orangeisland.app.workflow
 
+import com.orangeisland.app.api.LlmProvider
 import com.orangeisland.app.data.SettingsManager
+import com.orangeisland.app.data.UsageLogManager
+import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.data.repository.WorkflowRepository
+import com.orangeisland.app.model.ChatMessage
+import com.orangeisland.app.model.MessageStatus
+import com.orangeisland.app.model.Participant
 import com.orangeisland.app.model.RunStatus
 import com.orangeisland.app.model.StartNode
 import com.orangeisland.app.model.TriggerSpec
@@ -39,8 +45,11 @@ class WorkflowRunner(
     private val repository: WorkflowRepository,
     private val dispatcher: ToolDispatcher,
     private val settings: SettingsManager,
+    private val settingsRepository: SettingsRepository? = null,
     private val json: Json,
     private val contextProvider: com.orangeisland.app.workflow.linear.DeviceContextProvider,
+    private val llmProviders: Map<String, LlmProvider> = emptyMap(),
+    private val chatDao: com.orangeisland.app.data.local.ChatDao? = null,
     private val onConfirmDestructive: (suspend (toolName: String, args: String) -> Boolean)? = null,
     private val onNodeState: ((String, NodeState) -> Unit)? = null
 ) {
@@ -81,6 +90,7 @@ class WorkflowRunner(
         val guard = buildGuard(mode, startedAt)
         val ctx = buildContext(mode)
         val toolRunner = NodeExecutor.ToolRunner { name, args -> dispatcher.execute(name, args, ctx) }
+        val llmRunner = buildLLMRunner(workflow)
 
         val result = engine.execute(
             workflow = workflow,
@@ -88,6 +98,7 @@ class WorkflowRunner(
             triggerPayload = triggerPayload,
             guard = guard,
             toolRunner = toolRunner,
+            llmRunner = llmRunner,
             onState = { id, state -> onNodeState?.invoke(id, state) }
         )
 
@@ -176,6 +187,94 @@ class WorkflowRunner(
      * might touch; background runs do the same but the guard's whitelist still blocks the
      * dangerous ones before dispatch. Sensitive credentials (API keys) are read from settings.
      */
+    private fun buildLLMRunner(workflow: Workflow): NodeExecutor.LLMRunner? {
+        if (llmProviders.isEmpty() || settingsRepository == null) return null
+        return NodeExecutor.LLMRunner { nodeProvider, nodeModelId, nodeSystemPrompt, prompt ->
+            // ── Resolve overrides from workflow bindings ─────────────────────────
+            val effectiveProvider: String
+            val effectiveModelId: String
+            val workflowModelId = workflow.modelId
+            if (workflowModelId != null && ':' in workflowModelId) {
+                val parts = workflowModelId.split(':', limit = 2)
+                effectiveProvider = parts[0]
+                effectiveModelId = parts[1]
+            } else {
+                effectiveProvider = nodeProvider
+                effectiveModelId = nodeModelId
+            }
+
+            val effectiveSystemPrompt = workflow.systemPromptId?.let { spId ->
+                settingsRepository.systemPrompts.value
+                    .firstOrNull { it.id == spId }
+                    ?.let { entry ->
+                        buildString {
+                            entry.resolvedSystemItems.forEach { appendLine(it.value) }
+                        }.trim()
+                    }
+            } ?: nodeSystemPrompt
+
+            // ── Build message list (project history + current prompt) ────────────
+            val history = mutableListOf<ChatMessage>()
+            val projectId = workflow.projectId
+            if (projectId != null && chatDao != null) {
+                val recent = kotlinx.coroutines.runBlocking {
+                    chatDao.getRecentMessagesForProject(projectId, limit = 10)
+                }
+                // DAO returns DESC (newest first); reverse to ASC for chronological order.
+                recent.reversed().forEach { msg ->
+                    history += ChatMessage(
+                        text = msg.text,
+                        participant = when (msg.participant) {
+                            com.orangeisland.app.model.Participant.MODEL -> Participant.MODEL
+                            else -> Participant.USER
+                        },
+                        status = MessageStatus.SUCCESS
+                    )
+                }
+            }
+            history += ChatMessage(
+                text = prompt,
+                participant = Participant.USER,
+                status = MessageStatus.SUCCESS
+            )
+
+            val llmProvider = llmProviders[effectiveProvider]
+                ?: error("Provider '$effectiveProvider' not available")
+            val apiKey = settingsRepository.awaitActiveKey(effectiveProvider).orEmpty()
+            val baseUrl = settingsRepository.providerBaseUrls.value[effectiveProvider]
+            val config = com.orangeisland.app.api.ProviderConfig(
+                apiKey = apiKey,
+                modelId = effectiveModelId,
+                systemPrompt = effectiveSystemPrompt,
+                baseUrl = baseUrl,
+                temperature = 0.7f
+            )
+            UsageLogManager.logModel(
+                name = "workflow / $effectiveProvider / $effectiveModelId",
+                details = "history=${history.size - 1} | prompt=${prompt.length} chars"
+            )
+            val sb = StringBuilder()
+            var firstError: String? = null
+            val t0 = System.currentTimeMillis()
+            llmProvider.generateResponse(history, config).collect { ev ->
+                when (ev) {
+                    is com.orangeisland.app.api.StreamEvent.TextChunk -> sb.append(ev.text)
+                    is com.orangeisland.app.api.StreamEvent.Error -> {
+                        if (firstError == null) firstError = ev.message
+                    }
+                    else -> {}
+                }
+            }
+            val elapsed = System.currentTimeMillis() - t0
+            UsageLogManager.logModel(
+                name = "workflow / $effectiveProvider / $effectiveModelId ✓",
+                details = "${elapsed}ms | output=${sb.length} chars"
+            )
+            firstError?.let { error(it) }
+            sb.toString().trim()
+        }
+    }
+
     private suspend fun buildContext(mode: Mode): GenerationContext {
         val webKeys = settings.webSearchApiKeys.first()
         val webProvider = settings.webSearchProvider.first()

@@ -205,6 +205,14 @@ interface ChatDao {
     @Query("SELECT * FROM messages WHERE conversationId = :conversationId ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLastMessageForConversation(conversationId: String): MessageEntity?
 
+    /**
+     * Returns the most-recent messages across every conversation in [projectId],
+     * ordered by timestamp descending (newest first). Used by the workflow engine
+     * to inject project chat history into an LLMNode's context.
+     */
+    @Query("SELECT m.* FROM messages m INNER JOIN conversations c ON m.conversationId = c.id WHERE c.projectId = :projectId AND m.participant IN ('USER', 'MODEL') AND m.text != '' AND m.id NOT LIKE 'tool_%' AND m.id NOT LIKE 'result_%' ORDER BY m.timestamp DESC LIMIT :limit")
+    suspend fun getRecentMessagesForProject(projectId: String, limit: Int = 20): List<MessageEntity>
+
     // Embeddings
     @Upsert
     suspend fun upsertEmbedding(embedding: EmbeddingEntity)
@@ -235,6 +243,12 @@ interface ChatDao {
 
     @Query("SELECT COUNT(*) FROM messages m INNER JOIN conversations c ON m.conversationId = c.id WHERE m.participant IN ('USER', 'MODEL') AND m.text != '' AND m.id NOT LIKE 'tool_%' AND m.id NOT LIKE 'result_%'")
     suspend fun getIndexableMessageCount(): Int
+
+    @Query("SELECT COUNT(*) FROM messages WHERE conversationId = :conversationId")
+    suspend fun countMessagesInConversation(conversationId: String): Int
+
+    @Query("SELECT MAX(timestamp) FROM messages")
+    suspend fun getLatestMessageTimestamp(): Long?
 
     @Query("SELECT * FROM messages WHERE id IN (:ids)")
     suspend fun getMessagesByIds(ids: List<String>): List<MessageEntity>
@@ -281,7 +295,7 @@ abstract class ChatDatabase : RoomDatabase() {
     abstract fun workflowDao(): WorkflowDao
 
     companion object {
-        const val CURRENT_VERSION = 15
+        const val CURRENT_VERSION = 16
         const val DB_NAME = "orangeisland_db"
 
         val ALL_MIGRATIONS = listOf(
@@ -421,6 +435,15 @@ abstract class ChatDatabase : RoomDatabase() {
                     db.execSQL("ALTER TABLE workflows ADD COLUMN maxRunsPerDay INTEGER")
                     db.execSQL("ALTER TABLE workflows ADD COLUMN runsTodayCount INTEGER NOT NULL DEFAULT 0")
                     db.execSQL("ALTER TABLE workflows ADD COLUMN runsTodayDate TEXT NOT NULL DEFAULT ''")
+                }
+            },
+            object : Migration(15, 16) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Workflow project binding: allows a workflow to inherit a project's chat
+                    // history, system prompt, and model configuration at execution time.
+                    db.execSQL("ALTER TABLE workflows ADD COLUMN projectId TEXT")
+                    db.execSQL("ALTER TABLE workflows ADD COLUMN systemPromptId TEXT")
+                    db.execSQL("ALTER TABLE workflows ADD COLUMN modelId TEXT")
                 }
             }
         )

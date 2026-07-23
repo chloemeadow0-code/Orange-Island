@@ -6,6 +6,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.orangeisland.app.data.SettingsManager
 import com.orangeisland.app.data.local.ChatDatabase
+import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.data.repository.WorkflowRepository
 import com.orangeisland.app.model.LinearTrigger
 import com.orangeisland.app.tool.ToolDispatcher
@@ -13,6 +14,10 @@ import com.orangeisland.app.util.DebugLog
 import com.orangeisland.app.workflow.TriggerSource
 import com.orangeisland.app.workflow.TriggerKind
 import com.orangeisland.app.workflow.WorkflowRunner
+import com.orangeisland.app.workflow.WorkflowWorker
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 
 /**
@@ -45,23 +50,29 @@ class LinearTimeWorker(
         return try {
             val repository = WorkflowRepository(db.workflowDao(), json)
             val settings = SettingsManager(appContext)
+            val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+            val settingsRepository = SettingsRepository(settings, scope)
+            val llmProviders = WorkflowWorker.buildLlmProviders()
             val dispatcher = ToolDispatcher(
                 app = appContext as android.app.Application,
                 conversations = com.orangeisland.app.data.repository.ConversationRepository(db.chatDao()),
                 memoryManager = com.orangeisland.app.data.MemoryManager(appContext),
-                llmProviders = emptyMap(),
+                llmProviders = llmProviders,
                 appContext = appContext,
                 sandboxFactory = null,
                 mcpPool = null,
                 pluginToolProvider = null,
-                permissionController = null
+                permissionController = null,
+                chatDao = db.chatDao()
             )
             val runner = WorkflowRunner(
                 repository = repository,
                 dispatcher = dispatcher,
                 settings = settings,
+                settingsRepository = settingsRepository,
                 json = json,
-                contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(appContext)
+                contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(appContext),
+                llmProviders = llmProviders
             )
             val def = repository.getLinear(workflowId)
             if (def == null || !def.enabled) return Result.success()

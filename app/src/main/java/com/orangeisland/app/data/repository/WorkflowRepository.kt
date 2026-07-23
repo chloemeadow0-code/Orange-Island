@@ -78,7 +78,10 @@ class WorkflowRepository(
             lastRunStatus = existing?.lastRunStatus,
             totalRuns = existing?.totalRuns ?: 0,
             successRuns = existing?.successRuns ?: 0,
-            failedRuns = existing?.failedRuns ?: 0
+            failedRuns = existing?.failedRuns ?: 0,
+            projectId = workflow.projectId,
+            systemPromptId = workflow.systemPromptId,
+            modelId = workflow.modelId
         )
         dao.upsertWorkflow(row)
         workflow
@@ -229,7 +232,10 @@ class WorkflowRepository(
             cooldownMs = workflow.cooldownMs,
             maxRunsPerDay = workflow.maxRunsPerDay,
             runsTodayCount = existing?.runsTodayCount ?: 0,
-            runsTodayDate = existing?.runsTodayDate ?: ""
+            runsTodayDate = existing?.runsTodayDate ?: "",
+            projectId = workflow.projectId,
+            systemPromptId = workflow.systemPromptId,
+            modelId = workflow.modelId
         )
         dao.upsertWorkflow(row)
         workflow.copy(createdAt = row.createdAt, updatedAt = row.updatedAt)

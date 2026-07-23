@@ -198,6 +198,9 @@ private val settingsGroups = listOf(
         SettingsCategory("illustrations", R.string.illustrations_title, R.string.illustration_chat_background, Icons.Default.Wallpaper),
         SettingsCategory("language", R.string.language_title, R.string.language_desc, Icons.Default.Translate),
     )),
+    SettingsGroupData(titleRes = R.string.settings_group_logs, items = listOf(
+        SettingsCategory("logs", R.string.settings_logs, R.string.settings_logs_desc, Icons.Default.History),
+    )),
     SettingsGroupData(titleRes = R.string.settings_group_about, items = listOf(
         SettingsCategory("about", R.string.settings_about, R.string.settings_about_desc, Icons.Default.Info),
     )),
@@ -268,6 +271,7 @@ fun SettingsScreen(
                 "appearance" -> SettingsAppearancePage(viewModel, onBack = { selectedCategory = null })
                 "customcolors" -> SettingsCustomColorsPage(viewModel, onBack = { selectedCategory = null })
                 "illustrations" -> SettingsIllustrationsPage(viewModel, onBack = { selectedCategory = null })
+                "logs" -> SettingsLogsPage(onBack = { selectedCategory = null })
                 "about" -> SettingsAboutPage(viewModel, onBack = { selectedCategory = null })
                 "workflows" -> com.orangeisland.app.ui.settings.workflow.SettingsWorkflowPage(
                     viewModel = workflowViewModel,

@@ -3,6 +3,7 @@ package com.orangeisland.app.workflow
 import com.orangeisland.app.model.ActionNode
 import com.orangeisland.app.model.BranchNode
 import com.orangeisland.app.model.FlowNode
+import com.orangeisland.app.model.LLMNode
 import com.orangeisland.app.model.MergeNode
 import com.orangeisland.app.model.Reducer
 import com.orangeisland.app.model.StartNode
@@ -24,12 +25,18 @@ class NodeExecutor(
     private val resolver: ValueResolver,
     private val guard: WorkflowGuard?,
     private val toolRunner: ToolRunner,
+    private val llmRunner: LLMRunner? = null,
     private val logger: RunLogger,
     private val onState: (String, NodeState) -> Unit
 ) {
     /** Functional interface for dispatching a tool call. Returns the tool's result string. */
     fun interface ToolRunner {
         suspend fun run(toolName: String, argsJson: String): String
+    }
+
+    /** Functional interface for dispatching an LLM inference call. Returns the model's text output. */
+    fun interface LLMRunner {
+        suspend fun run(provider: String, modelId: String, systemPrompt: String?, prompt: String): String
     }
 
     suspend fun execute(node: FlowNode, incomingEdges: List<com.orangeisland.app.model.FlowEdge>, triggerPayload: String): Boolean {
@@ -40,6 +47,7 @@ class NodeExecutor(
             is MergeNode -> runMerge(node, incomingEdges)
             is TransformNode -> runTransform(node, incomingEdges, triggerPayload)
             is ActionNode -> runAction(node)
+            is LLMNode -> runLLM(node, triggerPayload)
         }
     }
 
@@ -134,6 +142,26 @@ class NodeExecutor(
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: WorkflowLimitExceeded) {
+        throw e
+    } catch (e: Exception) {
+        fail(node, e.message ?: e::class.simpleName.orEmpty())
+    }
+
+    private suspend fun runLLM(node: LLMNode, triggerPayload: String): Boolean = try {
+        val runner = llmRunner ?: return fail(node, "LLM not available in this runner")
+        mark(node, NodeState.Running)
+        val prompt = resolver.resolve(node.prompt, triggerPayload)
+        logger.debug("LLM prompt length=${prompt.length}", node.id, node.label)
+        currentCoroutineContext().ensureActive()
+        val result = runner.run(
+            provider = node.provider,
+            modelId = node.modelId,
+            systemPrompt = node.systemPrompt.takeIf { it.isNotBlank() },
+            prompt = prompt
+        )
+        mark(node, NodeState.Done(result))
+        true
+    } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: Exception) {
         fail(node, e.message ?: e::class.simpleName.orEmpty())

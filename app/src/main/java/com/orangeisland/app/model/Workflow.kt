@@ -32,7 +32,13 @@ data class Workflow(
     val lastRunStatus: String? = null,
     val totalRuns: Int = 0,
     val successRuns: Int = 0,
-    val failedRuns: Int = 0
+    val failedRuns: Int = 0,
+    /** Bound project — LLM nodes see this project's recent history on execution. */
+    val projectId: String? = null,
+    /** Bound system prompt id — resolved at runtime from SettingsRepository. */
+    val systemPromptId: String? = null,
+    /** Bound model id (format "provider:modelId") — overrides LLMNode defaults. */
+    val modelId: String? = null
 )
 
 // ── Run outcome (mirrored to WorkflowEntity.lastRunStatus as its name) ─────
@@ -127,6 +133,21 @@ data class TransformNode(
     val op: TransformOp
 ) : FlowNode() {
     override val kind: String = "transform"
+}
+
+@Serializable
+@SerialName("llm")
+data class LLMNode(
+    override val id: String,
+    override val label: String = "",
+    override val pos: FlowNode.Vec2 = FlowNode.Vec2(),
+    val prompt: NodeValue = NodeValue.Literal(""),
+    val provider: String = "OpenAI",
+    val modelId: String = "gpt-4o-mini",
+    val systemPrompt: String = "",
+    val temperature: Float = 0.7f
+) : FlowNode() {
+    override val kind: String = "llm"
 }
 
 // ── Branch / Merge operators ───────────────────────────────────────────────
