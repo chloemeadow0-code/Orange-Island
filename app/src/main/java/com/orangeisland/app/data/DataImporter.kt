@@ -228,11 +228,24 @@ class DataImporter(
                             ChatEntity(c.id, c.title, c.lastUpdated, c.selectedBranchesJson, c.systemPromptId, c.modelId, c.projectId)
                         }
                         val msgEntities = data.messages.map { m ->
-                            MessageEntity(m.id, m.conversationId, m.parentId, m.text, m.images,
-                                m.thoughts, m.thoughtTitle, m.tokenCount,
-                                try { MessageStatus.valueOf(m.status) } catch (_: Exception) { MessageStatus.SUCCESS },
-                                try { Participant.valueOf(m.participant) } catch (_: Exception) { Participant.MODEL },
-                                m.timestamp, m.thoughtTimeMs, m.modelName, m.toolCallJson, m.attachmentMeta)
+                            MessageEntity(
+                                id = m.id,
+                                conversationId = m.conversationId,
+                                parentId = m.parentId,
+                                text = m.text,
+                                images = m.images,
+                                audio = m.audio,
+                                thoughts = m.thoughts,
+                                thoughtTitle = m.thoughtTitle,
+                                tokenCount = m.tokenCount,
+                                status = try { MessageStatus.valueOf(m.status) } catch (_: Exception) { MessageStatus.SUCCESS },
+                                participant = try { Participant.valueOf(m.participant) } catch (_: Exception) { Participant.MODEL },
+                                timestamp = m.timestamp,
+                                thoughtTimeMs = m.thoughtTimeMs,
+                                modelName = m.modelName,
+                                toolCallJson = m.toolCallJson,
+                                attachmentMeta = m.attachmentMeta
+                            )
                         }
                         // Restore image files from ZIP to app storage
                         val imagesDir = java.io.File(context.filesDir, "images")
@@ -656,6 +669,7 @@ class DataImporter(
         val parentId: String? = null,
         val text: String,
         val images: List<String> = emptyList(),
+        val audio: List<String> = emptyList(),
         val thoughts: String? = null,
         val thoughtTitle: String? = null,
         val tokenCount: Int = 0,

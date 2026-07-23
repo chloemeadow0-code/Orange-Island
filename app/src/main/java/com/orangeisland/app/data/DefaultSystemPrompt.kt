@@ -66,6 +66,14 @@ object DefaultSystemPrompt {
             </current_time>
             </orangeisland_runtime_context>
 
+            <app_context>
+            """.trimIndent() + "\n"
+        ),
+        variable(PredefinedVariables.APP_CONTEXT),
+        custom(
+            "\n" + """
+            </app_context>
+
             <active_memory_context>
             """.trimIndent() + "\n"
         ),

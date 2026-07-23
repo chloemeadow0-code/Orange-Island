@@ -79,6 +79,18 @@ data class GenerationContext(
     val shellEnabled: Boolean = false,
     val shellDevices: List<com.orangeisland.app.data.ShellDeviceConfig> = emptyList(),
     val sandboxEnabled: Boolean = false,
+    val ttsEnabled: Boolean = false,
+    val ttsProvider: String = "elevenlabs",
+    val ttsApiKey: String = "",
+    val ttsVoiceId: String = "",
+    val ttsModel: String = "",
+    val ttsSpeed: Float = 1.0f,
+    val ttsOutputFormat: String = "",
+    val ttsStability: Float = 0.5f,
+    val ttsSimilarityBoost: Float = 0.75f,
+    val ttsStyle: Float = 0.0f,
+    val ttsVolume: Float = 1.0f,
+    val ttsPitch: Float = 0.0f,
     val imageTranscriptionEnabled: Boolean = false,
     val imageTranscriptionModel: String? = null,
     val imageTranscriptionBatchSize: Int = 3,
@@ -297,6 +309,11 @@ class GenerationManager(
     fun buildUserInteractionTools(ctx: GenerationContext): List<ToolDefinition> =
         tools.userInteractionDefinitions(ctx)
 
+    /** Text-to-speech tools (speak). Lets the model generate voice audio for the user.
+     *  Empty when TTS is disabled or not configured. */
+    fun buildTtsTools(ctx: GenerationContext): List<ToolDefinition> =
+        tools.ttsDefinitions(ctx)
+
     /** Semantic message search — delegates to the RAG provider via [tools], which owns the
      *  embedding-search logic. Kept here as the entry point used by ChatViewModel's
      *  in-app conversation search. */
@@ -459,7 +476,8 @@ class GenerationManager(
         val automationTools = buildAutomationTools(ctx)
         val workflowTools = buildWorkflowTools(ctx)
         val userInteractionTools = buildUserInteractionTools(ctx)
-        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + automationTools + workflowTools + userInteractionTools
+        val ttsTools = buildTtsTools(ctx)
+        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + automationTools + workflowTools + userInteractionTools + ttsTools
         val providerConfig = ProviderConfig(
             apiKey = config.apiKey,
             modelId = config.modelId,
@@ -526,6 +544,7 @@ class GenerationManager(
         var retryText: String? = null
         val segments = mutableListOf(MessageSegment(type = "answer"))
         val generatedImages = mutableListOf<String>()
+        val generatedAudio = mutableListOf<String>()
         var currentAnswerBuf = StringBuilder()
         var currentThoughtBuf = StringBuilder()
         var currentThoughtSignature: String? = null
@@ -602,6 +621,7 @@ class GenerationManager(
                 timestamp = startTime, thoughtTimeMs = totalThoughtTimeMs,
                 modelName = modelName, toolCall = toolCallData,
                 images = generatedImages.toList(),
+                audio = generatedAudio.toList(),
                 segments = buildLiveSegments(
                     segments,
                     currentAnswerBuf,
@@ -700,6 +720,7 @@ class GenerationManager(
                         lastEmitMs = System.currentTimeMillis()
                         val result = executeTool(event.name, event.arguments, ctx)
                         generatedImages.addAll(tools.drainGeneratedImages())
+                        generatedAudio.addAll(tools.drainAudio())
                         val clipped = result.take(Constants.MAX_TOOL_RESULT_LENGTH)
                         val idx = segments.indexOfLast { it.toolCallId == event.id }
                         if (idx >= 0) {
@@ -725,6 +746,7 @@ class GenerationManager(
                         val tcds = event.calls.map { call ->
                             val result = executeTool(call.name, call.arguments, ctx)
                             generatedImages.addAll(tools.drainGeneratedImages())
+                            generatedAudio.addAll(tools.drainAudio())
                             val clipped = result.take(Constants.MAX_TOOL_RESULT_LENGTH)
                             val idx = segments.indexOfLast { it.toolCallId == call.id }
                             if (idx >= 0) {
@@ -917,7 +939,7 @@ class GenerationManager(
                             DebugLog.d("GenStopRace", "[generateFinally] BEFORE upsert id=$modelMessageId textLen=${totalText.length} status=$currentStatus time=${System.currentTimeMillis()}")
                             val entity = MessageEntity(
                                 id = modelMessageId, conversationId = conversationId, parentId = effectiveParentId,
-                                text = totalText, images = generatedImages.toList(),
+                                text = totalText, images = generatedImages.toList(), audio = generatedAudio.toList(),
                                 thoughts = totalThoughts.ifBlank { null },
                                 thoughtTitle = totalThoughtTitle, tokenCount = totalTokenCount,
                                 status = currentStatus, participant = Participant.MODEL, timestamp = startTime,

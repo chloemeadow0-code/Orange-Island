@@ -297,6 +297,19 @@ class SettingsManager(private val context: Context) {
         // Per-plugin config values keyed by plugin id. Outer JSON: { "<pluginId>": { "<field>": "<value>" } }.
         // Plugins declare their fields in manifest.config; this only stores what the user filled in.
         val PLUGIN_CONFIGS_JSON = stringPreferencesKey("plugin_configs_json")
+        // ── Text-to-Speech ──────────────────────────────────────────
+        val TTS_ENABLED = booleanPreferencesKey("tts_enabled")
+        val TTS_PROVIDER = stringPreferencesKey("tts_provider")
+        val TTS_API_KEY = stringPreferencesKey("tts_api_key")
+        val TTS_VOICE_ID = stringPreferencesKey("tts_voice_id")
+        val TTS_MODEL = stringPreferencesKey("tts_model")
+        val TTS_SPEED = stringPreferencesKey("tts_speed")
+        val TTS_OUTPUT_FORMAT = stringPreferencesKey("tts_output_format")
+        val TTS_STABILITY = stringPreferencesKey("tts_stability")
+        val TTS_SIMILARITY_BOOST = stringPreferencesKey("tts_similarity_boost")
+        val TTS_STYLE = stringPreferencesKey("tts_style")
+        val TTS_VOLUME = stringPreferencesKey("tts_volume")
+        val TTS_PITCH = stringPreferencesKey("tts_pitch")
     }
 
     val selectedModel: Flow<String> = context.dataStore.data.map { it[SELECTED_MODEL] ?: Constants.EXAMPLE_MODEL_ID }
@@ -535,8 +548,24 @@ class SettingsManager(private val context: Context) {
     val environmentAwarenessEnabled: Flow<Boolean> = context.dataStore.data.map { it[ENVIRONMENT_AWARENESS_ENABLED] ?: false }
     val miniAppEntries: Flow<List<com.orangeisland.app.data.MiniAppEntry>> = context.dataStore.data.map { pref ->
         val jsonStr = pref[MINI_APP_ENTRIES_JSON] ?: "[]"
-        try { json.decodeFromString(jsonStr) } catch (_: Exception) { emptyList() }
+        try { Json.decodeFromString(jsonStr) } catch (_: Exception) { emptyList() }
     }
+
+    // ── Text-to-Speech ──────────────────────────────────────────
+    val ttsEnabled: Flow<Boolean> = context.dataStore.data.map { it[TTS_ENABLED] ?: false }
+    val ttsProvider: Flow<String> = context.dataStore.data.map { it[TTS_PROVIDER] ?: "elevenlabs" }
+    val ttsApiKey: Flow<String> = context.dataStore.data.map { pref ->
+        com.orangeisland.app.util.SecretCrypto.decrypt(pref[TTS_API_KEY] ?: "")
+    }
+    val ttsVoiceId: Flow<String> = context.dataStore.data.map { it[TTS_VOICE_ID] ?: "" }
+    val ttsModel: Flow<String> = context.dataStore.data.map { it[TTS_MODEL] ?: "" }
+    val ttsSpeed: Flow<Float> = context.dataStore.data.map { pref -> pref[TTS_SPEED]?.toFloatOrNull() ?: 1.0f }
+    val ttsOutputFormat: Flow<String> = context.dataStore.data.map { it[TTS_OUTPUT_FORMAT] ?: "" }
+    val ttsStability: Flow<Float> = context.dataStore.data.map { pref -> pref[TTS_STABILITY]?.toFloatOrNull() ?: 0.5f }
+    val ttsSimilarityBoost: Flow<Float> = context.dataStore.data.map { pref -> pref[TTS_SIMILARITY_BOOST]?.toFloatOrNull() ?: 0.75f }
+    val ttsStyle: Flow<Float> = context.dataStore.data.map { pref -> pref[TTS_STYLE]?.toFloatOrNull() ?: 0.0f }
+    val ttsVolume: Flow<Float> = context.dataStore.data.map { pref -> pref[TTS_VOLUME]?.toFloatOrNull() ?: 1.0f }
+    val ttsPitch: Flow<Float> = context.dataStore.data.map { pref -> pref[TTS_PITCH]?.toFloatOrNull() ?: 0.0f }
 
     // ── Plugin device id ──────────────────────────────────────
     // Lazily minted per-install UUID, exposed to plugins as __OI_USER_ID. No setter: it is
@@ -1103,9 +1132,47 @@ class SettingsManager(private val context: Context) {
     suspend fun savePluginConfig(pluginId: String, values: Map<String, String>) {
         context.dataStore.edit { prefs ->
             val current = prefs[PLUGIN_CONFIGS_JSON] ?: "{}"
-            val map = try { json.decodeFromString<MutableMap<String, Map<String, String>>>(current) } catch (e: Exception) { mutableMapOf() }
+            val map = try { Json.decodeFromString<MutableMap<String, Map<String, String>>>(current) } catch (e: Exception) { mutableMapOf() }
             if (values.isEmpty()) map.remove(pluginId) else map[pluginId] = values
             prefs[PLUGIN_CONFIGS_JSON] = json.encodeToString(map)
         }
+    }
+
+    // ── Text-to-Speech ──────────────────────────────────────────
+    suspend fun saveTtsEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[TTS_ENABLED] = enabled }
+    }
+    suspend fun saveTtsProvider(provider: String) {
+        context.dataStore.edit { it[TTS_PROVIDER] = provider }
+    }
+    suspend fun saveTtsApiKey(key: String) {
+        context.dataStore.edit { it[TTS_API_KEY] = com.orangeisland.app.util.SecretCrypto.encrypt(key) }
+    }
+    suspend fun saveTtsVoiceId(voiceId: String) {
+        context.dataStore.edit { it[TTS_VOICE_ID] = voiceId }
+    }
+    suspend fun saveTtsModel(model: String) {
+        context.dataStore.edit { it[TTS_MODEL] = model }
+    }
+    suspend fun saveTtsSpeed(speed: Float) {
+        context.dataStore.edit { it[TTS_SPEED] = speed.coerceIn(0.5f, 2.0f).toString() }
+    }
+    suspend fun saveTtsOutputFormat(format: String) {
+        context.dataStore.edit { it[TTS_OUTPUT_FORMAT] = format }
+    }
+    suspend fun saveTtsStability(stability: Float) {
+        context.dataStore.edit { it[TTS_STABILITY] = stability.coerceIn(0f, 1f).toString() }
+    }
+    suspend fun saveTtsSimilarityBoost(value: Float) {
+        context.dataStore.edit { it[TTS_SIMILARITY_BOOST] = value.coerceIn(0f, 1f).toString() }
+    }
+    suspend fun saveTtsStyle(style: Float) {
+        context.dataStore.edit { it[TTS_STYLE] = style.coerceIn(0f, 1f).toString() }
+    }
+    suspend fun saveTtsVolume(volume: Float) {
+        context.dataStore.edit { it[TTS_VOLUME] = volume.coerceIn(0.1f, 10.0f).toString() }
+    }
+    suspend fun saveTtsPitch(pitch: Float) {
+        context.dataStore.edit { it[TTS_PITCH] = pitch.coerceIn(-12f, 12f).toString() }
     }
 }

@@ -676,6 +676,7 @@ class ChatViewModel(
                                 parentId = it.parentId,
                                 text = SearchResultFormatter.format(it.text, appContext),
                                 images = it.images,
+                                audio = it.audio,
                                 thoughts = it.thoughts,
                                 thoughtTitle = it.thoughtTitle,
                                 tokenCount = it.tokenCount,

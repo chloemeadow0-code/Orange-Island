@@ -98,7 +98,7 @@ class McpToolProvider(
             val out = StringBuilder(s.length)
             var prevUnderscore = true // start in "underscore just emitted" state → trims leading runs
             for (c in s) {
-                if (c.isLetterOrDigit()) {
+                if (c in 'a'..'z' || c in 'A'..'Z' || c in '0'..'9') {
                     out.append(c)
                     prevUnderscore = false
                 } else if (!prevUnderscore) {

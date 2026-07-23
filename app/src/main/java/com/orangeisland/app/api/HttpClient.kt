@@ -290,4 +290,23 @@ object HttpClient {
             if (it.isSuccessful) it.body?.bytes() else null
         }
     }
+
+    /** POST raw bytes (e.g. TTS audio). Returns null on non-2xx / failure. */
+    fun postBytes(url: String, jsonBody: String, headers: Map<String, String> = emptyMap()): ByteArray? {
+        val t0 = System.currentTimeMillis()
+        guardCleartextCredentials(url, headers)
+        val body = jsonBody.toRequestBody(JSON)
+        val requestBuilder = Request.Builder().url(url).post(body)
+        headers.forEach { (k, v) -> requestBuilder.addHeader(k, v) }
+        val response = client.newCall(requestBuilder.build()).execute()
+        return response.use {
+            val elapsed = System.currentTimeMillis() - t0
+            UsageLogManager.log(
+                UsageLogManager.Type.REQUEST,
+                name = "POST ${url.substringBefore("?")}",
+                details = "${it.code} | ${elapsed}ms${if (!it.isSuccessful) " | failed" else ""}"
+            )
+            if (it.isSuccessful) it.body?.bytes() else null
+        }
+    }
 }

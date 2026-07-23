@@ -95,6 +95,8 @@
     <string name="settings_title_gen_desc">自动生成对话标题</string>
     <string name="settings_transcription">图像转述</string>
     <string name="settings_transcription_desc">使用视觉模型为无视觉能力的模型描述图片内容</string>
+    <string name="settings_tts">语音合成</string>
+    <string name="settings_tts_desc">为助手回复配置语音输出</string>
     <string name="settings_memory">记忆</string>
     <string name="settings_memory_desc">活跃记忆和已保存文件</string>
     <string name="search_title">对话搜索</string>
@@ -507,6 +509,36 @@
     <string name="transcription_add_model">添加模型</string>
     <string name="transcription_ellipsis">正在转述图片…</string>
     <string name="transcription_progress">正在转述图片 %1$d/%2$d…</string>
+
+    <!-- Settings - TTS Page -->
+    <string name="tts_title">语音合成</string>
+    <string name="tts_group_general">通用</string>
+    <string name="tts_enable">启用语音合成</string>
+    <string name="tts_enable_desc">允许助手通过 speak 工具生成语音消息</string>
+    <string name="tts_group_provider">提供商</string>
+    <string name="tts_provider">提供商</string>
+    <string name="tts_provider_desc">选择 TTS 后端（ElevenLabs 或 MiniMax）</string>
+    <string name="tts_api_key">API 密钥</string>
+    <string name="tts_api_key_hint">您的 TTS 提供商 API 密钥</string>
+    <string name="tts_voice_id">音色 ID</string>
+    <string name="tts_voice_id_desc">留空则使用所选提供商的默认音色</string>
+    <string name="tts_voice_id_hint">例如 21m00Tcm4TlvDq8ikWAM</string>
+    <string name="tts_model">模型 ID</string>
+    <string name="tts_model_desc">填写服务商支持的任意模型 ID</string>
+    <string name="tts_model_default">默认</string>
+    <string name="tts_model_hint_elevenlabs">例如 eleven_multilingual_v2</string>
+    <string name="tts_model_hint_minimax">例如 speech-01-turbo</string>
+    <string name="tts_speed">语速</string>
+    <string name="tts_output_format">输出格式</string>
+    <string name="tts_output_format_desc">音频编码和采样率</string>
+    <string name="tts_format_default">默认</string>
+    <string name="tts_group_voice_settings">音色设置</string>
+    <string name="tts_stability">稳定性</string>
+    <string name="tts_similarity_boost">相似度增强</string>
+    <string name="tts_style">风格</string>
+    <string name="tts_volume">音量</string>
+    <string name="tts_pitch">音调</string>
+
     <string name="prompt_content">Prompt</string>
 
     <!-- Settings - Memory Page -->
@@ -796,6 +828,8 @@
     <!-- General Actions -->
     <string name="action">操作</string>
     <string name="video">视频</string>
+    <string name="show">显示</string>
+    <string name="hide">隐藏</string>
     <string name="copy">复制</string>
     <string name="edit">编辑</string>
     <string name="info">信息</string>

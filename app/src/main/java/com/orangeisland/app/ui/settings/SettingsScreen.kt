@@ -179,6 +179,7 @@ private val settingsGroups = listOf(
         SettingsCategory("plugins", R.string.plugin_title, R.string.plugin_desc, Icons.Default.Extension),
         SettingsCategory("device_access", R.string.device_access_title, R.string.device_access_desc, Icons.Default.Smartphone),
         SettingsCategory("workflows", R.string.settings_workflows, R.string.settings_workflows_desc, Icons.Default.AccountTree),
+        SettingsCategory("tts", R.string.settings_tts, R.string.settings_tts_desc, Icons.Filled.VolumeUp),
     )),
     SettingsGroupData(titleRes = R.string.settings_group_network, items = listOf(
         SettingsCategory("proxy", R.string.settings_proxy, R.string.settings_proxy_desc, Icons.Default.Lan),
@@ -270,6 +271,7 @@ fun SettingsScreen(
                     onBack = { selectedCategory = null },
                     onEditInChat = onEditWorkflowInChat
                 )
+                "tts" -> SettingsTtsPage(viewModel, onBack = { selectedCategory = null })
                 else -> {
                     CollapsingSettingsLazyScaffold(
                         title = stringResource(R.string.settings_title),

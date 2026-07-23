@@ -210,6 +210,27 @@ fun WorkflowEditorForm(
                         temperature = 0.7f
                     )
                 )
+            },
+            onAddNotify = {
+                nodes.add(
+                    NotifyNode(
+                        id = "node_${UUID.randomUUID()}",
+                        label = "通知",
+                        title = NodeValue.Literal("Orange Island"),
+                        content = NodeValue.Literal(""),
+                        priority = "default"
+                    )
+                )
+            },
+            onAddChatMessage = {
+                nodes.add(
+                    ChatMessageNode(
+                        id = "node_${UUID.randomUUID()}",
+                        label = "发消息",
+                        text = NodeValue.Literal(""),
+                        participant = "MODEL"
+                    )
+                )
             }
         )
 
@@ -297,35 +318,39 @@ private fun NodeEditorCard(
                         fontWeight = FontWeight.Medium
                     )
                 },
-                supportingContent = {
-                    Text(
-                        when (node) {
-                            is StartNode -> "触发器: ${triggerLabel(node.trigger)}"
-                            is ActionNode -> "工具: ${node.toolName}"
-                            is BranchNode -> "分支"
-                            is MergeNode -> "合并 (${node.reducer.name})"
-                            is TransformNode -> "转换"
-                            is LLMNode -> "思考 · ${node.provider}:${node.modelId}"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                leadingContent = {
-                    Icon(
-                        when (node) {
-                            is StartNode -> Icons.Default.PlayArrow
-                            is ActionNode -> Icons.Default.AutoAwesome
-                            is BranchNode -> Icons.Default.CallSplit
-                            is MergeNode -> Icons.Default.MergeType
-                            is TransformNode -> Icons.Default.Transform
-                            is LLMNode -> Icons.Default.Psychology
-                        },
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                },
+                    supportingContent = {
+                        Text(
+                            when (node) {
+                                is StartNode -> "触发器: ${triggerLabel(node.trigger)}"
+                                is ActionNode -> "工具: ${node.toolName}"
+                                is BranchNode -> "分支"
+                                is MergeNode -> "合并 (${node.reducer.name})"
+                                is TransformNode -> "转换"
+                                is LLMNode -> "思考 · ${node.provider}:${node.modelId}"
+                                is NotifyNode -> "通知 · ${node.priority}"
+                                is ChatMessageNode -> "发消息 · ${node.participant}"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            when (node) {
+                                is StartNode -> Icons.Default.PlayArrow
+                                is ActionNode -> Icons.Default.AutoAwesome
+                                is BranchNode -> Icons.Default.CallSplit
+                                is MergeNode -> Icons.Default.MergeType
+                                is TransformNode -> Icons.Default.Transform
+                                is LLMNode -> Icons.Default.Psychology
+                                is NotifyNode -> Icons.Default.Notifications
+                                is ChatMessageNode -> Icons.Default.ChatBubble
+                            },
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    },
                 trailingContent = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { expanded.targetState = !expanded.targetState }, modifier = Modifier.size(28.dp)) {
@@ -383,6 +408,8 @@ private fun NodeDetailEditor(
         is MergeNode -> MergeNodeEditor(node, onUpdate)
         is TransformNode -> TransformNodeEditor(node, allNodes, onUpdate)
         is LLMNode -> LLMNodeEditor(node, allNodes, onUpdate)
+        is NotifyNode -> NotifyNodeEditor(node, allNodes, onUpdate)
+        is ChatMessageNode -> ChatMessageNodeEditor(node, allNodes, onUpdate)
     }
 }
 
@@ -919,6 +946,96 @@ private fun LLMNodeEditor(node: LLMNode, allNodes: List<FlowNode>, onUpdate: (Fl
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NotifyNodeEditor(node: NotifyNode, allNodes: List<FlowNode>, onUpdate: (FlowNode) -> Unit) {
+    var label by remember(node.id) { mutableStateOf(node.label) }
+    var priority by remember(node.id) { mutableStateOf(node.priority) }
+    var expanded by remember { mutableStateOf(false) }
+
+    OutlinedTextField(
+        value = label,
+        onValueChange = { label = it; onUpdate(node.copy(label = label)) },
+        label = { Text("名称") },
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+
+    Text("标题", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    NodeValueEditor(value = node.title, allNodes = allNodes) {
+        onUpdate(node.copy(title = it))
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+
+    Text("内容", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    NodeValueEditor(value = node.content, allNodes = allNodes) {
+        onUpdate(node.copy(content = it))
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+
+    val priorities = listOf("low", "default", "high")
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = priority,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("优先级") },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            priorities.forEach { p ->
+                DropdownMenuItem(
+                    text = { Text(p) },
+                    onClick = { expanded = false; priority = p; onUpdate(node.copy(priority = priority)) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatMessageNodeEditor(node: ChatMessageNode, allNodes: List<FlowNode>, onUpdate: (FlowNode) -> Unit) {
+    var label by remember(node.id) { mutableStateOf(node.label) }
+    val participants = listOf("MODEL", "USER")
+    var selected by remember(node.id) { mutableIntStateOf(participants.indexOf(node.participant).coerceAtLeast(0)) }
+
+    OutlinedTextField(
+        value = label,
+        onValueChange = { label = it; onUpdate(node.copy(label = label)) },
+        label = { Text("名称") },
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+
+    Text("消息内容", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    NodeValueEditor(value = node.text, allNodes = allNodes) {
+        onUpdate(node.copy(text = it))
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+
+    Text("发送者", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        participants.forEachIndexed { index, p ->
+            SegmentedButton(
+                selected = selected == index,
+                onClick = {
+                    selected = index
+                    onUpdate(node.copy(participant = p))
+                },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = participants.size)
+            ) {
+                Text(p, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+
 // ── Edge Editor Card ─────────────────────────────────────────
 
 @Composable
@@ -1117,7 +1234,9 @@ private fun AddNodeRow(
     onAddBranch: () -> Unit,
     onAddMerge: () -> Unit,
     onAddTransform: () -> Unit,
-    onAddLLM: () -> Unit
+    onAddLLM: () -> Unit,
+    onAddNotify: () -> Unit,
+    onAddChatMessage: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -1144,6 +1263,8 @@ private fun AddNodeRow(
             DropdownMenuItem(text = { Text("合并") }, leadingIcon = { Icon(Icons.Default.MergeType, null) }, onClick = { expanded = false; onAddMerge() })
             DropdownMenuItem(text = { Text("转换") }, leadingIcon = { Icon(Icons.Default.Transform, null) }, onClick = { expanded = false; onAddTransform() })
             DropdownMenuItem(text = { Text("思考") }, leadingIcon = { Icon(Icons.Default.Psychology, null) }, onClick = { expanded = false; onAddLLM() })
+            DropdownMenuItem(text = { Text("通知") }, leadingIcon = { Icon(Icons.Default.Notifications, null) }, onClick = { expanded = false; onAddNotify() })
+            DropdownMenuItem(text = { Text("发消息") }, leadingIcon = { Icon(Icons.Default.ChatBubble, null) }, onClick = { expanded = false; onAddChatMessage() })
         }
     }
 }

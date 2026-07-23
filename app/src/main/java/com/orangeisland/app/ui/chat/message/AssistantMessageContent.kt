@@ -638,6 +638,16 @@ internal fun AssistantMessageContent(
                         }
                     }
                 }
+                if (message.participant == Participant.MODEL && message.audio.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier.padding(top = if (debouncedText.isNotEmpty() || message.images.isNotEmpty()) 8.dp else 0.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        message.audio.forEach { path ->
+                            AudioMessageBar(path = path)
+                        }
+                    }
+                }
                 if (!isStreaming && message.status == MessageStatus.STOPPED) {
                     Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), shape = RoundedCornerShape(8.dp), modifier = Modifier.padding(top = if (debouncedText.isNotEmpty()) 8.dp else 0.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {

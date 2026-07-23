@@ -2,6 +2,7 @@ package com.orangeisland.app.workflow.graph
 
 import com.orangeisland.app.model.ActionNode
 import com.orangeisland.app.model.BranchNode
+import com.orangeisland.app.model.ChatMessageNode
 import com.orangeisland.app.model.Comparison
 import com.orangeisland.app.model.EdgeGuard
 import com.orangeisland.app.model.FlowEdge
@@ -9,6 +10,7 @@ import com.orangeisland.app.model.FlowNode
 import com.orangeisland.app.model.LLMNode
 import com.orangeisland.app.model.MergeNode
 import com.orangeisland.app.model.NodeValue
+import com.orangeisland.app.model.NotifyNode
 import com.orangeisland.app.model.Reducer
 import com.orangeisland.app.model.StartNode
 import com.orangeisland.app.model.TransformNode
@@ -148,6 +150,8 @@ object GraphDefinitionParser {
                 is MergeNode -> node.copy(pos = pos)
                 is TransformNode -> node.copy(pos = pos)
                 is LLMNode -> node.copy(pos = pos)
+                is NotifyNode -> node.copy(pos = pos)
+                is ChatMessageNode -> node.copy(pos = pos)
             }
         }
 
@@ -212,6 +216,17 @@ object GraphDefinitionParser {
                 val temperature = obj.num("temperature")?.toFloat() ?: 0.7f
                 LLMNode(id = id, label = label, pos = pos, prompt = prompt,
                     provider = provider, modelId = modelId, systemPrompt = systemPrompt, temperature = temperature)
+            }
+            "notify" -> {
+                val title = parseNodeValue(obj.obj("title"), nodeIds) ?: NodeValue.Literal("Orange Island")
+                val content = parseNodeValue(obj.obj("content"), nodeIds) ?: NodeValue.Literal("")
+                val pri = obj.str("priority") ?: "default"
+                com.orangeisland.app.model.NotifyNode(id = id, label = label, pos = pos, title = title, content = content, priority = pri)
+            }
+            "chat_message" -> {
+                val text = parseNodeValue(obj.obj("text"), nodeIds) ?: NodeValue.Literal("")
+                val participant = obj.str("participant") ?: "MODEL"
+                com.orangeisland.app.model.ChatMessageNode(id = id, label = label, pos = pos, text = text, participant = participant)
             }
             else -> null
         }

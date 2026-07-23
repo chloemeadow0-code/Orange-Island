@@ -88,7 +88,8 @@ class WorkflowWorker(
             settingsRepository = settingsRepository,
             json = json,
             contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(appContext),
-            llmProviders = llmProviders
+            llmProviders = llmProviders,
+            appContext = appContext
         )
 
         return try {

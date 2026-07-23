@@ -150,6 +150,31 @@ data class LLMNode(
     override val kind: String = "llm"
 }
 
+@Serializable
+@SerialName("notify")
+data class NotifyNode(
+    override val id: String,
+    override val label: String = "",
+    override val pos: FlowNode.Vec2 = FlowNode.Vec2(),
+    val title: NodeValue = NodeValue.Literal("Orange Island"),
+    val content: NodeValue = NodeValue.Literal(""),
+    val priority: String = "default"
+) : FlowNode() {
+    override val kind: String = "notify"
+}
+
+@Serializable
+@SerialName("chat_message")
+data class ChatMessageNode(
+    override val id: String,
+    override val label: String = "",
+    override val pos: FlowNode.Vec2 = FlowNode.Vec2(),
+    val text: NodeValue = NodeValue.Literal(""),
+    val participant: String = "MODEL"
+) : FlowNode() {
+    override val kind: String = "chat_message"
+}
+
 // ── Branch / Merge operators ───────────────────────────────────────────────
 
 @Serializable

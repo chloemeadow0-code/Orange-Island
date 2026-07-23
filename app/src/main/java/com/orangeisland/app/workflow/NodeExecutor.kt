@@ -2,9 +2,11 @@ package com.orangeisland.app.workflow
 
 import com.orangeisland.app.model.ActionNode
 import com.orangeisland.app.model.BranchNode
+import com.orangeisland.app.model.ChatMessageNode
 import com.orangeisland.app.model.FlowNode
 import com.orangeisland.app.model.LLMNode
 import com.orangeisland.app.model.MergeNode
+import com.orangeisland.app.model.NotifyNode
 import com.orangeisland.app.model.Reducer
 import com.orangeisland.app.model.StartNode
 import com.orangeisland.app.model.TransformNode
@@ -26,6 +28,8 @@ class NodeExecutor(
     private val guard: WorkflowGuard?,
     private val toolRunner: ToolRunner,
     private val llmRunner: LLMRunner? = null,
+    private val notificationRunner: NotificationRunner? = null,
+    private val chatMessageRunner: ChatMessageRunner? = null,
     private val logger: RunLogger,
     private val onState: (String, NodeState) -> Unit
 ) {
@@ -39,6 +43,16 @@ class NodeExecutor(
         suspend fun run(provider: String, modelId: String, systemPrompt: String?, prompt: String): String
     }
 
+    /** Functional interface for posting a system notification from a workflow node. */
+    fun interface NotificationRunner {
+        suspend fun run(title: String, content: String, priority: String): String
+    }
+
+    /** Functional interface for inserting a chat message from a workflow node. Returns the message id. */
+    fun interface ChatMessageRunner {
+        suspend fun run(text: String, participant: String): String
+    }
+
     suspend fun execute(node: FlowNode, incomingEdges: List<com.orangeisland.app.model.FlowEdge>, triggerPayload: String): Boolean {
         currentCoroutineContext().ensureActive()
         return when (node) {
@@ -48,6 +62,8 @@ class NodeExecutor(
             is TransformNode -> runTransform(node, incomingEdges, triggerPayload)
             is ActionNode -> runAction(node)
             is LLMNode -> runLLM(node, triggerPayload)
+            is NotifyNode -> runNotify(node, triggerPayload)
+            is ChatMessageNode -> runChatMessage(node, triggerPayload)
         }
     }
 
@@ -159,6 +175,37 @@ class NodeExecutor(
             systemPrompt = node.systemPrompt.takeIf { it.isNotBlank() },
             prompt = prompt
         )
+        mark(node, NodeState.Done(result))
+        true
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        fail(node, e.message ?: e::class.simpleName.orEmpty())
+    }
+
+    private suspend fun runNotify(node: NotifyNode, triggerPayload: String): Boolean = try {
+        val runner = notificationRunner ?: return fail(node, "Notification not available in this runner")
+        mark(node, NodeState.Running)
+        val title = resolver.resolve(node.title, triggerPayload)
+        val content = resolver.resolve(node.content, triggerPayload)
+        logger.debug("Notify title=$title content=${content.take(80)}", node.id, node.label)
+        currentCoroutineContext().ensureActive()
+        val result = runner.run(title, content, node.priority)
+        mark(node, NodeState.Done(result))
+        true
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        fail(node, e.message ?: e::class.simpleName.orEmpty())
+    }
+
+    private suspend fun runChatMessage(node: ChatMessageNode, triggerPayload: String): Boolean = try {
+        val runner = chatMessageRunner ?: return fail(node, "Chat message not available in this runner")
+        mark(node, NodeState.Running)
+        val text = resolver.resolve(node.text, triggerPayload)
+        logger.debug("ChatMessage text=${text.take(80)}", node.id, node.label)
+        currentCoroutineContext().ensureActive()
+        val result = runner.run(text, node.participant)
         mark(node, NodeState.Done(result))
         true
     } catch (e: kotlinx.coroutines.CancellationException) {

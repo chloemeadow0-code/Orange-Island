@@ -184,6 +184,19 @@ class SettingsRepository(
     val userEmail: StateFlow<String> = hot(settingsManager.userEmail, "")
     // ── Plugin configs (per-plugin user-filled values) ────────
     val pluginConfigs: StateFlow<Map<String, Map<String, String>>> = hot(settingsManager.pluginConfigs, emptyMap())
+    // ── Text-to-Speech ──────────────────────────────────────────
+    val ttsEnabled: StateFlow<Boolean> = hot(settingsManager.ttsEnabled, false)
+    val ttsProvider: StateFlow<String> = hot(settingsManager.ttsProvider, "elevenlabs")
+    val ttsApiKey: StateFlow<String> = hot(settingsManager.ttsApiKey, "")
+    val ttsVoiceId: StateFlow<String> = hot(settingsManager.ttsVoiceId, "")
+    val ttsModel: StateFlow<String> = hot(settingsManager.ttsModel, "")
+    val ttsSpeed: StateFlow<Float> = hot(settingsManager.ttsSpeed, 1.0f)
+    val ttsOutputFormat: StateFlow<String> = hot(settingsManager.ttsOutputFormat, "")
+    val ttsStability: StateFlow<Float> = hot(settingsManager.ttsStability, 0.5f)
+    val ttsSimilarityBoost: StateFlow<Float> = hot(settingsManager.ttsSimilarityBoost, 0.75f)
+    val ttsStyle: StateFlow<Float> = hot(settingsManager.ttsStyle, 0.0f)
+    val ttsVolume: StateFlow<Float> = hot(settingsManager.ttsVolume, 1.0f)
+    val ttsPitch: StateFlow<Float> = hot(settingsManager.ttsPitch, 0.0f)
 
     // ── Write (fire-and-forget; read current state from own StateFlows) ──
     //
@@ -605,4 +618,18 @@ class SettingsRepository(
         val cfg = awaitPluginConfig(pluginId)
         return kotlinx.serialization.json.Json.encodeToString(cfg)
     }
+
+    // ── Text-to-Speech ──────────────────────────────────────────
+    fun setTtsEnabled(enabled: Boolean) = scope.launch { settingsManager.saveTtsEnabled(enabled) }
+    fun setTtsProvider(provider: String) = scope.launch { settingsManager.saveTtsProvider(provider) }
+    fun setTtsApiKey(key: String) = scope.launch { settingsManager.saveTtsApiKey(key) }
+    fun setTtsVoiceId(voiceId: String) = scope.launch { settingsManager.saveTtsVoiceId(voiceId) }
+    fun setTtsModel(model: String) = scope.launch { settingsManager.saveTtsModel(model) }
+    fun setTtsSpeed(speed: Float) = scope.launch { settingsManager.saveTtsSpeed(speed) }
+    fun setTtsOutputFormat(format: String) = scope.launch { settingsManager.saveTtsOutputFormat(format) }
+    fun setTtsStability(stability: Float) = scope.launch { settingsManager.saveTtsStability(stability) }
+    fun setTtsSimilarityBoost(value: Float) = scope.launch { settingsManager.saveTtsSimilarityBoost(value) }
+    fun setTtsStyle(style: Float) = scope.launch { settingsManager.saveTtsStyle(style) }
+    fun setTtsVolume(volume: Float) = scope.launch { settingsManager.saveTtsVolume(volume) }
+    fun setTtsPitch(pitch: Float) = scope.launch { settingsManager.saveTtsPitch(pitch) }
 }

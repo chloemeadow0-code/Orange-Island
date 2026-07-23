@@ -94,6 +94,7 @@ class ToolDispatcher(
     private val mcpToolProvider = mcpPool?.let { com.orangeisland.app.tool.McpToolProvider(it) }
     private val chatContextToolProvider = chatDao?.let { com.orangeisland.app.tool.ChatContextToolProvider(it) }
     private val userInteractionToolProvider = UserInteractionToolProvider(userInteractionGate)
+    private val ttsToolProvider = TtsToolProvider(app)
 
     /** Every active provider, in dispatch order. [handles] is queried in this order, so earlier
      *  providers win on name collisions. Names are namespaced (plugin__/mcp__) to avoid this in
@@ -113,6 +114,7 @@ class ToolDispatcher(
         mcpToolProvider?.let { add(it) }
         pluginToolProvider?.let { add(it) }
         workflowToolProvider?.let { add(it) }
+        add(ttsToolProvider)
         add(userInteractionToolProvider)
     }
 
@@ -249,6 +251,14 @@ class ToolDispatcher(
         if (!ctx.userInteractionEnabled) return emptyList()
         return userInteractionToolProvider.definitions(ctx)
     }
+
+    /** Text-to-speech tools (speak). Exposed when TTS is enabled and configured. */
+    fun ttsDefinitions(ctx: GenerationContext): List<ToolDefinition> =
+        ttsToolProvider.definitions(ctx)
+
+    /** Drains audio file paths queued by the most recent speak tool call. Called by the LLM
+     *  loop right after a speak call so the audio renders inline. */
+    fun drainAudio(): List<String> = ttsToolProvider.drainAudio()
 
     // ── Pass-through helpers ────────────────────────────────────────────────
 

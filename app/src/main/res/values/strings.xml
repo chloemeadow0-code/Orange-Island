@@ -144,6 +144,8 @@
     <string name="generation_retry_attempt">Retry %1$d/%2$d</string>
     <string name="action">Action</string>
     <string name="video">Video</string>
+    <string name="show">Show</string>
+    <string name="hide">Hide</string>
 
     <!-- System Prompt -->
     <string name="system_prompt">System Prompt</string>
@@ -218,6 +220,8 @@
     <string name="settings_title_gen_desc">Auto-generate conversation titles</string>
     <string name="settings_transcription">Image Transcription</string>
     <string name="settings_transcription_desc">Use a vision model to describe images for non-vision models</string>
+    <string name="settings_tts">Text-to-Speech</string>
+    <string name="settings_tts_desc">Configure voice output for assistant responses</string>
     <string name="settings_memory">Memory</string>
     <string name="settings_memory_desc">Active memory and saved files</string>
     <string name="search_title">Conversation Search</string>
@@ -668,6 +672,36 @@
     <string name="transcription_add_model">Add Model</string>
     <string name="transcription_ellipsis">Transcribing images…</string>
     <string name="transcription_progress">Transcribing images %1$d/%2$d…</string>
+
+    <!-- Settings - TTS Page -->
+    <string name="tts_title">Text-to-Speech</string>
+    <string name="tts_group_general">General</string>
+    <string name="tts_enable">Enable Text-to-Speech</string>
+    <string name="tts_enable_desc">Allow the assistant to generate voice messages via the speak tool</string>
+    <string name="tts_group_provider">Provider</string>
+    <string name="tts_provider">Provider</string>
+    <string name="tts_provider_desc">Select the TTS backend (ElevenLabs or MiniMax)</string>
+    <string name="tts_api_key">API Key</string>
+    <string name="tts_api_key_hint">Your TTS provider API key</string>
+    <string name="tts_voice_id">Voice ID</string>
+    <string name="tts_voice_id_desc">Leave empty to use the default voice for the selected provider</string>
+    <string name="tts_voice_id_hint">e.g. 21m00Tcm4TlvDq8ikWAM</string>
+    <string name="tts_model">Model ID</string>
+    <string name="tts_model_desc">Enter any model ID supported by the provider</string>
+    <string name="tts_model_default">Default</string>
+    <string name="tts_model_hint_elevenlabs">e.g. eleven_multilingual_v2</string>
+    <string name="tts_model_hint_minimax">e.g. speech-01-turbo</string>
+    <string name="tts_speed">Speed</string>
+    <string name="tts_output_format">Output Format</string>
+    <string name="tts_output_format_desc">Audio encoding and sample rate</string>
+    <string name="tts_format_default">Default</string>
+    <string name="tts_group_voice_settings">Voice Settings</string>
+    <string name="tts_stability">Stability</string>
+    <string name="tts_similarity_boost">Similarity Boost</string>
+    <string name="tts_style">Style</string>
+    <string name="tts_volume">Volume</string>
+    <string name="tts_pitch">Pitch</string>
+
     <string name="prompt_content">Prompt</string>
 
     <!-- Settings - Memory Page -->

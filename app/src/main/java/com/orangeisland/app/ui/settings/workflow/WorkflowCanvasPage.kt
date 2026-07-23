@@ -87,6 +87,8 @@ fun WorkflowCanvasPage(
                         is MergeNode -> n.copy(pos = pos)
                         is TransformNode -> n.copy(pos = pos)
                         is LLMNode -> n.copy(pos = pos)
+                        is NotifyNode -> n.copy(pos = pos)
+                        is ChatMessageNode -> n.copy(pos = pos)
                     }
                 }
             },
@@ -218,6 +220,8 @@ private fun NodeCard(
         is MergeNode -> "MERGE" to Color(0xFF9C27B0)
         is TransformNode -> "XFORM" to Color(0xFF009688)
         is LLMNode -> "LLM" to Color(0xFF3F51B5)
+        is NotifyNode -> "NOTIFY" to Color(0xFFE53935)
+        is ChatMessageNode -> "CHAT" to Color(0xFF00BCD4)
     }
 
     val glowColor = when (state) {

@@ -72,6 +72,8 @@ object WorkflowApprovalRenderer {
         is MergeNode -> " [合并: ${if (node.reducer == Reducer.ALL_TRUE) "全部真" else "任一真"}]"
         is TransformNode -> " [转换: ${transformOpText(node.op)}]"
         is LLMNode -> " [LLM: ${node.provider}/${node.modelId}]"
+        is NotifyNode -> " [通知: ${node.priority}]"
+        is com.orangeisland.app.model.ChatMessageNode -> " [发消息: ${node.participant}]"
     }
 
     private fun guardDetail(guard: EdgeGuard): String = when (guard) {

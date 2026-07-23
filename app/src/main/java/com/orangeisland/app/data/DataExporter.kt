@@ -88,6 +88,7 @@ class DataExporter(
         val parentId: String? = null,
         val text: String,
         val images: List<String> = emptyList(),
+        val audio: List<String> = emptyList(),
         val thoughts: String? = null,
         val thoughtTitle: String? = null,
         val tokenCount: Int = 0,
@@ -259,7 +260,7 @@ class DataExporter(
                 val messages = allMessages.map { m ->
                     // Only include images that were successfully exported
                     val exportedImages = imageMap[m.id] ?: emptyList()
-                    ExportMessageEntity(m.id, m.conversationId, m.parentId, m.text, exportedImages,
+                    ExportMessageEntity(m.id, m.conversationId, m.parentId, m.text, exportedImages, m.audio,
                         m.thoughts, m.thoughtTitle, m.tokenCount, m.status.name, m.participant.name,
                         m.timestamp, m.thoughtTimeMs, m.modelName, m.toolCallJson, m.attachmentMeta)
                 }

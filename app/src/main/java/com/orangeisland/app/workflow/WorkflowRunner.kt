@@ -5,6 +5,14 @@ import com.orangeisland.app.data.SettingsManager
 import com.orangeisland.app.data.UsageLogManager
 import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.data.repository.WorkflowRepository
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import com.orangeisland.app.R
+import com.orangeisland.app.data.local.ChatEntity
+import com.orangeisland.app.data.local.MessageEntity
 import com.orangeisland.app.model.ChatMessage
 import com.orangeisland.app.model.MessageStatus
 import com.orangeisland.app.model.Participant
@@ -52,6 +60,7 @@ class WorkflowRunner(
     private val providerRegistry: ProviderRegistry? = null,
     private val llmProviders: Map<String, LlmProvider> = emptyMap(),
     private val chatDao: com.orangeisland.app.data.local.ChatDao? = null,
+    private val appContext: Context? = null,
     private val onConfirmDestructive: (suspend (toolName: String, args: String) -> Boolean)? = null,
     private val onNodeState: ((String, NodeState) -> Unit)? = null
 ) {
@@ -93,6 +102,8 @@ class WorkflowRunner(
         val ctx = buildContext(mode)
         val toolRunner = NodeExecutor.ToolRunner { name, args -> dispatcher.execute(name, args, ctx) }
         val llmRunner = buildLLMRunner(workflow)
+        val notificationRunner = buildNotificationRunner()
+        val chatMessageRunner = buildChatMessageRunner(workflow)
 
         val result = engine.execute(
             workflow = workflow,
@@ -101,6 +112,8 @@ class WorkflowRunner(
             guard = guard,
             toolRunner = toolRunner,
             llmRunner = llmRunner,
+            notificationRunner = notificationRunner,
+            chatMessageRunner = chatMessageRunner,
             onState = { id, state -> onNodeState?.invoke(id, state) }
         )
 
@@ -327,6 +340,76 @@ class WorkflowRunner(
     private suspend fun recordQuick(workflowId: String, status: RunStatus, message: String) {
         val runId = repository.recordRunStart(workflowId, null)
         repository.recordRunEnd(runId, status, message, null)
+    }
+
+    private fun buildNotificationRunner(): NodeExecutor.NotificationRunner? {
+        val context = appContext ?: return null
+        return NodeExecutor.NotificationRunner { title, content, priority ->
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val channelId = "workflow_notify"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(
+                    channelId,
+                    "Workflow Notify",
+                    when (priority) {
+                        "high" -> NotificationManager.IMPORTANCE_HIGH
+                        "low" -> NotificationManager.IMPORTANCE_LOW
+                        else -> NotificationManager.IMPORTANCE_DEFAULT
+                    }
+                ).apply { description = "Notifications sent by workflow nodes" }
+                manager.createNotificationChannel(channel)
+            }
+            val notification = NotificationCompat.Builder(context, channelId)
+                .setContentTitle(title.ifBlank { context.getString(R.string.app_name) })
+                .setContentText(content.ifBlank { "Workflow notification" })
+                .setSmallIcon(R.drawable.ic_notification)
+                .setPriority(
+                    when (priority) {
+                        "high" -> NotificationCompat.PRIORITY_HIGH
+                        "low" -> NotificationCompat.PRIORITY_LOW
+                        else -> NotificationCompat.PRIORITY_DEFAULT
+                    }
+                )
+                .setAutoCancel(true)
+                .build()
+            val notificationId = System.currentTimeMillis().toInt()
+            manager.notify(notificationId, notification)
+            "sent"
+        }
+    }
+
+    private fun buildChatMessageRunner(workflow: Workflow): NodeExecutor.ChatMessageRunner? {
+        val dao = chatDao ?: return null
+        return NodeExecutor.ChatMessageRunner { text, participant ->
+            val conversations = if (workflow.projectId != null) {
+                dao.getConversationsInProject(workflow.projectId)
+            } else {
+                dao.getGlobalConversationsList()
+            }
+            val conversation = conversations.firstOrNull()
+                ?: ChatEntity(
+                    id = java.util.UUID.randomUUID().toString(),
+                    title = workflow.name.ifBlank { "Workflow" },
+                    lastUpdated = System.currentTimeMillis(),
+                    projectId = workflow.projectId
+                ).also { dao.upsertConversation(it) }
+
+            val lastMsg = dao.getLastMessageForConversation(conversation.id)
+            val msgId = "msg_${java.util.UUID.randomUUID()}"
+            val now = System.currentTimeMillis()
+            val entity = MessageEntity(
+                id = msgId,
+                conversationId = conversation.id,
+                parentId = lastMsg?.id,
+                text = text,
+                participant = if (participant.uppercase() == "USER") Participant.USER else Participant.MODEL,
+                status = MessageStatus.SUCCESS,
+                timestamp = now
+            )
+            dao.upsertMessage(entity)
+            dao.upsertConversation(conversation.copy(lastUpdated = now))
+            msgId
+        }
     }
 
     companion object {

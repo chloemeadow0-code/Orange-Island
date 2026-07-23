@@ -114,6 +114,7 @@ data class MessageEntity(
     val parentId: String? = null,
     val text: String,
     val images: List<String> = emptyList(),
+    val audio: List<String> = emptyList(),
     val thoughts: String? = null,
     val thoughtTitle: String? = null,
     val tokenCount: Int = 0,
@@ -295,7 +296,7 @@ abstract class ChatDatabase : RoomDatabase() {
     abstract fun workflowDao(): WorkflowDao
 
     companion object {
-        const val CURRENT_VERSION = 16
+        const val CURRENT_VERSION = 17
         const val DB_NAME = "orangeisland_db"
 
         val ALL_MIGRATIONS = listOf(
@@ -444,6 +445,13 @@ abstract class ChatDatabase : RoomDatabase() {
                     db.execSQL("ALTER TABLE workflows ADD COLUMN projectId TEXT")
                     db.execSQL("ALTER TABLE workflows ADD COLUMN systemPromptId TEXT")
                     db.execSQL("ALTER TABLE workflows ADD COLUMN modelId TEXT")
+                }
+            },
+            object : Migration(16, 17) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // TTS audio attachments: stores a JSON-encoded list of local file paths
+                    // for AI-generated voice messages (speak tool output).
+                    db.execSQL("ALTER TABLE messages ADD COLUMN audio TEXT NOT NULL DEFAULT ''")
                 }
             }
         )
