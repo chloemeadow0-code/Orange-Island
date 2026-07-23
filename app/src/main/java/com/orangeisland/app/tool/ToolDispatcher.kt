@@ -135,21 +135,21 @@ class ToolDispatcher(
      *  original GenerationManager.executeTool contract so LLM-loop callers are unaffected. */
     suspend fun execute(name: String, arguments: String, ctx: GenerationContext): String {
         val t0 = System.currentTimeMillis()
+        val fieldNames = Regex("""\"(\w+)\"\s*:""").findAll(arguments).map { it.groupValues[1] }.toList()
         UsageLogManager.logTool(
             name = name,
             conversationId = ctx.conversationId,
-            details = "args: ${arguments.take(800)}"
+            details = "fields=[${fieldNames.joinToString(",")}]"
         )
         return try {
             for (provider in all) {
                 if (provider.handles(name)) {
                     val result = provider.execute(name, arguments, ctx)
                     val elapsed = System.currentTimeMillis() - t0
-                    val summary = result.take(400).replace("\n", " ")
                     UsageLogManager.logTool(
                         name = "$name ✓",
                         conversationId = ctx.conversationId,
-                        details = "${elapsed}ms | result: $summary"
+                        details = "${elapsed}ms | fields=[${fieldNames.joinToString(",")}] | success"
                     )
                     return result
                 }
@@ -159,7 +159,7 @@ class ToolDispatcher(
             UsageLogManager.logTool(
                 name = "$name ✗",
                 conversationId = ctx.conversationId,
-                details = "error: ${e.localizedMessage ?: "Unknown error"}"
+                details = "${System.currentTimeMillis() - t0}ms | error: ${e.localizedMessage ?: "Unknown error"}"
             )
             "Error executing tool '$name': ${e.localizedMessage ?: "Unknown error"}"
         }

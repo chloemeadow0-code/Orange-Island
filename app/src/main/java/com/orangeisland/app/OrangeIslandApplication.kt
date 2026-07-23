@@ -1,6 +1,7 @@
 package com.orangeisland.app
 
 import android.app.Application
+import com.orangeisland.app.data.UsageLogManager
 import com.orangeisland.app.di.AppContainer
 import com.orangeisland.app.util.CrashReporter
 
@@ -18,6 +19,7 @@ class OrangeIslandApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         CrashReporter.install(this)
+        UsageLogManager.init(this)
         // Start the workflow trigger host so a device signal (boot, schedule, WiFi, …) fires its
         // matching linear workflow through the runner. Idempotent; wrapped so a host failure can
         // never prevent the rest of app init.

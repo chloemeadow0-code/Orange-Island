@@ -25,6 +25,7 @@ import com.orangeisland.app.data.MemoryManager
 import com.orangeisland.app.data.PredefinedVariables
 
 import com.orangeisland.app.data.ShellDeviceConfig
+import com.orangeisland.app.data.UsageLogManager
 
 import com.orangeisland.app.data.local.ChatEntity
 import com.orangeisland.app.data.local.MessageEntity
@@ -1026,6 +1027,11 @@ class ChatViewModel(
     }
 
     fun createNewChat() {
+        UsageLogManager.log(
+            UsageLogManager.Type.CONVERSATION,
+            "create_new_chat",
+            "projectId=${_activeProjectId.value}"
+        )
         switchingJob?.cancel()
         // Snapshot the active project once, when first entering new-chat mode. Subsequent
         // changes to _activeProjectId (e.g. the user taps another project header while
@@ -1112,6 +1118,11 @@ class ChatViewModel(
     }
 
     fun deleteConversation(id: String) {
+        UsageLogManager.log(
+            UsageLogManager.Type.CONVERSATION,
+            "delete_conversation",
+            "conversationId=$id"
+        )
         val stopFinalization = if (_currentConversationId.value == id) {
             session.stop()
         } else null
@@ -1198,7 +1209,14 @@ class ChatViewModel(
 
     fun stopGeneration() = session.stop()
 
-    fun regenerate(messageId: String) = generationController.regenerate(messageId)
+    fun regenerate(messageId: String) {
+        UsageLogManager.log(
+            UsageLogManager.Type.CONVERSATION,
+            "regenerate",
+            "conversationId=${_currentConversationId.value}, messageId=$messageId"
+        )
+        generationController.regenerate(messageId)
+    }
 
     fun switchBranch(parentId: String?, currentMessageId: String, direction: Int) {
         if (_isLoading.value && _generatingInConversationId.value == _currentConversationId.value) return
@@ -1227,7 +1245,14 @@ class ChatViewModel(
         }
     }
 
-    fun editMessage(messageId: String, newText: String) = generationController.editMessage(messageId, newText)
+    fun editMessage(messageId: String, newText: String) {
+        UsageLogManager.log(
+            UsageLogManager.Type.CONVERSATION,
+            "edit_message",
+            "conversationId=${_currentConversationId.value}, messageId=$messageId, length=${newText.length}"
+        )
+        generationController.editMessage(messageId, newText)
+    }
 
     private fun getFileName(context: android.content.Context, uri: android.net.Uri): String {
         return try {
@@ -1244,8 +1269,14 @@ class ChatViewModel(
         }
     }
 
-    fun sendMessage(text: String, images: List<String> = emptyList(), attachments: List<SelectedAttachment> = emptyList()): Boolean =
-        generationController.sendMessage(text, images, attachments)
+    fun sendMessage(text: String, images: List<String> = emptyList(), attachments: List<SelectedAttachment> = emptyList()): Boolean {
+        UsageLogManager.log(
+            UsageLogManager.Type.CONVERSATION,
+            "send_message",
+            "conversationId=${_currentConversationId.value}, length=${text.length}, images=${images.size}, attachments=${attachments.size}"
+        )
+        return generationController.sendMessage(text, images, attachments)
+    }
 
     /**
      * Onboarding-focused model fetch for a single provider.

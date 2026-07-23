@@ -1,5 +1,6 @@
 package com.orangeisland.app.data.service
 
+import com.orangeisland.app.data.UsageLogManager
 import com.orangeisland.app.util.DebugLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -115,6 +116,11 @@ class HealthSyncSupabaseClient(
                 throw Exception("Supabase API error ($responseCode): $errorBody")
             }
 
+            UsageLogManager.log(
+                UsageLogManager.Type.SYNC,
+                "health_sync_insert",
+                "table=$tableName, hasLocation=${data.location != null}, hasHealth=${data.health != null}, apps=${data.appUsage.size}, notifications=${data.notifications.size}"
+            )
             DebugLog.d(TAG, "Successfully inserted row into $tableName")
         }
     }

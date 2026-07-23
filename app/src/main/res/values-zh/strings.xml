@@ -1182,4 +1182,7 @@
     <string name="oi_keepalive_snackbar_fallback">未识别到你的设备厂商设置项，已为你打开应用详情页，请手动查找电池/自启动相关选项</string>
     <string name="oi_keepalive_notification_title">Orange Island 正在监听自动化触发条件</string>
     <string name="oi_keepalive_worker_notification_title">正在运行工作流：%s</string>
+    <string name="logs_type_request">REQUEST</string>
+    <string name="logs_type_conversation">CONVERSATION</string>
+    <string name="logs_type_sync">SYNC</string>
 </resources>

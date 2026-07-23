@@ -18,6 +18,7 @@ import com.orangeisland.app.MainActivity
 import com.orangeisland.app.R
 import com.orangeisland.app.util.CrashReporter
 import com.orangeisland.app.util.DebugLog
+import java.util.concurrent.atomic.AtomicInteger
 
 class OrangeIslandForegroundService : Service() {
 
@@ -29,9 +30,20 @@ class OrangeIslandForegroundService : Service() {
         private const val TAG = "OrangeIslandForegroundService"
         private var instance: OrangeIslandForegroundService? = null
         private var fallbackWakeLock: PowerManager.WakeLock? = null
+        private val activeCount = AtomicInteger(0)
 
         fun start(context: Context) {
             val appContext = context.applicationContext
+            val count = activeCount.incrementAndGet()
+            CrashReporter.note("FGS.start count=$count")
+            if (count > 1) {
+                // Already running from another generation call; no need to re-start.
+                return
+            }
+            if (count <= 0) {
+                // Defensive: should never happen because incrementAndGet always returns >= 1
+                activeCount.set(1)
+            }
             val intent = Intent(appContext, OrangeIslandForegroundService::class.java)
             // Diagnostic trail for the unreproducible "did not start in time" crash:
             // record process importance (foreground vs background) at start.
@@ -40,16 +52,16 @@ class OrangeIslandForegroundService : Service() {
                 ActivityManager.getMyMemoryState(info)
                 "importance=${info.importance} trim=${info.lastTrimLevel}"
             } catch (e: Exception) { "importance=?" }
-            CrashReporter.note("FGS.start api=${Build.VERSION.SDK_INT} $state")
+            CrashReporter.note("FGS.start api=${Build.VERSION.SDK_INT} $state count=$count")
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     appContext.startForegroundService(intent)
                 } else {
                     appContext.startService(intent)
                 }
-                CrashReporter.note("FGS.startForegroundService ok")
+                CrashReporter.note("FGS.startForegroundService ok count=$count")
             } catch (e: RuntimeException) {
-                CrashReporter.note("FGS.startForegroundService threw ${e.javaClass.simpleName}")
+                CrashReporter.note("FGS.startForegroundService threw ${e.javaClass.simpleName} count=$count")
                 DebugLog.w(TAG, "Failed to start foreground service", e)
                 // Fallback: acquire a partial WakeLock so generation does not run
                 // unprotected when the foreground service cannot be started.
@@ -60,7 +72,7 @@ class OrangeIslandForegroundService : Service() {
                         "OrangeIsland:generation_fallback"
                     )
                     fallbackWakeLock?.acquire(10 * 60 * 1000L)
-                    CrashReporter.note("FGS.fallbackWakeLock acquired")
+                    CrashReporter.note("FGS.fallbackWakeLock acquired count=$count")
                 } catch (wl: Exception) {
                     DebugLog.w(TAG, "Failed to acquire fallback WakeLock", wl)
                 }
@@ -81,7 +93,16 @@ class OrangeIslandForegroundService : Service() {
         }
 
         fun stop(context: Context) {
-            CrashReporter.note("FGS.stop foregroundStarted=${instance?.foregroundStarted}")
+            val count = activeCount.decrementAndGet()
+            CrashReporter.note("FGS.stop count=$count foregroundStarted=${instance?.foregroundStarted}")
+            if (count > 0) {
+                // Other generation(s) still running; keep the service alive.
+                return
+            }
+            if (count < 0) {
+                DebugLog.w(TAG, "Foreground service stop() called more times than start() (count=$count). Resetting to 0.")
+                activeCount.set(0)
+            }
             val intent = Intent(context, OrangeIslandForegroundService::class.java)
             context.stopService(intent)
         }

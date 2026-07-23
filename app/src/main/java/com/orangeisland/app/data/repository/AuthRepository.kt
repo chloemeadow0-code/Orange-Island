@@ -2,6 +2,7 @@ package com.orangeisland.app.data.repository
 
 import com.orangeisland.app.BuildConfig
 import com.orangeisland.app.data.SettingsManager
+import com.orangeisland.app.data.UsageLogManager
 import com.orangeisland.app.util.DebugLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
@@ -109,6 +110,11 @@ class AuthRepository(
             )
 
             settingsManager.saveAuthSession(loggedIn = true, userName = uname, userEmail = synthEmail)
+            UsageLogManager.log(
+                UsageLogManager.Type.SYNC,
+                "auth_register",
+                "username=$uname"
+            )
             return AuthResult.Success
         } catch (e: Exception) {
             DebugLog.e(TAG, "register failed", e)
@@ -129,6 +135,11 @@ class AuthRepository(
                 this.password = password
             }
             settingsManager.saveAuthSession(loggedIn = true, userName = uname, userEmail = synthEmail(uname))
+            UsageLogManager.log(
+                UsageLogManager.Type.SYNC,
+                "auth_login",
+                "username=$uname"
+            )
             return AuthResult.Success
         } catch (e: Exception) {
             DebugLog.e(TAG, "login failed", e)
@@ -141,6 +152,11 @@ class AuthRepository(
     suspend fun logout() {
         runCatching { supabase.auth.signOut(SignOutScope.LOCAL) }
         settingsManager.clearAuthSession()
+        UsageLogManager.log(
+            UsageLogManager.Type.SYNC,
+            "auth_logout",
+            ""
+        )
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

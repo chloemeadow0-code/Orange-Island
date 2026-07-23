@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.concurrent.atomic.AtomicBoolean
@@ -72,6 +74,12 @@ class GenerationSession(
     private val genLock = Any()
     private var uiGenToken = 0L
     private val persistId = AtomicLong(0L)
+    private val messageWriteMutex = Mutex()
+
+    /** Serializes DB writes for the same message id across [stopInternal]'s
+     *  launchStopFinalization() and [GenerationManager.generate]'s finally block,
+     *  preventing the two paths from racing and clobbering each other. */
+    suspend fun <T> withMessageWriteLock(block: suspend () -> T): T = messageWriteMutex.withLock { block() }
 
     private data class StopFinalizationState(
         val conversationId: String?,
@@ -194,7 +202,9 @@ class GenerationSession(
                 if (!conversationExists) return@launch
                 for (message in messages) {
                     DebugLog.d("GenStopRace", "[stopInternal] BEFORE upsert id=${message.id} textLen=${message.text.length} time=${System.currentTimeMillis()}")
-                    convRepo.upsertMessage(message.toStoppedEntity(conversationId))
+                    withMessageWriteLock {
+                        convRepo.upsertMessage(message.toStoppedEntity(conversationId))
+                    }
                     DebugLog.d("GenStopRace", "[stopInternal] AFTER  upsert id=${message.id} textLen=${message.text.length} time=${System.currentTimeMillis()}")
                     if (message.text.isNotBlank() && settings.autoCacheEnabled.value &&
                         (settings.modelSearchMethod.value == Constants.SEARCH_METHOD_RAG || settings.manualSearchMethod.value == Constants.SEARCH_METHOD_RAG)
