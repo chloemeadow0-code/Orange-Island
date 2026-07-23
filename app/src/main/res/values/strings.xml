@@ -209,7 +209,7 @@
     <string name="settings_prompts">System Prompts</string>
     <string name="settings_prompts_desc">Create and manage system instructions</string>
     <string name="settings_models">Models</string>
-    <string name="settings_models_desc">Enable, disable, and configure AI models</string>
+    <string name="settings_models_desc">Default model, available models, and multimodal models</string>
     <string name="settings_generation">Generation</string>
     <string name="settings_generation_desc">LLM parameters and context window</string>
     <string name="settings_web_search">Web Search</string>
@@ -318,6 +318,8 @@
     <string name="models_default">Default Model</string>
     <string name="models_no_models">No models enabled</string>
     <string name="models_available">Available Models</string>
+    <string name="models_multimodal">Multimodal Models</string>
+    <string name="models_embedding_vector">Embedding / Vector Models</string>
     <string name="models_sync">Sync from All Providers</string>
     <string name="models_sync_desc">Fetch the latest model list for all configured APIs</string>
     <string name="provider_test_connection">Test Connection</string>
@@ -384,6 +386,10 @@
     <string name="models_rename_current">Current ID: %1$s</string>
     <string name="models_alias_hint">Alias</string>
     <string name="models_select_default">Select Default Model</string>
+    <string name="models_available_desc">Browse by provider, search precisely after entering</string>
+    <string name="models_multimodal_desc">Image transcription, image generation, and embedding models</string>
+    <string name="models_search_hint">Search within this provider</string>
+    <string name="models_no_matches">No matching models</string>
 
     <!-- Settings - Generation Page -->
     <string name="generation_title">Generation</string>

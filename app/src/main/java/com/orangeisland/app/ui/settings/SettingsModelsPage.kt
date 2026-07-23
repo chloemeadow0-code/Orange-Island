@@ -1,258 +1,193 @@
 package com.orangeisland.app.ui.settings
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
+import com.orangeisland.app.model.ModelId
 import com.orangeisland.app.model.apiModelName
-import com.orangeisland.app.ui.components.clearFocusOnTap
 import com.orangeisland.app.ui.components.providerIcon
 import com.orangeisland.app.util.Constants
-import com.orangeisland.app.util.noOpBringIntoView
 import com.orangeisland.app.viewmodel.ChatViewModel
-
-// Shape constants matching SettingsGroup's per-position rounding.
-// Each encodes top-corners / bottom-corners for its place in the group.
-private val FullRounded   = RoundedCornerShape(24.dp)
-private val TopRounded    = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 5.dp, bottomEnd = 5.dp)
-private val BottomRounded = RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
-private val MidRounded    = RoundedCornerShape(5.dp)
-private val FlatShape     = RoundedCornerShape(0.dp)
-private val FlatToBottom  = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
-private val FiveTop       = RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp)
-private val FiveBottom    = RoundedCornerShape(bottomStart = 5.dp, bottomEnd = 5.dp)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
+fun SettingsModelsPage(
+    viewModel: ChatViewModel,
+    onBack: () -> Unit
+) {
     val enabledModels by viewModel.settings.enabledModels.collectAsState()
     val availableModels by viewModel.settings.availableModels.collectAsState()
     val manualModels by viewModel.settings.manualModels.collectAsState()
     val modelAliases by viewModel.settings.modelAliases.collectAsState()
     val selectedModel by viewModel.settings.selectedModel.collectAsState()
-    var showActiveModelDialog by remember { mutableStateOf(false) }
-    var showModelAliasDialog by remember { mutableStateOf<String?>(null) }
-    val expandedProviders = remember { mutableStateMapOf<String, MutableTransitionState<Boolean>>() }
-    val modelBlockHeights = remember { mutableStateMapOf<String, Float>() }
-
     val showDocFab by viewModel.settings.showDocumentationFab.collectAsState()
-    val lastFingerprint by viewModel.settings.lastModelsFetchFingerprint.collectAsState()
-    // Merge fetched (availableModels) and manually-added (manualModels) lists per provider,
-    // deduplicating so a manually-added ID that also appears in /models isn't shown twice.
-    val providers: Map<String, List<String>> = buildMap {
-        for (entry in availableModels.entries + manualModels.entries) {
-            val existing = getOrDefault(entry.key, emptyList())
-            put(entry.key, (existing + entry.value).distinct())
-        }
-    }.filterValues { it.isNotEmpty() }
 
-    // Auto-fetch models when entering the page if provider config has changed
-    LaunchedEffect(Unit) {
-        val current = viewModel.computeProviderFingerprint()
-        if (current != lastFingerprint) {
-            viewModel.fetchAvailableModels()
+    var showActiveModelDialog by remember { mutableStateOf(false) }
+    var subScreen by rememberSaveable { mutableStateOf<String?>(null) }
+
+    BackHandler {
+        if (subScreen != null) {
+            subScreen = null
+        } else {
+            onBack()
         }
     }
 
-    CollapsingSettingsLazyScaffold(
-        title = stringResource(R.string.models_title),
-        onBack = onBack,
-        contentHorizontalPadding = 0.dp,
-        floatingActionButton = { if (showDocFab) DocumentationFab("models.md") }
-    ) {
-            // ── Default Model section ──
-            item(key = "section_default_title") {
-                SectionLabel(
-                    text = stringResource(R.string.models_default),
-                    firstInPage = true
-                )
-            }
-
-            item(key = "default_model") {
-                val activeAlias = modelAliases[selectedModel]
-                val activeParsed = com.orangeisland.app.model.ModelId.parse(selectedModel)
-                val providerName = activeParsed.providerName
-                val activeDisplayName = activeAlias ?: activeParsed.apiModelName
-                val activeIconRes = providerIcon(providerName)
-                val isActiveLocal = providerName.equals(Constants.PROVIDER_LOCAL, ignoreCase = true)
-                val hasEnabledModels = enabledModels.isNotEmpty()
-
-                CardSurface(shape = FullRounded) {
-                    SettingsItem(
-                        headlineContent = {
-                            Text(
-                                if (!hasEnabledModels) stringResource(R.string.models_no_models) else activeDisplayName,
-                                color = if (!hasEnabledModels) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        supportingContent = if (hasEnabledModels) {
-                            { Text(providerName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) }
-                        } else null,
-                        leadingContent = {
-                            val tint = if (hasEnabledModels) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                            when {
-                                !hasEnabledModels -> Icon(Icons.Default.Chat, null, tint = tint, modifier = Modifier.size(24.dp))
-                                isActiveLocal -> Icon(Icons.Default.AutoAwesome, null, tint = tint, modifier = Modifier.size(24.dp))
-                                activeIconRes != 0 -> Icon(painterResource(activeIconRes), null, tint = tint, modifier = Modifier.size(24.dp))
-                                else -> Icon(Icons.Default.Chat, null, tint = tint, modifier = Modifier.size(24.dp))
-                            }
-                        },
-                        modifier = Modifier.heightIn(min = 66.dp).clickable(enabled = hasEnabledModels) { showActiveModelDialog = true }
-                    )
-                }
-            }
-
-            // ── Available Models section ──
-            item(key = "section_available_title") {
-                SectionLabel(
-                    text = stringResource(R.string.models_available),
-                    firstInPage = false
-                )
-            }
-
-            // Sync button – always first in the Available card
-            val hasProviders = providers.isNotEmpty()
-            item(key = "sync") {
-                CardSurface(
-                    shape = if (hasProviders) TopRounded else FullRounded
+    GuardedAnimatedContent(
+        targetState = subScreen,
+        forward = subScreen != null
+    ) { screen ->
+        when (screen) {
+            "available" -> SettingsAvailableModelsPage(
+                viewModel = viewModel,
+                onBack = { subScreen = null }
+            )
+            "multimodal" -> SettingsMultimodalModelsPage(
+                viewModel = viewModel,
+                onBack = { subScreen = null }
+            )
+            else -> {
+                CollapsingSettingsLazyScaffold(
+                    title = stringResource(R.string.models_title),
+                    onBack = onBack,
+                    floatingActionButton = {
+                        if (showDocFab) DocumentationFab("models.md")
+                    }
                 ) {
-                    SettingsItem(
-                        headlineContent = { Text(stringResource(R.string.models_sync)) },
-                        supportingContent = { Text(stringResource(R.string.models_sync_desc)) },
-                        leadingContent = { Icon(Icons.Default.Refresh, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                        modifier = Modifier.clickable { viewModel.fetchAvailableModels() }
-                    )
-                }
-            }
+                    // ── Default Model section ──
+                    item(key = "section_default") {
+                        val activeAlias = modelAliases[selectedModel]
+                        val activeParsed = ModelId.parse(selectedModel)
+                        val providerName = activeParsed.providerName
+                        val activeDisplayName = activeAlias ?: activeParsed.apiModelName
+                        val activeIconRes = providerIcon(providerName)
+                        val isActiveLocal = providerName.equals(Constants.PROVIDER_LOCAL, ignoreCase = true)
+                        val hasEnabledModels = enabledModels.isNotEmpty()
 
-            // Providers
-            for ((providerIndex, entry) in providers.entries.withIndex()) {
-                val (name, models) = entry
-                val transitionState = expandedProviders.getOrPut(name) { MutableTransitionState(false) }
-                val isExpanded = transitionState.targetState
-                val isLastProvider = providerIndex == providers.size - 1
-
-                // ── Provider header ──
-                item(key = "hdr_$name") {
-                    // Bottom corners track model block height:
-                    // height >= radius → ratio=0 → flat (merge with content)
-                    // height = 0     → ratio=1 → fully rounded
-                    // Interpolates linearly in [0, radius].
-                    val collapsedRadiusDp = if (isLastProvider) 24f else 5f
-                    val currentHeight = modelBlockHeights[name] ?: 0f
-                    val ratio = (1f - currentHeight / collapsedRadiusDp).coerceIn(0f, 1f)
-                    val bottomRadius = (collapsedRadiusDp * ratio).dp
-                    val headerShape = RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = bottomRadius, bottomEnd = bottomRadius)
-
-                    CardSurface(shape = headerShape, addTopGap = true) {
-                        val headerIconRes = providerIcon(name)
-                        val isLocalHeader = name.equals(Constants.PROVIDER_LOCAL, ignoreCase = true)
-                        SettingsItem(
-                            headlineContent = { Text(name) },
-                            supportingContent = { Text(stringResource(R.string.models_count, models.size)) },
-                            leadingContent = {
-                                when {
-                                    isLocalHeader -> Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                                    headerIconRes != 0 -> Icon(painterResource(headerIconRes), null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                                    else -> Icon(Icons.Default.Cloud, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                                }
-                            },
-                            trailingContent = {
-                                Icon(
-                                    if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                    contentDescription = null
+                        SettingsGroup(
+                            title = stringResource(R.string.models_default),
+                            items = listOf({
+                                SettingsItem(
+                                    headlineContent = {
+                                        Text(
+                                            if (!hasEnabledModels) stringResource(R.string.models_no_models) else activeDisplayName,
+                                            color = if (!hasEnabledModels) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    },
+                                    supportingContent = if (hasEnabledModels) {
+                                        { Text(providerName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) }
+                                    } else null,
+                                    leadingContent = {
+                                        val tint = if (hasEnabledModels) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                        when {
+                                            !hasEnabledModels -> Icon(Icons.Default.Chat, null, tint = tint, modifier = Modifier.size(24.dp))
+                                            isActiveLocal -> Icon(Icons.Default.AutoAwesome, null, tint = tint, modifier = Modifier.size(24.dp))
+                                            activeIconRes != 0 -> Icon(painterResource(activeIconRes), null, tint = tint, modifier = Modifier.size(24.dp))
+                                            else -> Icon(Icons.Default.Chat, null, tint = tint, modifier = Modifier.size(24.dp))
+                                        }
+                                    },
+                                    modifier = Modifier.clickable(enabled = hasEnabledModels) { showActiveModelDialog = true }
                                 )
-                            },
-                            modifier = Modifier.clickable {
-                                transitionState.targetState = !transitionState.targetState
-                            }
+                            })
                         )
                     }
-                }
 
-                // ── Model block (one AnimatedVisibility → Column, like the original) ──
-                item(key = "models_$name") {
-                    val density = LocalDensity.current
-                    AnimatedVisibility(
-                        visibleState = transitionState,
-                        enter = expandVertically(),
-                        exit = shrinkVertically(),
-                        modifier = Modifier.onGloballyPositioned { coordinates ->
-                            modelBlockHeights[name] = coordinates.size.height / density.density
-                        }
-                    ) {
-                        Column {
-                            for ((modelIndex, model) in models.withIndex()) {
-                                val isLastModel = modelIndex == models.lastIndex
-                                // Within the block models touch seamlessly (FlatShape).
-                                // The last model closes the group: 24dp if last provider, else 5dp.
-                                val modelShape = when {
-                                    isLastModel && isLastProvider -> FlatToBottom
-                                    isLastModel -> FiveBottom
-                                    else -> FlatShape
+                    // ── Directory rows: Available & Multimodal ──
+                    item(key = "directory_rows") {
+                        val totalCount = mergeProviderModels(availableModels, manualModels).values.flatten().size
+                        val rows = listOf<@Composable () -> Unit>(
+                            {
+                                SettingsItem(
+                                    headlineContent = { Text(stringResource(R.string.models_available)) },
+                                    supportingContent = { Text(stringResource(R.string.models_available_desc)) },
+                                    leadingContent = {
+                                        Icon(
+                                            Icons.Default.Search,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    },
+                                    trailingContent = {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = MaterialTheme.colorScheme.primaryContainer
+                                        ) {
+                                            Text(
+                                                text = totalCount.toString(),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.clickable { subScreen = "available" }
+                                )
+                            },
+                            {
+                                SettingsItem(
+                                    headlineContent = { Text(stringResource(R.string.models_multimodal)) },
+                                    supportingContent = { Text(stringResource(R.string.models_multimodal_desc)) },
+                                    leadingContent = {
+                                        Icon(
+                                            Icons.Default.AutoAwesome,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    },
+                                    modifier = Modifier.clickable { subScreen = "multimodal" }
+                                )
+                            }
+                        )
+
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            rows.forEachIndexed { index, content ->
+                                if (index > 0) {
+                                    Spacer(modifier = Modifier.height(2.dp))
                                 }
-
-                                CardSurface(shape = modelShape, addTopGap = false) {
-                                    val isEnabled = enabledModels.contains(model)
-                                    val alias = modelAliases[model]
-                                    val parsed = com.orangeisland.app.model.ModelId.parse(model)
-                                    val displayName = alias ?: parsed.apiModelName
-
-                                    SettingsItem(
-                                        headlineContent = { Text(displayName) },
-                                        supportingContent = if (alias != null) { { Text(parsed.apiModelName) } } else null,
-                                        trailingContent = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                IconButton(onClick = { showModelAliasDialog = model }) {
-                                                    Icon(
-                                                        Icons.Default.Edit,
-                                                        contentDescription = stringResource(R.string.models_rename),
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
-                                                }
-                                                Checkbox(checked = isEnabled, onCheckedChange = {
-                                                    viewModel.settings.setEnabledModels(if (it) enabledModels + model else enabledModels - model)
-                                                })
-                                            }
-                                        },
-                                        modifier = Modifier.padding(start = 16.dp)
-                                    )
+                                val shape = when {
+                                    rows.size == 1 -> RoundedCornerShape(24.dp)
+                                    index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 5.dp, bottomEnd = 5.dp)
+                                    index == rows.lastIndex -> RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
+                                    else -> RoundedCornerShape(5.dp)
+                                }
+                                Surface(
+                                    shape = shape,
+                                    color = MaterialTheme.colorScheme.surface,
+                                    tonalElevation = 1.dp,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    content()
                                 }
                             }
                         }
                     }
+
+                    if (showDocFab) {
+                        item(key = "doc_spacer") { Spacer(modifier = Modifier.height(80.dp)) }
+                    }
                 }
             }
-            if (showDocFab) {
-                item(key = "doc_spacer") { Spacer(modifier = Modifier.height(80.dp)) }
-            }
+        }
     }
 
     // ── Active Model Dialog ──
@@ -265,7 +200,7 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     items(enabledModels.toList()) { model ->
                         val alias = modelAliases[model]
-                        val parsed = com.orangeisland.app.model.ModelId.parse(model)
+                        val parsed = ModelId.parse(model)
                         val displayName = alias ?: parsed.apiModelName
                         val providerName = parsed.providerName
 
@@ -293,77 +228,11 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { showActiveModelDialog = false }) { Text(stringResource(R.string.provider_close)) } }
-        )
-    }
-
-    // ── Model Alias Dialog ──
-    showModelAliasDialog?.let { model ->
-        val aliasState = rememberTextFieldState(modelAliases[model] ?: "")
-
-        AlertDialog(
-            modifier = Modifier.clearFocusOnTap(),
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            onDismissRequest = { showModelAliasDialog = null },
-            title = { Text(stringResource(R.string.models_rename), fontWeight = FontWeight.Bold) },
-            text = {
-                val parsed = com.orangeisland.app.model.ModelId.parse(model)
-                Column(Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.models_rename_current, parsed.apiModelName), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Box(modifier = Modifier.noOpBringIntoView()) {
-                        OutlinedTextField(
-                            state = aliasState,
-                            label = { Text(stringResource(R.string.models_alias_hint)) },
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text(parsed.apiModelName) }
-                        )
-                    }
-                }
-            },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.settings.updateModelAlias(model, aliasState.text.toString())
-                    showModelAliasDialog = null
-                }) { Text(stringResource(R.string.provider_save)) }
-            },
-            dismissButton = { TextButton(onClick = { showModelAliasDialog = null }) { Text(stringResource(R.string.provider_cancel)) } }
+                TextButton(onClick = { showActiveModelDialog = false }) {
+                    Text(stringResource(R.string.provider_close))
+                }
+            }
         )
-    }
-}
-
-/**
- * Section title matching SettingsGroup's label style.
- * [firstInPage] = true for the first section on the page (no extra top gap);
- * subsequent sections get a 24dp gap above to match SettingsGroup's bottom padding.
- */
-@Composable
-private fun SectionLabel(text: String, firstInPage: Boolean) {
-    val topPadding = if (firstInPage) 12.dp else 36.dp
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 32.dp, end = 16.dp, top = topPadding, bottom = 12.dp)
-    )
-}
-
-/**
- * A single Surface card matching SettingsGroup's style.
- * [addTopGap] adds a 2dp gap above when true (for items after the first in a group).
- */
-@Composable
-private fun CardSurface(shape: Shape, addTopGap: Boolean = false, content: @Composable () -> Unit) {
-    Surface(
-        shape = shape,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .then(if (addTopGap) Modifier.padding(top = 2.dp) else Modifier)
-    ) {
-        content()
     }
 }
