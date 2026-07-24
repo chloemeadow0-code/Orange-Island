@@ -1110,6 +1110,25 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * Notify the environment tracker when a system prompt is *edited* (content changed,
+     * not just switched). Only records the event when the edited prompt is currently
+     * in effect — either as the global default or as the active conversation's prompt.
+     */
+    fun onSystemPromptEdited(promptId: String, title: String) {
+        val isGlobalActive = settings.activeSystemPromptId.value == promptId
+        val conv = _currentConversationId.value?.let { cid ->
+            conversations.value.find { it.id == cid }
+        }
+        val isConversationActive = conv?.systemPromptId == promptId
+        // Also cover the case where the conversation falls back to the global default
+        // and that global default is the one being edited.
+        val isFallbackGlobalActive = conv?.systemPromptId == null && isGlobalActive
+        if (isGlobalActive || isConversationActive || isFallbackGlobalActive) {
+            appContextCollector?.logSystemPromptChange(title)
+        }
+    }
+
     fun setActiveModel(model: String) {
         _currentActiveModel.value = model
         _currentConversationId.value?.let { id ->

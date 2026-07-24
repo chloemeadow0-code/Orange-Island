@@ -254,8 +254,7 @@ fun SettingsScreen(
                 "mcp" -> SettingsMcpPage(viewModel, onBack = { selectedCategory = null })
                 "plugins" -> SettingsPluginPage(
                     viewModel,
-                    onBack = { selectedCategory = null },
-                    memoryProvider = memoryProvider
+                    onBack = { selectedCategory = null }
                 )
                 "device_access" -> SettingsDeviceAccessPage(
                     viewModel = viewModel,

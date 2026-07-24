@@ -137,7 +137,7 @@ fun ChatApp(
     val toolCallDisplayMode by viewModel.settings.toolCallDisplayMode.collectAsState()
     val conversationSettings by viewModel.settings.conversationSettings.collectAsState()
     val pendingSettings by viewModel.pendingConversationSettings.collectAsState()
-    // Resolved per-conversation values: override → global default
+    // Resolved per-conversation values: override �?global default
     val convId = currentConversationId
     val convOverride = if (convId != null) conversationSettings[convId] else pendingSettings
     val codeExecutionEnabled = convOverride?.codeExecutionEnabled ?: globalCodeExecution
@@ -146,7 +146,7 @@ fun ChatApp(
     val thinkingLevel = convOverride?.thinkingLevel ?: globalThinkingLevel
     val thinkingBudgetEnabled = convOverride?.thinkingBudgetEnabled ?: globalThinkingBudgetEnabled
     val thinkingBudgetTokens = convOverride?.thinkingBudgetTokens ?: globalThinkingBudgetTokens
-    // Web Search and Shell: global switch OFF → always false, regardless of override
+    // Web Search and Shell: global switch OFF �?always false, regardless of override
     val webSearchEnabled = globalWebSearch && (convOverride?.webSearchEnabled ?: true)
     val shellEnabled = globalShell && (convOverride?.shellEnabled ?: true)
     val contextWindow = convOverride?.contextWindow ?: maxContextWindow
@@ -918,7 +918,7 @@ fun ChatApp(
     // ── Project dialogs ──────────────────────────────────────
     // The model/prompt option lists are built from the same settings flows used by the
     // per-conversation dialogs, so "project default" and "chat override" see the same set.
-    // NOTE: these shadow a few top-of-composable names on purpose — here we want the GLOBAL
+    // NOTE: these shadow a few top-of-composable names on purpose �?here we want the GLOBAL
     // settings defaults (not currentActiveModel / per-chat overrides) for project pickers.
     val projectEnabledModels by viewModel.settings.enabledModels.collectAsState()
     val projectModelAliases by viewModel.settings.modelAliases.collectAsState()
@@ -998,6 +998,7 @@ fun ChatApp(
                 conversations.filter { it.projectId == id }
             }
             ProjectSettingsScreen(
+                projectId = id,
                 projectName = project.name,
                 initialModelId = project.modelId,
                 initialPromptId = project.systemPromptId,

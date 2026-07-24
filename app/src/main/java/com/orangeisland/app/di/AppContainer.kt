@@ -111,6 +111,11 @@ class AppContainer(private val appContext: Context) {
         com.orangeisland.app.data.repository.WorkflowRepository(database.workflowDao(), workflowJson)
     }
 
+    /** Exposes chat memories to JS plugins (WebView pages and QuickJS sandbox tools). */
+    val pluginMemoryProvider: com.orangeisland.app.plugin.AppPluginMemoryProvider by lazy {
+        com.orangeisland.app.plugin.AppPluginMemoryProvider(conversationRepository, memoryManager)
+    }
+
     /**
      * Builds a foreground [com.orangeisland.app.workflow.WorkflowRunner] wired to the app-wide
      * dispatcher. The [onConfirmDestructive] / [onNodeState] callbacks are caller-supplied (the UI
