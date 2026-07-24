@@ -11,6 +11,7 @@ import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.model.ModelId
 import com.orangeisland.app.model.apiModelName
 import com.orangeisland.app.util.Constants
+import com.orangeisland.app.util.DebugLog
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -237,19 +238,68 @@ class GenerationRequestBuilder(
             PredefinedVariables.APP_CONTEXT to (appContextCollector?.getSnapshot() ?: "")
         )
 
+        val projectId = conversation?.projectId
+        val includeSavedMemories = settings.accessSavedMemories.value
+        val projectMemoryBlock = if (includeSavedMemories && projectId != null) {
+            buildProjectMemoryBlock(projectId)
+        } else null
+
         if (entry != null) {
             val systemItems = entry.resolvedSystemItems
             // Prepend/postpend: {sent_time}/{sent_date} stay as placeholders resolved per-message in applyUserTemplate
             val perMsgValues = runtimeValues.filterKeys { it !in PredefinedVariables.PER_MESSAGE_VARS }
+            val compiled = PredefinedVariables.compile(systemItems, runtimeValues).ifBlank { null }
+            val withMemory = if (projectMemoryBlock != null && compiled != null) {
+                "$compiled\n\n$projectMemoryBlock"
+            } else if (projectMemoryBlock != null) {
+                projectMemoryBlock
+            } else {
+                compiled
+            }
             return ResolvedPrompt(
-                systemPrompt = PredefinedVariables.compile(systemItems, runtimeValues).ifBlank { null },
+                systemPrompt = withMemory,
                 userPrepend = PredefinedVariables.compile(entry.userPrependItems, perMsgValues, emptyMap()).ifBlank { null },
                 userPostpend = PredefinedVariables.compile(entry.userPostpendItems, perMsgValues, emptyMap()).ifBlank { null },
-                projectId = conversation?.projectId,
+                projectId = projectId,
                 systemPromptId = targetPromptId
             )
         }
 
-        return ResolvedPrompt(null, null, null, conversation?.projectId, targetPromptId)
+        return ResolvedPrompt(
+            systemPrompt = projectMemoryBlock,
+            userPrepend = null,
+            userPostpend = null,
+            projectId = projectId,
+            systemPromptId = targetPromptId
+        )
+    }
+
+    /**
+     * Reads project-scoped long-term memory files (global + project-private merged) and
+     * formats them into a block suitable for appending to the system prompt. Returns null
+     * when there are no files, the feature is disabled, or reading fails.
+     */
+    private suspend fun buildProjectMemoryBlock(projectId: String): String? {
+        return try {
+            val files = memoryManager.listFilesMerged(projectId).filter { it.name.isNotBlank() }
+            if (files.isEmpty()) return null
+            val parts = mutableListOf<String>()
+            for (info in files) {
+                val content = runCatching {
+                    memoryManager.readFile(info.name, info.projectId)
+                }.getOrElse {
+                    DebugLog.w("GenerationRequestBuilder", "Failed to read memory ${info.name}: ${it.message}")
+                    null
+                }
+                if (!content.isNullOrBlank()) {
+                    parts.add("### ${info.name}\n${content.trim()}")
+                }
+            }
+            if (parts.isEmpty()) return null
+            "## 项目长期记忆\n\n" + parts.joinToString("\n\n")
+        } catch (e: Exception) {
+            DebugLog.e("GenerationRequestBuilder", "buildProjectMemoryBlock failed", e)
+            null
+        }
     }
 }

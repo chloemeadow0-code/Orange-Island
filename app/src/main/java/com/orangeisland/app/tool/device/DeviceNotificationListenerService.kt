@@ -79,7 +79,7 @@ class DeviceNotificationListenerService : NotificationListenerService() {
 
         /** Snapshot copy of captured notifications, newest first. Safe to call off the main thread. */
         fun snapshot(): List<CapturedNotification> = synchronized(ringBuffer) {
-            ringBuffer.reversed().toList()
+            ringBuffer.toList().reversed()
         }
 
         // ── Live observers (workflow trigger family) ────────────────────────────────────

@@ -95,6 +95,20 @@ class AppContextCollector(
         DebugLog.d("AppContext", "[$type] $description")
     }
 
+    /** Push a system-prompt-changed event into the ring buffer.
+     *  Callers (e.g. ChatViewModel) use this when the user switches the prompt at the
+     *  *conversation* level so the model sees the change via {app_context} on the next generation. */
+    fun logSystemPromptChange(title: String) {
+        pushEvent(EnvironmentEventType.SYSTEM_PROMPT_CHANGED, "提示词切换为：$title")
+    }
+
+    /** Push a system-prompt-edited event into the ring buffer.
+     *  Callers use this when the content of the *currently-active* prompt is modified
+     *  so the model knows its own instructions have been updated. */
+    fun logSystemPromptEdited(title: String) {
+        pushEvent(EnvironmentEventType.SYSTEM_PROMPT_CHANGED, "提示词已编辑：$title")
+    }
+
     private fun beginCollecting() {
         if (foregroundRemover != null) return // already running
 

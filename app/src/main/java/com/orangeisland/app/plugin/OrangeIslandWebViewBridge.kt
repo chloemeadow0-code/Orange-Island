@@ -10,6 +10,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -48,6 +49,8 @@ class OrangeIslandWebViewBridge(
      *  Updated by the Compose host (PluginWebViewPage) as DataStore resolves them. */
     @Volatile var deviceUserId: String = "",
     @Volatile var pluginConfigJson: String = "{}",
+    /** Provides read access to the host app's chat memories for this plugin's UI page. */
+    private val memoryProvider: PluginMemoryProvider? = null,
 ) {
     companion object {
         private const val TAG = "OrangeIslandWebViewBridge"
@@ -118,7 +121,97 @@ class OrangeIslandWebViewBridge(
     @JavascriptInterface
     fun getDeviceId(): String = deviceUserId
 
-    /** Reserved for future host→page pushes (e.g. tool-call notifications). No-op in v1. */
+    /** Read recent messages for [conversationId] (JSON array). Limit defaults to 50. */
+    @JavascriptInterface
+    fun getChatHistory(conversationId: String, limit: Int): String {
+        val provider = memoryProvider ?: return "[]"
+        return runCatching {
+            kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                provider.getChatHistory(conversationId, limit.coerceIn(1, 200))
+            }
+        }.getOrElse { errorJson("memory_error", it.message ?: "read failed") }
+    }
+
+    /** Read long-term memories scoped to [conversationId]'s project (global+project merged). */
+    @JavascriptInterface
+    fun getLongTermMemories(conversationId: String): String {
+        val provider = memoryProvider ?: return "[]"
+        return runCatching {
+            kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                provider.getLongTermMemories(conversationId)
+            }
+        }.getOrElse { errorJson("memory_error", it.message ?: "read failed") }
+    }
+
+    /** Read the active / working memory text. */
+    @JavascriptInterface
+    fun getActiveMemory(conversationId: String): String {
+        val provider = memoryProvider ?: return ""
+        return runCatching {
+            kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                provider.getActiveMemory(conversationId)
+            }
+        }.getOrElse { errorJson("memory_error", it.message ?: "read failed") }
+    }
+
+    /** Send a user message into [conversationId]. Returns `"true"` or `"false"`. */
+    @JavascriptInterface
+    fun sendChatMessage(conversationId: String, text: String): String {
+        val provider = memoryProvider ?: return "false"
+        return runCatching {
+            kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                provider.sendChatMessage(conversationId, text).toString()
+            }
+        }.getOrElse { "false" }
+    }
+
+    /** Resolve the project id that owns [conversationId]. */
+    @JavascriptInterface
+    fun resolveProjectId(conversationId: String): String {
+        val provider = memoryProvider ?: return ""
+        return runCatching {
+            kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                provider.resolveProjectId(conversationId) ?: ""
+            }
+        }.getOrDefault("")
+    }
+
+    /** Full metadata for [conversationId] as a JSON object:
+     *  `{"id":"...","projectId":"...","modelId":"...","systemPromptId":"..."}`.
+     */
+    @JavascriptInterface
+    fun getConversationInfo(conversationId: String): String {
+        val provider = memoryProvider ?: return "{}"
+        return runCatching {
+            kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                provider.getConversationInfo(conversationId)
+            }
+        }.getOrElse { "{}" }
+    }
+
+    /** Read long-term memories for a specific [projectId] (global + project-private merged). */
+    @JavascriptInterface
+    fun getProjectMemories(projectId: String): String {
+        val provider = memoryProvider ?: return "[]"
+        return runCatching {
+            kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                provider.getProjectMemories(projectId)
+            }
+        }.getOrElse { "[]" }
+    }
+
+    /** Create a new conversation inside [projectId]. Returns the new conversation id or "". */
+    @JavascriptInterface
+    fun createConversation(projectId: String, title: String, modelId: String, systemPromptId: String): String {
+        val provider = memoryProvider ?: return ""
+        return runCatching {
+            kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                provider.createConversation(projectId, title, modelId.ifBlank { null }, systemPromptId.ifBlank { null })
+            }
+        }.getOrElse { "" }
+    }
+
+    /** Reserved for future host鈫抪age pushes (e.g. tool-call notifications). No-op in v1. */
     fun pushToPage(payload: String) {
         evaluate("if (typeof window.orangeisland.onMessage === 'function') { window.orangeisland.onMessage(${jsonEncodeJsString(payload)}); }")
     }
@@ -175,6 +268,40 @@ class OrangeIslandWebViewBridge(
                     if (typeof cb === 'function') callbacks[id] = cb;
                     native.bridgeCall(tool, typeof args === 'string' ? args : JSON.stringify(args || {}), id);
                     return id;
+                },
+                // Memory accessors — read the host app's chat context and long-term memories.
+                // All calls are synchronous (backed by @JavascriptInterface) and return parsed JSON.
+                getChatHistory: function(conversationId, limit) {
+                    try { return JSON.parse(native.getChatHistory(conversationId, limit || 50) || '[]'); }
+                    catch (e) { console.error('getChatHistory error: ' + e); return []; }
+                },
+                getLongTermMemories: function(conversationId) {
+                    try { return JSON.parse(native.getLongTermMemories(conversationId || '') || '[]'); }
+                    catch (e) { console.error('getLongTermMemories error: ' + e); return []; }
+                },
+                getActiveMemory: function(conversationId) {
+                    try { return native.getActiveMemory(conversationId || '') || ''; }
+                    catch (e) { console.error('getActiveMemory error: ' + e); return ''; }
+                },
+                sendChatMessage: function(conversationId, text) {
+                    try { return native.sendChatMessage(conversationId || '', text || '') === 'true'; }
+                    catch (e) { console.error('sendChatMessage error: ' + e); return false; }
+                },
+                resolveProjectId: function(conversationId) {
+                    try { return native.resolveProjectId(conversationId || '') || ''; }
+                    catch (e) { console.error('resolveProjectId error: ' + e); return ''; }
+                },
+                getConversationInfo: function(conversationId) {
+                    try { return JSON.parse(native.getConversationInfo(conversationId || '') || '{}'); }
+                    catch (e) { console.error('getConversationInfo error: ' + e); return {}; }
+                },
+                getProjectMemories: function(projectId) {
+                    try { return JSON.parse(native.getProjectMemories(projectId || '') || '[]'); }
+                    catch (e) { console.error('getProjectMemories error: ' + e); return []; }
+                },
+                createConversation: function(projectId, title, modelId, systemPromptId) {
+                    try { return native.createConversation(projectId || '', title || '', modelId || '', systemPromptId || '') || ''; }
+                    catch (e) { console.error('createConversation error: ' + e); return ''; }
                 },
                 __deliver: function(id, json) {
                     var cb = callbacks[id];

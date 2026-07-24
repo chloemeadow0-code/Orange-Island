@@ -40,12 +40,14 @@ import com.orangeisland.app.util.DebugLog
 
 /**
  * In-app browser for the Mini App feature. Loads a remote URL in a sandboxed WebView
- * with basic security hardening. No JS bridge — the page runs purely as a web app.
+ * with basic security hardening. Supports an optional [MiniAppJsBridge] so the web
+ * layer can read chat memories and send events back to the native app.
  *
  * Security:
  *  - `allowFileAccess = false`, `allowContentAccess = false`
  *  - `javaScriptCanOpenWindowsAutomatically = false`
  *  - Zoom controls enabled for usability
+ *  - JS interface only added when [bridge] is non-null
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +55,7 @@ fun MiniAppPage(
     name: String,
     url: String,
     onBack: () -> Unit,
+    bridge: MiniAppJsBridge? = null,
 ) {
     var isLoading by remember { mutableStateOf(true) }
     var pageTitle by remember { mutableStateOf(name) }
@@ -144,6 +147,11 @@ fun MiniAppPage(
 
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 isLoading = false
+                                // Inject bootstrap script so the page knows the bridge is ready
+                                // and receives the current conversation id.
+                                bridge?.let {
+                                    view?.evaluateJavascript(it.buildBootstrapScript(), null)
+                                }
                             }
 
                             override fun onReceivedError(
@@ -158,6 +166,12 @@ fun MiniAppPage(
                                     DebugLog.e("MiniApp", "WebView error: ${error?.description} on $url")
                                 }
                             }
+                        }
+
+                        // Attach JS bridge if provided — allows the mini app to access
+                        // conversation history and long-term memories.
+                        bridge?.let {
+                            addJavascriptInterface(it, MiniAppJsBridge.JS_INTERFACE_NAME)
                         }
 
                         if (url.isNotBlank()) {

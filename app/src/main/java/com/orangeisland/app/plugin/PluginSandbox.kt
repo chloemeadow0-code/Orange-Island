@@ -52,7 +52,17 @@ class PluginSandbox(
     /** Reads a plugin's user-filled config as a JSON string, given its id. If null, the
      *  [__OI_PLUGIN_CONFIG] global is emitted as `{}`. */
     private val pluginConfig: PluginConfigProvider? = null,
+    /** Provides read/write access to the host app's chat memories. If null, memory host
+     *  functions are not injected and any plugin that tries to call them will get a
+     *  JS ReferenceError (safe failure). */
+    private val memoryProvider: PluginMemoryProvider? = null,
 ) {
+    /**
+     * Set by [PluginToolProvider.execute] before every tool call so the sandbox knows
+     * which conversation is currently active. Cleared after the call to avoid leaking
+     * context between unrelated generations.
+     */
+    var currentConversationId: String? = null
     /**
      * Lightweight accessor injected by the host so the sandbox doesn't depend on the full
      * [com.orangeisland.app.data.repository.SettingsRepository]. Suspend because the value lives
@@ -121,13 +131,34 @@ class PluginSandbox(
         // Bind name+args via evaluate of two const statements first, then run the wrapper.
         // quickjs-kt evaluates globally, so globals set in one evaluate() are visible in the next.
         // Also bind the read-only plugin user identity (__OI_USER_ID / __OI_USER_NICKNAME)
-        // before each call so plugins always see the latest values without re-initializing.
+        // and the current conversation id before each call so plugins always see the latest
+        // values without re-initializing.
+        val conversationId = currentConversationId ?: ""
+        // Pre-load project-scoped memory snapshots so the plugin can read them synchronously
+        // without async boilerplate. If the provider is absent these globals are omitted.
+        val projectId = if (conversationId.isNotBlank() && memoryProvider != null) {
+            val provider = memoryProvider
+            runCatching { provider.resolveProjectId(conversationId) }.getOrNull()
+        } else null
+        val memoryGlobals = if (memoryProvider != null && conversationId.isNotBlank()) {
+            val provider = memoryProvider
+            runCatching {
+                buildString {
+                    append("globalThis.__OI_PROJECT_ID = ${jsonEncodeJsString(projectId ?: "")};\n")
+                    append("globalThis.__OI_CHAT_HISTORY = ${provider.getChatHistory(conversationId, 20)};\n")
+                    append("globalThis.__OI_LONG_TERM_MEMORIES = ${jsonEncodeJsString(provider.getLongTermMemories(conversationId))};\n")
+                    append("globalThis.__OI_ACTIVE_MEMORY = ${jsonEncodeJsString(provider.getActiveMemory(conversationId))};")
+                }
+            }.getOrElse { "" }
+        } else ""
         runCatching {
             runtime.quickJs.evaluate<Any?>(
                 "globalThis.__OI_TOOL_NAME = ${jsonEncodeJsString(toolName)};\n" +
                     "globalThis.__OI_TOOL_ARGS = ($args);\n" +
                     "globalThis.__OI_USER_ID = ${jsonEncodeJsString(deviceId)};\n" +
-                    "globalThis.__OI_PLUGIN_CONFIG = ($configJson);",
+                    "globalThis.__OI_PLUGIN_CONFIG = ($configJson);\n" +
+                    "globalThis.__OI_CONVERSATION_ID = ${jsonEncodeJsString(conversationId)};\n" +
+                    memoryGlobals,
                 asModule = false,
             )
         }.getOrElse {
@@ -181,6 +212,7 @@ class PluginSandbox(
         // Inject host API before loading main.js so the script can use them at module top-level.
         quickJs.injectConsole(plugin.id)
         quickJs.injectFetch(plugin.id, plugin.manifest.allowedHosts)
+        quickJs.injectMemory(plugin.id)
         // Load main.js once. It is expected to register `exports.tool_name = function(){...}`.
         val mainJs = plugin.mainJsFile.readText()
         try {
@@ -207,6 +239,70 @@ class PluginSandbox(
             function("warn") { args -> DebugLog.w("plugin/$pluginId", args.joinToString(" ") { it?.toString() ?: "null" }) }
             function("error") { args -> DebugLog.e("plugin/$pluginId", args.joinToString(" ") { it?.toString() ?: "null" }) }
             function("debug") { _ -> }
+        }
+    }
+
+    /**
+     * Injects memory-read/write host functions into the sandbox so plugins can access
+     * the host app's chat context and long-term memories.
+     *
+     * All functions are [asyncFunction] because the underlying [PluginMemoryProvider]
+     * methods are suspend. JS usage:
+     * ```js
+     * var history = JSON.parse(await readChatHistory(20));
+     * var memories = JSON.parse(await readLongTermMemories());
+     * var active = await readActiveMemory();
+     * var ok = await sendChatMessage("Hello from plugin");
+     * ```
+     *
+     * The functions scope automatically to [currentConversationId] (set by the host before
+     * each tool call) so the plugin doesn't have to pass conversation ids around.
+     */
+    private fun QuickJs.injectMemory(pluginId: String) {
+        if (memoryProvider == null) return
+        asyncFunction("readChatHistory") { args ->
+            val limit = (args.getOrNull(0) as? Number)?.toInt()?.coerceIn(1, 200) ?: 50
+            val convId = currentConversationId ?: ""
+            if (convId.isBlank()) return@asyncFunction "[]"
+            withContext(kotlinx.coroutines.Dispatchers.IO) {
+                memoryProvider.getChatHistory(convId, limit)
+            }
+        }
+        asyncFunction("readLongTermMemories") { _ ->
+            val convId = currentConversationId ?: ""
+            withContext(kotlinx.coroutines.Dispatchers.IO) {
+                memoryProvider.getLongTermMemories(convId)
+            }
+        }
+        asyncFunction("readActiveMemory") { _ ->
+            val convId = currentConversationId ?: ""
+            withContext(kotlinx.coroutines.Dispatchers.IO) {
+                jsonEncodeJsString(memoryProvider.getActiveMemory(convId))
+            }
+        }
+        asyncFunction("sendChatMessage") { args ->
+            val text = args.getOrNull(0)?.toString().orEmpty()
+            val convId = currentConversationId ?: ""
+            if (convId.isBlank() || text.isBlank()) return@asyncFunction "false"
+            val ok = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                memoryProvider.sendChatMessage(convId, text)
+            }
+            ok.toString()
+        }
+        asyncFunction("readProjectMemories") { args ->
+            val projectId = args.getOrNull(0)?.toString().orEmpty()
+            withContext(kotlinx.coroutines.Dispatchers.IO) {
+                memoryProvider.getProjectMemories(projectId)
+            }
+        }
+        asyncFunction("createConversation") { args ->
+            val projectId = args.getOrNull(0)?.toString().orEmpty()
+            val title = args.getOrNull(1)?.toString().orEmpty()
+            val modelId = args.getOrNull(2)?.toString()
+            val promptId = args.getOrNull(3)?.toString()
+            withContext(kotlinx.coroutines.Dispatchers.IO) {
+                memoryProvider.createConversation(projectId, title, modelId, promptId)
+            }
         }
     }
 

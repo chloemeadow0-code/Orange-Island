@@ -102,7 +102,14 @@ class PluginToolProvider(
             ?: return "Plugin not active: $pluginId"
         // Recover the original tool name in case [name] was sanitized for API compliance.
         val originalName = originalToolNames[name] ?: return "Unknown plugin tool: $name"
-        return sandbox.callTool(plugin, originalName, arguments)
+        // Bind the generation's conversation id so the sandbox can scope memory reads/writes
+        // to the correct project. Cleared immediately after the call to prevent leakage.
+        sandbox.currentConversationId = ctx.conversationId
+        return try {
+            sandbox.callTool(plugin, originalName, arguments)
+        } finally {
+            sandbox.currentConversationId = null
+        }
     }
 
     override fun handles(name: String): Boolean = name.startsWith(PREFIX)

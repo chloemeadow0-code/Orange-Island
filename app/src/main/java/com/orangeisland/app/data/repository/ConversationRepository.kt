@@ -35,6 +35,21 @@ class ConversationRepository(
         return id
     }
 
+    /** Create or return a conversation with a specific id (used by plugin window ids). */
+    suspend fun ensureConversation(
+        id: String,
+        title: String,
+        systemPromptId: String? = null,
+        modelId: String? = null,
+        projectId: String? = null,
+    ): String {
+        chatDao.getConversation(id)?.let { return id }
+        chatDao.upsertConversation(ChatEntity(
+            id = id, title = title, systemPromptId = systemPromptId, modelId = modelId, projectId = projectId
+        ))
+        return id
+    }
+
     suspend fun upsertConversation(entity: ChatEntity) = chatDao.upsertConversation(entity)
 
     suspend fun deleteConversation(id: String) {

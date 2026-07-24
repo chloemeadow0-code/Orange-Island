@@ -297,7 +297,12 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
-                            MainNavigation(viewModel, settingsManager, workflowViewModel)
+                            MainNavigation(
+                                viewModel,
+                                settingsManager,
+                                workflowViewModel,
+                                container.pluginMemoryProvider
+                            )
 
                             // Process external text (from SHARE intent or deep-link) once the UI is ready.
                             LaunchedEffect(externalTextState.value) {
@@ -497,7 +502,8 @@ private fun Modifier.consumePointerInput(): Modifier =
 fun MainNavigation(
     viewModel: ChatViewModel,
     settingsManager: SettingsManager,
-    workflowViewModel: com.orangeisland.app.viewmodel.WorkflowViewModel
+    workflowViewModel: com.orangeisland.app.viewmodel.WorkflowViewModel,
+    memoryProvider: com.orangeisland.app.plugin.PluginMemoryProvider? = null,
 ) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var settingsInitialCategory by remember { mutableStateOf<String?>(null) }
@@ -904,7 +910,8 @@ fun MainNavigation(
                         // otherwise the health back button (which only flips showHealthPage) would
                         // reveal the chat instead of returning the user to this settings page.
                         showHealthPage = true
-                    }
+                    },
+                    memoryProvider = memoryProvider
                 )
             }
 

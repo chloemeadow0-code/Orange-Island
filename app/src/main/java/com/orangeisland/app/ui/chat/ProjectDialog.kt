@@ -237,6 +237,7 @@ private sealed class ProjectSettingsRoute {
  */
 @Composable
 internal fun ProjectSettingsScreen(
+    projectId: String,
     projectName: String,
     initialModelId: String?,
     initialPromptId: String?,
@@ -438,6 +439,47 @@ internal fun ProjectSettingsScreen(
                     nullLabel = stringResource(R.string.project_use_global) + " ($globalDefaultPromptTitle)",
                     onSelect = { promptId = it }
                 )
+                Spacer(modifier = Modifier.padding(10.dp))
+                Text(
+                    "ID（长按复制）",
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(bottom = 2.dp)
+                )
+                // Generate a deterministic plugin window id from the project id so it stays
+                // stable across visits while still being "random-looking" to the user.
+                val pluginWindowId = remember(projectId) {
+                    "win_" + java.util.UUID.nameUUIDFromBytes(projectId.toByteArray())
+                        .toString().replace("-", "").take(16)
+                }
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        listOf(
+                            "项目 ID" to projectId,
+                            "模型 ID" to (modelId ?: "默认"),
+                            "提示词 ID" to (promptId ?: "默认"),
+                            "插件窗口 ID" to pluginWindowId
+                        ).forEach { (label, value) ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                SelectionContainer {
+                                    Text(
+                                        value,
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 

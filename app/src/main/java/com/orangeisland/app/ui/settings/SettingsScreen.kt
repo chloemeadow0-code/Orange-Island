@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.annotation.StringRes
 import com.orangeisland.app.R
+import com.orangeisland.app.plugin.PluginMemoryProvider
 import com.orangeisland.app.ui.settings.datacontrol.SettingsDataControlPage
 import com.orangeisland.app.viewmodel.ChatViewModel
 
@@ -207,7 +208,8 @@ fun SettingsScreen(
     workflowViewModel: com.orangeisland.app.viewmodel.WorkflowViewModel,
     initialCategory: String? = null,
     onEditWorkflowInChat: (prefilledPrompt: String) -> Unit = {},
-    onOpenHealthPage: () -> Unit = {}
+    onOpenHealthPage: () -> Unit = {},
+    memoryProvider: PluginMemoryProvider? = null,
 ) {
     var selectedCategory by rememberSaveable { mutableStateOf<String?>(initialCategory) }
 
@@ -250,7 +252,11 @@ fun SettingsScreen(
                 "websearch" -> SettingsWebSearchPage(viewModel, onBack = { selectedCategory = null })
                 "shell" -> SettingsShellPage(viewModel, onBack = { selectedCategory = null })
                 "mcp" -> SettingsMcpPage(viewModel, onBack = { selectedCategory = null })
-                "plugins" -> SettingsPluginPage(viewModel, onBack = { selectedCategory = null })
+                "plugins" -> SettingsPluginPage(
+                    viewModel,
+                    onBack = { selectedCategory = null },
+                    memoryProvider = memoryProvider
+                )
                 "device_access" -> SettingsDeviceAccessPage(
                     viewModel = viewModel,
                     onBack = { selectedCategory = null },

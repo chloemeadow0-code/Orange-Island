@@ -24,11 +24,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import com.orangeisland.app.data.InstalledPlugin
 import com.orangeisland.app.plugin.OrangeIslandWebViewBridge
+import com.orangeisland.app.plugin.PluginMemoryProvider
 import com.orangeisland.app.plugin.PluginSandbox
 
 /**
  * Renders a plugin's `ui.html` inside a sandboxed WebView and wires up the `orangeisland` JS bridge
  * so the page can invoke the plugin's own tools via `orangeisland.call(tool, args, cb)`.
+ *
+ * When [memoryProvider] is supplied, the bridge also exposes `orangeisland.getChatHistory`,
+ * `orangeisland.getLongTermMemories`, `orangeisland.getActiveMemory`, and
+ * `orangeisland.sendChatMessage` so the plugin UI can read/write the host app's chat context
+ * with full project isolation.
  *
  * Security configuration (matches [com.orangeisland.app.plugin.PluginSandbox] philosophy):
  *  - `allowFileAccess = false`, `allowContentAccess = false` — no host filesystem access
@@ -46,6 +52,7 @@ fun PluginWebViewPage(
     plugin: InstalledPlugin,
     sandbox: PluginSandbox,
     onBack: () -> Unit,
+    memoryProvider: PluginMemoryProvider? = null,
 ) {
     val uiFile = plugin.uiHtmlFile
     val scope = rememberCoroutineScope()
@@ -71,7 +78,12 @@ fun PluginWebViewPage(
                 sandbox.configProvider?.get(plugin.id) ?: "{}"
             }
         }.getOrDefault("{}")
-        OrangeIslandWebViewBridge(plugin, sandbox, scope, deviceUserId = deviceId, pluginConfigJson = configJson)
+        OrangeIslandWebViewBridge(
+            plugin, sandbox, scope,
+            deviceUserId = deviceId,
+            pluginConfigJson = configJson,
+            memoryProvider = memoryProvider
+        )
     }
 
     // Load the HTML verbatim with the bootstrap prepended as a <script> tag. The bootstrap MUST

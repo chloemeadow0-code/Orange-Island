@@ -75,6 +75,7 @@ fun SettingsPromptsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                 onSave = { title, systemItems, userPrependItems, userPostpendItems ->
                     if (systemPrompts.any { it.id == currentEntry.id }) {
                         viewModel.settings.updateSystemPrompt(currentEntry.id, title, systemItems, userPrependItems, userPostpendItems)
+                        viewModel.onSystemPromptEdited(currentEntry.id, title)
                     } else {
                         viewModel.settings.addSystemPrompt(title, systemItems, userPrependItems, userPostpendItems)
                     }
