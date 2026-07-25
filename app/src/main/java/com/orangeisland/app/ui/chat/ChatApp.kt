@@ -153,6 +153,7 @@ fun ChatApp(
     val contextWindow = convOverride?.contextWindow ?: maxContextWindow
     val blurEffectsEnabled by viewModel.settings.blurEffectsEnabled.collectAsState()
     val codeBlockWrapEnabled by viewModel.settings.codeBlockWrapEnabled.collectAsState()
+    val splitBubbleByLine by viewModel.settings.splitAssistantBubbleByLine.collectAsState()
     val hapticsEnabled by viewModel.settings.hapticsEnabled.collectAsState()
     val haptics = rememberOrangeIslandHaptics(hapticsEnabled)
     val customChatBackground by viewModel.settings.customColorChatBackground.collectAsState()
@@ -664,6 +665,7 @@ fun ChatApp(
                                 onPdfPagesClick = { pages, idx -> haptics.action(); onPdfPagesClick?.invoke(pages, idx) },
                                 thoughtExpandedStates = thoughtExpandedStates,
                                 codeBlockWrapEnabled = codeBlockWrapEnabled,
+                                splitBubbleByLine = splitBubbleByLine,
                                 contentPadding = PaddingValues(
                                     start = 8.dp,
                                     end = 8.dp,

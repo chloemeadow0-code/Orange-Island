@@ -64,6 +64,7 @@ fun MessageItem(
     onHeightChanged: (Int) -> Unit = {},
     thoughtExpandedStates: SnapshotStateMap<String, Boolean> = remember { mutableStateMapOf() },
     codeBlockWrapEnabled: Boolean = false,
+    splitBubbleByLine: Boolean = false,
 ) {
     var isFirstComposition by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) { isFirstComposition = false }
@@ -212,6 +213,7 @@ fun MessageItem(
                 isLoading = isLoading,
                 isEditingAllowed = isEditingAllowed,
                 showUsageStats = showUsageStats,
+                splitBubbleByLine = splitBubbleByLine,
                 toolCallDisplayMode = toolCallDisplayMode,
                 thoughtExpandedStates = thoughtExpandedStates,
                 isThoughtExpanded = isThoughtExpanded,

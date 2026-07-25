@@ -41,6 +41,7 @@ fun SettingsCustomColorsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val reasoningAlpha by s.transparencyReasoningPanel.collectAsState()
     val drawerAlpha by s.transparencyDrawerItem.collectAsState()
     val topBarAlpha by s.transparencyTopBar.collectAsState()
+    val splitByLine by s.splitAssistantBubbleByLine.collectAsState()
 
     var activeSlot by remember { mutableStateOf<ColorSlot?>(null) }
 
@@ -91,6 +92,24 @@ fun SettingsCustomColorsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         )
                     }
                 }
+            )
+            SettingsGroup(
+                title = stringResource(R.string.custom_colors_section_bubble),
+                items = listOf(
+                    {
+                        SettingsItem(
+                            headlineContent = { Text(stringResource(R.string.split_assistant_bubble_by_line)) },
+                            supportingContent = { Text(stringResource(R.string.split_assistant_bubble_by_line_desc)) },
+                            trailingContent = {
+                                Switch(
+                                    checked = splitByLine,
+                                    onCheckedChange = { s.setSplitAssistantBubbleByLine(it) }
+                                )
+                            },
+                            modifier = Modifier.clickable { s.setSplitAssistantBubbleByLine(!splitByLine) }
+                        )
+                    }
+                )
             )
             SettingsGroup(
                 title = stringResource(R.string.custom_colors_section_transparency),

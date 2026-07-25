@@ -429,6 +429,7 @@ private fun MarkdownNodeStateContent(
 internal fun MarkdownTextContent(
     text: String,
     renderContext: ChatMarkdownRenderContext,
+    modifier: Modifier = Modifier.fillMaxWidth(),
     immediate: Boolean = false,
     includeFirstSpacer: Boolean = true,
     onReady: () -> Unit = {}
@@ -437,6 +438,7 @@ internal fun MarkdownTextContent(
     MarkdownPreparedTextContent(
         text = markdownText,
         renderContext = renderContext,
+        modifier = modifier,
         immediate = immediate,
         includeFirstSpacer = includeFirstSpacer,
         onReady = onReady
@@ -447,6 +449,7 @@ internal fun MarkdownTextContent(
 private fun MarkdownPreparedTextContent(
     text: String,
     renderContext: ChatMarkdownRenderContext,
+    modifier: Modifier = Modifier.fillMaxWidth(),
     immediate: Boolean = false,
     includeFirstSpacer: Boolean = true,
     onReady: () -> Unit = {}
@@ -472,7 +475,7 @@ private fun MarkdownPreparedTextContent(
 
     com.mikepenz.markdown.compose.Markdown(
         state = state,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         colors = renderContext.colors,
         typography = renderContext.typography,
         padding = renderContext.padding,

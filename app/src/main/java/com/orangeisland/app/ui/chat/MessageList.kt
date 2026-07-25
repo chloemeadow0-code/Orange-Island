@@ -64,6 +64,7 @@ fun MessageList(
     onPdfPagesClick: ((pages: List<String>, startIndex: Int) -> Unit)? = null,
     thoughtExpandedStates: SnapshotStateMap<String, Boolean> = remember { mutableStateMapOf() },
     codeBlockWrapEnabled: Boolean = false,
+    splitBubbleByLine: Boolean = false,
 ) {
     var editingMessageId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(isLoading) { if (isLoading) editingMessageId = null }
@@ -156,6 +157,7 @@ fun MessageList(
                     modelAliases = modelAliases,
                     visualizeContextRollout = visualizeContextRollout,
                     showUsageStats = showUsageStats,
+                    splitBubbleByLine = splitBubbleByLine,
                     toolCallDisplayMode = toolCallDisplayMode,
                     onStartEdit = { editingMessageId = message.id },
                     onCancelEdit = { editingMessageId = null },

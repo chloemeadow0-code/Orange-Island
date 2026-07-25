@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.orangeisland.app.R
 import com.orangeisland.app.util.noOpBringIntoView
+import com.orangeisland.app.util.splitIntoBubbleSegments
 import com.orangeisland.app.model.ChatMessage
 import com.orangeisland.app.model.MessageStatus
 import com.orangeisland.app.model.Participant
@@ -86,6 +87,7 @@ internal fun AssistantMessageContent(
     isLoading: Boolean,
     isEditingAllowed: Boolean,
     showUsageStats: Boolean = false,
+    splitBubbleByLine: Boolean = false,
     toolCallDisplayMode: String,
     thoughtExpandedStates: SnapshotStateMap<String, Boolean>,
     isThoughtExpanded: Boolean,
@@ -106,6 +108,12 @@ internal fun AssistantMessageContent(
     val haptics = LocalOrangeIslandHaptics.current
     var showMenu by remember { mutableStateOf(false) }
 
+    // Outer single-bubble shell wraps the whole message (status header + reasoning panel + body)
+    // unless line-split bubbles are active on a finished reply — then the shell must yield so each
+    // body segment owns its own bubble silhouette with gaps between them. Streaming keeps the shell:
+    // the last line is still being written, so splitting now would make the segment count thrash.
+    val useSingleOuterBubble = customAssistantBubbleColor != null && !(splitBubbleByLine && !isStreaming)
+
     // During generation, eat horizontal nested-scroll so code blocks
     // cannot be panned. Vertical scroll and taps (thinking header,
     // stop button) pass through normally. Text selection is already
@@ -124,14 +132,14 @@ internal fun AssistantMessageContent(
             .then(contextAlpha)
             .then(if (isStreaming) Modifier.nestedScroll(horizontalScrollEater) else Modifier)
             .then(
-                customAssistantBubbleColor?.let { argb ->
+                if (useSingleOuterBubble) {
                     Modifier
                         .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 20.dp))
-                        .background(ColorMath.argbToColor(argb))
-                } ?: Modifier
+                        .background(ColorMath.argbToColor(customAssistantBubbleColor!!))
+                } else Modifier
             )
     ) {
-        Column(modifier = if (customAssistantBubbleColor != null) Modifier.padding(12.dp) else Modifier) {
+        Column(modifier = if (useSingleOuterBubble) Modifier.padding(12.dp) else Modifier) {
             // Status Header
             if (message.participant == Participant.MODEL) {
                 val thinkingStatus = stringResource(R.string.thinking_ellipsis)
@@ -558,57 +566,93 @@ internal fun AssistantMessageContent(
                             }
                         }
                     } else if (debouncedText.isNotEmpty() && !useTimelineSegments) {
-                        var keepBlockRenderer by remember(message.id) { mutableStateOf(false) }
-                        val useBlockRenderer = isStreaming || keepBlockRenderer
-                        val streamingBlocks = rememberStreamingMarkdownBlocks(
-                            content = debouncedText,
-                            flavour = markdownFlavour,
-                            active = useBlockRenderer
-                        )
-
-                        LaunchedEffect(isStreaming) {
-                            if (isStreaming) {
-                                keepBlockRenderer = true
+                        // Split a finished (non-streaming) reply across stacked bubbles at the
+                        // model's own \n boundaries. Streaming is excluded: the last line is still
+                        // being written, so forcibly cutting it on every token arrival would make
+                        // the bubble count thrash. Only "settle" into multiple bubbles once done.
+                        if (!isStreaming && splitBubbleByLine) {
+                            val bubbleSegments = remember(debouncedText) {
+                                debouncedText.splitIntoBubbleSegments()
                             }
-                        }
-
-                        Box {
-                            SelectionContainer {
-                                Box(modifier = Modifier.fillMaxWidth()) {
-                                    if (useBlockRenderer) {
-                                        StreamingMarkdownBlockContent(
-                                            blocks = streamingBlocks,
-                                            renderContext = renderContext,
+                            Column(
+                                horizontalAlignment = Alignment.Start,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                bubbleSegments.forEachIndexed { segIndex, segment ->
+                                    key(segIndex) {
+                                        Box(
                                             modifier = Modifier
-                                                .fillMaxWidth(),
-                                            tailIsStreaming = isStreaming
-                                        )
-                                    }
-                                    if (!useBlockRenderer && !isStreaming) {
-                                        key("full-markdown") {
-                                            RecomposeSafeMarkdown(
-                                                content = debouncedText,
-                                                isStreaming = false,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                            ) { text ->
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(
+                                                    customAssistantBubbleColor?.let { ColorMath.argbToColor(it) }
+                                                        ?: MaterialTheme.colorScheme.surfaceContainerHigh
+                                                )
+                                                .padding(12.dp)
+                                        ) {
+                                            SelectionContainer {
                                                 MarkdownTextContent(
-                                                    text = text,
-                                                    renderContext = renderContext
+                                                    text = segment,
+                                                    renderContext = renderContext,
+                                                    modifier = Modifier
                                                 )
                                             }
                                         }
                                     }
                                 }
                             }
-                            if (isStreaming) {
-                                Box(
-                                    modifier = Modifier
-                                        .matchParentSize()
-                                        .pointerInput(Unit) {
-                                            detectTapGestures(onLongPress = { })
+                        } else {
+                            var keepBlockRenderer by remember(message.id) { mutableStateOf(false) }
+                            val useBlockRenderer = isStreaming || keepBlockRenderer
+                            val streamingBlocks = rememberStreamingMarkdownBlocks(
+                                content = debouncedText,
+                                flavour = markdownFlavour,
+                                active = useBlockRenderer
+                            )
+
+                            LaunchedEffect(isStreaming) {
+                                if (isStreaming) {
+                                    keepBlockRenderer = true
+                                }
+                            }
+
+                            Box {
+                                SelectionContainer {
+                                    Box(modifier = Modifier.fillMaxWidth()) {
+                                        if (useBlockRenderer) {
+                                            StreamingMarkdownBlockContent(
+                                                blocks = streamingBlocks,
+                                                renderContext = renderContext,
+                                                modifier = Modifier
+                                                    .fillMaxWidth(),
+                                                tailIsStreaming = isStreaming
+                                            )
                                         }
-                                )
+                                        if (!useBlockRenderer && !isStreaming) {
+                                            key("full-markdown") {
+                                                RecomposeSafeMarkdown(
+                                                    content = debouncedText,
+                                                    isStreaming = false,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                ) { text ->
+                                                    MarkdownTextContent(
+                                                        text = text,
+                                                        renderContext = renderContext
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                if (isStreaming) {
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .pointerInput(Unit) {
+                                                detectTapGestures(onLongPress = { })
+                                            }
+                                    )
+                                }
                             }
                         }
                     }

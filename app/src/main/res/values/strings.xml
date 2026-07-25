@@ -756,10 +756,13 @@
     <string name="color_picker_recent">Recent</string>
     <string name="custom_colors_section_colors">Colors</string>
     <string name="custom_colors_section_transparency">Transparency</string>
+    <string name="custom_colors_section_bubble">Assistant bubble</string>
     <string name="custom_color_chat_text">Chat text color</string>
     <string name="custom_color_global_text">Global text color</string>
     <string name="custom_color_user_bubble">User bubble color</string>
     <string name="custom_color_assistant_bubble">Assistant bubble color</string>
+    <string name="split_assistant_bubble_by_line">Split assistant reply by line</string>
+    <string name="split_assistant_bubble_by_line_desc">When on, a finished assistant reply is split at the model\'s own line breaks into multiple stacked bubbles. Fenced code blocks and tables are kept intact. Streaming replies settle into bubbles once complete; off renders the reply as a single bubble.</string>
     <string name="custom_color_reasoning_panel">Reasoning panel color</string>
     <string name="custom_color_chat_background">Chat background color</string>
     <string name="custom_color_accent">Accent color</string>

@@ -593,10 +593,13 @@
     <string name="color_picker_recent">最近使用</string>
     <string name="custom_colors_section_colors">颜色</string>
     <string name="custom_colors_section_transparency">透明度</string>
+    <string name="custom_colors_section_bubble">AI气泡</string>
     <string name="custom_color_chat_text">聊天正文颜色</string>
     <string name="custom_color_global_text">全局字体颜色</string>
     <string name="custom_color_user_bubble">用户气泡颜色</string>
     <string name="custom_color_assistant_bubble">AI气泡颜色</string>
+    <string name="split_assistant_bubble_by_line">按行拆分AI回复</string>
+    <string name="split_assistant_bubble_by_line_desc">开启后，已完成的AI回复会按模型自己写的换行拆成多个堆叠气泡；围栏代码块和表格保持完整。流式回复在生成完成后才结算为多个气泡；关闭则整段回复渲染为单个气泡。</string>
     <string name="custom_color_reasoning_panel">推理面板颜色</string>
     <string name="custom_color_chat_background">聊天背景色</string>
     <string name="custom_color_accent">主色调</string>

@@ -165,8 +165,14 @@ class McpToolProvider(
         val (serverSegmentName, _) = parsed
         val server = activeServers(ctx).firstOrNull { serverSegment(it.name) == serverSegmentName }
             ?: return "MCP server not active: $serverSegmentName"
-        // The name the LLM emitted is sanitized; recover the original so we call the real tool.
-        val originalName = originalToolNames[name] ?: parsed.second
+        // The name the LLM emitted is sanitized; recover the original from the mapping built by
+        // the most recent definitions() pass. If it's missing, DO NOT fall back to guessing the
+        // sanitized name as-is — that silently sends a name the server never advertised and
+        // produces a misleading "Unknown tool" from the server instead of a clear client-side
+        // error. Ask the model to refresh its tool list and retry instead.
+        val originalName = originalToolNames[name]
+            ?: return "MCP tool name mapping expired for '$name' — the tool list may have changed " +
+                "since this call was generated. Please retry; the tool list will be refreshed."
         return try {
             pool.callTool(server, originalName, arguments)
         } catch (e: Exception) {
