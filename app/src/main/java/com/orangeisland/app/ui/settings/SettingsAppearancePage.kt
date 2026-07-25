@@ -22,13 +22,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.orangeisland.app.R
 import com.orangeisland.app.model.ToolCallDisplayModes
 import com.orangeisland.app.ui.theme.ColorSchemePreset
+import com.orangeisland.app.ui.theme.FontSizeTiers
 import com.orangeisland.app.ui.theme.SchemeStyle
 import com.orangeisland.app.ui.theme.colorSchemeForPreset
 import com.orangeisland.app.util.readFontName
@@ -52,6 +56,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val fontPreference by viewModel.settings.fontPreference.collectAsState()
     val customFontPath by viewModel.settings.customFontPath.collectAsState()
     val customFontName by viewModel.settings.customFontName.collectAsState()
+    val currentTier by viewModel.settings.fontSizeTier.collectAsState()
     val showDocFab by viewModel.settings.showDocumentationFab.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
@@ -456,10 +461,49 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         }
                                     }
                                 },
-                                modifier = Modifier.clickable { expanded = true }
-                            )
+                            modifier = Modifier.clickable { expanded = true }
+                        )
+                    }
+                    add {
+                        val tierDescriptions = mapOf(
+                            FontSizeTiers.SMALL to stringResource(R.string.font_size_small),
+                            FontSizeTiers.DEFAULT to stringResource(R.string.font_size_default),
+                            FontSizeTiers.LARGE to stringResource(R.string.font_size_large),
+                            FontSizeTiers.XLARGE to stringResource(R.string.font_size_xlarge),
+                            FontSizeTiers.XXLARGE to stringResource(R.string.font_size_xxlarge),
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            listOf(
+                                FontSizeTiers.SMALL to 14.sp,
+                                FontSizeTiers.DEFAULT to 17.sp,
+                                FontSizeTiers.LARGE to 20.sp,
+                                FontSizeTiers.XLARGE to 23.sp,
+                                FontSizeTiers.XXLARGE to 26.sp
+                            ).forEach { (tier, displaySize) ->
+                                val selected = currentTier == tier
+                                Surface(
+                                    shape = CircleShape,
+                                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .clickable { viewModel.settings.setFontSizeTier(tier) }
+                                        .semantics { contentDescription = tierDescriptions[tier] ?: tier }
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            "Aa",
+                                            fontSize = displaySize,
+                                            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
                         }
-                        if (fontPreference == "custom") {
+                    }
+                    if (fontPreference == "custom") {
                             add {
                                 val hasFont = customFontName.isNotBlank() && customFontPath.isNotBlank() && File(customFontPath).exists()
                                 SettingsItem(

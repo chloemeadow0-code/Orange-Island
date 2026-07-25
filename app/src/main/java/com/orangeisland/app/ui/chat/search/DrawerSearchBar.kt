@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,8 +34,8 @@ import com.orangeisland.app.ui.theme.ChatType
 /** The pill-shaped search input at the top of the conversation drawer. */
 @Composable
 internal fun DrawerSearchBar(query: String, onQueryChange: (String) -> Unit) {
-    Surface(modifier = Modifier.fillMaxWidth().height(44.dp), shape = CircleShape, color = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp), tonalElevation = 8.dp) {
-        Row(modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+    Surface(modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp), shape = CircleShape, color = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp), tonalElevation = 8.dp) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(10.dp))
             Box(Modifier.weight(1f)) {

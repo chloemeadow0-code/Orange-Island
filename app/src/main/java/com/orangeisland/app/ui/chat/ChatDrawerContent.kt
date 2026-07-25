@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -223,7 +224,7 @@ internal fun ChatDrawerContent(
                             onRequestCreateProject()
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(42.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 42.dp),
                     enabled = true,
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
@@ -370,7 +371,7 @@ internal fun ChatDrawerContent(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(42.dp),
+                    .heightIn(min = 42.dp),
                 shape = CircleShape
             ) {
                 Icon(Icons.Default.Apps, null, modifier = Modifier.size(20.dp))
@@ -389,7 +390,7 @@ internal fun ChatDrawerContent(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(42.dp)
+                    .heightIn(min = 42.dp)
                     .onGloballyPositioned { coords ->
                         val screenHeightPx = configuration.screenHeightDp * density.density
                         val buttonTopPx = coords.positionInWindow().y
@@ -465,7 +466,7 @@ private fun ProjectHeaderRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .height(38.dp)
+            .heightIn(min = 38.dp)
             .padding(vertical = 2.dp)
             .clip(CircleShape)
             .clickable {
@@ -543,9 +544,9 @@ private fun ConversationRow(
     Box {
         Surface(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(44.dp)
-                .padding(start = 16.dp, top = 2.dp, bottom = 2.dp)
+                    .fillMaxWidth()
+                    .heightIn(min = 44.dp)
+                    .padding(start = 16.dp, top = 2.dp, bottom = 2.dp)
                 .clip(CircleShape)
                 .pointerInput(showMenu) {
                     if (!showMenu) {

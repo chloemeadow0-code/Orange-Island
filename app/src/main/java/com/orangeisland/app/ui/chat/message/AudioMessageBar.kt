@@ -92,7 +92,7 @@ fun AudioMessageBar(path: String, modifier: Modifier = Modifier) {
         tonalElevation = 2.dp,
         modifier = modifier
             .fillMaxWidth()
-            .height(48.dp)
+            .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(18.dp))
             .clickable {
                 if (isPlaying) player.pause() else player.play()

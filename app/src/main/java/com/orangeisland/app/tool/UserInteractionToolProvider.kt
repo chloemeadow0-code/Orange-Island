@@ -43,7 +43,11 @@ class UserInteractionToolProvider(
                     "options" to ToolProperty(
                         "array",
                         "选项列表，每个元素是一个对象，必须包含字符串字段 id 和 label。" +
-                            "示例：[{\"id\":\"casual\",\"label\":\"casual\"},{\"id\":\"formal\",\"label\":\"formal\"}]"
+                            "示例：[{\"id\":\"casual\",\"label\":\"casual\"},{\"id\":\"formal\",\"label\":\"formal\"}]",
+                        items = ToolProperty(
+                            "object",
+                            "一个选项，包含字符串字段 id（选项标识）和 label（展示文案）。"
+                        )
                     ),
                     "mode" to ToolProperty(
                         "string",

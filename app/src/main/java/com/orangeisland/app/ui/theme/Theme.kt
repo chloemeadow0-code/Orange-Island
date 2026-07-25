@@ -52,24 +52,28 @@ private fun effectiveFontFamily(
 /**
  * Builds the [Typography] with the given [FontFamily] replacing all non-mono styles.
  */
-private fun typographyWithFont(family: FontFamily): Typography {
-    fun TextStyle.withFamily(f: FontFamily) = copy(fontFamily = f)
+private fun typographyWithFont(family: FontFamily, scale: Float): Typography {
+    fun TextStyle.withFamilyAndScale(f: FontFamily, s: Float) = copy(
+        fontFamily = f,
+        fontSize = fontSize * s,
+        lineHeight = lineHeight * s
+    )
     return Typography.copy(
-        displayLarge = Typography.displayLarge.withFamily(family),
-        displayMedium = Typography.displayMedium.withFamily(family),
-        displaySmall = Typography.displaySmall.withFamily(family),
-        headlineLarge = Typography.headlineLarge.withFamily(family),
-        headlineMedium = Typography.headlineMedium.withFamily(family),
-        headlineSmall = Typography.headlineSmall.withFamily(family),
-        titleLarge = Typography.titleLarge.withFamily(family),
-        titleMedium = Typography.titleMedium.withFamily(family),
-        titleSmall = Typography.titleSmall.withFamily(family),
-        bodyLarge = Typography.bodyLarge.withFamily(family),
-        bodyMedium = Typography.bodyMedium.withFamily(family),
-        bodySmall = Typography.bodySmall.withFamily(family),
-        labelLarge = Typography.labelLarge.withFamily(family),
-        labelMedium = Typography.labelMedium.withFamily(family),
-        labelSmall = Typography.labelSmall.withFamily(family),
+        displayLarge = Typography.displayLarge.withFamilyAndScale(family, scale),
+        displayMedium = Typography.displayMedium.withFamilyAndScale(family, scale),
+        displaySmall = Typography.displaySmall.withFamilyAndScale(family, scale),
+        headlineLarge = Typography.headlineLarge.withFamilyAndScale(family, scale),
+        headlineMedium = Typography.headlineMedium.withFamilyAndScale(family, scale),
+        headlineSmall = Typography.headlineSmall.withFamilyAndScale(family, scale),
+        titleLarge = Typography.titleLarge.withFamilyAndScale(family, scale),
+        titleMedium = Typography.titleMedium.withFamilyAndScale(family, scale),
+        titleSmall = Typography.titleSmall.withFamilyAndScale(family, scale),
+        bodyLarge = Typography.bodyLarge.withFamilyAndScale(family, scale),
+        bodyMedium = Typography.bodyMedium.withFamilyAndScale(family, scale),
+        bodySmall = Typography.bodySmall.withFamilyAndScale(family, scale),
+        labelLarge = Typography.labelLarge.withFamilyAndScale(family, scale),
+        labelMedium = Typography.labelMedium.withFamilyAndScale(family, scale),
+        labelSmall = Typography.labelSmall.withFamilyAndScale(family, scale),
     )
 }
 
@@ -81,6 +85,7 @@ fun OrangeIslandTheme(
     dynamicColor: Boolean = true,
     fontPreference: String = "app_default",
     customFontPath: String = "",
+    fontScale: Float = 1.0f,
     customGlobalTextColor: Color? = null,
     content: @Composable () -> Unit
 ) {
@@ -113,7 +118,8 @@ fun OrangeIslandTheme(
 
     val fontFamily = effectiveFontFamily(fontPreference, customFontPath)
     chatFontFamily = fontFamily
-    val typography = remember(fontFamily) { typographyWithFont(fontFamily) }
+    chatFontScale = fontScale
+    val typography = remember(fontFamily, fontScale) { typographyWithFont(fontFamily, fontScale) }
 
     MaterialTheme(
         colorScheme = finalColorScheme,

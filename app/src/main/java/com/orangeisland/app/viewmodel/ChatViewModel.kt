@@ -698,6 +698,7 @@ class ChatViewModel(
                                 participant = it.participant,
                                 timestamp = it.timestamp,
                                 thoughtTimeMs = it.thoughtTimeMs,
+                                generationDurationMs = it.generationDurationMs,
                                 modelName = it.modelName,
                                 segments = it.toolCallJson?.let { json ->
                                     try { Json.decodeFromString<List<MessageSegment>>(json) } catch (_: Exception) { null }

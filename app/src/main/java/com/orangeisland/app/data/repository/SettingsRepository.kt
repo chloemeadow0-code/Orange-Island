@@ -151,6 +151,7 @@ class SettingsRepository(
     val fontPreference: StateFlow<String> = hot(settingsManager.fontPreference, "app_default")
     val customFontPath: StateFlow<String> = hot(settingsManager.customFontPath, "")
     val customFontName: StateFlow<String> = hot(settingsManager.customFontName, "")
+    val fontSizeTier: StateFlow<String> = hot(settingsManager.fontSizeTier, com.orangeisland.app.ui.theme.FontSizeTiers.DEFAULT)
     val searchContextWindow: StateFlow<Int> = hot(settingsManager.searchContextWindow, 8)
     val searchMatchLimit: StateFlow<Int> = hot(settingsManager.searchMatchLimit, 10)
     val ragThreshold: StateFlow<Float> = hot(settingsManager.ragThreshold, 0.5f)
@@ -526,6 +527,7 @@ class SettingsRepository(
     fun setFontPreference(value: String) = scope.launch { settingsManager.saveFontPreference(value) }
     fun setCustomFontPath(value: String) = scope.launch { settingsManager.saveCustomFontPath(value) }
     fun setCustomFontName(value: String) = scope.launch { settingsManager.saveCustomFontName(value) }
+    fun setFontSizeTier(tier: String) = scope.launch { settingsManager.setFontSizeTier(tier) }
     fun setSearchMatchLimit(n: Int) = scope.launch { settingsManager.saveSearchMatchLimit(n) }
     fun setSearchContextWindow(n: Int) = scope.launch { settingsManager.saveSearchContextWindow(n) }
     fun setRagThreshold(threshold: Float) = scope.launch { settingsManager.saveRagThreshold(threshold) }

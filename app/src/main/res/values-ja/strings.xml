@@ -1008,4 +1008,10 @@ THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMP
     <string name="logs_type_conversation">CONVERSATION</string>
     <string name="logs_type_sync">SYNC</string>
     <string name="mcp_refresh">更新</string>
+    <!-- Font Size Tiers -->
+    <string name="font_size_small">小</string>
+    <string name="font_size_default">標準</string>
+    <string name="font_size_large">大</string>
+    <string name="font_size_xlarge">超大</string>
+    <string name="font_size_xxlarge">特大</string>
 </resources>

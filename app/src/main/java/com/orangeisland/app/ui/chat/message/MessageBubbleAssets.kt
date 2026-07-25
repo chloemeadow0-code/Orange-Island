@@ -1,9 +1,11 @@
 package com.orangeisland.app.ui.chat.message
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -103,31 +105,33 @@ internal fun rememberChatMarkdownAssets(textColor: Color, codeBlockWrapEnabled: 
     val customMarkdownComponents = remember(defaultComponents, codeBlockWrapEnabled) {
         markdownComponents(
             table = { model ->
-                MarkdownTable(
-                    content = model.content,
-                    node = model.node,
-                    style = model.typography.table,
-                    headerBlock = { content, header, tableWidth, style ->
-                        MarkdownTableHeader(
-                            content = content,
-                            header = header,
-                            tableWidth = tableWidth,
-                            style = style,
-                            maxLines = Int.MAX_VALUE,
-                            overflow = TextOverflow.Clip,
-                        )
-                    },
-                    rowBlock = { content, row, tableWidth, style ->
-                        MarkdownTableRow(
-                            content = content,
-                            header = row,
-                            tableWidth = tableWidth,
-                            style = style,
-                            maxLines = Int.MAX_VALUE,
-                            overflow = TextOverflow.Clip,
-                        )
-                    },
-                )
+                Box(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                    MarkdownTable(
+                        content = model.content,
+                        node = model.node,
+                        style = model.typography.table,
+                        headerBlock = { content, header, tableWidth, style ->
+                            MarkdownTableHeader(
+                                content = content,
+                                header = header,
+                                tableWidth = tableWidth,
+                                style = style,
+                                maxLines = Int.MAX_VALUE,
+                                overflow = TextOverflow.Clip,
+                            )
+                        },
+                        rowBlock = { content, row, tableWidth, style ->
+                            MarkdownTableRow(
+                                content = content,
+                                header = row,
+                                tableWidth = tableWidth,
+                                style = style,
+                                maxLines = Int.MAX_VALUE,
+                                overflow = TextOverflow.Clip,
+                            )
+                        },
+                    )
+                }
             },
             codeFence = { model ->
                 val start = model.node.startOffset.coerceIn(0, model.content.length)

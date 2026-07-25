@@ -646,9 +646,9 @@ private fun ModelPage(models: List<String>, modelAliases: Map<String, String>, s
             // state, so the list never flashes "no models" then jumps into view.
             // Fixed-height slot keeps the card identical between both states, and
             // Crossfade fades the spinner in/out rather than popping.
-            Box(Modifier.fillMaxWidth().padding(32.dp).height(40.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().padding(32.dp).heightIn(min = 40.dp), contentAlignment = Alignment.Center) {
                 Crossfade(targetState = isLoading, animationSpec = tween(400), label = "modelLoading") { loading ->
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         if (loading) {
                             CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp, color = MaterialTheme.colorScheme.primary)
                         } else {

@@ -63,6 +63,7 @@ data class ChatMessage(
     val participant: Participant,
     val timestamp: Long = System.currentTimeMillis(),
     val thoughtTimeMs: Long? = null,
+    val generationDurationMs: Long? = null,
     val modelName: String? = null,
     val toolCall: ToolCallData? = null,
     val segments: List<MessageSegment>? = null,

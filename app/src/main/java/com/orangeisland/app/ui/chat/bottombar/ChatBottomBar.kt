@@ -204,7 +204,7 @@ fun ChatBottomBar(
         }
 
         Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp, start = 8.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(48.dp).background(MaterialTheme.colorScheme.surfaceColorAtElevation(10.dp), RoundedCornerShape(100)).padding(horizontal = 8.dp, vertical = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = 48.dp).background(MaterialTheme.colorScheme.surfaceColorAtElevation(10.dp), RoundedCornerShape(100)).padding(horizontal = 8.dp, vertical = 4.dp)) {
                 var showAddMenu by remember { mutableStateOf(false) }
                 var lastAddDismissTime by remember { mutableLongStateOf(0L) }
                 ExposedDropdownMenuBox(
@@ -313,7 +313,7 @@ fun ChatBottomBar(
                                 activeMenu = "model"
                             }
                         },
-                        modifier = Modifier.height(38.dp).widthIn(max = 160.dp).menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
+                        modifier = Modifier.heightIn(min = 38.dp).widthIn(max = 160.dp).menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
                         contentPadding = PaddingValues(8.dp)
                     ) {
                         Text(

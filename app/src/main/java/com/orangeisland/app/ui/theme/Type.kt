@@ -156,67 +156,84 @@ val Typography = Typography(
 // 13sp thought body it introduces despite being smaller. Call sites supply color.
 /** Mutable font family for ChatType styles. Set from Theme.kt when font preference changes. */
 internal var chatFontFamily: FontFamily = OutfitFamily
+internal var chatFontScale: Float = 1.0f
+
+object FontSizeTiers {
+    const val SMALL = "small"
+    const val DEFAULT = "default"
+    const val LARGE = "large"
+    const val XLARGE = "xlarge"
+    const val XXLARGE = "xxlarge"
+
+    fun scaleFor(tier: String): Float = when (tier) {
+        SMALL -> 0.85f
+        LARGE -> 1.15f
+        XLARGE -> 1.3f
+        XXLARGE -> 1.45f
+        else -> 1.0f // DEFAULT + any unknown fallback
+    }
+}
 
 object ChatType {
 
     // Title tier
     // Brand wordmark in the new-chat capsule: prominent in the empty state, one
     // clean step above the active-conversation title (20 → 15).
-    val brandTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 26.sp)
-    val sheetTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = 19.sp, lineHeight = 25.sp)
+    val brandTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (20 * chatFontScale).sp, lineHeight = (26 * chatFontScale).sp)
+    val sheetTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (19 * chatFontScale).sp, lineHeight = (25 * chatFontScale).sp)
     // Active-conversation title: one step below the brand wordmark (16 → 15),
     // Bold so it still reads as a title against the 15sp Normal body.
-    val conversationTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, lineHeight = 20.sp)
+    val conversationTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (15 * chatFontScale).sp, lineHeight = (20 * chatFontScale).sp)
 
     // Active-conversation title when it stands alone (no token subtitle): a touch
     // smaller than the 20sp brand wordmark so a lone title doesn't read as loud.
-    val conversationTitleSolo get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, lineHeight = 22.sp)
+    val conversationTitleSolo get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (17 * chatFontScale).sp, lineHeight = (22 * chatFontScale).sp)
 
     // Input tier
-    val input get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 23.sp, letterSpacing = 0.5.sp)
+    val input get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = (16 * chatFontScale).sp, lineHeight = (23 * chatFontScale).sp, letterSpacing = 0.5.sp)
 
     // Body tier
-    val body get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 24.sp)
-    val userBody get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 22.sp)
-    val thoughtBody get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = 13.sp, lineHeight = 19.sp)
-    val thoughtTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 19.sp)
-    val errorBody get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 18.sp)
+    val body get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = (16 * chatFontScale).sp, lineHeight = (24 * chatFontScale).sp)
+    val userBody get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = (14 * chatFontScale).sp, lineHeight = (22 * chatFontScale).sp)
+    val thoughtBody get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = (13 * chatFontScale).sp, lineHeight = (19 * chatFontScale).sp)
+    val thoughtTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (13 * chatFontScale).sp, lineHeight = (19 * chatFontScale).sp)
+    val errorBody get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (13 * chatFontScale).sp, lineHeight = (18 * chatFontScale).sp)
 
     // Meta tier
-    val meta get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 17.sp)
-    val metaNormal get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = 12.sp, lineHeight = 17.sp)
-    val micro get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 15.sp)
+    val meta get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (12 * chatFontScale).sp, lineHeight = (17 * chatFontScale).sp)
+    val metaNormal get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = (12 * chatFontScale).sp, lineHeight = (17 * chatFontScale).sp)
+    val micro get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (11 * chatFontScale).sp, lineHeight = (15 * chatFontScale).sp)
 
     // Code / mono
-    val code = TextStyle(fontFamily = MonoFamily, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 20.sp)
-    val thoughtCode = TextStyle(fontFamily = MonoFamily, fontWeight = FontWeight.Normal, fontSize = 12.sp, lineHeight = 17.sp)
-    val thoughtCodeLarge = TextStyle(fontFamily = MonoFamily, fontWeight = FontWeight.Normal, fontSize = 13.sp, lineHeight = 19.sp)
+    val code get() = TextStyle(fontFamily = MonoFamily, fontWeight = FontWeight.Normal, fontSize = (14 * chatFontScale).sp, lineHeight = (20 * chatFontScale).sp)
+    val thoughtCode get() = TextStyle(fontFamily = MonoFamily, fontWeight = FontWeight.Normal, fontSize = (12 * chatFontScale).sp, lineHeight = (17 * chatFontScale).sp)
+    val thoughtCodeLarge get() = TextStyle(fontFamily = MonoFamily, fontWeight = FontWeight.Normal, fontSize = (13 * chatFontScale).sp, lineHeight = (19 * chatFontScale).sp)
 
     // Sheet
-    val detailTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = 22.sp, lineHeight = 28.sp)
+    val detailTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (22 * chatFontScale).sp, lineHeight = (28 * chatFontScale).sp)
 
     // Rating
-    val ratingTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = 28.sp, lineHeight = 35.sp)
+    val ratingTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (28 * chatFontScale).sp, lineHeight = (35 * chatFontScale).sp)
 
     // Drawer
-    val conversationsTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = 25.sp, lineHeight = 32.sp)
-    val drawerButton get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp)
-    val drawerSearch get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 23.sp)
+    val conversationsTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (25 * chatFontScale).sp, lineHeight = (32 * chatFontScale).sp)
+    val drawerButton get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (14 * chatFontScale).sp, lineHeight = (20 * chatFontScale).sp)
+    val drawerSearch get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = (16 * chatFontScale).sp, lineHeight = (23 * chatFontScale).sp)
 
     // Assistant markdown headings — even ~1.15 steps; h1 reined in (22, not 24)
     // so the jump from h2 stays proportional and h1 doesn't shout over 15sp body.
-    val mdH1 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = 22.sp, lineHeight = 28.sp)
-    val mdH2 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = 19.sp, lineHeight = 25.sp)
-    val mdH3 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, lineHeight = 23.sp)
-    val mdH4 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 22.sp)
-    val mdH5 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = 15.sp, lineHeight = 22.sp)
-    val mdH6 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = 15.sp, lineHeight = 22.sp)
+    val mdH1 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (22 * chatFontScale).sp, lineHeight = (28 * chatFontScale).sp)
+    val mdH2 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (19 * chatFontScale).sp, lineHeight = (25 * chatFontScale).sp)
+    val mdH3 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.SemiBold, fontSize = (17 * chatFontScale).sp, lineHeight = (23 * chatFontScale).sp)
+    val mdH4 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.SemiBold, fontSize = (16 * chatFontScale).sp, lineHeight = (22 * chatFontScale).sp)
+    val mdH5 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (15 * chatFontScale).sp, lineHeight = (22 * chatFontScale).sp)
+    val mdH6 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (15 * chatFontScale).sp, lineHeight = (22 * chatFontScale).sp)
 
     // Thought-block headings — one tier below assistant markdown.
-    val thH1 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = 18.sp, lineHeight = 23.sp)
-    val thH2 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 21.sp)
-    val thH3 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 20.sp)
-    val thH4 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 19.sp)
-    val thH5 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 19.sp)
-    val thH6 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = 13.sp, lineHeight = 19.sp)
+    val thH1 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (18 * chatFontScale).sp, lineHeight = (23 * chatFontScale).sp)
+    val thH2 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (16 * chatFontScale).sp, lineHeight = (21 * chatFontScale).sp)
+    val thH3 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.SemiBold, fontSize = (15 * chatFontScale).sp, lineHeight = (20 * chatFontScale).sp)
+    val thH4 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.SemiBold, fontSize = (14 * chatFontScale).sp, lineHeight = (19 * chatFontScale).sp)
+    val thH5 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (13 * chatFontScale).sp, lineHeight = (19 * chatFontScale).sp)
+    val thH6 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = (13 * chatFontScale).sp, lineHeight = (19 * chatFontScale).sp)
 }

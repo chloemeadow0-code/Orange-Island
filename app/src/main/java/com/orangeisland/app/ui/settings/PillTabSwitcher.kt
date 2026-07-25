@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -95,7 +96,7 @@ fun PillTabSwitcher(
             )
             Surface(
                 onClick = { onSelect(index) },
-                modifier = Modifier.weight(widthWeight).height(tabHeight),
+                modifier = Modifier.weight(widthWeight).heightIn(min = tabHeight),
                 shape = RoundedCornerShape(
                     topStart = safeTopStart,
                     topEnd = safeTopEnd,
@@ -106,7 +107,7 @@ fun PillTabSwitcher(
                 contentColor = contentColor
             ) {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

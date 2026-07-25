@@ -3,6 +3,7 @@ package com.orangeisland.app.data
 import android.content.Context
 import com.orangeisland.app.model.ThinkingLevels
 import com.orangeisland.app.model.ToolCallDisplayModes
+import com.orangeisland.app.ui.theme.FontSizeTiers
 import com.orangeisland.app.util.Constants
 import com.orangeisland.app.util.DebugLog
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -249,6 +250,7 @@ class SettingsManager(private val context: Context) {
         val FONT_PREFERENCE = stringPreferencesKey("font_preference")
         val CUSTOM_FONT_PATH = stringPreferencesKey("custom_font_path")
         val CUSTOM_FONT_NAME = stringPreferencesKey("custom_font_name")
+        val FONT_SIZE_TIER = stringPreferencesKey("font_size_tier")
         val FIRST_LAUNCH_TIME = longPreferencesKey("first_launch_time")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val PRIVACY_POLICY_ACCEPTED = booleanPreferencesKey("privacy_policy_accepted")
@@ -518,6 +520,7 @@ class SettingsManager(private val context: Context) {
     val fontPreference: Flow<String> = context.dataStore.data.map { it[FONT_PREFERENCE] ?: "app_default" }
     val customFontPath: Flow<String> = context.dataStore.data.map { it[CUSTOM_FONT_PATH] ?: "" }
     val customFontName: Flow<String> = context.dataStore.data.map { it[CUSTOM_FONT_NAME] ?: "" }
+    val fontSizeTier: Flow<String> = context.dataStore.data.map { it[FONT_SIZE_TIER] ?: FontSizeTiers.DEFAULT }
     val firstLaunchTime: Flow<Long?> = context.dataStore.data.map { it[FIRST_LAUNCH_TIME] }
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data.map { it[ONBOARDING_COMPLETED] ?: false }
     val privacyPolicyAccepted: Flow<Boolean> = context.dataStore.data.map { it[PRIVACY_POLICY_ACCEPTED] ?: false }
@@ -1041,6 +1044,9 @@ class SettingsManager(private val context: Context) {
     }
     suspend fun saveCustomFontName(value: String) {
         context.dataStore.edit { it[CUSTOM_FONT_NAME] = value }
+    }
+    suspend fun setFontSizeTier(tier: String) {
+        context.dataStore.edit { it[FONT_SIZE_TIER] = tier }
     }
 
     suspend fun saveSchemeStyle(style: String) {

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -409,7 +410,7 @@ private fun StepsBarChartCard(
                 }
             }
             if (summaries.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp), contentAlignment = Alignment.Center) {
                     Text("暂无数据", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
@@ -489,7 +490,7 @@ private fun HeartRateLineChartCard(
                 Text("心率趋势", style = MaterialTheme.typography.titleMedium)
             }
             if (summaries.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp), contentAlignment = Alignment.Center) {
                     Text("暂无数据", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
@@ -638,7 +639,7 @@ private fun SleepSummaryCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("睡眠记录", style = MaterialTheme.typography.titleMedium)
             if (summaries.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp), contentAlignment = Alignment.Center) {
                     Text("暂无数据", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {

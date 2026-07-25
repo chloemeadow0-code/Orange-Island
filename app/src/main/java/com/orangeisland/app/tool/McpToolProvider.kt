@@ -9,6 +9,8 @@ import com.orangeisland.app.mcp.McpClientPool
 import com.orangeisland.app.util.DebugLog
 import com.orangeisland.app.viewmodel.GenerationContext
 import io.modelcontextprotocol.kotlin.sdk.types.Tool
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
@@ -130,28 +132,29 @@ class McpToolProvider(
     override fun definitions(ctx: GenerationContext): List<ToolDefinition> {
         val servers = activeServers(ctx)
         if (servers.isEmpty()) return emptyList()
-        val all = mutableListOf<ToolDefinition>()
-        // Names already issued in this pass — local so collisions are deduped per generation,
-        // not across the whole process lifetime.
         val used = mutableSetOf<String>()
-        // ToolProvider.definitions() is synchronous (built-in tools are pure functions of ctx),
-        // but MCP requires a network round-trip to listTools(). runBlocking bridges the gap;
-        // callers already run on Dispatchers.IO (buildApiPath is suspend), and listTools()
-        // is cached so the cost is one call per server per minute.
-        kotlinx.coroutines.runBlocking {
-            for (server in servers) {
-                val tools = try {
-                    pool.listTools(server)
-                } catch (e: Exception) {
-                    DebugLog.w(TAG, "Failed to list tools for '${server.name}': ${e.message}")
-                    emptyList()
+
+        val perServerResults = kotlinx.coroutines.runBlocking {
+            val deferreds = servers.map { server ->
+                async {
+                    server to try {
+                        pool.listTools(server)
+                    } catch (e: Exception) {
+                        DebugLog.w(TAG, "Failed to list tools for '${server.name}': ${e.message}")
+                        emptyList()
+                    }
                 }
-                for (tool in tools) {
-                    if (tool.name in server.disabledToolNames) continue
-                    val apiName = allocateApiName(server.name, tool.name, used)
-                    originalToolNames[apiName] = tool.name
-                    all += tool.toToolDefinition(serverName = server.name, apiName = apiName)
-                }
+            }
+            deferreds.awaitAll()
+        }
+
+        val all = mutableListOf<ToolDefinition>()
+        for ((server, tools) in perServerResults) {
+            for (tool in tools) {
+                if (tool.name in server.disabledToolNames) continue
+                val apiName = allocateApiName(server.name, tool.name, used)
+                originalToolNames[apiName] = tool.name
+                all += tool.toToolDefinition(serverName = server.name, apiName = apiName)
             }
         }
         return all

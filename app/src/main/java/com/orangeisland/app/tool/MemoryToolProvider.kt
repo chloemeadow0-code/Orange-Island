@@ -222,13 +222,12 @@ class MemoryToolProvider(
                 val desc = if (args.containsKey("description")) descArg else null
                 // Resolve the file's actual scope before editing: a project-scoped call may
                 // target a file that only exists globally, so look in both places.
-                fun existsInScope(fileName: String): String? {
-                    if (ctx.projectId != null && runCatching { memoryManager.readFile(fileName, ctx.projectId) }.isSuccess) return ctx.projectId
-                    if (runCatching { memoryManager.readFile(fileName, null) }.isSuccess) return null
-                    return null
+                val editFileName = arg("name")
+                val targetScope: String? = when {
+                    ctx.projectId != null && runCatching { memoryManager.readFile(editFileName, ctx.projectId) }.isSuccess -> ctx.projectId
+                    runCatching { memoryManager.readFile(editFileName, null) }.isSuccess -> null
+                    else -> return "Error: File not found: $editFileName"
                 }
-                val targetScope = existsInScope(arg("name"))
-                    ?: return "Error: File not found: ${arg("name")}"
                 if (editContent != null && oldStr != null) {
                     "Error: 'content' and 'old_string' are mutually exclusive. Use one or the other."
                 } else if (oldStr != null && !args.containsKey("new_string")) {
@@ -237,7 +236,7 @@ class MemoryToolProvider(
                     "Error: At least 'content', 'old_string', 'new_name', or 'description' must be provided."
                 } else {
                     memoryManager.editFile(
-                        arg("name"),
+                        editFileName,
                         editContent,
                         newName,
                         desc,

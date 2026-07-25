@@ -1242,4 +1242,10 @@
     <string name="logs_type_request">REQUEST</string>
     <string name="logs_type_conversation">CONVERSATION</string>
     <string name="logs_type_sync">SYNC</string>
+    <!-- Font Size Tiers -->
+    <string name="font_size_small">小</string>
+    <string name="font_size_default">标准</string>
+    <string name="font_size_large">大</string>
+    <string name="font_size_xlarge">超大</string>
+    <string name="font_size_xxlarge">特大</string>
 </resources>

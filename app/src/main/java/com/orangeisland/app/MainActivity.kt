@@ -74,6 +74,7 @@ import com.orangeisland.app.ui.chat.ChatApp
 import com.orangeisland.app.ui.chat.FullScreenMediaViewer
 import com.orangeisland.app.ui.settings.SettingsScreen
 import com.orangeisland.app.ui.components.ColorMath
+import com.orangeisland.app.ui.theme.FontSizeTiers
 import com.orangeisland.app.ui.theme.OrangeIslandTheme
 import com.orangeisland.app.util.CrashReporter
 import com.orangeisland.app.viewmodel.ChatViewModel
@@ -152,6 +153,7 @@ class MainActivity : ComponentActivity() {
             val dynamicColor by settingsManager.dynamicColor.collectAsState(initial = true)
             val fontPreference by settingsManager.fontPreference.collectAsState(initial = "app_default")
             val customFontPath by settingsManager.customFontPath.collectAsState(initial = "")
+            val fontSizeTier by settingsManager.fontSizeTier.collectAsState(initial = FontSizeTiers.DEFAULT)
             val customGlobalTextColorArgb by settingsManager.customColorGlobalText.collectAsState(initial = null)
             val customGlobalTextColor = customGlobalTextColorArgb?.let { ColorMath.argbToColor(it) }
 
@@ -180,6 +182,7 @@ class MainActivity : ComponentActivity() {
                 dynamicColor = dynamicColor,
                 fontPreference = fontPreference,
                 customFontPath = customFontPath,
+                fontScale = FontSizeTiers.scaleFor(fontSizeTier),
                 customGlobalTextColor = customGlobalTextColor
             ) {
                 val activity = LocalActivity.current

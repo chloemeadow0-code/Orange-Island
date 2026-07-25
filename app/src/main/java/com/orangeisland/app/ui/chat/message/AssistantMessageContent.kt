@@ -160,7 +160,7 @@ internal fun AssistantMessageContent(
                 val toolCallingStatus = stringResource(R.string.tool_calling_ellipsis)
                 val transcribingStatus = stringResource(R.string.transcription_ellipsis)
                 val statusText = when {
-                    message.status == MessageStatus.SUCCESS -> if (message.tokenCount > 0) stringResource(R.string.cost_tokens, message.tokenCount) else null
+                    message.status == MessageStatus.SUCCESS -> if (!showUsageStats && message.tokenCount > 0) stringResource(R.string.cost_tokens, message.tokenCount) else null
                     isStreaming && isTranscribing -> transcribingStatus
                     isStreaming && isToolCalling -> toolCallingStatus
                     isStreaming && thinkingNow -> thinkingStatus
@@ -671,6 +671,9 @@ internal fun AssistantMessageContent(
                                 append("${message.tokenCount} tokens")
                                 if (message.cachedTokenCount > 0) append(" · ${stringResource(R.string.cache_hit)} ${message.cachedTokenCount} ($cacheRatio%)")
                                 if (message.contextMessageCount > 0) append(" · ${stringResource(R.string.context_messages, message.contextMessageCount)}")
+                                message.generationDurationMs?.let { ms ->
+                                    append(" · 用时 ${"%.1f".format(ms / 1000.0)}s")
+                                }
                             }
                             Text(
                                 text = text,

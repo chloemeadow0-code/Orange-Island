@@ -328,7 +328,7 @@ fun SettingsSandboxPage(sandboxManager: SandboxManager, onBack: () -> Unit, show
                                             disabledContainerColor = btnBgColor,
                                             disabledContentColor = btnContentColor
                                         ),
-                                        modifier = Modifier.height(56.dp).widthIn(min = 110.dp).offset(y = 4.dp)
+                                        modifier = Modifier.heightIn(min = 56.dp).widthIn(min = 110.dp).offset(y = 4.dp)
                                     ) {
                                         if (isBusy) {
                                             CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.5.dp, color = MaterialTheme.colorScheme.primary)

@@ -452,7 +452,7 @@ class GenerationManager(
             val combinedText = if (attachmentText.isNotBlank()) it.text + attachmentText else it.text
             val hasTranscription = ctx.imageTranscriptionEnabled && meta != null && meta.items.any { item -> !item.transcription.isNullOrBlank() }
             val effectiveImages = if (hasTranscription) emptyList() else it.images
-            ChatMessage(id = it.id, parentId = it.parentId, text = combinedText, images = effectiveImages, thoughts = it.thoughts, thoughtTitle = it.thoughtTitle, tokenCount = it.tokenCount, cachedTokenCount = it.cachedTokenCount, contextMessageCount = it.contextMessageCount, status = it.status, participant = it.participant, timestamp = it.timestamp, thoughtTimeMs = it.thoughtTimeMs, segments = segs, toolCall = toolCall)
+            ChatMessage(id = it.id, parentId = it.parentId, text = combinedText, images = effectiveImages, thoughts = it.thoughts, thoughtTitle = it.thoughtTitle, tokenCount = it.tokenCount, cachedTokenCount = it.cachedTokenCount, contextMessageCount = it.contextMessageCount, status = it.status, participant = it.participant, timestamp = it.timestamp, thoughtTimeMs = it.thoughtTimeMs, generationDurationMs = it.generationDurationMs, segments = segs, toolCall = toolCall)
         }.filter { it.participant != Participant.ERROR }
             .let { path ->
                 if (isRegenerate && replaceMessageId != null) {
@@ -528,7 +528,8 @@ class GenerationManager(
         val cancellationToken = com.orangeisland.app.api.HttpClient.newCancellationToken()
         // Register the token on the session so the Stop button (session.stop →
         // stopInternal) can flag it via HttpClient.cancelToken, covering the gap
-        // between tool-call rounds when activeStreamHandle is briefly null.
+        // between tool-call rounds when the per-token stream handle has not yet been
+        // registered.
         session?.currentCancellationToken = cancellationToken
 
         var totalText = ""
@@ -626,6 +627,7 @@ class GenerationManager(
                 contextMessageCount = contextMessageCount,
                 status = currentStatus, participant = Participant.MODEL,
                 timestamp = startTime, thoughtTimeMs = totalThoughtTimeMs,
+                generationDurationMs = System.currentTimeMillis() - startTime,
                 modelName = modelName, toolCall = toolCallData,
                 images = generatedImages.toList(),
                 audio = generatedAudio.toList(),
@@ -952,7 +954,8 @@ class GenerationManager(
                                 thoughtTitle = totalThoughtTitle, tokenCount = totalTokenCount,
                                 cachedTokenCount = totalCachedTokenCount, contextMessageCount = contextMessageCount,
                                 status = currentStatus, participant = Participant.MODEL, timestamp = startTime,
-                                thoughtTimeMs = totalThoughtTimeMs, modelName = modelName, toolCallJson = segmentsJson
+                                thoughtTimeMs = totalThoughtTimeMs, generationDurationMs = System.currentTimeMillis() - startTime,
+                                modelName = modelName, toolCallJson = segmentsJson
                             )
                             if (session != null) {
                                 session.withMessageWriteLock { conversations.upsertMessage(entity) }

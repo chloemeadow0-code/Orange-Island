@@ -124,6 +124,7 @@ data class MessageEntity(
     val participant: Participant,
     val timestamp: Long,
     val thoughtTimeMs: Long? = null,
+    val generationDurationMs: Long? = null,
     val modelName: String? = null,
     val toolCallJson: String? = null,
     val attachmentMeta: String? = null
@@ -298,7 +299,7 @@ abstract class ChatDatabase : RoomDatabase() {
     abstract fun workflowDao(): WorkflowDao
 
     companion object {
-        const val CURRENT_VERSION = 18
+        const val CURRENT_VERSION = 19
         const val DB_NAME = "orangeisland_db"
 
         val ALL_MIGRATIONS = listOf(
@@ -462,6 +463,14 @@ abstract class ChatDatabase : RoomDatabase() {
                     // context message count actually sent to the model for this reply.
                     db.execSQL("ALTER TABLE messages ADD COLUMN cachedTokenCount INTEGER NOT NULL DEFAULT 0")
                     db.execSQL("ALTER TABLE messages ADD COLUMN contextMessageCount INTEGER NOT NULL DEFAULT 0")
+                }
+            },
+            object : Migration(18, 19) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Total wall-clock time from generation start to completion, shown
+                    // alongside the token/cache usage stats. Nullable — old messages have
+                    // no recorded duration, and showing "unknown" beats faking a 0.
+                    db.execSQL("ALTER TABLE messages ADD COLUMN generationDurationMs INTEGER")
                 }
             }
         )

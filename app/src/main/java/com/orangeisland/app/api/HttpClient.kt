@@ -144,9 +144,10 @@ object HttpClient {
         .proxyAuthenticator(proxyAuthenticator)
         .build()
 
-    /** The currently active streaming handle, if any. Used to cancel
-     *  generation immediately by closing the underlying socket. */
-    @Volatile var activeStreamHandle: StreamHandle? = null
+    /** Per-token streaming handles. Replaces the previous single global handle so
+     *  that cancelling one generation never races against or closes another
+     *  concurrently-running stream (e.g. a title-generation request). */
+    private val activeStreamHandles = java.util.concurrent.ConcurrentHashMap<Long, StreamHandle>()
 
     /**
      * 每次生成任务分配一个自增 token；调用方在发起每一轮请求前后都用同一个
@@ -158,11 +159,11 @@ object HttpClient {
     /** 生成任务开始时调用，取得一个专属 token。 */
     fun newCancellationToken(): Long = tokenCounter.incrementAndGet()
 
-    /** 暂停操作调用：标记该 token 对应的生成任务已作废。
-     *  同时仍尝试 cancel 当前 activeStreamHandle（如果恰好有值），双保险。 */
+    /** 暂停操作调用：标记该 token 对应的生成任务已作废，并精确 cancel
+     *  该 token 登记的那个底层连接——不会误碰别的并发流。 */
     fun cancelToken(token: Long) {
         cancelledTokens.add(token)
-        activeStreamHandle?.cancel()
+        activeStreamHandles[token]?.cancel()
     }
 
     /** 每轮新请求发起前调用，检查该 token 是否已被取消；已取消则直接抛异常，
@@ -178,16 +179,20 @@ object HttpClient {
         cancelledTokens.remove(token)
     }
 
-    class StreamHandle(private val call: okhttp3.Call, private val response: okhttp3.Response) {
+    class StreamHandle(
+        private val call: okhttp3.Call,
+        private val response: okhttp3.Response,
+        private val token: Long? = null
+    ) {
         val code: Int get() = response.code
         val source: BufferedSource? get() = response.body?.source()
         val errorBody: String? by lazy {
             try { response.body?.string() } catch (_: Exception) { null }
         }
         fun close() {
-            if (HttpClient.activeStreamHandle === this) {
-                HttpClient.activeStreamHandle = null
-            }
+            // remove(key, value) 只在 map 里这个 token 目前登记的还是"我自己"时才删——
+            // 防止误删别的并发流刚注册上来的新 handle。
+            token?.let { activeStreamHandles.remove(it, this) }
             response.close()
         }
         fun readLine(): String? = source?.readUtf8Line()
@@ -209,13 +214,15 @@ object HttpClient {
         headers.forEach { (k, v) -> requestBuilder.addHeader(k, v) }
         val call = client.newCall(requestBuilder.build())
         cancellationToken?.let { checkNotCancelled(it) }
-        val handle = StreamHandle(call, call.execute())
+        val handle = StreamHandle(call, call.execute(), token = cancellationToken)
         // 连接建立完成后再次检查：如果这段阻塞期间任务被取消了，立即关闭刚建立的连接
         if (cancellationToken != null && cancellationToken in cancelledTokens) {
             handle.close()
             throw java.io.InterruptedIOException("Generation cancelled (token=$cancellationToken)")
         }
-        activeStreamHandle = handle
+        if (cancellationToken != null) {
+            activeStreamHandles[cancellationToken] = handle
+        }
         val elapsed = System.currentTimeMillis() - t0
         UsageLogManager.log(
             UsageLogManager.Type.REQUEST,

@@ -67,8 +67,8 @@ class GenerationSession(
      *  [GenerationManager.generate] right after it mints a new token. Read by
      *  [stopInternal] so the Stop button can flag the token (and thus make the
      *  pre/post `call.execute()` checks in [com.orangeisland.app.api.HttpClient.streamPost]
-     *  fire) even during the window between tool-call rounds when
-     *  [com.orangeisland.app.api.HttpClient.activeStreamHandle] is briefly null. */
+     *  fire) even during the window between tool-call rounds when the per-token
+     *  stream handle in HttpClient has not yet been registered. */
     @Volatile var currentCancellationToken: Long? = null
 
     private val genLock = Any()
@@ -141,10 +141,11 @@ class GenerationSession(
 
     private fun stopInternal(releaseSendGate: Boolean): Job? {
         val previousJob = generationJob
-        com.orangeisland.app.api.HttpClient.activeStreamHandle?.cancel()
-        // Token-based cancellation (checked in HttpClient.streamPost before/after
-        // the blocking call.execute()) covers the window between tool-call rounds
-        // that activeStreamHandle alone cannot reach.
+        // Cancel only this generation's own in-flight stream, looked up by its token —
+        // never touches any other concurrently-running stream (e.g. a title-generation
+        // request happening at the same time). Covers the window between tool-call
+        // rounds too, since the token is checked before/after the blocking call.execute()
+        // in HttpClient.streamPost.
         currentCancellationToken?.let { com.orangeisland.app.api.HttpClient.cancelToken(it) }
         previousJob?.cancel()
         // Advance the UI-ownership token and commit the terminal UI state as one
