@@ -10,7 +10,7 @@ import kotlinx.serialization.json.JsonObject
 sealed class StreamEvent {
     data class TextChunk(val text: String) : StreamEvent()
     data class ThoughtChunk(val thought: String, val title: String? = null, val signature: String? = null) : StreamEvent()
-    data class UsageUpdate(val tokenCount: Int, val thoughtsTokenCount: Int = 0) : StreamEvent()
+    data class UsageUpdate(val tokenCount: Int, val thoughtsTokenCount: Int = 0, val cachedTokenCount: Int = 0) : StreamEvent()
     data class Error(val error: GenerationError) : StreamEvent() {
         val message: String get() = error.userMessage()
     }
@@ -203,12 +203,18 @@ data class OpenAiUsage(
     @SerialName("prompt_tokens") val promptTokens: Int,
     @SerialName("completion_tokens") val completionTokens: Int,
     @SerialName("total_tokens") val totalTokens: Int,
-    @SerialName("completion_tokens_details") val completionTokensDetails: OpenAiCompletionTokensDetails? = null
+    @SerialName("completion_tokens_details") val completionTokensDetails: OpenAiCompletionTokensDetails? = null,
+    @SerialName("prompt_tokens_details") val promptTokensDetails: OpenAiPromptTokensDetails? = null
 )
 
 @Serializable
 data class OpenAiCompletionTokensDetails(
     @SerialName("reasoning_tokens") val reasoningTokens: Int? = null
+)
+
+@Serializable
+data class OpenAiPromptTokensDetails(
+    @SerialName("cached_tokens") val cachedTokens: Int? = null
 )
 
 @Serializable

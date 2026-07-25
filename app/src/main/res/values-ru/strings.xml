@@ -284,6 +284,10 @@
     <string name="context_retain">Сохранять %1$d последних сообщений</string>
     <string name="context_visualize">Визуализировать заполнение контекста</string>
     <string name="context_visualize_desc">Затемнять сообщения вне окна контекста</string>
+    <string name="show_usage_stats">Show Usage Stats</string>
+    <string name="show_usage_stats_desc">Display token usage, cache hits, and context message count below each AI reply</string>
+    <string name="cache_hit">Cache hit</string>
+    <string name="context_messages">Context %1$d messages</string>
     <string name="gen_temperature">Температура</string>
     <string name="gen_temperature_desc">Управляет случайностью (0.0 = детерминированно, 2.0 = креативно)</string>
     <string name="gen_max_tokens">Макс. токенов вывода</string>
@@ -1003,4 +1007,5 @@ THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMP
     <string name="logs_type_request">REQUEST</string>
     <string name="logs_type_conversation">CONVERSATION</string>
     <string name="logs_type_sync">SYNC</string>
+    <string name="mcp_refresh">Обновить</string>
 </resources>

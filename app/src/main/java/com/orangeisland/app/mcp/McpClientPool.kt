@@ -15,6 +15,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.Tool
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -92,7 +93,7 @@ class McpClientPool(
         /** How many times to retry a failing connect, with exponential backoff. */
         private const val MAX_CONNECT_ATTEMPTS = 3
         /** Interval between heartbeat probes (keeps statuses fresh and reconnects after blips). */
-        private const val HEARTBEAT_INTERVAL_MS = 30_000L
+        private const val HEARTBEAT_INTERVAL_MS = 120_000L
         /** Fast bounds for heartbeat probes: single attempt, short timeout. Probes run every
          *  [HEARTBEAT_INTERVAL_MS], so a failed probe just retries next tick — there's no need to
          *  retry-with-backoff inside one probe (that's what made the spinner last ~50s on a dead
@@ -244,7 +245,7 @@ class McpClientPool(
      * the UI's three-state icon honest with what the last call actually saw.
      */
     suspend fun listTools(config: McpServerConfig): List<Tool> {
-        return try {
+        suspend fun once(): List<Tool> {
             val server = getOrConnect(config)
             val cached = server.toolsCache
             val now = System.currentTimeMillis()
@@ -258,9 +259,30 @@ class McpClientPool(
             // Per the user's decision, "connected but zero tools" is merged with "couldn't connect"
             // into the single error icon — both mean the server isn't actually useful right now.
             setStatus(config.id, if (tools.isNotEmpty()) McpStatus.READY else McpStatus.DISCONNECTED)
-            tools
+            return tools
+        }
+        return try {
+            once()
+        } catch (e: TimeoutCancellationException) {
+            DebugLog.w(TAG, "listTools timed out for '${config.name}', retrying once after reconnect", e)
+            invalidate(config.id)
+            try { once() } catch (e2: CancellationException) { throw e2 } catch (e2: Exception) {
+                DebugLog.e(TAG, "listTools retry failed for '${config.name}'", e2)
+                invalidate(config.id)
+                setStatus(config.id, McpStatus.DISCONNECTED)
+                emptyList()
+            }
         } catch (e: CancellationException) {
             throw e
+        } catch (e: java.io.IOException) {
+            DebugLog.w(TAG, "listTools IO failed for '${config.name}', retrying once after reconnect", e)
+            invalidate(config.id)
+            try { once() } catch (e2: CancellationException) { throw e2 } catch (e2: Exception) {
+                DebugLog.e(TAG, "listTools retry failed for '${config.name}'", e2)
+                invalidate(config.id)
+                setStatus(config.id, McpStatus.DISCONNECTED)
+                emptyList()
+            }
         } catch (e: Exception) {
             DebugLog.e(TAG, "listTools failed for '${config.name}'", e)
             // Drop a poisoned connection so the next call retries from scratch.
@@ -276,14 +298,35 @@ class McpClientPool(
      * joined by newlines; non-text content (image/audio) is skipped in this first version.
      */
     suspend fun callTool(config: McpServerConfig, name: String, argumentsJson: String): String {
-        val server = getOrConnect(config)
         val args = parseArguments(argumentsJson)
-        val result: CallToolResult = try {
-            withTimeout(REQUEST_TIMEOUT_MS) {
+        suspend fun once(): CallToolResult {
+            val server = getOrConnect(config)
+            return withTimeout(REQUEST_TIMEOUT_MS) {
                 server.client.callTool(name = name, arguments = args)
+            }
+        }
+        val result: CallToolResult = try {
+            once()
+        } catch (e: TimeoutCancellationException) {
+            DebugLog.w(TAG, "callTool timed out for '${config.name}' / '$name', retrying once after reconnect", e)
+            invalidate(config.id)
+            try { once() } catch (e2: CancellationException) { throw e2 } catch (e2: Exception) {
+                DebugLog.e(TAG, "callTool retry failed for '${config.name}' / '$name'", e2)
+                invalidate(config.id)
+                setStatus(config.id, McpStatus.DISCONNECTED)
+                throw e2
             }
         } catch (e: CancellationException) {
             throw e
+        } catch (e: java.io.IOException) {
+            DebugLog.w(TAG, "callTool IO failed for '${config.name}' / '$name', retrying once after reconnect", e)
+            invalidate(config.id)
+            try { once() } catch (e2: CancellationException) { throw e2 } catch (e2: Exception) {
+                DebugLog.e(TAG, "callTool retry failed for '${config.name}' / '$name'", e2)
+                invalidate(config.id)
+                setStatus(config.id, McpStatus.DISCONNECTED)
+                throw e2
+            }
         } catch (e: Exception) {
             // A transport/protocol failure on a tool call means the connection is poisoned; drop it
             // and mark DISCONNECTED so the next call rebuilds and the UI reflects the outage.
@@ -349,6 +392,26 @@ class McpClientPool(
             setStatus(config.id, McpStatus.CONNECTING)
             val status = probe(config)
             setStatus(config.id, status)
+        }
+    }
+
+    /**
+     * Probes every server in [configs] in parallel, updating statuses to CONNECTING and then
+     * READY / DISCONNECTED as each probe completes. Used when the app returns to foreground
+     * or the user hits the refresh button in the MCP settings page.
+     */
+    fun refreshAll(configs: List<McpServerConfig>) {
+        if (configs.isEmpty()) return
+        ioScope.launch {
+            kotlinx.coroutines.coroutineScope {
+                configs.forEach { config ->
+                    launch {
+                        setStatus(config.id, McpStatus.CONNECTING)
+                        val status = probe(config)
+                        setStatus(config.id, status)
+                    }
+                }
+            }
         }
     }
 

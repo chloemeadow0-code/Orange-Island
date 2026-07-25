@@ -51,6 +51,7 @@ class SettingsRepository(
     val activeSystemPromptId: StateFlow<String?> = hot(settingsManager.activeSystemPromptId, null)
     val maxContextWindow: StateFlow<Int> = hot(settingsManager.maxContextWindow, 20)
     val visualizeContextRollout: StateFlow<Boolean> = hot(settingsManager.visualizeContextRollout, false)
+    val showMessageUsageStats: StateFlow<Boolean> = hot(settingsManager.showMessageUsageStats, false)
     val codeExecutionEnabled: StateFlow<Boolean> = hot(settingsManager.codeExecutionEnabled, false)
     val googleSearchEnabled: StateFlow<Boolean> = hot(settingsManager.googleSearchEnabled, false)
     val thinkingEnabled: StateFlow<Boolean> = hot(settingsManager.thinkingEnabled, true)
@@ -402,6 +403,7 @@ class SettingsRepository(
     // ── Simple setting toggles ────────────────────────────────
     fun setMaxContextWindow(window: Int) = scope.launch { settingsManager.saveMaxContextWindow(window) }
     fun setVisualizeContextRollout(enabled: Boolean) = scope.launch { settingsManager.saveVisualizeContextRollout(enabled) }
+    fun setShowMessageUsageStats(enabled: Boolean) = scope.launch { settingsManager.saveShowMessageUsageStats(enabled) }
     fun setProviderBaseUrl(provider: String, url: String) = scope.launch { settingsManager.saveProviderBaseUrl(provider, url) }
     fun setTitleGenerationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveTitleGenerationEnabled(enabled) }
     fun setTitleGenerationModel(model: String?) = scope.launch { settingsManager.saveTitleGenerationModel(model) }

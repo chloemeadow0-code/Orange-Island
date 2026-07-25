@@ -118,6 +118,8 @@ data class MessageEntity(
     val thoughts: String? = null,
     val thoughtTitle: String? = null,
     val tokenCount: Int = 0,
+    val cachedTokenCount: Int = 0,
+    val contextMessageCount: Int = 0,
     val status: MessageStatus = MessageStatus.SUCCESS,
     val participant: Participant,
     val timestamp: Long,
@@ -296,7 +298,7 @@ abstract class ChatDatabase : RoomDatabase() {
     abstract fun workflowDao(): WorkflowDao
 
     companion object {
-        const val CURRENT_VERSION = 17
+        const val CURRENT_VERSION = 18
         const val DB_NAME = "orangeisland_db"
 
         val ALL_MIGRATIONS = listOf(
@@ -452,6 +454,14 @@ abstract class ChatDatabase : RoomDatabase() {
                     // TTS audio attachments: stores a JSON-encoded list of local file paths
                     // for AI-generated voice messages (speak tool output).
                     db.execSQL("ALTER TABLE messages ADD COLUMN audio TEXT NOT NULL DEFAULT ''")
+                }
+            },
+            object : Migration(17, 18) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Cache-hit token tracking (Anthropic/OpenAI/Gemini prompt caching) + the
+                    // context message count actually sent to the model for this reply.
+                    db.execSQL("ALTER TABLE messages ADD COLUMN cachedTokenCount INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("ALTER TABLE messages ADD COLUMN contextMessageCount INTEGER NOT NULL DEFAULT 0")
                 }
             }
         )

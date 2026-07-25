@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.ui.res.painterResource
+import androidx.compose.material.icons.filled.DataUsage
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
@@ -36,6 +37,7 @@ import java.util.Locale
 fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val maxContextWindow by viewModel.settings.maxContextWindow.collectAsState()
     val visualizeContextRollout by viewModel.settings.visualizeContextRollout.collectAsState()
+    val showUsageStats by viewModel.settings.showMessageUsageStats.collectAsState()
     val defaultTemperature by viewModel.settings.defaultTemperature.collectAsState()
     val defaultMaxTokens by viewModel.settings.defaultMaxTokens.collectAsState()
     val defaultTopP by viewModel.settings.defaultTopP.collectAsState()
@@ -121,6 +123,19 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     Switch(checked = visualizeContextRollout, onCheckedChange = { viewModel.settings.setVisualizeContextRollout(it) })
                                 },
                                 modifier = Modifier.clickable { viewModel.settings.setVisualizeContextRollout(!visualizeContextRollout) }
+                            )
+                        },
+                        {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.show_usage_stats)) },
+                                supportingContent = { Text(stringResource(R.string.show_usage_stats_desc)) },
+                                leadingContent = {
+                                    Icon(Icons.Default.DataUsage, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                },
+                                trailingContent = {
+                                    Switch(checked = showUsageStats, onCheckedChange = { viewModel.settings.setShowMessageUsageStats(it) })
+                                },
+                                modifier = Modifier.clickable { viewModel.settings.setShowMessageUsageStats(!showUsageStats) }
                             )
                         }
                     )

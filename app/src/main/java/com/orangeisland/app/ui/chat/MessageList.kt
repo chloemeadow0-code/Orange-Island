@@ -38,6 +38,7 @@ fun MessageList(
     isLoading: Boolean = false,
     isSwitching: Boolean = false,
     visualizeContextRollout: Boolean = false,
+    showUsageStats: Boolean = false,
     toolCallDisplayMode: String = ToolCallDisplayModes.DEFAULT,
     maxContextWindow: Int = 20,
     modelAliases: Map<String, String> = emptyMap(),
@@ -66,6 +67,8 @@ fun MessageList(
 ) {
     var editingMessageId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(isLoading) { if (isLoading) editingMessageId = null }
+    var lastKnownExtraPadding by remember { mutableStateOf(0.dp) }
+    LaunchedEffect(isSwitching) { if (isSwitching) lastKnownExtraPadding = 0.dp }
     val density = androidx.compose.ui.platform.LocalDensity.current
 
     val currentPath = messages.filter { it.participant != Participant.ERROR }
@@ -87,16 +90,24 @@ fun MessageList(
     val extraPadding = if (lastUserMessageIndex == -1 || viewportHeight == 0) {
         0.dp
     } else {
-        with(density) {
-            val vDp = viewportHeight.toDp()
-            val targetTopDp = 140.dp
-            val availableSpaceDp = vDp - targetTopDp - (bottomBarHeight + 8.dp)
-            var contentHeightPx = 0
-            for (i in lastUserMessageIndex until messages.size) {
-                contentHeightPx += messageHeights[messages[i].id] ?: 0
+        val rangeIds = (lastUserMessageIndex until messages.size).map { messages[it].id }
+        val allMeasured = rangeIds.all { messageHeights.containsKey(it) }
+        if (!allMeasured) {
+            // 区间内还有消息没被测量过高度(刚插入、还没渲染完)——沿用上一次算出的
+            // 正确值,不要把未测量的当成 0 参与计算,否则会先算出偏大的值、
+            // 测量完成后再收缩,造成一次可见的跳动。
+            lastKnownExtraPadding
+        } else {
+            with(density) {
+                val vDp = viewportHeight.toDp()
+                val targetTopDp = 140.dp
+                val availableSpaceDp = vDp - targetTopDp - (bottomBarHeight + 8.dp)
+                val contentHeightPx = rangeIds.sumOf { messageHeights[it] ?: 0 }
+                val contentHeightDp = contentHeightPx.toDp()
+                val computed = (availableSpaceDp - contentHeightDp).coerceAtLeast(0.dp)
+                lastKnownExtraPadding = computed
+                computed
             }
-            val contentHeightDp = contentHeightPx.toDp()
-            (availableSpaceDp - contentHeightDp).coerceAtLeast(0.dp)
         }
     }
 
@@ -144,6 +155,7 @@ fun MessageList(
                     isInContext = isInContext,
                     modelAliases = modelAliases,
                     visualizeContextRollout = visualizeContextRollout,
+                    showUsageStats = showUsageStats,
                     toolCallDisplayMode = toolCallDisplayMode,
                     onStartEdit = { editingMessageId = message.id },
                     onCancelEdit = { editingMessageId = null },

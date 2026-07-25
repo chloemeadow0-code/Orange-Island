@@ -132,7 +132,8 @@ internal data class ApiCandidate(val content: ApiResponseContent? = null)
 @Serializable
 internal data class ApiUsageMetadata(
     val totalTokenCount: Int? = null,
-    val thoughtsTokenCount: Int? = null
+    val thoughtsTokenCount: Int? = null,
+    @SerialName("cachedContentTokenCount") val cachedContentTokenCount: Int? = null
 )
 
 @Serializable
@@ -446,7 +447,11 @@ class GeminiProvider : LlmProvider {
                                         }
                                     }
                                     response.usageMetadata?.let { metadata ->
-                                        emit(StreamEvent.UsageUpdate(metadata.totalTokenCount ?: 0, metadata.thoughtsTokenCount ?: 0))
+                                        emit(StreamEvent.UsageUpdate(
+                                            tokenCount = metadata.totalTokenCount ?: 0,
+                                            thoughtsTokenCount = metadata.thoughtsTokenCount ?: 0,
+                                            cachedTokenCount = metadata.cachedContentTokenCount ?: 0
+                                        ))
                                     }
                                 } catch (e: Exception) {
                                     DebugLog.e("OrangeIslandAPI", "Parse error: ${e.message}", e)

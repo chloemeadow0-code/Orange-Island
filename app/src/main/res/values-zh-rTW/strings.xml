@@ -251,6 +251,10 @@
     <string name="context_retain">保留最近 %1$d 則訊息</string>
     <string name="context_visualize">視覺化上下文捲動</string>
     <string name="context_visualize_desc">將上下文視窗外的訊息變暗</string>
+    <string name="show_usage_stats">顯示訊息用量統計</string>
+    <string name="show_usage_stats_desc">在每條 AI 回覆下方顯示 token 用量、快取命中和上下文訊息數</string>
+    <string name="cache_hit">快取命中</string>
+    <string name="context_messages">上下文 %1$d 則訊息</string>
     <string name="gen_temperature">溫度</string>
     <string name="gen_temperature_desc">控制隨機性（0.0 = 確定性，2.0 = 創造性）</string>
     <string name="gen_max_tokens">最大輸出 Token</string>
@@ -356,6 +360,7 @@
     <string name="mcp_name_taken">已存在同名伺服器</string>
     <string name="mcp_conversation_select">MCP 伺服器</string>
     <string name="mcp_conversation_inherit">使用全域啟用的伺服器</string>
+    <string name="mcp_refresh">重新整理</string>
 
     <!-- Settings - Plugins Page -->
     <string name="plugin_title">外掛</string>

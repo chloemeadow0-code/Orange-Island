@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +37,11 @@ fun SettingsMcpPage(viewModel: ChatViewModel, onBack: () -> Unit) {
         title = stringResource(R.string.mcp_title),
         onBack = onBack,
         scrollState = scrollState,
+        actions = {
+            IconButton(onClick = { viewModel.refreshAllMcpConnections() }) {
+                Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.mcp_refresh))
+            }
+        }
     ) {
         SettingsGroupColumn {
             SettingsGroup(title = stringResource(R.string.mcp_title), items = buildList {

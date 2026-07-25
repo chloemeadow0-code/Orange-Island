@@ -452,7 +452,7 @@ class GenerationManager(
             val combinedText = if (attachmentText.isNotBlank()) it.text + attachmentText else it.text
             val hasTranscription = ctx.imageTranscriptionEnabled && meta != null && meta.items.any { item -> !item.transcription.isNullOrBlank() }
             val effectiveImages = if (hasTranscription) emptyList() else it.images
-            ChatMessage(id = it.id, parentId = it.parentId, text = combinedText, images = effectiveImages, thoughts = it.thoughts, thoughtTitle = it.thoughtTitle, tokenCount = it.tokenCount, status = it.status, participant = it.participant, timestamp = it.timestamp, thoughtTimeMs = it.thoughtTimeMs, segments = segs, toolCall = toolCall)
+            ChatMessage(id = it.id, parentId = it.parentId, text = combinedText, images = effectiveImages, thoughts = it.thoughts, thoughtTitle = it.thoughtTitle, tokenCount = it.tokenCount, cachedTokenCount = it.cachedTokenCount, contextMessageCount = it.contextMessageCount, status = it.status, participant = it.participant, timestamp = it.timestamp, thoughtTimeMs = it.thoughtTimeMs, segments = segs, toolCall = toolCall)
         }.filter { it.participant != Participant.ERROR }
             .let { path ->
                 if (isRegenerate && replaceMessageId != null) {
@@ -536,6 +536,8 @@ class GenerationManager(
         val thinkingPlaceholder = context.getString(R.string.thinking_ellipsis)
         var totalThoughtTitle: String? = null
         var totalTokenCount = 0
+        var totalCachedTokenCount = 0
+        var contextMessageCount = 0
         var totalThoughtTimeMs: Long? = null
         var cumulativeThoughtMs: Long = 0
         var currentThoughtStartMs: Long? = null
@@ -604,6 +606,9 @@ class GenerationManager(
 
             val tApiPath = System.currentTimeMillis()
             val (currentPath, rawProviderConfig) = buildApiPath(parentId, conversationId, isRegenerate, replaceMessageId, config, ctx, cancellationToken)
+            contextMessageCount = currentPath.count {
+                !it.id.startsWith(Constants.TOOL_MSG_PREFIX) && !it.id.startsWith(Constants.RESULT_MSG_PREFIX)
+            }
             DebugLog.d("GenPerf", "buildApiPath: ${System.currentTimeMillis() - tApiPath}ms, pathSize=${currentPath.size}, toolCount=${rawProviderConfig.tools?.size ?: 0}")
             val providerConfig = if (transcriptionPerformed) rawProviderConfig.copy(includeImages = false) else rawProviderConfig
 
@@ -617,6 +622,8 @@ class GenerationManager(
                 id = modelMessageId, parentId = parentId,
                 text = totalText, thoughts = totalThoughts.ifBlank { null },
                 thoughtTitle = totalThoughtTitle, tokenCount = totalTokenCount,
+                cachedTokenCount = totalCachedTokenCount,
+                contextMessageCount = contextMessageCount,
                 status = currentStatus, participant = Participant.MODEL,
                 timestamp = startTime, thoughtTimeMs = totalThoughtTimeMs,
                 modelName = modelName, toolCall = toolCallData,
@@ -690,6 +697,7 @@ class GenerationManager(
                     }
                     is StreamEvent.UsageUpdate -> {
                         if (event.tokenCount > 0) totalTokenCount = event.tokenCount
+                        if (event.cachedTokenCount > 0) totalCachedTokenCount = event.cachedTokenCount
                         if (totalText.isEmpty() && event.thoughtsTokenCount > 0) {
                             currentStatus = MessageStatus.THINKING
                             if (currentThoughtStartMs == null) {
@@ -942,6 +950,7 @@ class GenerationManager(
                                 text = totalText, images = generatedImages.toList(), audio = generatedAudio.toList(),
                                 thoughts = totalThoughts.ifBlank { null },
                                 thoughtTitle = totalThoughtTitle, tokenCount = totalTokenCount,
+                                cachedTokenCount = totalCachedTokenCount, contextMessageCount = contextMessageCount,
                                 status = currentStatus, participant = Participant.MODEL, timestamp = startTime,
                                 thoughtTimeMs = totalThoughtTimeMs, modelName = modelName, toolCallJson = segmentsJson
                             )

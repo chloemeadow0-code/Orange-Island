@@ -85,6 +85,7 @@ internal fun AssistantMessageContent(
     isStreaming: Boolean,
     isLoading: Boolean,
     isEditingAllowed: Boolean,
+    showUsageStats: Boolean = false,
     toolCallDisplayMode: String,
     thoughtExpandedStates: SnapshotStateMap<String, Boolean>,
     isThoughtExpanded: Boolean,
@@ -659,6 +660,26 @@ internal fun AssistantMessageContent(
                 }
 
                 if (message.participant == Participant.MODEL) {
+                    if (showUsageStats && message.tokenCount > 0) {
+                        AnimatedVisibility(
+                            visible = !isStreaming,
+                            enter = fadeIn(tween(400)),
+                            exit = fadeOut(tween(200))
+                        ) {
+                            val cacheRatio = if (message.tokenCount > 0) (message.cachedTokenCount * 100 / message.tokenCount) else 0
+                            val text = buildString {
+                                append("${message.tokenCount} tokens")
+                                if (message.cachedTokenCount > 0) append(" · ${stringResource(R.string.cache_hit)} ${message.cachedTokenCount} ($cacheRatio%)")
+                                if (message.contextMessageCount > 0) append(" · ${stringResource(R.string.context_messages, message.contextMessageCount)}")
+                            }
+                            Text(
+                                text = text,
+                                style = ChatType.micro,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
                     AnimatedVisibility(
                         visible = !isStreaming,
                         enter = fadeIn(tween(400)) + expandVertically(tween(400)),

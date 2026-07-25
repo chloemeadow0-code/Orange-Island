@@ -414,6 +414,10 @@
     <string name="context_retain">Retain %1$d recent messages</string>
     <string name="context_visualize">Visualize Context Roll-Out</string>
     <string name="context_visualize_desc">Dim messages outside the context window</string>
+    <string name="show_usage_stats">Show Usage Stats</string>
+    <string name="show_usage_stats_desc">Display token usage, cache hits, and context message count below each AI reply</string>
+    <string name="cache_hit">Cache hit</string>
+    <string name="context_messages">Context %1$d messages</string>
     <string name="gen_temperature">Temperature</string>
     <string name="gen_temperature_desc">Controls randomness (0.0 = deterministic, 2.0 = creative)</string>
     <string name="gen_max_tokens">Max Output Tokens</string>
@@ -532,6 +536,7 @@
     <string name="mcp_tools_empty">No tools found. The server may not expose tools, the connection failed, or the config hasn\'t been saved yet.</string>
     <string name="mcp_tools_loading">Fetching tool list…</string>
     <string name="mcp_tools_refresh">Refresh</string>
+    <string name="mcp_refresh">Refresh</string>
     <string name="mcp_header_name_hint">Name</string>
     <string name="mcp_header_value_hint">Value</string>
     <string name="mcp_add_header">Add Header</string>

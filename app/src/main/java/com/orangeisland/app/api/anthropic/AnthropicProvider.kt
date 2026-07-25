@@ -37,7 +37,8 @@ internal data class AnthropicRequest(
     @SerialName("output_config") val outputConfig: AnthropicOutputConfig? = null,
     val tools: List<AnthropicTool>? = null,
     val temperature: Float? = null,
-    @SerialName("top_p") val topP: Float? = null
+    @SerialName("top_p") val topP: Float? = null,
+    @SerialName("cache_control") val cacheControl: JsonObject? = null
 )
 
 @Serializable
@@ -123,7 +124,9 @@ internal data class AnthropicMessageInfo(
 @Serializable
 internal data class AnthropicUsage(
     @SerialName("input_tokens") val inputTokens: Int? = null,
-    @SerialName("output_tokens") val outputTokens: Int? = null
+    @SerialName("output_tokens") val outputTokens: Int? = null,
+    @SerialName("cache_read_input_tokens") val cacheReadInputTokens: Int? = null,
+    @SerialName("cache_creation_input_tokens") val cacheCreationInputTokens: Int? = null
 )
 
 class AnthropicProvider : LlmProvider {
@@ -242,7 +245,8 @@ class AnthropicProvider : LlmProvider {
             maxTokens = config.maxTokens ?: if (thinking?.budgetTokens != null) maxOf(thinking.budgetTokens + 1024, 4096) else 4096,
             tools = anthropicTools,
             temperature = config.temperature,
-            topP = config.topP
+            topP = config.topP,
+            cacheControl = JsonObject(mapOf("type" to JsonPrimitive("ephemeral")))
         )
 
         try {
@@ -271,6 +275,7 @@ class AnthropicProvider : LlmProvider {
                     var toolUseArgs = StringBuilder()
                     var thinkingSignature: String? = null
                     var messageInputTokens = 0
+                    var messageCacheReadTokens = 0
 
                     while (currentCoroutineContext().isActive) {
                         try {
@@ -289,6 +294,7 @@ class AnthropicProvider : LlmProvider {
                                 when (event.type) {
                                     "message_start" -> {
                                         event.message?.usage?.inputTokens?.let { messageInputTokens = it }
+                                        event.message?.usage?.cacheReadInputTokens?.let { messageCacheReadTokens = it }
                                     }
                                     "content_block_start" -> {
                                         event.contentBlock?.let { block ->
@@ -333,7 +339,7 @@ class AnthropicProvider : LlmProvider {
                                     "message_delta" -> {
                                         event.usage?.let { u ->
                                             val total = messageInputTokens + (u.outputTokens ?: 0)
-                                            emit(StreamEvent.UsageUpdate(total))
+                                            emit(StreamEvent.UsageUpdate(tokenCount = total, cachedTokenCount = messageCacheReadTokens))
                                         }
                                     }
                                 }

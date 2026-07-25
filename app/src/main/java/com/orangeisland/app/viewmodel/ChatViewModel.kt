@@ -44,6 +44,7 @@ import com.orangeisland.app.model.SelectedAttachment
 import com.orangeisland.app.model.ToolCallData
 import com.orangeisland.app.sandbox.SandboxManager
 import com.orangeisland.app.sandbox.SandboxManagerFactory
+import com.orangeisland.app.service.AppForegroundTracker
 import com.orangeisland.app.service.OrangeIslandForegroundService
 import com.orangeisland.app.service.AutoBackupWorker
 import com.orangeisland.app.service.HealthSyncWorker
@@ -318,9 +319,17 @@ class ChatViewModel(
      *  Lives on viewModelScope so the background reconnect coroutines die with the ViewModel.
      *  On first access it also starts the heartbeat guardian (see [McpClientPool.startMonitoring])
      *  so the MCP settings UI's three-state icon stays live between generations. */
+    private val foregroundListener: (Boolean) -> Unit = { inForeground ->
+        if (inForeground) {
+            viewModelScope.launch {
+                mcpClientPool.refreshAll(settings.mcpServers.value.filter { it.enabled })
+            }
+        }
+    }
     private val mcpClientPoolLazy = lazy {
         com.orangeisland.app.mcp.McpClientPool(ioScope = viewModelScope).also { pool ->
             pool.startMonitoring(settings.mcpServers)
+            AppForegroundTracker.addListener(foregroundListener)
         }
     }
     val mcpClientPool: com.orangeisland.app.mcp.McpClientPool get() = mcpClientPoolLazy.value
@@ -341,7 +350,10 @@ class ChatViewModel(
         localProvider.close()
         session.cancelScope()
         autoBackupManager.destroy()
-        if (mcpClientPoolLazy.isInitialized()) mcpClientPool.closeAll()
+        if (mcpClientPoolLazy.isInitialized()) {
+            mcpClientPool.closeAll()
+            AppForegroundTracker.removeListener(foregroundListener)
+        }
         pluginSandbox?.closeAll()
     }
 
@@ -680,6 +692,8 @@ class ChatViewModel(
                                 thoughts = it.thoughts,
                                 thoughtTitle = it.thoughtTitle,
                                 tokenCount = it.tokenCount,
+                                cachedTokenCount = it.cachedTokenCount,
+                                contextMessageCount = it.contextMessageCount,
                                 status = it.status,
                                 participant = it.participant,
                                 timestamp = it.timestamp,
@@ -1029,6 +1043,14 @@ class ChatViewModel(
     suspend fun fetchMcpTools(config: com.orangeisland.app.data.McpServerConfig):
         List<io.modelcontextprotocol.kotlin.sdk.types.Tool> = withContext(Dispatchers.IO) {
         mcpClientPool.listTools(config)
+    }
+
+    /** Triggers a manual refresh of all enabled MCP connections. Called from the MCP settings
+     *  page's top-bar refresh button. */
+    fun refreshAllMcpConnections() {
+        viewModelScope.launch {
+            mcpClientPool.refreshAll(settings.mcpServers.value.filter { it.enabled })
+        }
     }
 
     fun createNewChat() {

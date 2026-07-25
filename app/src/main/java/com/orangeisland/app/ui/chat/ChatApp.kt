@@ -122,6 +122,7 @@ fun ChatApp(
     val isTransitioningToNewChat by viewModel.isTransitioningToNewChat.collectAsState()
     val totalTokens by viewModel.totalTokens.collectAsState()
     val visualizeContextRollout by viewModel.settings.visualizeContextRollout.collectAsState()
+    val showUsageStats by viewModel.settings.showMessageUsageStats.collectAsState()
     val maxContextWindow by viewModel.settings.maxContextWindow.collectAsState()
     val globalCodeExecution by viewModel.settings.codeExecutionEnabled.collectAsState()
     val globalGoogleSearch by viewModel.settings.googleSearchEnabled.collectAsState()
@@ -618,6 +619,7 @@ fun ChatApp(
                                 isLoading = isLoading,
                                 isSwitching = isSwitching,
                                 visualizeContextRollout = visualizeContextRollout,
+                                showUsageStats = showUsageStats,
                                 toolCallDisplayMode = toolCallDisplayMode,
                                 maxContextWindow = contextWindow,
                                 modelAliases = modelAliases,
