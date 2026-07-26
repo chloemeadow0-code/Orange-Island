@@ -173,6 +173,7 @@ fun ChatApp(
     val customChatTextColor by viewModel.settings.customColorChatText.collectAsState()
     val customGlobalTextColor by viewModel.settings.customColorGlobalText.collectAsState()
     val messageBubbleAlpha by viewModel.settings.transparencyMessageBubble.collectAsState()
+    val userBubbleMaskAlpha by viewModel.settings.transparencyUserBubbleMask.collectAsState()
     val reasoningPanelAlpha by viewModel.settings.transparencyReasoningPanel.collectAsState()
 
 
@@ -635,6 +636,7 @@ fun ChatApp(
                                 customChatTextColor = customChatTextColor,
                                 customGlobalTextColor = customGlobalTextColor,
                                 messageBubbleAlpha = messageBubbleAlpha,
+                                userBubbleMaskAlpha = userBubbleMaskAlpha,
                                 reasoningPanelAlpha = reasoningPanelAlpha,
                                 bottomBarHeight = bottomBarHeight,
                                 viewportHeight = viewportHeightPx,

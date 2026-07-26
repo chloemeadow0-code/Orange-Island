@@ -109,6 +109,8 @@ class SettingsRepository(
     val appLockEntries: StateFlow<Map<String, com.orangeisland.app.data.AppLockEntry>> =
         hot(settingsManager.appLockEntries, emptyMap())
     val toastEnabled: StateFlow<Boolean> = hot(settingsManager.toastEnabled, false)
+    val alarmEnabled: StateFlow<Boolean> = hot(settingsManager.alarmEnabled, false)
+    val healthToolEnabled: StateFlow<Boolean> = hot(settingsManager.healthToolEnabled, false)
     val uiAutomationEnabled: StateFlow<Boolean> = hot(settingsManager.uiAutomationEnabled, false)
     val userInteractionEnabled: StateFlow<Boolean> = hot(settingsManager.userInteractionEnabled, true)
     val amapApiKey: StateFlow<String> = hot(settingsManager.amapApiKey, "")
@@ -143,6 +145,7 @@ class SettingsRepository(
     val illustrationReasoningBackgroundPath: StateFlow<String> = hot(settingsManager.illustrationReasoningBackgroundPath, "")
     val transparencyTopBar: StateFlow<Float> = hot(settingsManager.transparencyTopBar, 1f)
     val transparencyMessageBubble: StateFlow<Float> = hot(settingsManager.transparencyMessageBubble, 1f)
+    val transparencyUserBubbleMask: StateFlow<Float> = hot(settingsManager.transparencyUserBubbleMask, 0.55f)
     val transparencyReasoningPanel: StateFlow<Float> = hot(settingsManager.transparencyReasoningPanel, 1f)
     val transparencyDrawerItem: StateFlow<Float> = hot(settingsManager.transparencyDrawerItem, 1f)
     val recentCustomColors: StateFlow<List<Long>> = hot(settingsManager.recentCustomColors, emptyList())
@@ -453,6 +456,8 @@ class SettingsRepository(
     fun setAppLockEntries(entries: Map<String, com.orangeisland.app.data.AppLockEntry>) =
         scope.launch { settingsManager.saveAppLockEntries(entries) }
     fun setToastEnabled(enabled: Boolean) = scope.launch { settingsManager.saveToastEnabled(enabled) }
+    fun setAlarmEnabled(enabled: Boolean) = scope.launch { settingsManager.saveAlarmEnabled(enabled) }
+    fun setHealthToolEnabled(v: Boolean) = scope.launch { settingsManager.saveHealthToolEnabled(v) }
     fun setUiAutomationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveUiAutomationEnabled(enabled) }
     fun setUserInteractionEnabled(enabled: Boolean) = scope.launch { settingsManager.saveUserInteractionEnabled(enabled) }
     fun setAmapApiKey(key: String) = scope.launch { settingsManager.saveAmapApiKey(key) }
@@ -516,6 +521,7 @@ class SettingsRepository(
     fun setIllustrationReasoningBackgroundPath(path: String) = scope.launch { settingsManager.saveIllustrationReasoningBackgroundPath(path) }
     fun setTransparencyTopBar(v: Float) = scope.launch { settingsManager.saveTransparencyTopBar(v) }
     fun setTransparencyMessageBubble(v: Float) = scope.launch { settingsManager.saveTransparencyMessageBubble(v) }
+    fun setTransparencyUserBubbleMask(v: Float) = scope.launch { settingsManager.saveTransparencyUserBubbleMask(v) }
     fun setTransparencyReasoningPanel(v: Float) = scope.launch { settingsManager.saveTransparencyReasoningPanel(v) }
     fun setTransparencyDrawerItem(v: Float) = scope.launch { settingsManager.saveTransparencyDrawerItem(v) }
     fun addRecentCustomColor(argb: Long) = scope.launch {

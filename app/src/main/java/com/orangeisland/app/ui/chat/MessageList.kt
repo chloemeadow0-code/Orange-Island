@@ -43,6 +43,7 @@ fun MessageList(
     maxContextWindow: Int = 20,
     modelAliases: Map<String, String> = emptyMap(),
     customUserBubbleColor: Long? = null,
+    userBubbleMaskAlpha: Float = 1f,
     userBubbleBackgroundImagePath: String = "",
     userBubbleCornerRadiusOverride: Float? = null,
     customAssistantBubbleColor: Long? = null,
@@ -137,6 +138,7 @@ fun MessageList(
                         editingMessageId = null
                     },
                     customUserBubbleColor = customUserBubbleColor,
+                    userBubbleMaskAlpha = userBubbleMaskAlpha,
                     userBubbleBackgroundImagePath = userBubbleBackgroundImagePath,
                     userBubbleCornerRadiusOverride = userBubbleCornerRadiusOverride,
                     customAssistantBubbleColor = customAssistantBubbleColor,

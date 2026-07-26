@@ -118,6 +118,9 @@ data class GenerationContext(
     val navigationEnabled: Boolean = false,
     val appLockEnabled: Boolean = false,
     val toastEnabled: Boolean = false,
+    val alarmEnabled: Boolean = false,
+    val healthEnabled: Boolean = false,
+    val healthDbPath: String = "",
     val uiAutomationEnabled: Boolean = false,
     val userInteractionEnabled: Boolean = true,
     /** The project this conversation belongs to (null = ungrouped). Drives memory scoping:
@@ -287,6 +290,15 @@ class GenerationManager(
     /** Toast tool (show_toast). Internally checks [GenerationContext.toastEnabled]. */
     fun buildToastTools(ctx: GenerationContext): List<ToolDefinition> =
         tools.toastDefinitions(ctx)
+
+    /** Alarm/timer tools (set_alarm, set_timer). Internally checks [GenerationContext.alarmEnabled]. */
+    fun buildAlarmTools(ctx: GenerationContext): List<ToolDefinition> =
+        tools.alarmDefinitions(ctx)
+
+    /** Health tools (get_health_summary/get_daily_health_history/get_sleep_history).
+     *  Internally checks [GenerationContext.healthEnabled] and [GenerationContext.healthDbPath]. */
+    fun buildHealthTools(ctx: GenerationContext): List<ToolDefinition> =
+        tools.healthDefinitions(ctx)
 
     /** UI automation tools (ui_tap/ui_swipe/ui_scroll/ui_global_action/ui_inspect).
      *  Internally checks [GenerationContext.automationEnabled]. */
@@ -473,11 +485,13 @@ class GenerationManager(
         val navigationTools = buildNavigationTools(ctx)
         val appLockTools = buildAppLockTools(ctx)
         val toastTools = buildToastTools(ctx)
+        val alarmTools = buildAlarmTools(ctx)
+        val healthTools = buildHealthTools(ctx)
         val automationTools = buildAutomationTools(ctx)
         val workflowTools = buildWorkflowTools(ctx)
         val userInteractionTools = buildUserInteractionTools(ctx)
         val ttsTools = buildTtsTools(ctx)
-        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + automationTools + workflowTools + userInteractionTools + ttsTools
+        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + alarmTools + healthTools + automationTools + workflowTools + userInteractionTools + ttsTools
         val providerConfig = ProviderConfig(
             apiKey = config.apiKey,
             modelId = config.modelId,

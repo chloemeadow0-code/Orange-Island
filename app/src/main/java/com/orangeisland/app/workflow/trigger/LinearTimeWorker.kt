@@ -75,7 +75,9 @@ class LinearTimeWorker(
                 settingsRepository = settingsRepository,
                 json = json,
                 contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(appContext),
-                llmProviders = llmProviders
+                llmProviders = llmProviders,
+                chatDao = db.chatDao(),
+                appContext = appContext
             )
             val def = repository.getLinear(workflowId)
             if (def == null || !def.enabled) return Result.success()

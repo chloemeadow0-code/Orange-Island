@@ -86,7 +86,9 @@ class GeofenceFireWorker(
                 settingsRepository = settingsRepository,
                 json = json,
                 contextProvider = DeviceContextProvider(appContext),
-                llmProviders = llmProviders
+                llmProviders = llmProviders,
+                chatDao = db.chatDao(),
+                appContext = appContext
             )
             runCatching {
                 runner.run(

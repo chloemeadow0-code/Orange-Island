@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.LocationOn
@@ -62,6 +63,8 @@ fun SettingsDeviceAccessPage(
     val navigationEnabled by settings.navigationEnabled.collectAsState()
     val appLockEnabled by settings.appLockEnabled.collectAsState()
     val toastEnabled by settings.toastEnabled.collectAsState()
+    val alarmEnabled by settings.alarmEnabled.collectAsState()
+    val healthToolEnabled by settings.healthToolEnabled.collectAsState()
     val uiAutomationEnabled by settings.uiAutomationEnabled.collectAsState()
     val userInteractionEnabled by settings.userInteractionEnabled.collectAsState()
     val environmentAwarenessEnabled by settings.environmentAwarenessEnabled.collectAsState()
@@ -233,6 +236,17 @@ fun SettingsDeviceAccessPage(
                         permissionState = PermissionState.NotRequired
                     )
                 }
+                // Alarm / Timer (system clock app delegate, no permission needed)
+                add {
+                    ToolToggleRow(
+                        title = stringResource(R.string.device_access_alarm_title),
+                        desc = stringResource(R.string.device_access_alarm_desc),
+                        icon = Icons.Default.Alarm,
+                        checked = alarmEnabled,
+                        onCheckedChange = { settings.setAlarmEnabled(it) },
+                        permissionState = PermissionState.NotRequired
+                    )
+                }
                 // User Interaction (ask_user_choice card dialog)
                 add {
                     ToolToggleRow(
@@ -372,6 +386,26 @@ fun SettingsDeviceAccessPage(
                                 ) { Text(stringResource(R.string.save)) }
                                 Button(onClick = onOpenHealthPage) { Text("查看健康数据") }
                             }
+                        }
+
+                        // 允许 AI 读取健康数据
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Text("允许 AI 读取健康数据", style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    "AI 能查看步数、心率、睡眠等数据并回答相关问题（会发送给你使用的模型服务商）",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Switch(checked = healthToolEnabled, onCheckedChange = { settings.setHealthToolEnabled(it) })
                         }
 
                         HorizontalDivider()

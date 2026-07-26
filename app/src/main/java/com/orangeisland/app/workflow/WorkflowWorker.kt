@@ -89,6 +89,7 @@ class WorkflowWorker(
             json = json,
             contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(appContext),
             llmProviders = llmProviders,
+            chatDao = db.chatDao(),
             appContext = appContext
         )
 

@@ -238,6 +238,8 @@
     <string name="device_access_usage_desc">各应用使用时长与最近打开时间</string>
     <string name="device_access_env_awareness_title">动态感知</string>
     <string name="device_access_env_awareness_desc">在系统提示词中通过 {app_context} 注入最近的环境变化（前台应用、模型、主题、电量、WiFi 等）</string>
+    <string name="device_access_alarm_title">闹钟与计时器</string>
+    <string name="device_access_alarm_desc">允许 AI 通过系统时钟 App 帮你设置闹钟和倒计时。</string>
     <string name="mini_app_title">Mini App</string>
     <string name="mini_app_add">添加 Mini App</string>
     <string name="mini_app_empty">暂无 Mini App，点击 + 添加</string>
@@ -616,6 +618,7 @@
     <string name="illustration_bubble_corner_radius">气泡圆角</string>
     <string name="transparency_topbar">顶部栏</string>
     <string name="transparency_message_bubble">消息气泡</string>
+    <string name="transparency_user_bubble_mask">用户气泡遮罩透明度</string>
     <string name="transparency_reasoning_panel">推理面板</string>
     <string name="transparency_drawer_item">侧边栏项</string>
     <string name="appearance_title">外观</string>

@@ -195,6 +195,9 @@ class GenerationRequestBuilder(
             navigationEnabled = settings.navigationEnabled.value,
             appLockEnabled = settings.appLockEnabled.value,
             toastEnabled = settings.toastEnabled.value,
+            alarmEnabled = settings.alarmEnabled.value,
+            healthEnabled = settings.healthToolEnabled.value,
+            healthDbPath = settings.gadgetbridgeDbPath.value,
             uiAutomationEnabled = settings.uiAutomationEnabled.value,
             userInteractionEnabled = settings.userInteractionEnabled.value,
             // Memory + RAG scope: a conversation inside a project only sees that project's

@@ -38,6 +38,7 @@ fun SettingsCustomColorsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val recentColors by s.recentCustomColors.collectAsState()
 
     val bubbleAlpha by s.transparencyMessageBubble.collectAsState()
+    val userBubbleMaskAlpha by s.transparencyUserBubbleMask.collectAsState()
     val reasoningAlpha by s.transparencyReasoningPanel.collectAsState()
     val drawerAlpha by s.transparencyDrawerItem.collectAsState()
     val topBarAlpha by s.transparencyTopBar.collectAsState()
@@ -121,6 +122,17 @@ fun SettingsCustomColorsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Slider(value = bubbleAlpha, onValueChange = { s.setTransparencyMessageBubble(it) }, valueRange = 0f..1f, modifier = Modifier.weight(1f))
                                     Text("${(bubbleAlpha * 100).toInt()}%")
+                                }
+                            }
+                        )
+                    },
+                    {
+                        SettingsItem(
+                            headlineContent = { Text(stringResource(R.string.transparency_user_bubble_mask)) },
+                            supportingContent = {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Slider(value = userBubbleMaskAlpha, onValueChange = { s.setTransparencyUserBubbleMask(it) }, valueRange = 0f..1f, modifier = Modifier.weight(1f))
+                                    Text("${(userBubbleMaskAlpha * 100).toInt()}%")
                                 }
                             }
                         )

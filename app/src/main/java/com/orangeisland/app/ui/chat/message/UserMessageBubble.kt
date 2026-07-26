@@ -71,6 +71,7 @@ internal fun UserMessageBubble(
     onShowDelete: () -> Unit,
     bubbleBackgroundImagePath: String = "",
     bubbleCornerRadiusOverride: Float? = null,
+    bubbleMaskColor: Color = Color.Unspecified,
 ) {
     @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
@@ -98,11 +99,12 @@ internal fun UserMessageBubble(
                         contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                         modifier = Modifier.matchParentSize(),
                     )
-                    // Mandatory scrim -- message text must stay legible over any photo.
+                    // Configurable scrim -- color follows the user's custom bubble color setting,
+                    // opacity follows Settings > 自定义颜色 > 用户气泡遮罩透明度.
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f))
+                            .background(bubbleMaskColor)
                     )
                     UserMessageBubbleContent(
                         message = message,

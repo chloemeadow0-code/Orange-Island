@@ -68,8 +68,8 @@ class McpToolProvider(
          * [MAX_FUNCTION_NAME_LEN]; and on collision a `_2`, `_3`, … suffix is appended (the base
          * tool is shrunk so the total still fits).
          */
-        internal fun allocateApiName(serverName: String, toolName: String, used: MutableSet<String>): String {
-            val server = serverSegment(serverName)
+        internal fun allocateApiName(config: McpServerConfig, toolName: String, used: MutableSet<String>): String {
+            val server = serverSegment(config)
             val baseTool = sanitizeName(toolName)
             val fixedOverhead = PREFIX.length + server.length + SEPARATOR.length
             var name = join(server, baseTool, fixedOverhead, "")
@@ -85,8 +85,12 @@ class McpToolProvider(
         }
 
         /** Server segment as it appears inside the mangled name (sanitized + length-capped). */
-        internal fun serverSegment(serverName: String): String =
-            sanitizeName(serverName).take(MAX_SERVER_SEGMENT)
+        internal fun serverSegment(config: McpServerConfig): String {
+            val sanitized = sanitizeName(config.name)
+            return if (sanitized == "x") {
+                "s" + config.id.filter { it.isLetterOrDigit() }.take(8).ifEmpty { "0" }
+            } else sanitized.take(MAX_SERVER_SEGMENT)
+        }
 
         /**
          * Collapses every run of non-`[A-Za-z0-9]` characters in [s] to a single `_` and trims
@@ -152,7 +156,7 @@ class McpToolProvider(
         for ((server, tools) in perServerResults) {
             for (tool in tools) {
                 if (tool.name in server.disabledToolNames) continue
-                val apiName = allocateApiName(server.name, tool.name, used)
+                val apiName = allocateApiName(server, tool.name, used)
                 originalToolNames[apiName] = tool.name
                 all += tool.toToolDefinition(serverName = server.name, apiName = apiName)
             }
@@ -163,7 +167,7 @@ class McpToolProvider(
     override suspend fun execute(name: String, arguments: String, ctx: GenerationContext): String {
         val parsed = parsePrefixedName(name) ?: return "Unknown MCP tool: $name"
         val (serverSegmentName, _) = parsed
-        val server = activeServers(ctx).firstOrNull { serverSegment(it.name) == serverSegmentName }
+        val server = activeServers(ctx).firstOrNull { serverSegment(it) == serverSegmentName }
             ?: return "MCP server not active: $serverSegmentName"
         // The name the LLM emitted is sanitized; recover the original from the mapping built by
         // the most recent definitions() pass. If it's missing, DO NOT fall back to guessing the

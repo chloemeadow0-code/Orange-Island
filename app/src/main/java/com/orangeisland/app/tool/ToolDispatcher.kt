@@ -85,6 +85,8 @@ class ToolDispatcher(
     private val navigationToolProvider = com.orangeisland.app.tool.NavigationToolProvider(app)
     private val appLockToolProvider = com.orangeisland.app.tool.AppLockToolProvider(app)
     private val toastToolProvider = com.orangeisland.app.tool.ToastToolProvider(app)
+    private val alarmToolProvider = com.orangeisland.app.tool.AlarmToolProvider(app)
+    private val healthToolProvider = com.orangeisland.app.tool.device.HealthToolProvider(app)
     private val automationToolProvider =
         com.orangeisland.app.tool.automation.AutomationToolProvider(llmProviders)
     val shellToolProvider = ShellToolProvider(sandboxFactory).also { stp ->
@@ -109,6 +111,8 @@ class ToolDispatcher(
         add(navigationToolProvider)
         add(appLockToolProvider)
         add(toastToolProvider)
+        add(alarmToolProvider)
+        add(healthToolProvider)
         add(automationToolProvider)
         chatContextToolProvider?.let { add(it) }
         mcpToolProvider?.let { add(it) }
@@ -225,6 +229,12 @@ class ToolDispatcher(
 
     fun toastDefinitions(ctx: GenerationContext): List<ToolDefinition> =
         toastToolProvider.definitions(ctx)
+
+    fun alarmDefinitions(ctx: GenerationContext): List<ToolDefinition> =
+        alarmToolProvider.definitions(ctx)
+
+    fun healthDefinitions(ctx: GenerationContext): List<ToolDefinition> =
+        healthToolProvider.definitions(ctx)
 
     fun automationDefinitions(ctx: GenerationContext): List<ToolDefinition> =
         automationToolProvider.definitions(ctx)

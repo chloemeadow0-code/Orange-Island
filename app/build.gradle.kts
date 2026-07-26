@@ -181,6 +181,7 @@ dependencies {
     implementation(libs.jetbrains.markdown)
     implementation(libs.aboutlibraries.compose.m3)
     implementation(libs.coil.compose)
+    implementation(libs.coil.gif)
     implementation(libs.jlatexmath.android)
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)

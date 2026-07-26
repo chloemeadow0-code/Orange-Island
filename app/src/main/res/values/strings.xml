@@ -368,6 +368,8 @@
     <string name="device_access_app_lock_desc">AI locks/unlocks apps with a message the user must respect</string>
     <string name="device_access_toast_title">Toast</string>
     <string name="device_access_toast_desc">AI shows quick native Toast messages for non-blocking feedback</string>
+    <string name="device_access_alarm_title">Alarm &amp; Timer</string>
+    <string name="device_access_alarm_desc">Let the AI set alarms and countdown timers through your system clock app.</string>
     <string name="device_access_user_interaction_title">Card Inquiry</string>
     <string name="device_access_user_interaction_desc">Allow AI to ask multiple-choice questions via card dialogs, with optional custom input</string>
     <string name="device_access_ui_automation_title">UI Automation</string>
@@ -779,6 +781,7 @@
     <string name="illustration_bubble_corner_radius">Bubble corner radius</string>
     <string name="transparency_topbar">Top bar</string>
     <string name="transparency_message_bubble">Message bubble</string>
+    <string name="transparency_user_bubble_mask">User bubble mask opacity</string>
     <string name="transparency_reasoning_panel">Reasoning panel</string>
     <string name="transparency_drawer_item">Drawer item</string>
     <string name="appearance_title">Appearance</string>

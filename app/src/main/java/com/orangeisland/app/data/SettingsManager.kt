@@ -207,6 +207,8 @@ class SettingsManager(private val context: Context) {
         // AppLock state: JSON map of package_name -> {message, label}.
         val APP_LOCK_ENTRIES_JSON = stringPreferencesKey("app_lock_entries_json")
         val TOAST_ENABLED = booleanPreferencesKey("toast_enabled")
+        val ALARM_ENABLED = booleanPreferencesKey("alarm_enabled")
+        val HEALTH_TOOL_ENABLED = booleanPreferencesKey("health_tool_enabled")
         // UI Automation (tap/swipe/scroll/global-action/inspect) — the most powerful tool surface,
         // gated behind a separate accessibility service the user must enable explicitly.
         val UI_AUTOMATION_ENABLED = booleanPreferencesKey("ui_automation_enabled")
@@ -246,6 +248,7 @@ class SettingsManager(private val context: Context) {
         val TRANSPARENCY_TOPBAR = stringPreferencesKey("transparency_topbar")
         // ── Transparency (0f..1f) ──────────────────────────────────
         val TRANSPARENCY_MESSAGE_BUBBLE = stringPreferencesKey("transparency_message_bubble")
+        val TRANSPARENCY_USER_BUBBLE_MASK = stringPreferencesKey("transparency_user_bubble_mask")
         val TRANSPARENCY_REASONING_PANEL = stringPreferencesKey("transparency_reasoning_panel")
         val TRANSPARENCY_DRAWER_ITEM = stringPreferencesKey("transparency_drawer_item")
         // ── Recent custom colors (comma-separated ARGB Long list, most-recent-first) ──
@@ -473,6 +476,8 @@ class SettingsManager(private val context: Context) {
         try { json.decodeFromString<Map<String, AppLockEntry>>(s) } catch (_: Exception) { emptyMap() }
     }
     val toastEnabled: Flow<Boolean> = context.dataStore.data.map { it[TOAST_ENABLED] ?: false }
+    val alarmEnabled: Flow<Boolean> = context.dataStore.data.map { it[ALARM_ENABLED] ?: false }
+    val healthToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[HEALTH_TOOL_ENABLED] ?: false }
     val uiAutomationEnabled: Flow<Boolean> = context.dataStore.data.map { it[UI_AUTOMATION_ENABLED] ?: false }
     val userInteractionEnabled: Flow<Boolean> = context.dataStore.data.map { it[USER_INTERACTION_ENABLED] ?: true }
     val amapApiKey: Flow<String> = context.dataStore.data.map { it[AMAP_API_KEY] ?: "" }
@@ -513,6 +518,7 @@ class SettingsManager(private val context: Context) {
     val illustrationReasoningBackgroundPath: Flow<String> = context.dataStore.data.map { it[ILLUSTRATION_REASONING_BACKGROUND_PATH] ?: "" }
     val transparencyTopBar: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_TOPBAR]?.toFloatOrNull() ?: 1f }
     val transparencyMessageBubble: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_MESSAGE_BUBBLE]?.toFloatOrNull() ?: 1f }
+    val transparencyUserBubbleMask: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_USER_BUBBLE_MASK]?.toFloatOrNull() ?: 0.55f }
     val transparencyReasoningPanel: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_REASONING_PANEL]?.toFloatOrNull() ?: 1f }
     val transparencyDrawerItem: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_DRAWER_ITEM]?.toFloatOrNull() ?: 1f }
     val recentCustomColors: Flow<List<Long>> = context.dataStore.data.map { pref ->
@@ -985,6 +991,8 @@ class SettingsManager(private val context: Context) {
         context.dataStore.edit { it[APP_LOCK_ENTRIES_JSON] = json.encodeToString(entries) }
     }
     suspend fun saveToastEnabled(enabled: Boolean) { context.dataStore.edit { it[TOAST_ENABLED] = enabled } }
+    suspend fun saveAlarmEnabled(enabled: Boolean) { context.dataStore.edit { it[ALARM_ENABLED] = enabled } }
+    suspend fun saveHealthToolEnabled(enabled: Boolean) { context.dataStore.edit { it[HEALTH_TOOL_ENABLED] = enabled } }
     suspend fun saveUiAutomationEnabled(enabled: Boolean) { context.dataStore.edit { it[UI_AUTOMATION_ENABLED] = enabled } }
     suspend fun saveUserInteractionEnabled(enabled: Boolean) { context.dataStore.edit { it[USER_INTERACTION_ENABLED] = enabled } }
     suspend fun saveAmapApiKey(key: String) { context.dataStore.edit { it[AMAP_API_KEY] = key } }
@@ -1029,6 +1037,7 @@ class SettingsManager(private val context: Context) {
     suspend fun saveTransparencyTopBar(value: Float) = context.dataStore.edit { it[TRANSPARENCY_TOPBAR] = value.coerceIn(0f, 1f).toString() }
 
     suspend fun saveTransparencyMessageBubble(value: Float) = context.dataStore.edit { it[TRANSPARENCY_MESSAGE_BUBBLE] = value.coerceIn(0f, 1f).toString() }
+    suspend fun saveTransparencyUserBubbleMask(value: Float) = context.dataStore.edit { it[TRANSPARENCY_USER_BUBBLE_MASK] = value.coerceIn(0f, 1f).toString() }
     suspend fun saveTransparencyReasoningPanel(value: Float) = context.dataStore.edit { it[TRANSPARENCY_REASONING_PANEL] = value.coerceIn(0f, 1f).toString() }
     suspend fun saveTransparencyDrawerItem(value: Float) = context.dataStore.edit { it[TRANSPARENCY_DRAWER_ITEM] = value.coerceIn(0f, 1f).toString() }
 

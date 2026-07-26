@@ -32,6 +32,7 @@ fun MessageItem(
     message: ChatMessage,
     onEdit: (String, String) -> Unit,
     customUserBubbleColor: Long? = null,
+    userBubbleMaskAlpha: Float = 1f,
     userBubbleBackgroundImagePath: String = "",
     userBubbleCornerRadiusOverride: Float? = null,
     customAssistantBubbleColor: Long? = null,
@@ -149,6 +150,11 @@ fun MessageItem(
         Participant.ERROR -> MaterialTheme.colorScheme.onErrorContainer
     }
 
+    // Scrim over user-bubble background images: color follows the same custom-bubble-color
+    // resolution as [backgroundColor] above, opacity follows Settings > 自定义颜色 > 用户气泡遮罩透明度.
+    val userBubbleMaskColor = (customUserBubbleColor?.let { ColorMath.argbToColor(it) } ?: MaterialTheme.colorScheme.primaryContainer)
+        .copy(alpha = userBubbleMaskAlpha)
+
     val shape = when (message.participant) {
         Participant.USER -> RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 4.dp)
         Participant.MODEL -> RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 20.dp)
@@ -182,6 +188,7 @@ fun MessageItem(
                 shape = shape,
                 backgroundColor = backgroundColor,
                 textColor = textColor,
+                bubbleMaskColor = userBubbleMaskColor,
                 contextAlpha = contextAlpha,
                 shouldAnimate = shouldAnimate,
                 isEditing = isEditing,

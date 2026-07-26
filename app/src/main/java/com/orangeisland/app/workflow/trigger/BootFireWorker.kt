@@ -76,7 +76,9 @@ class BootFireWorker(
                 settingsRepository = settingsRepository,
                 json = json,
                 contextProvider = DeviceContextProvider(appContext),
-                llmProviders = llmProviders
+                llmProviders = llmProviders,
+                chatDao = db.chatDao(),
+                appContext = appContext
             )
             ids.forEach { id ->
                 runCatching {

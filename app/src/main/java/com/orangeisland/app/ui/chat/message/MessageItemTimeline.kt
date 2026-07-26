@@ -334,13 +334,13 @@ private fun CompactSegmentBlock(
                     .padding(10.dp)
             ) {
                 if (isToolCalling || isToolInProgress) {
-                    Icon(Icons.Default.Build, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                    Icon(Icons.Default.Build, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
                 } else if (!isThinking && !hasThought && toolCount > 0) {
-                    Icon(Icons.Default.Build, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                    Icon(Icons.Default.Build, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
                 } else if (isTranscribing || collapsedTitle == "Image Transcription") {
-                    Icon(Icons.Filled.Image, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                    Icon(Icons.Filled.Image, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
                 } else {
-                    Icon(androidx.compose.ui.res.painterResource(id = com.orangeisland.app.R.drawable.neurology_24), null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                    Icon(androidx.compose.ui.res.painterResource(id = com.orangeisland.app.R.drawable.thinking_orange), null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -678,11 +678,11 @@ private fun TimelineInfoSegmentCard(
             val isTool = seg.type == "tool"
             val isTranscription = seg.type == "transcription"
             if (isTool) {
-                Icon(Icons.Default.Build, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                Icon(Icons.Default.Build, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
             } else if (isTranscription) {
-                Icon(Icons.Filled.Image, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                Icon(Icons.Filled.Image, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
             } else {
-                Icon(androidx.compose.ui.res.painterResource(id = com.orangeisland.app.R.drawable.neurology_24), null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                Icon(androidx.compose.ui.res.painterResource(id = com.orangeisland.app.R.drawable.thinking_orange), null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
             }
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
