@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
 import com.orangeisland.app.model.ModelId
 import com.orangeisland.app.model.apiModelName
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.viewmodel.ChatViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,12 +84,7 @@ fun SettingsMultimodalModelsPage(
                                         headlineContent = { Text(stringResource(R.string.settings_transcription)) },
                                         supportingContent = { Text(supporting) },
                                         leadingContent = {
-                                            Icon(
-                                                Icons.Default.Image,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(24.dp)
-                                            )
+                                            IslandIcon(IslandIcons.Transcription, size = 38.dp)
                                         },
                                         modifier = Modifier.clickable { detailScreen = "transcription" }
                                     )
@@ -106,12 +103,7 @@ fun SettingsMultimodalModelsPage(
                                         headlineContent = { Text(stringResource(R.string.settings_image_gen)) },
                                         supportingContent = { Text(supporting) },
                                         leadingContent = {
-                                            Icon(
-                                                Icons.Default.AddPhotoAlternate,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(24.dp)
-                                            )
+                                            IslandIcon(IslandIcons.ImageGeneration, size = 38.dp)
                                         },
                                         modifier = Modifier.clickable { detailScreen = "imagegen" }
                                     )
@@ -126,12 +118,7 @@ fun SettingsMultimodalModelsPage(
                                         headlineContent = { Text(stringResource(R.string.models_embedding_vector)) },
                                         supportingContent = { Text(supporting) },
                                         leadingContent = {
-                                            Icon(
-                                                painterResource(R.drawable.neurology_24),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(24.dp)
-                                            )
+                                            IslandIcon(IslandIcons.SettingsSearch, size = 38.dp)
                                         },
                                         modifier = Modifier.clickable { detailScreen = "search" }
                                     )

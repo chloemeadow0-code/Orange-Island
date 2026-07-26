@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.DecorativeCorner
 import com.orangeisland.app.ui.components.CircularBackButton
 import com.orangeisland.app.ui.components.clearFocusOnTap
 
@@ -128,6 +129,17 @@ internal fun CollapsingSettingsTitleBar(
                 .fillMaxWidth()
                 .height(statusBarTop + SettingsBarHeight)
                 .background(MaterialTheme.colorScheme.background)
+        )
+        // Orange Island branch decoration in the settings header top-end corner
+        // (UI Playground v0.4). Kept fully on-screen (no overhang) so the whole
+        // branch reads; non-interactive.
+        DecorativeCorner(
+            res = R.drawable.island_deco_branch,
+            width = 200.dp,
+            alignment = Alignment.TopEnd,
+            offsetX = 0.dp,
+            offsetY = 0.dp,
+            alpha = 0.9f,
         )
         CircularBackButton(
             onClick = onBack,

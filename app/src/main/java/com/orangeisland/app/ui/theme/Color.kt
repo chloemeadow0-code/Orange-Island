@@ -13,17 +13,18 @@ import com.materialkolor.hct.Hct
 
 enum class SchemeStyle { TONAL_SPOT, EXPRESSIVE, VIBRANT, NEUTRAL }
 
-enum class ColorSchemePreset { MIDNIGHT, NORDIC, FOREST, SUNSET, ROSE, LAVENDER, SLATE, OCEAN }
+enum class ColorSchemePreset { MIDNIGHT, NORDIC, FOREST, SUNSET, ROSE, LAVENDER, SLATE, OCEAN, ORANGE_ISLAND }
 
 private val seedColors = mapOf(
-    ColorSchemePreset.MIDNIGHT to 0xFF1A237E,
-    ColorSchemePreset.NORDIC   to 0xFF546E7A,
-    ColorSchemePreset.FOREST   to 0xFF2E7D32,
-    ColorSchemePreset.SUNSET   to 0xFFE65100,
-    ColorSchemePreset.ROSE     to 0xFFAD1457,
-    ColorSchemePreset.LAVENDER to 0xFF7B1FA2,
-    ColorSchemePreset.SLATE    to 0xFF455A64,
-    ColorSchemePreset.OCEAN    to 0xFF0277BD,
+    ColorSchemePreset.MIDNIGHT      to 0xFF1A237E,
+    ColorSchemePreset.NORDIC        to 0xFF546E7A,
+    ColorSchemePreset.FOREST        to 0xFF2E7D32,
+    ColorSchemePreset.SUNSET        to 0xFFE65100,
+    ColorSchemePreset.ROSE          to 0xFFAD1457,
+    ColorSchemePreset.LAVENDER      to 0xFF7B1FA2,
+    ColorSchemePreset.SLATE         to 0xFF455A64,
+    ColorSchemePreset.OCEAN         to 0xFF0277BD,
+    ColorSchemePreset.ORANGE_ISLAND to 0xFFF28A34, // 橘子岛品牌橘，与 OrangeIslandTokens.BrandOrange 对齐
 )
 
 fun colorSchemeForPreset(

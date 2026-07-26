@@ -556,6 +556,7 @@
     <string name="color_scheme_lavender">Lavande</string>
     <string name="color_scheme_slate">Ardoise</string>
     <string name="color_scheme_ocean">Océan</string>
+    <string name="color_scheme_orange_island">Île d\'Orange</string>
     <string name="scheme_style">Style du schéma</string>
     <string name="scheme_style_tonal_spot">Touche tonale</string>
     <string name="scheme_style_expressive">Expressif</string>

@@ -77,7 +77,7 @@ class AppLockMaskActivity : ComponentActivity() {
             val themeModeEnum = runCatching { ThemeMode.valueOf(ts.themeMode) }
                 .getOrDefault(ThemeMode.FOLLOW_DEVICE)
             val preset = runCatching { ColorSchemePreset.valueOf(ts.colorScheme) }
-                .getOrDefault(ColorSchemePreset.MIDNIGHT)
+                .getOrDefault(ColorSchemePreset.ORANGE_ISLAND)
             val style = runCatching { SchemeStyle.valueOf(ts.schemeStyle) }
                 .getOrDefault(SchemeStyle.TONAL_SPOT)
 

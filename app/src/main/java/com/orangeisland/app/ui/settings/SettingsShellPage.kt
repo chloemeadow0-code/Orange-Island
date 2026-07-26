@@ -28,6 +28,8 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import com.orangeisland.app.R
 import com.orangeisland.app.data.ShellDeviceConfig
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.viewmodel.ChatViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -77,7 +79,7 @@ fun SettingsShellPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     SettingsItem(
                         headlineContent = { Text(stringResource(R.string.shell_enable)) },
                         supportingContent = { Text(stringResource(R.string.shell_enable_desc)) },
-                        leadingContent = { Icon(Icons.Default.Terminal, null, tint = MaterialTheme.colorScheme.primary) },
+                        leadingContent = { IslandIcon(IslandIcons.Terminal, size = 38.dp) },
                         trailingContent = { Switch(checked = shellEnabled, onCheckedChange = { viewModel.settings.setShellEnabled(it) }) },
                         modifier = Modifier.clickable { viewModel.settings.setShellEnabled(!shellEnabled) }
                     )
@@ -169,7 +171,7 @@ private fun SandboxSection(viewModel: ChatViewModel, sandboxEnabled: Boolean, on
             SettingsItem(
                 headlineContent = { Text(stringResource(R.string.sandbox_enable)) },
                 supportingContent = { Text(stringResource(R.string.sandbox_enable_desc)) },
-                leadingContent = { Icon(Icons.Default.Terminal, null, tint = MaterialTheme.colorScheme.primary) },
+                leadingContent = { IslandIcon(IslandIcons.Sandbox, size = 38.dp) },
                 trailingContent = { Switch(checked = sandboxEnabled, onCheckedChange = { viewModel.settings.setSandboxEnabled(it) }) },
                 modifier = Modifier.clickable { viewModel.settings.setSandboxEnabled(!sandboxEnabled) }
             )

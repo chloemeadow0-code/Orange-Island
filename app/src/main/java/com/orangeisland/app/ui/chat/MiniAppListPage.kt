@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -62,6 +63,10 @@ fun MiniAppListPage(
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<MiniAppEntry?>(null) }
+
+    // Intercept the system back gesture so it closes this page instead of
+    // bubbling up to the Activity (which would exit the app on a swipe-back).
+    BackHandler { onBack() }
 
     CollapsingSettingsLazyScaffold(
         title = stringResource(R.string.mini_app_title),

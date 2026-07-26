@@ -34,9 +34,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import com.orangeisland.app.R
 import com.orangeisland.app.plugin.PluginMemoryProvider
+import com.orangeisland.app.ui.common.DecorativeImage
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.ui.settings.datacontrol.SettingsDataControlPage
 import com.orangeisland.app.viewmodel.ChatViewModel
 
@@ -155,7 +159,7 @@ private data class SettingsCategory(
     val key: String,
     @StringRes val titleRes: Int,
     @StringRes val descriptionRes: Int,
-    val icon: ImageVector
+    @DrawableRes val iconRes: Int
 )
 
 private data class SettingsGroupData(
@@ -165,38 +169,38 @@ private data class SettingsGroupData(
 
 private val settingsGroups = listOf(
     SettingsGroupData(titleRes = R.string.settings_group_services, items = listOf(
-        SettingsCategory("provider", R.string.settings_provider, R.string.settings_provider_desc, Icons.Default.Cloud),
-        SettingsCategory("models", R.string.settings_models, R.string.settings_models_desc, Icons.Default.Chat),
+        SettingsCategory("provider", R.string.settings_provider, R.string.settings_provider_desc, IslandIcons.Provider.res),
+        SettingsCategory("models", R.string.settings_models, R.string.settings_models_desc, IslandIcons.Model.res),
     )),
     SettingsGroupData(titleRes = R.string.settings_group_responses, items = listOf(
-        SettingsCategory("prompts", R.string.settings_prompts, R.string.settings_prompts_desc, Icons.Default.Psychology),
-        SettingsCategory("generation", R.string.settings_generation, R.string.settings_generation_desc, Icons.Default.Tune),
-        SettingsCategory("titlegen", R.string.settings_title_gen, R.string.settings_title_gen_desc, Icons.Default.Edit),
+        SettingsCategory("prompts", R.string.settings_prompts, R.string.settings_prompts_desc, IslandIcons.Prompts.res),
+        SettingsCategory("generation", R.string.settings_generation, R.string.settings_generation_desc, IslandIcons.Generation.res),
+        SettingsCategory("titlegen", R.string.settings_title_gen, R.string.settings_title_gen_desc, IslandIcons.TitleGeneration.res),
     )),
     SettingsGroupData(titleRes = R.string.settings_group_tools, items = listOf(
-        SettingsCategory("websearch", R.string.settings_web_search, R.string.settings_web_search_desc, Icons.Default.Language),
-        SettingsCategory("shell", R.string.shell_title, R.string.shell_desc, Icons.Default.Terminal),
-        SettingsCategory("mcp", R.string.mcp_title, R.string.mcp_desc, Icons.Default.Extension),
-        SettingsCategory("plugins", R.string.plugin_title, R.string.plugin_desc, Icons.Default.Extension),
-        SettingsCategory("device_access", R.string.device_access_title, R.string.device_access_desc, Icons.Default.Smartphone),
-        SettingsCategory("workflows", R.string.settings_workflows, R.string.settings_workflows_desc, Icons.Default.AccountTree),
-        SettingsCategory("tts", R.string.settings_tts, R.string.settings_tts_desc, Icons.Filled.VolumeUp),
+        SettingsCategory("websearch", R.string.settings_web_search, R.string.settings_web_search_desc, IslandIcons.WebSearch.res),
+        SettingsCategory("shell", R.string.shell_title, R.string.shell_desc, IslandIcons.Terminal.res),
+        SettingsCategory("mcp", R.string.mcp_title, R.string.mcp_desc, IslandIcons.McpServer.res),
+        SettingsCategory("plugins", R.string.plugin_title, R.string.plugin_desc, IslandIcons.Plugin.res),
+        SettingsCategory("device_access", R.string.device_access_title, R.string.device_access_desc, IslandIcons.DeviceAccess.res),
+        SettingsCategory("workflows", R.string.settings_workflows, R.string.settings_workflows_desc, IslandIcons.Workflow.res),
+        SettingsCategory("tts", R.string.settings_tts, R.string.settings_tts_desc, IslandIcons.VoiceSynthesis.res),
     )),
     SettingsGroupData(titleRes = R.string.settings_group_network, items = listOf(
-        SettingsCategory("proxy", R.string.settings_proxy, R.string.settings_proxy_desc, Icons.Default.Lan),
+        SettingsCategory("proxy", R.string.settings_proxy, R.string.settings_proxy_desc, IslandIcons.Proxy.res),
     )),
     SettingsGroupData(titleRes = R.string.settings_group_memory_data, items = listOf(
-        SettingsCategory("memory", R.string.settings_memory, R.string.settings_memory_desc, Icons.Default.Description),
-        SettingsCategory("datacontrol", R.string.settings_data_control, R.string.settings_data_control_desc, Icons.Default.Storage),
+        SettingsCategory("memory", R.string.settings_memory, R.string.settings_memory_desc, IslandIcons.Memory.res),
+        SettingsCategory("datacontrol", R.string.settings_data_control, R.string.settings_data_control_desc, IslandIcons.DataControl.res),
     )),
     SettingsGroupData(titleRes = R.string.settings_group_appearance_language, items = listOf(
-        SettingsCategory("appearance", R.string.settings_appearance, R.string.settings_appearance_desc, Icons.Default.Palette),
-        SettingsCategory("customcolors", R.string.settings_custom_colors, R.string.settings_custom_colors_desc, Icons.Default.ColorLens),
-        SettingsCategory("illustrations", R.string.illustrations_title, R.string.illustration_chat_background, Icons.Default.Wallpaper),
-        SettingsCategory("language", R.string.language_title, R.string.language_desc, Icons.Default.Translate),
+        SettingsCategory("appearance", R.string.settings_appearance, R.string.settings_appearance_desc, IslandIcons.Appearance.res),
+        SettingsCategory("customcolors", R.string.settings_custom_colors, R.string.settings_custom_colors_desc, IslandIcons.CustomColors.res),
+        SettingsCategory("illustrations", R.string.illustrations_title, R.string.illustration_chat_background, IslandIcons.Illustrations.res),
+        SettingsCategory("language", R.string.language_title, R.string.language_desc, IslandIcons.Language.res),
     )),
     SettingsGroupData(titleRes = R.string.settings_group_about, items = listOf(
-        SettingsCategory("about", R.string.settings_about, R.string.settings_about_desc, Icons.Default.Info),
+        SettingsCategory("about", R.string.settings_about, R.string.settings_about_desc, IslandIcons.About.res),
     )),
 )
 
@@ -323,11 +327,10 @@ fun SettingsScreen(
                                                 .padding(horizontal = 16.dp, vertical = 16.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Icon(
-                                                cat.icon,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(24.dp)
+                                            IslandIcon(
+                                                res = cat.iconRes,
+                                                size = 42.dp,
+                                                modifier = Modifier,
                                             )
                                             Spacer(modifier = Modifier.width(16.dp))
                                             Column(modifier = Modifier.weight(1f)) {
@@ -353,6 +356,24 @@ fun SettingsScreen(
                             }
                             if (groupIndex < settingsGroups.size - 1) {
                                 Spacer(modifier = Modifier.height(20.dp))
+                            }
+                        }
+
+                        // Orange Island footer decoration at the end of the settings list
+                        // (UI Playground v0.4). Non-interactive background art, sunk toward
+                        // the bottom-end corner of the page.
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 16.dp, end = 0.dp, bottom = 24.dp),
+                                contentAlignment = Alignment.BottomEnd,
+                            ) {
+                                DecorativeImage(
+                                    res = R.drawable.island_deco_island,
+                                    width = 240.dp,
+                                    alpha = 0.9f,
+                                )
                             }
                         }
                     }

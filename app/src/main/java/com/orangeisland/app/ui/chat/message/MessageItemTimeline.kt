@@ -83,6 +83,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
@@ -122,6 +125,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.orangeisland.app.R
 import com.orangeisland.app.util.noOpBringIntoView
+import com.orangeisland.app.util.splitIntoBubbleSegments
 import com.orangeisland.app.model.ChatMessage
 import com.orangeisland.app.model.MessageSegment
 import com.orangeisland.app.model.MessageStatus
@@ -475,6 +479,8 @@ internal fun TimelineSegmentsContent(
     customReasoningPanelColor: Long? = null,
     reasoningPanelAlpha: Float = 1f,
     reasoningBackgroundImagePath: String = "",
+    customAssistantBubbleColor: Long? = null,
+    splitBubbleByLine: Boolean = false,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         var detailIndex = 0
@@ -486,28 +492,62 @@ internal fun TimelineSegmentsContent(
             when (seg.type) {
                 "answer" -> {
                     if (seg.content.isNotBlank()) {
-                        Box(
+                        // Answer bubble in timeline mode. When a custom assistant bubble
+                        // color is set, paint it fully opaque here too — otherwise finished
+                        // (non-streaming) timeline answers lose their color because the outer
+                        // single-bubble shell is suppressed once streaming ends.
+                        val answerColor = customAssistantBubbleColor
+                            ?.let { ColorMath.argbToColor(it).copy(alpha = 1f) }
+                        // Split finished answers across stacked bubbles at the model's own
+                        // \n boundaries (same rule as non-timeline split-bubble mode).
+                        // Streaming answers stay whole so the segment count doesn't thrash
+                        // as the last line is being written.
+                        val bubbleContents = if (!isStreaming && splitBubbleByLine) {
+                            seg.content.splitIntoBubbleSegments()
+                        } else {
+                            listOf(seg.content)
+                        }
+                        Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = if (index == 0) 0.dp else 6.dp)
+                                .padding(top = if (index == 0) 0.dp else 6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            SelectionContainer(modifier = Modifier.noOpBringIntoView()) {
-                                RecomposeSafeMarkdown(
-                                    content = seg.content,
-                                    isStreaming = isStreaming && index == segments.lastIndex,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) { text ->
-                                    MarkdownTextContent(text = text, renderContext = renderContext)
-                                }
-                            }
-                            if (isStreaming) {
-                                Box(
-                                    modifier = Modifier
-                                        .matchParentSize()
-                                        .pointerInput(Unit) {
-                                            detectTapGestures(onLongPress = { })
+                            bubbleContents.forEachIndexed { bubbleIndex, content ->
+                                key(message.id, index, bubbleIndex) {
+                                    Box(
+                                        modifier = Modifier
+                                            .then(
+                                                if (answerColor != null) Modifier
+                                                    .clip(RoundedCornerShape(20.dp))
+                                                    .background(answerColor)
+                                                    .padding(12.dp)
+                                                else Modifier
+                                            )
+                                    ) {
+                                        SelectionContainer(modifier = Modifier.noOpBringIntoView()) {
+                                            Text(
+                                                text = com.orangeisland.app.util.buildInlineMarkdownAnnotatedString(
+                                                    text = content,
+                                                    codeBackground = MaterialTheme.colorScheme.surfaceVariant,
+                                                    codeColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                                ),
+                                                style = ChatType.body,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
                                         }
-                                )
+                                        if (isStreaming && index == segments.lastIndex &&
+                                            bubbleIndex == bubbleContents.lastIndex
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .matchParentSize()
+                                                    .pointerInput(Unit) {
+                                                        detectTapGestures(onLongPress = { })
+                                                    }
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                         previousVisibleWasAnswer = true

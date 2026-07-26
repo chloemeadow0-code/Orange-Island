@@ -80,7 +80,7 @@ private fun typographyWithFont(family: FontFamily, scale: Float): Typography {
 @Composable
 fun OrangeIslandTheme(
     themeMode: ThemeMode = ThemeMode.FOLLOW_DEVICE,
-    colorSchemePreset: ColorSchemePreset = ColorSchemePreset.MIDNIGHT,
+    colorSchemePreset: ColorSchemePreset = ColorSchemePreset.ORANGE_ISLAND,
     schemeStyle: SchemeStyle = SchemeStyle.TONAL_SPOT,
     dynamicColor: Boolean = true,
     fontPreference: String = "app_default",

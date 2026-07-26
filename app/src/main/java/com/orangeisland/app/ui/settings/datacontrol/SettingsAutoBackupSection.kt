@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
 import com.orangeisland.app.ui.settings.SettingsGroup
 import com.orangeisland.app.ui.settings.SettingsItem
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.viewmodel.ChatViewModel
 
 private fun categoryLabelRes(key: String): Int = when (key) {
@@ -65,7 +67,7 @@ internal fun AutoBackupSection(viewModel: ChatViewModel) {
                 headlineContent = { Text(stringResource(R.string.auto_backup_title)) },
                 supportingContent = { Text(stringResource(R.string.auto_backup_subtitle)) },
                 leadingContent = {
-                    Icon(Icons.Default.Schedule, null, tint = MaterialTheme.colorScheme.primary)
+                    IslandIcon(IslandIcons.AutoBackup, size = 38.dp)
                 },
                 trailingContent = {
                     Switch(checked = autoBackupEnabled, onCheckedChange = { viewModel.setAutoBackupEnabled(it) })

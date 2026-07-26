@@ -9,6 +9,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +61,10 @@ fun MiniAppPage(
     var isLoading by remember { mutableStateOf(true) }
     var pageTitle by remember { mutableStateOf(name) }
     var hasError by remember { mutableStateOf(false) }
+
+    // Intercept the system back gesture so it closes the mini app page instead of
+    // bubbling up to the Activity (which would exit the app on a swipe-back).
+    BackHandler { onBack() }
 
     // Keep a reference to the WebView so the refresh button can trigger reload.
     var webViewRef by remember { mutableStateOf<WebView?>(null) }

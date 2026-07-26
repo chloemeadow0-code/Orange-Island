@@ -57,6 +57,7 @@ import com.orangeisland.app.model.ChatMessage
 import com.orangeisland.app.model.MessageStatus
 import com.orangeisland.app.model.Participant
 import com.orangeisland.app.model.ToolCallDisplayModes
+import com.orangeisland.app.ui.common.DecorativeCorner
 import com.orangeisland.app.ui.common.LocalOrangeIslandHaptics
 import com.orangeisland.app.ui.theme.ChatType
 import com.orangeisland.app.ui.components.ColorMath
@@ -323,6 +324,8 @@ internal fun AssistantMessageContent(
                         customReasoningPanelColor = customReasoningPanelColor,
                         reasoningPanelAlpha = reasoningPanelAlpha,
                         reasoningBackgroundImagePath = reasoningBackgroundImagePath,
+                        customAssistantBubbleColor = customAssistantBubbleColor,
+                        splitBubbleByLine = splitBubbleByLine,
                     )
                 }
 
@@ -580,20 +583,29 @@ internal fun AssistantMessageContent(
                             ) {
                                 bubbleSegments.forEachIndexed { segIndex, segment ->
                                     key(segIndex) {
+                                        // Per-segment bubble. When a custom assistant bubble color is
+                                        // set, force it fully opaque so the color reads clearly across
+                                        // every segment (the stored ARGB may carry a low alpha that
+                                        // makes split bubbles look like they lost their color).
+                                        val segmentColor = customAssistantBubbleColor
+                                            ?.let { ColorMath.argbToColor(it).copy(alpha = 1f) }
+                                            ?: MaterialTheme.colorScheme.surfaceContainerHigh
                                         Box(
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(16.dp))
-                                                .background(
-                                                    customAssistantBubbleColor?.let { ColorMath.argbToColor(it) }
-                                                        ?: MaterialTheme.colorScheme.surfaceContainerHigh
-                                                )
+                                                .clip(RoundedCornerShape(20.dp))
+                                                .background(segmentColor)
                                                 .padding(12.dp)
                                         ) {
                                             SelectionContainer {
-                                                MarkdownTextContent(
-                                                    text = segment,
-                                                    renderContext = renderContext,
-                                                    modifier = Modifier
+                                                Text(
+                                                    text = com.orangeisland.app.util.buildInlineMarkdownAnnotatedString(
+                                                        text = segment,
+                                                        codeBackground = MaterialTheme.colorScheme.surfaceVariant,
+                                                        codeColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    ),
+                                                    style = ChatType.body,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    modifier = Modifier.widthIn(max = 240.dp)
                                                 )
                                             }
                                         }
@@ -792,6 +804,22 @@ internal fun AssistantMessageContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
             }
+        }
+
+        // Orange Island sprout decoration on the assistant bubble's bottom-end
+        // corner (UI Playground v0.4). Drawn after the content so it sits on
+        // top, but DecorativeCorner adds no click handler, so it never
+        // intercepts taps meant for the bubble. Only when the outer single
+        // bubble silhouette is active, so split-bubble replies stay clean.
+        if (useSingleOuterBubble) {
+            DecorativeCorner(
+                res = R.drawable.island_deco_sprout,
+                width = 72.dp,
+                alignment = Alignment.BottomEnd,
+                offsetX = (-8).dp,
+                offsetY = (-6).dp,
+                alpha = 0.9f,
+            )
         }
     }
 }

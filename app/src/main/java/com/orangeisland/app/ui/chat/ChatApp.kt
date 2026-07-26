@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -55,6 +56,7 @@ import com.orangeisland.app.ui.chat.message.hasActiveAnswerSegment
 import com.orangeisland.app.ui.components.AnimatedBlobBackground
 import com.orangeisland.app.ui.components.clearFocusOnTap
 import com.orangeisland.app.ui.components.TypewriterText
+import com.orangeisland.app.ui.common.DecorativeImage
 import com.orangeisland.app.ui.common.LocalOrangeIslandHaptics
 import com.orangeisland.app.ui.common.rememberOrangeIslandHaptics
 import com.orangeisland.app.model.MessageStatus
@@ -684,16 +686,28 @@ fun ChatApp(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .verticalScroll(rememberScrollState()),
-                                    contentAlignment = Alignment.TopCenter
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    TypewriterText(
-                                        text = activeProjectName?.let { stringResource(R.string.welcome_to_project, it) }
-                                            ?: stringResource(R.string.welcome_to_orange_island),
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onBackground,
-                                        modifier = Modifier.padding(top = ((LocalConfiguration.current.screenHeightDp + topBarH.value / 2f - bottomBarHeight.value) / 2).coerceAtLeast(0f).dp)
-                                    )
+                                    // Watercolor orange boat + welcome text, grouped so they sit
+                                    // together regardless of screen height (UI Playground v0.4 empty
+                                    // state). The boat is decorative and non-interactive.
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.padding(top = 40.dp, start = 24.dp, end = 24.dp)
+                                    ) {
+                                        DecorativeImage(
+                                            res = com.orangeisland.app.R.drawable.island_deco_boat,
+                                            width = 220.dp,
+                                        )
+                                        Spacer(modifier = Modifier.height(20.dp))
+                                        TypewriterText(
+                                            text = activeProjectName?.let { stringResource(R.string.welcome_to_project, it) }
+                                                ?: stringResource(R.string.welcome_to_orange_island),
+                                            style = MaterialTheme.typography.headlineMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                        )
+                                    }
                                 }
                             }
                         } else {

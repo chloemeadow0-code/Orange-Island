@@ -158,7 +158,7 @@ class MainActivity : ComponentActivity() {
             val customGlobalTextColor = customGlobalTextColorArgb?.let { ColorMath.argbToColor(it) }
 
             val themeModeEnum = try { com.orangeisland.app.ui.theme.ThemeMode.valueOf(themeMode) } catch (_: Exception) { com.orangeisland.app.ui.theme.ThemeMode.FOLLOW_DEVICE }
-            val colorSchemePreset = try { com.orangeisland.app.ui.theme.ColorSchemePreset.valueOf(colorSchemeName) } catch (_: Exception) { com.orangeisland.app.ui.theme.ColorSchemePreset.MIDNIGHT }
+            val colorSchemePreset = try { com.orangeisland.app.ui.theme.ColorSchemePreset.valueOf(colorSchemeName) } catch (_: Exception) { com.orangeisland.app.ui.theme.ColorSchemePreset.ORANGE_ISLAND }
             val schemeStyle = try { com.orangeisland.app.ui.theme.SchemeStyle.valueOf(schemeStyleName) } catch (_: Exception) { com.orangeisland.app.ui.theme.SchemeStyle.TONAL_SPOT }
 
             val systemDark = isSystemInDarkTheme()

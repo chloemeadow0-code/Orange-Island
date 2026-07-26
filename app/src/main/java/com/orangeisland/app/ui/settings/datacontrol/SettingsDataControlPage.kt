@@ -30,6 +30,8 @@ import com.orangeisland.app.ui.settings.DocumentationFab
 import com.orangeisland.app.ui.settings.SettingsGroup
 import com.orangeisland.app.ui.settings.SettingsGroupColumn
 import com.orangeisland.app.ui.settings.SettingsItem
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.data.DataExporter
 import com.orangeisland.app.data.DataImporter
 import com.orangeisland.app.viewmodel.ChatViewModel
@@ -199,7 +201,7 @@ fun SettingsDataControlPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             headlineContent = { Text(stringResource(R.string.claude_import_title)) },
                             supportingContent = { Text(stringResource(R.string.claude_import_subtitle)) },
                             leadingContent = {
-                                Icon(Icons.Default.Download, null, tint = MaterialTheme.colorScheme.primary)
+                                IslandIcon(IslandIcons.ClaudeImport, size = 38.dp)
                             },
                             modifier = Modifier.clickable { claudeChatLauncher.launch(arrayOf("application/zip", "*/*")) }
                         )
