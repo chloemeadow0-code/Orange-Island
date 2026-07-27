@@ -26,6 +26,7 @@ import com.orangeisland.app.viewmodel.ProviderRegistry
 import com.orangeisland.app.workflow.linear.DeviceContextProvider
 import com.orangeisland.app.workflow.linear.LinearEngine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -97,24 +98,33 @@ class WorkflowRunner(
         val resolvedSource = resolveSource(source, startNodeId, workflow)
         val runId = repository.recordRunStart(workflowId, startNodeId)
         val startedAt = System.currentTimeMillis()
+        val runHardTimeoutMs = settings.workflowMaxRunMs.first()
 
         val guard = buildGuard(mode, startedAt)
-        val ctx = buildContext(mode)
+        val ctx = buildContext(mode, workflow.projectId)
         val toolRunner = NodeExecutor.ToolRunner { name, args -> dispatcher.execute(name, args, ctx) }
         val llmRunner = buildLLMRunner(workflow)
         val notificationRunner = buildNotificationRunner()
         val chatMessageRunner = buildChatMessageRunner(workflow)
 
-        val result = engine.execute(
-            workflow = workflow,
-            triggerSource = resolvedSource,
-            triggerPayload = triggerPayload,
-            guard = guard,
-            toolRunner = toolRunner,
-            llmRunner = llmRunner,
-            notificationRunner = notificationRunner,
-            chatMessageRunner = chatMessageRunner,
-            onState = { id, state -> onNodeState?.invoke(id, state) }
+        val result = withTimeoutOrNull(runHardTimeoutMs) {
+            engine.execute(
+                workflow = workflow,
+                triggerSource = resolvedSource,
+                triggerPayload = triggerPayload,
+                guard = guard,
+                toolRunner = toolRunner,
+                llmRunner = llmRunner,
+                notificationRunner = notificationRunner,
+                chatMessageRunner = chatMessageRunner,
+                onState = { id, state -> onNodeState?.invoke(id, state) }
+            )
+        } ?: RunResult(
+            workflowId = workflowId, runId = runId, success = false,
+            message = "Run timed out after ${runHardTimeoutMs}ms",
+            startedAt = startedAt, finishedAt = System.currentTimeMillis(),
+            states = emptyMap(),
+            logs = emptyList()
         )
 
         val status = when {
@@ -138,8 +148,9 @@ class WorkflowRunner(
         }
         val runId = repository.recordLinearRunStart(workflowId)
         val startedAt = System.currentTimeMillis()
+        val runHardTimeoutMs = settings.workflowMaxRunMs.first()
         val guard = buildGuard(mode, startedAt)
-        val ctx = buildContext(mode)
+        val ctx = buildContext(mode, def.projectId)
         val linearEngine = LinearEngine(
             repository = repository,
             contextProvider = { contextProvider.snapshot() },
@@ -147,7 +158,18 @@ class WorkflowRunner(
             guard = guard,
             runId = runId
         )
-        val outcome = linearEngine.fire(workflowId)
+        val outcome = withTimeoutOrNull(runHardTimeoutMs) {
+            linearEngine.fire(workflowId)
+        } ?: run {
+            // Total-timeout fallback: fire() didn't return (it normally records its own end via
+            // recordLinearRunEnd), so record a FAILED end here to avoid a wedged RUNNING row.
+            repository.recordLinearRunEnd(runId, com.orangeisland.app.model.LinearFireStatus.FAILED,
+                "Run timed out after ${runHardTimeoutMs}ms", "")
+            com.orangeisland.app.workflow.linear.LinearEngine.Outcome(
+                com.orangeisland.app.model.LinearFireStatus.FAILED,
+                "Run timed out after ${runHardTimeoutMs}ms", ""
+            )
+        }
         return RunResult(
             workflowId = workflowId, runId = runId,
             success = outcome.status == com.orangeisland.app.model.LinearFireStatus.SUCCESS,
@@ -255,11 +277,23 @@ class WorkflowRunner(
                 status = MessageStatus.SUCCESS
             )
 
-            val llmProvider = providerRegistry?.getInstance(effectiveProvider)
-                ?: llmProviders[effectiveProvider]
-                ?: error("Provider '$effectiveProvider' not available")
+            val llmProvider = providerRegistry?.let { reg ->
+                // Ensure custom providers (e.g. a user-defined OpenAI-compatible endpoint) are
+                // registered into the live map before we resolve by name. In a freshly-started
+                // background Worker the registry's registration is fired asynchronously in appScope;
+                // if the LLM node resolves before it completes the provider is simply absent, and
+                // getInstance() returns null. Awaiting registration here closes that race.
+                reg.ensureCustomProvidersRegistered()
+                reg.getInstance(effectiveProvider)
+            } ?: llmProviders[effectiveProvider]
+                ?: error("Provider '$effectiveProvider' is not registered")
             val apiKey = settingsRepository.awaitActiveKey(effectiveProvider).orEmpty()
-            val baseUrl = settingsRepository.providerBaseUrls.value[effectiveProvider]
+            // Use .first() instead of .value: in a freshly-started Worker process the StateFlow's
+            // initial value is an empty map (DataStore hasn't loaded yet), so .value would hand
+            // back a null baseUrl, the custom provider would request an empty endpoint, and the
+            // call 404s — even though the same provider works in chat. .first() suspends until the
+            // real persisted value is available.
+            val baseUrl = settingsRepository.providerBaseUrls.first()[effectiveProvider]
             val config = com.orangeisland.app.api.ProviderConfig(
                 apiKey = apiKey,
                 modelId = effectiveModelId,
@@ -288,12 +322,15 @@ class WorkflowRunner(
                 name = "workflow / $effectiveProvider / $effectiveModelId ✓",
                 details = "${elapsed}ms | output=${sb.length} chars"
             )
-            firstError?.let { error(it) }
+            firstError?.let {
+                // Enrich the error so the workflow run log shows what was actually requested.
+                error("$it [provider=$effectiveProvider model=$effectiveModelId baseUrl=${baseUrl ?: "<default>"}]")
+            }
             sb.toString().trim()
         }
     }
 
-    private suspend fun buildContext(mode: Mode): GenerationContext {
+    private suspend fun buildContext(mode: Mode, projectId: String? = null): GenerationContext {
         val webKeys = settings.webSearchApiKeys.first()
         val webProvider = settings.webSearchProvider.first()
         val webNum = settings.webSearchNumResults.first()
@@ -322,7 +359,12 @@ class WorkflowRunner(
             navigationEnabled = true,
             appLockEnabled = true,
             toastEnabled = true,
-            uiAutomationEnabled = mode == Mode.FOREGROUND   // UI automation only in foreground
+            uiAutomationEnabled = mode == Mode.FOREGROUND,   // UI automation only in foreground
+            // Inherit the workflow's bound project so action tools (memory/RAG scope, and any tool
+            // that creates a conversation) operate inside the same project the user bound the
+            // workflow to. Without this, conversations produced by workflow actions landed in the
+            // ungrouped bucket even though the workflow carried a projectId.
+            projectId = projectId
         )
     }
 
@@ -394,22 +436,81 @@ class WorkflowRunner(
                     projectId = workflow.projectId
                 ).also { dao.upsertConversation(it) }
 
-            val lastMsg = dao.getLastMessageForConversation(conversation.id)
+            // Attach the message to the TAIL of the conversation's currently-selected visible
+            // branch (not just the newest-by-timestamp message). The chat UI's visible path — and
+            // therefore the AI's context — is built by ConversationUiState.resolvePath walking the
+            // selectedBranchesJson map from the root. If we parent on the newest message instead,
+            // the workflow message lands off the selected branch and the AI never sees it when the
+            // user replies. Compute the same tail resolvePath would reach, parent on it, and then
+            // register ourselves in selectedBranchesJson so we become the new tail.
+            val allMsgs = dao.getMessagesForConversation(conversation.id).first()
+            val branches = parseSelectedBranches(conversation.selectedBranchesJson)
+            val parentId = visiblePathTailId(allMsgs, branches)
+
             val msgId = "msg_${java.util.UUID.randomUUID()}"
             val now = System.currentTimeMillis()
             val entity = MessageEntity(
                 id = msgId,
                 conversationId = conversation.id,
-                parentId = lastMsg?.id,
+                parentId = parentId,
                 text = text,
                 participant = if (participant.uppercase() == "USER") Participant.USER else Participant.MODEL,
                 status = MessageStatus.SUCCESS,
                 timestamp = now
             )
             dao.upsertMessage(entity)
-            dao.upsertConversation(conversation.copy(lastUpdated = now))
+            // Make this message the selected child of its parent so resolvePath walks into it.
+            // Persist with the literal "null" key for a root-level (null-parent) entry — JSON keys
+            // can't be null, which is the same convention ChatViewModel uses when loading/saving.
+            val updatedBranches = branches.toMutableMap().apply { put(parentId, msgId) }
+            val serializable = updatedBranches.mapKeys { (k, _) -> k ?: "null" }
+            dao.upsertConversation(conversation.copy(
+                selectedBranchesJson = json.encodeToString(serializable),
+                lastUpdated = now
+            ))
             msgId
         }
+    }
+
+    /** Parse the persisted selectedBranchesJson (parentId → selectedChildId). Tolerant of null /
+     *  corrupt payloads — a bad map degrades to "no explicit selection", which is never worse than
+     *  the legacy timestamp-based behaviour. The persisted map uses the literal string "null" for a
+     *  root-level (null-parent) entry, since JSON keys can't be null. */
+    private fun parseSelectedBranches(raw: String?): Map<String?, String> {
+        if (raw.isNullOrBlank()) return emptyMap()
+        return try {
+            json.decodeFromString<Map<String, String>>(raw)
+                .mapKeys { if (it.key == "null") null else it.key }
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    /**
+     * Returns the message id at the tail of the conversation's selected visible branch — i.e. the
+     * exact node `ConversationUiState.resolvePath` would land on last. Mirrors that algorithm:
+     *  - start at the root (parentId = null),
+     *  - at each level pick the child named in [branches], or fall back to the newest-by-timestamp
+     *    VISIBLE sibling (excluding tool_/result_ synthetic messages, which resolvePath hides),
+     *  - stop when a level has no children.
+     * Returns null for an empty conversation (the workflow message then becomes the root).
+     */
+    private fun visiblePathTailId(
+        messages: List<MessageEntity>,
+        branches: Map<String?, String>
+    ): String? {
+        var cursor: String? = null
+        while (true) {
+            val siblings = messages.filter { it.parentId == cursor }
+            if (siblings.isEmpty()) break
+            val visible = siblings.filter { !it.id.startsWith("tool_") && !it.id.startsWith("result_") }
+            val pool = if (visible.isNotEmpty()) visible else siblings
+            val selected = branches[cursor]?.let { sel -> pool.firstOrNull { it.id == sel } }
+                ?: pool.maxByOrNull { it.timestamp }
+                ?: break
+            cursor = selected.id
+        }
+        return cursor
     }
 
     companion object {

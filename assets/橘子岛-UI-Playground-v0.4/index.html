@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fffaf1">
+  <title>橘子岛 UI Playground 0.4 · 聊天页</title>
+  <meta name="description" content="橘子岛手机端 Agent 的可调节 HTML 视觉原型。">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="chat-view-empty">
+  <main class="prototype-layout">
+    <aside class="studio-nav" aria-label="原型页面导航">
+      <div class="studio-brand">
+        <span class="brand-fruit" aria-hidden="true"></span>
+        <div class="brand-copy"><strong>橘子岛</strong><span>UI Playground 0.4</span></div>
+      </div>
+      <div class="nav-label">Preview</div>
+      <a class="studio-link active" href="index.html"><span class="nav-orbit">聊</span><span>聊天页</span></a>
+      <a class="studio-link" href="settings.html"><span class="nav-orbit">设</span><span>设置页</span></a>
+      <a class="studio-link" href="components.html"><span class="nav-orbit">组</span><span>组件展示</span></a>
+      <div class="studio-note">
+        <strong>怎么玩</strong>
+        <p>页面顺序和功能位置已经锁定。右侧可以切换初始空页面与已有对话。</p>
+      </div>
+    </aside>
+
+    <section class="preview-stage" aria-label="聊天页手机预览">
+      <div class="preview-caption">
+        <div><h1>聊天页</h1><p>初始门面与已有对话共用同一套原始布局。</p></div>
+        <span class="viewport-badge" data-chat-state-label>初始空页面 · 布局锁定</span>
+      </div>
+
+      <div class="phone-shell">
+        <div class="app-surface">
+          <div class="app-inner">
+            <div class="status-bar"><span>9:41</span><span class="status-icons">● ◔ ▰</span></div>
+            <header class="app-header chat-header">
+              <button class="round-button" type="button" data-demo="菜单在正式 App 中沿用原功能" aria-label="打开菜单">☰</button>
+              <span class="mini-fruit" aria-hidden="true"></span>
+              <div class="header-title">
+                <strong class="chat-title-empty">橘子岛</strong>
+                <strong class="chat-title-conversation">克老师的记忆协议启动</strong>
+                <span class="chat-subtitle-conversation">总计 2,150,031 Tokens</span>
+              </div>
+              <div class="header-action-cluster">
+                <button class="round-button illustrated home" type="button" data-demo="返回会话首页" aria-label="返回会话首页">首页</button>
+                <button class="round-button accent" type="button" data-demo="开启新会话" aria-label="新建会话">＋</button>
+              </div>
+            </header>
+
+            <section class="chat-scroll" aria-label="聊天内容">
+              <div class="chat-empty-state" data-chat-empty>
+                <div class="empty-boat-stage" aria-hidden="true">
+                  <span class="empty-sun-wash"></span>
+                  <img src="assets/decorations/orange-boat-transparent.png" alt="">
+                </div>
+                <h2>欢迎使用 橘子岛。</h2>
+              </div>
+
+              <div class="conversation-toolbar" data-sample-conversation aria-label="消息操作">
+                <button type="button" data-demo="复制消息" aria-label="复制消息">❐</button>
+                <button type="button" data-demo="重新生成" aria-label="重新生成">↻</button>
+                <button type="button" data-demo="更多操作" aria-label="更多操作">⋮</button>
+              </div>
+
+              <div class="message-row featured" data-sample-conversation>
+                <div class="avatar-fruit" aria-hidden="true"></div>
+                <div class="bubble-wrap">
+                  <div class="message-name">克老师</div>
+                  <div class="message-bubble">
+                    <span>我在沙箱里配置的全部包名和版本，你看还需要补什么：</span>
+                    <ol class="terminal-list">
+                      <li><strong>1. alpine-baselayout v3.6.8-r0</strong><span>Alpine base dir structure and init scripts</span></li>
+                      <li><strong>2. alpine-baselayout-data</strong><span>Alpine base dir structure and init scripts</span></li>
+                    </ol>
+                    <img class="bubble-decoration boat" src="assets/decorations/orange-boat-transparent.png" alt="" aria-hidden="true">
+                  </div>
+                  <div class="message-meta">09:36 · 1,204 tokens</div>
+                </div>
+              </div>
+
+              <div class="message-row user" data-sample-conversation>
+                <div class="bubble-wrap">
+                  <div class="message-bubble">麻烦帮我再检查一下依赖关系。</div>
+                  <div class="message-meta">09:38 · 已发送</div>
+                </div>
+              </div>
+
+              <div class="message-row decorated-message" data-sample-conversation>
+                <div class="avatar-fruit" aria-hidden="true"></div>
+                <div class="bubble-wrap">
+                  <div class="message-name">克老师</div>
+                  <div class="message-bubble">
+                    <span>好的，我会保留现在的配置，逐项确认依赖是否齐全。</span>
+                    <img class="bubble-decoration sprout" src="assets/decorations/orange-sprout-corner.png" alt="" aria-hidden="true">
+                  </div>
+                  <div class="message-meta">09:39 · 328 tokens</div>
+                </div>
+              </div>
+            </section>
+
+            <div class="composer-area">
+              <div class="tool-tray" aria-label="快捷工具">
+                <button class="tool-chip" type="button" data-demo="网页搜索"><span class="island-icon reference-icon ref-web" aria-hidden="true"></span>网页</button>
+                <button class="tool-chip" type="button" data-demo="MCP 服务器"><span class="island-icon reference-icon ref-mcp" aria-hidden="true"></span>MCP</button>
+                <button class="tool-chip" type="button" data-demo="沙箱终端"><span class="island-icon reference-icon ref-terminal" aria-hidden="true"></span>沙箱</button>
+                <button class="tool-chip" type="button" data-demo="上传文件"><span class="island-icon icon-file leaf" aria-hidden="true"></span>文件</button>
+              </div>
+              <form class="composer" data-chat-form>
+                <button class="round-button" type="button" data-tool-toggle aria-expanded="false" aria-label="展开工具">＋</button>
+                <label class="sr-only" for="chat-input">输入消息</label>
+                <textarea id="chat-input" rows="1" data-chat-input placeholder="向 橘子岛 提问…"></textarea>
+                <button class="send-button" type="submit" aria-label="发送消息">↑</button>
+              </form>
+              <div class="model-strip"><span class="model-pill"><span class="mini-fruit" aria-hidden="true"></span> Claude 4.5 Sonnet</span><span>流式响应 · 记忆已启用</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="tuner" aria-label="视觉调节器">
+      <div class="tuner-head"><h2>视觉调节器</h2><span>实时生效</span></div>
+      <section class="tuner-section chat-view-tuner">
+        <h3>聊天内容状态</h3>
+        <div class="chat-view-switcher" role="group" aria-label="切换聊天内容状态">
+          <button type="button" data-chat-view="empty">
+            <strong>初始空页面</strong>
+            <span>第一次打开时的门面</span>
+          </button>
+          <button type="button" data-chat-view="conversation">
+            <strong>已有对话</strong>
+            <span>检查气泡与长文本</span>
+          </button>
+        </div>
+        <p class="prototype-only-note">仅用于原型对照，不属于 App 功能。</p>
+      </section>
+      <section class="tuner-section">
+        <h3>预设方向</h3>
+        <div class="preset-grid">
+          <button class="preset-button" type="button" data-preset="sunlight"><span class="palette-dots"><i style="--dot:#f28a34"></i><i style="--dot:#78966c"></i><i style="--dot:#fffbf5"></i></span><span class="preset-copy"><strong>日光橘园</strong><span>温暖、清新、默认推荐</span></span></button>
+          <button class="preset-button" type="button" data-preset="breeze"><span class="palette-dots"><i style="--dot:#e68b52"></i><i style="--dot:#5e9488"></i><i style="--dot:#f8fcf7"></i></span><span class="preset-copy"><strong>海风清橘</strong><span>更轻、更凉、更舒展</span></span></button>
+          <button class="preset-button" type="button" data-preset="dusk"><span class="palette-dots"><i style="--dot:#d8753d"></i><i style="--dot:#7d8060"></i><i style="--dot:#fff7ef"></i></span><span class="preset-copy"><strong>暮色蜜橘</strong><span>克制、成熟、偏技术感</span></span></button>
+        </div>
+      </section>
+      <section class="tuner-section">
+        <h3>颜色</h3>
+        <label class="color-row"><span>品牌橘</span><input type="color" value="#f28a34" data-control="accent"></label>
+        <label class="color-row"><span>叶片绿</span><input type="color" value="#78966c" data-control="leaf"></label>
+      </section>
+      <section class="tuner-section">
+        <h3>组件手感</h3>
+        <div class="control-row"><label for="radius">圆角</label><output data-output="radius">24px</output><input id="radius" type="range" min="12" max="34" value="24" data-control="radius"></div>
+        <div class="control-row"><label for="density">内容密度</label><output data-output="density">100%</output><input id="density" type="range" min="82" max="112" value="100" data-control="density"></div>
+        <div class="switch-row"><span>背景空气纹理</span><button class="switch on" type="button" data-control="texture" aria-label="切换背景纹理" aria-pressed="true"></button></div>
+      </section>
+      <button class="reset-button" type="button" data-reset>恢复默认</button>
+    </aside>
+  </main>
+  <button class="mobile-tuner-button" type="button" aria-expanded="false" aria-label="打开视觉调节器">调</button>
+  <script src="app.js"></script>
+</body>
+</html>

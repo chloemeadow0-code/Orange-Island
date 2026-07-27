@@ -9,6 +9,7 @@ import com.orangeisland.app.util.DebugLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
@@ -318,16 +319,20 @@ class PluginSandbox(
      * - Response body capped at [MAX_RESPONSE_BYTES].
      * - Returns `{ok: bool, status: int, body: string}` (mirrors a minimal Response shape).
      *
-     * Implemented via [asyncFunction] so we can `runBlocking` on a worker dispatcher without
-     * blocking the JS engine's own thread — QuickJS evaluates on [dispatcher], but the HTTP
-     * call is dispatched to [kotlinx.coroutines.Dispatchers.IO] inside.
+     * Implemented via [function] (not [asyncFunction]) because the tool-call bootstrap
+     * invokes tools synchronously: `JSON.stringify(fn(__args))`. If `fetch` returned a
+     * Promise the plugin could never await it inside a synchronous tool function.
+     * The HTTP call runs inside [runBlocking] on [Dispatchers.IO] so it does not starve
+     * the shared pool, and each plugin already has its own dedicated thread.
      */
     private fun QuickJs.injectFetch(pluginId: String, allowedHosts: List<String>) {
-        asyncFunction("fetch") { args ->
+        function("fetch") { args ->
             val url = args.getOrNull(0)?.toString().orEmpty()
             val optsRaw = args.getOrNull(1)
             val opts = parseOpts(optsRaw)
-            doFetch(pluginId, allowedHosts, url, opts)
+            runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                doFetch(pluginId, allowedHosts, url, opts)
+            }
         }
     }
 

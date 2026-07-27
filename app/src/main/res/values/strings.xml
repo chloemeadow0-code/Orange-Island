@@ -218,6 +218,8 @@
     <string name="settings_web_search_desc">Configure web search tool for all providers</string>
     <string name="settings_title_gen">Title Generation</string>
     <string name="settings_title_gen_desc">Auto-generate conversation titles</string>
+    <string name="settings_auto_compress">Auto-Compress History</string>
+    <string name="settings_auto_compress_desc">Summarize older messages when the conversation gets long</string>
     <string name="settings_transcription">Image Transcription</string>
     <string name="settings_transcription_desc">Use a vision model to describe images for non-vision models</string>
     <string name="settings_tts">Text-to-Speech</string>
@@ -376,6 +378,10 @@
     <string name="device_access_ui_automation_desc">AI taps, swipes, scrolls, and reads the on-screen window tree (requires the UI Automation accessibility service)</string>
     <string name="device_access_env_awareness_title">Environment Awareness</string>
     <string name="device_access_env_awareness_desc">Inject recent environment changes (foreground app, model, theme, battery, WiFi, etc.) into the system prompt via {app_context}</string>
+    <string name="device_access_auto_approve_title">Auto-Approve Sensitive Reads</string>
+    <string name="device_access_auto_approve_desc">Let AI and workflows read location, notifications, and screen usage without a confirmation prompt. Required for unattended background workflows (which have no UI to approve with).</string>
+    <string name="device_access_overlay_title">Display Over Other Apps</string>
+    <string name="device_access_overlay_desc">Required on Android 10+ for background-triggered workflows to switch the screen to another app or webpage (open_app / open_url). Without it the system silently drops the launch.</string>
     <string name="mini_app_title">Mini App</string>
     <string name="mini_app_add">Add Mini App</string>
     <string name="mini_app_empty">No Mini Apps yet. Tap + to add one.</string>
@@ -665,6 +671,15 @@
     <string name="title_gen_prompt">Title Prompt</string>
     <string name="title_gen_prompt_desc">System instruction used when generating conversation titles</string>
 
+    <!-- Settings - Auto-Compress Page -->
+    <string name="auto_compress_auto">Auto-Compress Conversation</string>
+    <string name="auto_compress_auto_desc">Summarize older messages to keep long chats within the context window</string>
+    <string name="auto_compress_model">Compression Model</string>
+    <string name="auto_compress_current_model">Use Current Model</string>
+    <string name="auto_compress_select_model">Select Compression Model</string>
+    <string name="auto_compress_prompt">Compression Prompt</string>
+    <string name="auto_compress_prompt_desc">System instruction used when summarizing conversation history</string>
+
     <!-- Settings - Image Transcription Page -->
     <string name="transcription_model">Transcription Model</string>
     <string name="transcription_no_model">Not selected</string>
@@ -743,6 +758,9 @@
     <string name="snackbar_generating_title">Generating title...</string>
     <string name="snackbar_title_generated">Title generated.</string>
     <string name="snackbar_title_error">Error encountered when generating title.</string>
+    <string name="snackbar_compressing">Compressing history…</string>
+    <string name="snackbar_compressed">Compressed %1$d messages.</string>
+    <string name="snackbar_compress_error">Error encountered when compressing history.</string>
 
     <!-- Appearance -->
     <string name="settings_appearance">Appearance</string>
@@ -929,6 +947,7 @@
     <string name="quit">Quit</string>
     <string name="clear_database">Clear Database</string>
     <string name="generate_title">Generate Title</string>
+    <string name="compress_history_now">Compress History</string>
     <string name="rename">Rename</string>
     <string name="delete">Delete</string>
     <string name="rename_chat">Rename Chat</string>

@@ -185,6 +185,7 @@ class AppPluginMemoryProvider(
             Participant.USER -> "user"
             Participant.MODEL -> "assistant"
             Participant.ERROR -> "error"
+            Participant.SYSTEM -> "system"
         })
         put("text", m.text)
         put("timestamp", m.timestamp)

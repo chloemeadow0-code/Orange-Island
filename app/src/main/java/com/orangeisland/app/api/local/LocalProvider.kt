@@ -256,6 +256,7 @@ class LocalProvider(
                 Participant.USER -> "user"
                 Participant.MODEL -> "assistant"
                 Participant.ERROR -> "user"
+                Participant.SYSTEM -> "system"
             }
 
             val images = msg.images.filter { it.isNotBlank() }

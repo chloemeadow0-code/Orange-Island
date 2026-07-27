@@ -12,6 +12,7 @@ import com.orangeisland.app.model.StartNode
 import com.orangeisland.app.model.TransformNode
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Executes a single node, mutating the shared [states] map and emitting live state via [onState].
@@ -152,7 +153,8 @@ class NodeExecutor(
         }
         logger.debug("Calling tool ${node.toolName}", node.id, node.label)
         currentCoroutineContext().ensureActive()
-        val result = toolRunner.run(node.toolName, argsJson)
+        val result = withTimeoutOrNull(NODE_TIMEOUT_MS) { toolRunner.run(node.toolName, argsJson) }
+            ?: return fail(node, "tool ${node.toolName} timed out after ${NODE_TIMEOUT_MS}ms")
         mark(node, NodeState.Done(result))
         true
     } catch (e: kotlinx.coroutines.CancellationException) {
@@ -169,12 +171,14 @@ class NodeExecutor(
         val prompt = resolver.resolve(node.prompt, triggerPayload)
         logger.debug("LLM prompt length=${prompt.length}", node.id, node.label)
         currentCoroutineContext().ensureActive()
-        val result = runner.run(
-            provider = node.provider,
-            modelId = node.modelId,
-            systemPrompt = node.systemPrompt.takeIf { it.isNotBlank() },
-            prompt = prompt
-        )
+        val result = withTimeoutOrNull(LLM_TIMEOUT_MS) {
+            runner.run(
+                provider = node.provider,
+                modelId = node.modelId,
+                systemPrompt = node.systemPrompt.takeIf { it.isNotBlank() },
+                prompt = prompt
+            )
+        } ?: return fail(node, "LLM timed out after ${LLM_TIMEOUT_MS}ms")
         mark(node, NodeState.Done(result))
         true
     } catch (e: kotlinx.coroutines.CancellationException) {
@@ -190,7 +194,8 @@ class NodeExecutor(
         val content = resolver.resolve(node.content, triggerPayload)
         logger.debug("Notify title=$title content=${content.take(80)}", node.id, node.label)
         currentCoroutineContext().ensureActive()
-        val result = runner.run(title, content, node.priority)
+        val result = withTimeoutOrNull(NODE_TIMEOUT_MS) { runner.run(title, content, node.priority) }
+            ?: return fail(node, "notification timed out after ${NODE_TIMEOUT_MS}ms")
         mark(node, NodeState.Done(result))
         true
     } catch (e: kotlinx.coroutines.CancellationException) {
@@ -205,7 +210,8 @@ class NodeExecutor(
         val text = resolver.resolve(node.text, triggerPayload)
         logger.debug("ChatMessage text=${text.take(80)}", node.id, node.label)
         currentCoroutineContext().ensureActive()
-        val result = runner.run(text, node.participant)
+        val result = withTimeoutOrNull(NODE_TIMEOUT_MS) { runner.run(text, node.participant) }
+            ?: return fail(node, "chat message timed out after ${NODE_TIMEOUT_MS}ms")
         mark(node, NodeState.Done(result))
         true
     } catch (e: kotlinx.coroutines.CancellationException) {
@@ -248,5 +254,16 @@ class NodeExecutor(
         logger.error("Node '${node.label.ifBlank { node.id }}' failed: $message", node.id, node.label)
         mark(node, NodeState.Errored(message))
         return false
+    }
+
+    companion object {
+        /** Per-node hard timeout for tool/notification/chat-message execution. Mirrors the linear
+         *  engine's default action timeout — without it a single blocking tool (e.g. a slow system
+         *  service call) hangs the whole topological walk and the run stays RUNNING forever. */
+        private const val NODE_TIMEOUT_MS = 60_000L
+
+        /** LLM nodes get a longer budget since streaming a long reply legitimately takes a while,
+         *  but still bounded so a stuck connection doesn't wedge the run. */
+        private const val LLM_TIMEOUT_MS = 180_000L
     }
 }

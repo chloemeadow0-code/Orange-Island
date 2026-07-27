@@ -189,6 +189,13 @@ class WorkflowRepository(
     suspend fun getRun(runId: String): WorkflowRunEntity? =
         withContext(Dispatchers.IO) { dao.getRun(runId) }
 
+    /** Sweep every still-RUNNING run and mark it FAILED. A run that is RUNNING after a process
+     *  restart is wedged (its coroutine is gone), so this clears the perpetual spinner you'd
+     *  otherwise see in the run log. Call once on app start. */
+    suspend fun failStrandedRuns() = withContext(Dispatchers.IO) {
+        dao.failStrandedRuns(System.currentTimeMillis(), "Interrupted (process restarted)")
+    }
+
     // ── Serialization bridge ────────────────────────────────────────────────
 
     /** Decode a stored [WorkflowEntity.graphJson] back to a [Workflow] model. */

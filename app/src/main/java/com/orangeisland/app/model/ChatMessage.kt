@@ -40,7 +40,7 @@ object ToolCallDisplayModes {
 }
 
 enum class Participant {
-    USER, MODEL, ERROR
+    USER, MODEL, ERROR, SYSTEM
 }
 
 enum class MessageStatus {

@@ -29,6 +29,11 @@ class ConversationRepository(
     suspend fun getConversation(id: String): ChatEntity? =
         chatDao.getConversation(id)
 
+    /** Reactive observer for a single conversation row. The chat UI subscribes to this so the
+     *  compacted-history card appears/disappears the moment compactedSummary is written. */
+    fun observeConversation(id: String): Flow<ChatEntity?> =
+        chatDao.observeConversation(id)
+
     suspend fun createConversation(title: String, systemPromptId: String? = null, modelId: String? = null): String {
         val id = java.util.UUID.randomUUID().toString()
         chatDao.upsertConversation(ChatEntity(id = id, title = title, systemPromptId = systemPromptId, modelId = modelId))

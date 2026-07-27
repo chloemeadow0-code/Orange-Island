@@ -590,6 +590,12 @@ internal fun AssistantMessageContent(
                                         val segmentColor = customAssistantBubbleColor
                                             ?.let { ColorMath.argbToColor(it).copy(alpha = 1f) }
                                             ?: MaterialTheme.colorScheme.surfaceContainerHigh
+                                        // A segment carrying a markdown image (or any block-level
+                                        // construct the lightweight inline renderer can't handle) falls
+                                        // back to the full markdown renderer so the image actually
+                                        // loads; plain one-liners keep the cheap AnnotatedString path
+                                        // that wraps to content width.
+                                        val needsFullMarkdown = segment.contains("![")
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(20.dp))
@@ -597,16 +603,24 @@ internal fun AssistantMessageContent(
                                                 .padding(12.dp)
                                         ) {
                                             SelectionContainer {
-                                                Text(
-                                                    text = com.orangeisland.app.util.buildInlineMarkdownAnnotatedString(
+                                                if (needsFullMarkdown) {
+                                                    MarkdownTextContent(
                                                         text = segment,
-                                                        codeBackground = MaterialTheme.colorScheme.surfaceVariant,
-                                                        codeColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    ),
-                                                    style = ChatType.body,
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    modifier = Modifier.widthIn(max = 240.dp)
-                                                )
+                                                        renderContext = renderContext,
+                                                        modifier = Modifier.widthIn(max = 240.dp)
+                                                    )
+                                                } else {
+                                                    Text(
+                                                        text = com.orangeisland.app.util.buildInlineMarkdownAnnotatedString(
+                                                            text = segment,
+                                                            codeBackground = MaterialTheme.colorScheme.surfaceVariant,
+                                                            codeColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        ),
+                                                        style = ChatType.body,
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                        modifier = Modifier.widthIn(max = 240.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }

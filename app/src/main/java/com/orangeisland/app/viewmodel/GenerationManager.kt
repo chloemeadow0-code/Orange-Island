@@ -19,6 +19,7 @@ import com.orangeisland.app.R
 import com.orangeisland.app.service.OrangeIslandForegroundService
 import com.orangeisland.app.service.AppForegroundTracker
 import com.orangeisland.app.api.util.projectAssistantImagesToLatestUserMessage
+import com.orangeisland.app.api.util.limitContext
 import com.orangeisland.app.util.Constants
 import com.orangeisland.app.util.SearchResultFormatter
 import kotlinx.coroutines.CancellationException
@@ -514,7 +515,54 @@ class GenerationManager(
             presencePenalty = config.presencePenalty,
             cancellationToken = cancellationToken
         )
-        return Pair(currentPath, providerConfig)
+        // ── Auto-compressed history injection ───────────────────────────
+        // If this conversation has a running summary (compactedSummary) up to a
+        // watermark timestamp, drop the already-summarized USER/MODEL messages
+        // from the path and fold the summary into the system prompt instead. This
+        // keeps long-term context alive without overflowing the context window.
+        val compressedConv = conversations.getConversation(conversationId)
+        val summary = compressedConv?.compactedSummary
+        val watermark = compressedConv?.compactedUpToTimestamp
+
+        val injectedPath = if (summary != null && watermark != null) {
+            currentPath.filter { msg ->
+                // SYSTEM cards are virtual UI-only (the compacted-history summary card) and must
+                // never be sent to the model — the summary is already injected into the system
+                // prompt below.
+                if (msg.participant == Participant.SYSTEM) return@filter false
+                // Keep tool_/result_ children attached to surviving parents;
+                // limitContext downstream keeps tool_use/tool_result pairs intact.
+                if (msg.participant != Participant.USER && msg.participant != Participant.MODEL) {
+                    true
+                } else {
+                    msg.timestamp > watermark
+                }
+            }
+        } else {
+            currentPath.filter { it.participant != Participant.SYSTEM }
+        }
+
+        // Safety net: no summary yet (compression is async and may not finish
+        // before this request) but the path already overflows the window. Without
+        // this the local provider would hit LOCAL_CONTEXT_EXCEEDED and hard-fail.
+        // Cloud providers would drop the overflow via prepareMessages anyway; applying
+        // it uniformly keeps behavior consistent across providers.
+        val finalPath = if (summary == null &&
+            injectedPath.count { it.participant == Participant.USER } > config.maxContextWindow
+        ) {
+            limitContext(injectedPath, config.maxContextWindow)
+        } else {
+            injectedPath
+        }
+
+        val finalSystemPrompt = if (summary != null) {
+            (config.effectiveSystemPrompt?.takeIf { it.isNotBlank() }?.let { "$it\n\n" } ?: "") +
+                "[Summary of earlier conversation]\n$summary"
+        } else {
+            config.effectiveSystemPrompt
+        }
+
+        return Pair(finalPath, providerConfig.copy(systemPrompt = finalSystemPrompt))
     }
 
     suspend fun generate(

@@ -1,10 +1,13 @@
 package com.orangeisland.app.workflow.linear
 
+import android.app.usage.UsageEvents
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
+import com.orangeisland.app.util.DebugLog
 
 /**
  * Builds a [DeviceContext] snapshot by reading the live device state. Called by the linear engine
@@ -16,6 +19,14 @@ import android.os.BatteryManager
  * hard-depend on a specific accessibility-service hook (the hook is wired in stage F4 when the
  * automation service gains a foreground dispatcher). Until then the default provider returns null,
  * so foreground-app conditions fail open.
+ *
+ * Background fallback: when [foregroundProvider] returns null — which is the normal case for
+ * WorkManager workers, because they may run in a fresh process where
+ * [com.orangeisland.app.workflow.trigger.AppForegroundDispatcher.lastKnown] was never populated —
+ * [snapshot] queries [UsageStatsManager] for the most recent foreground transition within the last
+ * [FOREGROUP_LOOKBACK_MS] window. This needs the PACKAGE_USAGE_STATS special permission; without it
+ * the query returns nothing and the field stays null (foreground conditions then fail closed, i.e.
+ * return false, which is the safer choice for a guard).
  *
  * Independent implementation.
  */
@@ -37,12 +48,40 @@ class DeviceContextProvider(
             batteryLevel = battery?.first,
             isCharging = battery?.second ?: false,
             wifiSsid = wifi,
-            foregroundPackage = foregroundProvider(),
+            foregroundPackage = foregroundProvider() ?: foregroundFromUsageStats(now),
             screenOn = screenOn,
             latitude = lat,
             longitude = lng,
             lastChatMs = lastChatMsProvider()
         )
+    }
+
+    /**
+     * Best-effort fallback that asks the system for the most recent foreground app when the injected
+     * [foregroundProvider] has nothing (the typical situation in a background Worker process).
+     * Returns the package of the last MOVE_TO_FOREGROUND event within [FOREGROUP_LOOKBACK_MS], or
+     * null on any failure (no permission, no service, no recent events).
+     */
+    private fun foregroundFromUsageStats(now: Long): String? = try {
+        val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+            ?: return null
+        val events = usm.queryEvents(now - FOREGROUP_LOOKBACK_MS, now) ?: return null
+        val event = UsageEvents.Event()
+        var latestPackage: String? = null
+        var latestTime = 0L
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                if (event.timeStamp > latestTime) {
+                    latestTime = event.timeStamp
+                    latestPackage = event.packageName
+                }
+            }
+        }
+        latestPackage
+    } catch (e: Exception) {
+        DebugLog.w(TAG, "foregroundFromUsageStats failed (likely no usage-access permission)", e)
+        null
     }
 
     /** (level 0..100, isCharging) via the sticky BATTERY_CHANGED broadcast; null if unavailable. */
@@ -84,4 +123,13 @@ class DeviceContextProvider(
         val loc = lm.getLastKnownLocation(provider) ?: return null to null
         loc.latitude to loc.longitude
     } catch (_: Exception) { null to null }
+
+    companion object {
+        private const val TAG = "DeviceContextProvider"
+
+        /** How far back to look for a foreground transition when the injected provider is empty.
+         *  60 s covers the typical gap between a Worker firing and the last app switch, without
+         *  pulling in stale entries from a much earlier session. */
+        private const val FOREGROUP_LOOKBACK_MS = 60_000L
+    }
 }

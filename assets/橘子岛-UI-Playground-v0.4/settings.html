@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fffaf1">
+  <title>橘子岛 UI Playground 0.4 · 设置页</title>
+  <meta name="description" content="橘子岛手机端 Agent 设置页视觉原型。">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="prototype-layout">
+    <aside class="studio-nav" aria-label="原型页面导航">
+      <div class="studio-brand">
+        <span class="brand-fruit" aria-hidden="true"></span>
+        <div class="brand-copy"><strong>橘子岛</strong><span>UI Playground 0.4</span></div>
+      </div>
+      <div class="nav-label">Preview</div>
+      <a class="studio-link" href="index.html"><span class="nav-orbit">聊</span><span>聊天页</span></a>
+      <a class="studio-link active" href="settings.html"><span class="nav-orbit">设</span><span>设置页</span></a>
+      <a class="studio-link" href="components.html"><span class="nav-orbit">组</span><span>组件展示</span></a>
+      <div class="studio-note"><strong>垂直顺序锁定</strong><p>所有分类和功能仍按原来的上下顺序排列，只换视觉表达。</p></div>
+    </aside>
+
+    <section class="preview-stage" aria-label="设置页手机预览">
+      <div class="preview-caption">
+        <div><h1>设置页</h1><p>同一列、同一顺序，换成独立水彩图标和轻量贴图。</p></div>
+        <span class="viewport-badge">设置首页 · 布局锁定</span>
+      </div>
+
+      <div class="phone-shell">
+        <div class="app-surface">
+          <div class="app-inner">
+            <div class="status-bar"><span>9:41</span><span class="status-icons">● ◔ ▰</span></div>
+            <header class="app-header settings-header">
+              <a class="round-button" href="index.html" aria-label="返回聊天页">‹</a>
+              <div class="header-title"><span class="mini-fruit header-fruit" aria-hidden="true"></span><strong>设置</strong><span>高级设置</span></div>
+              <img class="settings-branch" src="assets/decorations/orange-branch.png" alt="" aria-hidden="true">
+            </header>
+
+            <section class="settings-scroll">
+              <div class="page-intro compact">
+                <span class="eyebrow"><span class="mini-fruit" aria-hidden="true"></span> ORANGE ISLAND</span>
+                <h2>设置</h2>
+                <p>管理模型、记忆、工具与设备能力</p>
+              </div>
+
+              <section class="settings-section">
+                <div class="section-heading"><h3>服务</h3><span>核心连接</span></div>
+                <div class="setting-card">
+                  <button class="setting-row" type="button" data-demo="进入提供商设置">
+                    <span class="island-icon reference-icon ref-provider" aria-hidden="true"></span><span class="setting-copy"><strong>提供商</strong><span>管理 API 密钥、网关和服务连接</span></span><span class="row-value">4 个已连接　›</span>
+                  </button>
+                  <button class="setting-row" type="button" data-demo="进入模型设置">
+                    <span class="island-icon reference-icon ref-model" aria-hidden="true"></span><span class="setting-copy"><strong>模型</strong><span>默认模型、可用模型与参数配置</span></span><span class="row-value">Claude 4.5　›</span>
+                  </button>
+                  <button class="setting-row" type="button" data-demo="进入记忆系统">
+                    <span class="island-icon reference-icon ref-memory" aria-hidden="true"></span><span class="setting-copy"><strong>记忆</strong><span>长期记忆、向量库与检索设置</span></span><span class="row-value">已启用　›</span>
+                  </button>
+                  <button class="setting-row" type="button" data-demo="进入提示词设置">
+                    <span class="island-icon reference-icon ref-prompts" aria-hidden="true"></span><span class="setting-copy"><strong>提示词</strong><span>系统提示词与复用模板</span></span><span class="chevron">›</span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="settings-section">
+                <div class="section-heading"><h3>回复</h3><span>生成体验</span></div>
+                <div class="setting-card">
+                  <button class="setting-row" type="button" data-demo="进入回复行为设置">
+                    <span class="island-icon reference-icon ref-generation" aria-hidden="true"></span><span class="setting-copy"><strong>回复行为</strong><span>流式输出、上下文与生成偏好</span></span><span class="chevron">›</span>
+                  </button>
+                  <div class="setting-row">
+                    <span class="island-icon reference-icon ref-title-generation" aria-hidden="true"></span><span class="setting-copy"><strong>标题生成</strong><span>自动为新会话生成标题</span></span><button class="switch on" type="button" data-setting="标题生成" aria-label="切换标题生成" aria-pressed="true"></button>
+                  </div>
+                  <div class="setting-row">
+                    <span class="island-icon reference-icon ref-streaming-response" aria-hidden="true"></span><span class="setting-copy"><strong>流式响应</strong><span>生成时实时显示回复内容</span></span><button class="switch on" type="button" data-setting="流式响应" aria-label="切换流式响应" aria-pressed="true"></button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="settings-section">
+                <div class="section-heading"><h3>多模态</h3><span>语音与图像</span></div>
+                <div class="setting-card">
+                  <button class="setting-row" type="button" data-demo="进入语音转录设置">
+                    <span class="island-icon reference-icon ref-transcription" aria-hidden="true"></span><span class="setting-copy"><strong>语音转录</strong><span>语音识别提供商与转录模型</span></span><span class="chevron">›</span>
+                  </button>
+                  <button class="setting-row" type="button" data-demo="进入图像生成设置">
+                    <span class="island-icon reference-icon ref-image-generation" aria-hidden="true"></span><span class="setting-copy"><strong>图像生成</strong><span>图像模型、尺寸与生成参数</span></span><span class="chevron">›</span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="settings-section">
+                <div class="section-heading"><h3>工具</h3><span>Agent 能力</span></div>
+                <div class="setting-card">
+                  <button class="setting-row" type="button" data-demo="进入网页搜索设置">
+                    <span class="island-icon reference-icon ref-web" aria-hidden="true"></span><span class="setting-copy"><strong>网页搜索</strong><span>联网搜索与网页内容读取</span></span><span class="row-value">可用　›</span>
+                  </button>
+                  <button class="setting-row" type="button" data-demo="进入终端设置">
+                    <span class="island-icon reference-icon ref-terminal" aria-hidden="true"></span><span class="setting-copy"><strong>终端</strong><span>远程 Shell 命令执行</span></span><span class="row-value">本地　›</span>
+                  </button>
+                  <button class="setting-row" type="button" data-demo="进入沙箱设置">
+                    <span class="island-icon reference-icon ref-sandbox" aria-hidden="true"></span><span class="setting-copy"><strong>沙箱</strong><span>代码执行、文件访问和隔离环境</span></span><span class="chevron">›</span>
+                  </button>
+                  <button class="setting-row" type="button" data-demo="进入 MCP 服务器设置">
+                    <span class="island-icon reference-icon ref-mcp" aria-hidden="true"></span><span class="setting-copy"><strong>MCP 服务器</strong><span>通过 Model Context Protocol 接入工具</span></span><span class="row-value">8 个　›</span>
+                  </button>
+                  <button class="setting-row" type="button" data-demo="进入插件设置">
+                    <span class="island-icon reference-icon ref-plugin" aria-hidden="true"></span><span class="setting-copy"><strong>插件</strong><span>管理扩展功能与本地插件</span></span><span class="chevron">›</span>
+                  </button>
+                  <button class="setting-row" type="button" data-demo="进入设备访问设置">
+                    <span class="island-icon reference-icon ref-device" aria-hidden="true"></span><span class="setting-copy"><strong>设备访问</strong><span>相机、麦克风、定位和通知权限</span></span><span class="chevron">›</span>
+                  </button>
+                  <button class="setting-row" type="button" data-demo="进入工作流设置">
+                    <span class="island-icon reference-icon ref-workflow" aria-hidden="true"></span><span class="setting-copy"><strong>工作流</strong><span>自动化流程、图谱与运行记录</span></span><span class="chevron">›</span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="settings-section">
+                <div class="section-heading"><h3>网络</h3><span>连接方式</span></div>
+                <div class="setting-card">
+                  <button class="setting-row" type="button" data-demo="进入代理设置">
+                    <span class="island-icon reference-icon ref-proxy" aria-hidden="true"></span><span class="setting-copy"><strong>代理</strong><span>通过 HTTP 或 SOCKS 代理转发网络流量</span></span><span class="chevron">›</span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="settings-section">
+                <div class="section-heading"><h3>其他</h3><span>界面与数据</span></div>
+                <div class="setting-card">
+                  <button class="setting-row" type="button" data-demo="进入外观设置">
+                    <span class="island-icon reference-icon ref-appearance" aria-hidden="true"></span><span class="setting-copy"><strong>外观</strong><span>主题颜色、插图素材和显示设置</span></span><span class="row-value">橘子岛　›</span>
+                  </button>
+                  <button class="setting-row" type="button" data-demo="进入数据设置">
+                    <span class="island-icon reference-icon ref-data-control" aria-hidden="true"></span><span class="setting-copy"><strong>数据与存储</strong><span>导入、导出、备份和本地缓存</span></span><span class="chevron">›</span>
+                  </button>
+                  <button class="setting-row" type="button" data-demo="进入语言设置">
+                    <span class="island-icon reference-icon ref-language" aria-hidden="true"></span><span class="setting-copy"><strong>语言</strong><span>界面语言与本地化设置</span></span><span class="chevron">›</span>
+                  </button>
+                  <button class="setting-row" type="button" data-demo="进入日志页面">
+                    <span class="island-icon reference-icon ref-logs" aria-hidden="true"></span><span class="setting-copy"><strong>日志</strong><span>查看应用与工具运行记录</span></span><span class="chevron">›</span>
+                  </button>
+                  <button class="setting-row" type="button" data-demo="进入关于页面">
+                    <span class="island-icon reference-icon ref-about" aria-hidden="true"></span><span class="setting-copy"><strong>关于</strong><span>版本信息、许可与项目说明</span></span><span class="chevron">›</span>
+                  </button>
+                </div>
+              </section>
+              <div class="settings-footer-art" aria-hidden="true">
+                <img src="assets/decorations/cottage-island.png" alt="">
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="tuner" aria-label="视觉调节器">
+      <div class="tuner-head"><h2>视觉调节器</h2><span>实时生效</span></div>
+      <section class="tuner-section">
+        <h3>预设方向</h3>
+        <div class="preset-grid">
+          <button class="preset-button" type="button" data-preset="sunlight"><span class="palette-dots"><i style="--dot:#f28a34"></i><i style="--dot:#78966c"></i><i style="--dot:#fffbf5"></i></span><span class="preset-copy"><strong>日光橘园</strong><span>温暖、清新、默认推荐</span></span></button>
+          <button class="preset-button" type="button" data-preset="breeze"><span class="palette-dots"><i style="--dot:#e68b52"></i><i style="--dot:#5e9488"></i><i style="--dot:#f8fcf7"></i></span><span class="preset-copy"><strong>海风清橘</strong><span>更轻、更凉、更舒展</span></span></button>
+          <button class="preset-button" type="button" data-preset="dusk"><span class="palette-dots"><i style="--dot:#d8753d"></i><i style="--dot:#7d8060"></i><i style="--dot:#fff7ef"></i></span><span class="preset-copy"><strong>暮色蜜橘</strong><span>克制、成熟、偏技术感</span></span></button>
+        </div>
+      </section>
+      <section class="tuner-section">
+        <h3>颜色</h3>
+        <label class="color-row"><span>品牌橘</span><input type="color" value="#f28a34" data-control="accent"></label>
+        <label class="color-row"><span>叶片绿</span><input type="color" value="#78966c" data-control="leaf"></label>
+      </section>
+      <section class="tuner-section">
+        <h3>组件手感</h3>
+        <div class="control-row"><label for="radius">圆角</label><output data-output="radius">24px</output><input id="radius" type="range" min="12" max="34" value="24" data-control="radius"></div>
+        <div class="control-row"><label for="density">内容密度</label><output data-output="density">100%</output><input id="density" type="range" min="82" max="112" value="100" data-control="density"></div>
+        <div class="switch-row"><span>背景空气纹理</span><button class="switch on" type="button" data-control="texture" aria-label="切换背景纹理" aria-pressed="true"></button></div>
+      </section>
+      <button class="reset-button" type="button" data-reset>恢复默认</button>
+    </aside>
+  </main>
+  <button class="mobile-tuner-button" type="button" aria-expanded="false" aria-label="打开视觉调节器">调</button>
+  <script src="app.js"></script>
+</body>
+</html>

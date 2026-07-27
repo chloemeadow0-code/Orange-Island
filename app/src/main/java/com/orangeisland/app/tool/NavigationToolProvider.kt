@@ -1,8 +1,10 @@
 package com.orangeisland.app.tool
 
+import android.app.ActivityManager
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import com.orangeisland.app.api.ToolDefinition
 import com.orangeisland.app.api.ToolFunction
 import com.orangeisland.app.api.ToolParameters
@@ -129,11 +131,45 @@ class NavigationToolProvider(private val app: Application) : ToolProvider {
 
     // ── Implementation ─────────────────────────────────────
 
+    /**
+     * On Android 10+ (targetSdk 29+), a backgrounded process that calls [android.content.Context.
+     * startActivity] to launch another app is silently dropped by the system unless it holds the
+     * SYSTEM_ALERT_WINDOW (overlay) permission. Workflows (esp. background-triggered) hit exactly
+     * that path, so before any of the four launching methods actually start an Activity we check:
+     * either the overlay permission is granted, or our own process is currently in the foreground.
+     * Returns null if the launch may proceed, otherwise a JSON error string explaining the block.
+     */
+    private fun backgroundLaunchGuard(): String? {
+        if (Settings.canDrawOverlays(app)) return null
+        if (isOwnProcessForeground()) return null
+        return error(
+            "background_activity_blocked",
+            "Cannot launch from the background: the overlay permission (display over other apps) " +
+                "is required. Ask the user to enable it in Settings → Device Access."
+        )
+    }
+
+    /**
+     * Best-effort foreground check for this app's own process. On Android 5.0+
+     * [ActivityManager.getRunningAppProcesses] only returns the caller's own process, so its
+     * importance is a reliable "are we foregrounded?" signal without needing any extra permission.
+     */
+    private fun isOwnProcessForeground(): Boolean = try {
+        val am = app.getSystemService(Application.ACTIVITY_SERVICE) as? ActivityManager ?: return false
+        val procs = am.runningAppProcesses
+        procs.any {
+            it.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+        }
+    } catch (_: Throwable) {
+        false
+    }
+
     private fun openUrl(arguments: String): String {
         val args = json.parseToJsonElement(arguments).jsonObject
         val url = args["url"]?.toString()?.trim('"') ?: return error("missing_argument", "url is required")
         val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return error("invalid_url", "Cannot parse URL: $url")
 
+        backgroundLaunchGuard()?.let { return it }
         val intent = Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return try {
             app.startActivity(intent)
@@ -159,6 +195,7 @@ class NavigationToolProvider(private val app: Application) : ToolProvider {
             launchIntent.putExtra(Intent.EXTRA_TEXT, text)
         }
 
+        backgroundLaunchGuard()?.let { return it }
         return try {
             app.startActivity(launchIntent)
             success("Launched app: $packageName")
@@ -171,6 +208,7 @@ class NavigationToolProvider(private val app: Application) : ToolProvider {
         val args = json.parseToJsonElement(arguments).jsonObject
         val action = args["action"]?.toString()?.trim('"') ?: return error("missing_argument", "action is required")
 
+        backgroundLaunchGuard()?.let { return it }
         val intent = Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return try {
             app.startActivity(intent)
@@ -185,6 +223,7 @@ class NavigationToolProvider(private val app: Application) : ToolProvider {
         val text = args["text"]?.toString()?.trim('"') ?: return error("missing_argument", "text is required")
         val subject = args["subject"]?.toString()?.trim('"')
 
+        backgroundLaunchGuard()?.let { return it }
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, text)

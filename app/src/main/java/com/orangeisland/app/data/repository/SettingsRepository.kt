@@ -62,6 +62,9 @@ class SettingsRepository(
     val titleGenerationEnabled: StateFlow<Boolean> = hot(settingsManager.titleGenerationEnabled, true)
     val titleGenerationModel: StateFlow<String?> = hot(settingsManager.titleGenerationModel, null)
     val titleGenerationPrompt: StateFlow<String> = hot(settingsManager.titleGenerationPrompt, BuiltInPrompts.TITLE_GENERATION_SYSTEM)
+    val autoCompressEnabled: StateFlow<Boolean> = hot(settingsManager.autoCompressEnabled, false)
+    val autoCompressModel: StateFlow<String?> = hot(settingsManager.autoCompressModel, null)
+    val autoCompressPrompt: StateFlow<String> = hot(settingsManager.autoCompressPrompt, BuiltInPrompts.HISTORY_COMPRESSION_SYSTEM)
     val imageTranscriptionEnabledModels: StateFlow<Set<String>> = hot(settingsManager.imageTranscriptionEnabledModels, emptySet())
     val imageTranscriptionModel: StateFlow<String?> = hot(settingsManager.imageTranscriptionModel, null)
     val imageTranscriptionBatchSize: StateFlow<Int> = hot(settingsManager.imageTranscriptionBatchSize, 3)
@@ -178,7 +181,7 @@ class SettingsRepository(
     val healthSyncSupabaseUrl: StateFlow<String> = hot(settingsManager.healthSyncSupabaseUrl, "")
     val healthSyncSupabaseApiKey: StateFlow<String> = hot(settingsManager.healthSyncSupabaseApiKey, "")
     val healthSyncTableName: StateFlow<String> = hot(settingsManager.healthSyncTableName, "device_data")
-    val autoApproveSensitiveTools: StateFlow<Boolean> = hot(settingsManager.autoApproveSensitiveTools, false)
+    val autoApproveSensitiveTools: StateFlow<Boolean> = hot(settingsManager.autoApproveSensitiveTools, true)
     val environmentAwarenessEnabled: StateFlow<Boolean> = hot(settingsManager.environmentAwarenessEnabled, false)
     val miniAppEntries: StateFlow<List<com.orangeisland.app.data.MiniAppEntry>> = hot(settingsManager.miniAppEntries, emptyList())
     // ── Plugin device id ──────────────────────────────────────
@@ -413,6 +416,9 @@ class SettingsRepository(
     fun setTitleGenerationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveTitleGenerationEnabled(enabled) }
     fun setTitleGenerationModel(model: String?) = scope.launch { settingsManager.saveTitleGenerationModel(model) }
     fun setTitleGenerationPrompt(prompt: String) = scope.launch { settingsManager.saveTitleGenerationPrompt(prompt) }
+    fun setAutoCompressEnabled(enabled: Boolean) = scope.launch { settingsManager.saveAutoCompressEnabled(enabled) }
+    fun setAutoCompressModel(model: String?) = scope.launch { settingsManager.saveAutoCompressModel(model) }
+    fun setAutoCompressPrompt(prompt: String) = scope.launch { settingsManager.saveAutoCompressPrompt(prompt) }
     fun setImageTranscriptionModel(model: String?) = scope.launch { settingsManager.saveImageTranscriptionModel(model) }
     fun setImageTranscriptionBatchSize(size: Int) = scope.launch { settingsManager.saveImageTranscriptionBatchSize(size) }
     fun setImageTranscriptionPrompt(prompt: String) = scope.launch { settingsManager.saveImageTranscriptionPrompt(prompt) }

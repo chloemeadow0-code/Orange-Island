@@ -365,7 +365,8 @@ class ChatViewModel(
      *  page can ask the sandbox to reload a plugin after its main.js is replaced on disk. */
     val pluginSandbox: com.orangeisland.app.plugin.PluginSandbox? get() = _pluginSandbox
 
-    fun getProviderInstance(name: String): LlmProvider = providerRegistry.getInstance(name)
+    fun getProviderInstance(name: String): LlmProvider =
+        providerRegistry.getInstance(name) ?: error("Provider '$name' is not registered")
 
 
 
@@ -465,14 +466,50 @@ class ChatViewModel(
     private val _streamingMessage = MutableStateFlow<ChatMessage?>(null)
     private val _selectedChildren = MutableStateFlow<Map<String?, String>>(emptyMap())
 
+    /**
+     * The current conversation's compacted-summary state, observed reactively so the chat list
+     * can inject/remove the virtual "compressed history" card the moment compression writes the
+     * summary. Null when there's no current conversation or it has no summary.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private val currentCompactedSummary: Flow<Pair<String, Long>?> = _currentConversationId
+        .flatMapLatest { id ->
+            if (id == null) flowOf(null)
+            else convRepo.observeConversation(id).map { c ->
+                val s = c?.compactedSummary
+                val w = c?.compactedUpToTimestamp
+                if (s != null && w != null) s to w else null
+            }
+        }
+
     val messages: StateFlow<List<ChatMessage>> = combine(
         _allMessages,
         _streamingMessage,
-        _selectedChildren
-    ) { allMsgs, streaming, selectedChildren ->
+        _selectedChildren,
+        currentCompactedSummary
+    ) { allMsgs, streaming, selectedChildren, summary ->
         // Single source of truth for the visible-path walk: the tested
         // ConversationUiState.resolvePath (covered by ConversationUiStateTest).
-        ConversationUiState.resolvePath(allMsgs, streaming, selectedChildren)
+        val path = ConversationUiState.resolvePath(allMsgs, streaming, selectedChildren)
+        // If this conversation has a compacted summary, prepend a virtual SYSTEM card showing
+        // the summary. The card is NOT a persisted message — it's derived from the conversation's
+        // compactedSummary field so it stays in sync with auto/manual compression.
+        if (summary != null) {
+            val (summaryText, watermark) = summary
+            // Count how many original messages were folded in: everything on the path at or before
+            // the watermark (those are the ones compression collapsed into the summary).
+            val foldedCount = path.count { it.timestamp <= watermark }
+            val card = ChatMessage(
+                id = "compacted_card_${_currentConversationId.value}",
+                text = summaryText,
+                participant = Participant.SYSTEM,
+                timestamp = watermark,
+                contextMessageCount = foldedCount
+            )
+            listOf(card) + path.filter { it.timestamp > watermark || it.participant == Participant.SYSTEM }
+        } else {
+            path
+        }
     }.distinctUntilChanged()
     .flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -1123,6 +1160,11 @@ class ChatViewModel(
     }
 
     fun generateTitle(conversationId: String) = generationController.generateTitle(conversationId)
+
+    /** Manually compress a conversation's older history into a summary card, retaining the most
+     *  recent `maxContextWindow` user turns. Same path as auto-compress, just triggered on demand
+     *  from the conversation's long-press menu. */
+    fun compressHistory(conversationId: String) = generationController.compressHistory(conversationId)
 
     fun setConversationSystemPrompt(id: String, promptId: String?) {
         viewModelScope.launch {

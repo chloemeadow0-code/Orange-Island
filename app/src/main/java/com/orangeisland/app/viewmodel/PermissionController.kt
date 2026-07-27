@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.provider.Settings
 import android.text.TextUtils
 import androidx.core.content.ContextCompat
@@ -37,7 +38,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class PermissionController(private val appContext: Context) {
 
     /** The Device Access tools that need a system permission. */
-    enum class Tool { LOCATION, CALENDAR, NOTIFICATION, USAGE_STATS, ACCESSIBILITY, UI_AUTOMATION }
+    enum class Tool { LOCATION, CALENDAR, NOTIFICATION, USAGE_STATS, ACCESSIBILITY, UI_AUTOMATION, OVERLAY }
 
     /** True iff the tool's required permission(s) are currently granted. Safe to call from any thread. */
     fun isGranted(tool: Tool): Boolean = when (tool) {
@@ -50,6 +51,7 @@ class PermissionController(private val appContext: Context) {
         Tool.USAGE_STATS -> usageAccessEnabled
         Tool.ACCESSIBILITY -> accessibilityEnabled
         Tool.UI_AUTOMATION -> uiAutomationAccessibilityEnabled
+        Tool.OVERLAY -> overlayEnabled
     }
 
     /** Launches the system Settings screen the user must visit to grant [tool]'s special permission.
@@ -60,6 +62,12 @@ class PermissionController(private val appContext: Context) {
             Tool.USAGE_STATS -> Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
             // Both accessibility services are enabled from the same Settings screen.
             Tool.ACCESSIBILITY, Tool.UI_AUTOMATION -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            // Overlay (draw over other apps) — needed so workflows can launch another app from the
+            // background on Android 10+. Targets this package's toggle directly.
+            Tool.OVERLAY -> Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:${appContext.packageName}")
+            )
             // Runtime-permission tools shouldn't reach here; the settings page uses the launcher.
             else -> return
         }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -126,6 +134,11 @@ class PermissionController(private val appContext: Context) {
         _uiAutomationAccessibilityEnabled.value = uiAutomationAccessibilityEnabled
     }
 
+    /** Re-query overlay permission state. Call from the settings page's onResume. */
+    fun refreshOverlayState() {
+        _overlayEnabled.value = overlayEnabled
+    }
+
     // UI Automation accessibility state — a separate service the user must enable independently.
     private val uiAutomationAccessibilityEnabled: Boolean
         get() = AutomationAccessibilityService.isEnabled(appContext)
@@ -133,6 +146,15 @@ class PermissionController(private val appContext: Context) {
     private val _uiAutomationAccessibilityEnabled = MutableStateFlow(uiAutomationAccessibilityEnabled)
     val uiAutomationAccessibilityEnabledFlow: StateFlow<Boolean> =
         _uiAutomationAccessibilityEnabled.asStateFlow()
+
+    // Overlay (SYSTEM_ALERT_WINDOW) — special permission the user toggles in system Settings. On
+    // Android 10+ a backgrounded process cannot startActivity() to open another app unless it holds
+    // this, so workflow-triggered open_app/open_url need it to actually switch the screen.
+    private val overlayEnabled: Boolean
+        get() = Settings.canDrawOverlays(appContext)
+
+    private val _overlayEnabled = MutableStateFlow(overlayEnabled)
+    val overlayEnabledFlow: StateFlow<Boolean> = _overlayEnabled.asStateFlow()
 
     private fun hasPermission(perm: String): Boolean =
         ContextCompat.checkSelfPermission(appContext, perm) == PackageManager.PERMISSION_GRANTED

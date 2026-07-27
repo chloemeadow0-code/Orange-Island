@@ -57,19 +57,40 @@ class UsageStatsToolProvider(
                     ),
                     required = emptyList()
                 )
+            )),
+            ToolDefinition(function = ToolFunction(
+                name = "get_foreground_app",
+                description = "Get the app the user is currently using (the app in the foreground " +
+                    "right now). Returns its label, package name, and how long it has been in the " +
+                    "foreground. Use when the workflow or user needs to know 'what app is open right " +
+                    "now', '用户现在在用什么 app', '当前前台应用', e.g. to gate an action on the active app.",
+                parameters = ToolParameters(
+                    properties = emptyMap(),
+                    required = emptyList()
+                )
             ))
         )
     }
 
     override suspend fun execute(name: String, arguments: String, ctx: GenerationContext): String {
-        if (name != "get_app_usage") return unknownTool(name)
+        if (name != "get_app_usage" && name != "get_foreground_app") return unknownTool(name)
         if (!permissionController.isGranted(PermissionController.Tool.USAGE_STATS)) {
             return error("permission_denied",
                 "Usage access not granted. Ask the user to enable Screen Usage in Settings → Device Access (it opens the system Usage access screen).")
         }
-        if (approvalGate?.approval?.invoke(name, "读取应用使用时长统计") == false) {
-            return error("approval_denied", "用户拒绝了应用使用统计请求。")
+        // The approval gate suspends until the UI resolves it. In a workflow (especially a background
+        // Worker) there is no UI observer to resolve the request, so a bare await would hang until
+        // the node's hard timeout. Bound it: if nobody approves within a few seconds, treat it as
+        // denied and let the run move on instead of wedging.
+        val approved = approvalGate?.let { gate ->
+            kotlinx.coroutines.withTimeoutOrNull(APPROVAL_TIMEOUT_MS) {
+                gate.approval.invoke(name, "读取应用使用情况")
+            } ?: false
+        } ?: true
+        if (!approved) {
+            return error("approval_denied", "用户拒绝了应用使用情况请求(或无 UI 在工作流执行时审批)。")
         }
+        if (name == "get_foreground_app") return foregroundApp()
         val parsed = json.decodeFromString<Map<String, kotlinx.serialization.json.JsonElement>>(arguments.ifBlank { "{}" })
         val range = (parsed["range"] as? JsonPrimitive)?.content?.lowercase()?.takeIf { it.isNotBlank() } ?: "today"
         val limit = ((parsed["limit"] as? JsonPrimitive)?.content?.toIntOrNull() ?: 10).coerceIn(1, 30)
@@ -132,7 +153,54 @@ class UsageStatsToolProvider(
         }.toString()
     }
 
-    override fun handles(name: String): Boolean = name == "get_app_usage"
+    override fun handles(name: String): Boolean = name == "get_app_usage" || name == "get_foreground_app"
+
+    /**
+     * Returns the app currently in the foreground. Walks the last [FOREGROUND_LOOKBACK_MS] of usage
+     * events and takes the most recent MOVE_TO_FOREGROUND, then reports how long it has been
+     * foregrounded. Returns an error JSON if no foreground app can be determined (no permission in
+     * practice, no recent events, or the screen is off).
+     */
+    private fun foregroundApp(): String {
+        val usm = app.getSystemService(UsageStatsManager::class.java)
+            ?: return error("no_service", "UsageStatsManager unavailable on this device.")
+        val now = System.currentTimeMillis()
+        val events = try {
+            usm.queryEvents(now - FOREGROUND_LOOKBACK_MS, now)
+        } catch (e: Exception) {
+            DebugLog.e("UsageStatsTool", "queryEvents failed", e)
+            return error("query_failed", "Foreground query failed: ${e.message}")
+        } ?: return error("no_data", "No usage events in the lookback window.")
+        val event = android.app.usage.UsageEvents.Event()
+        var pkg: String? = null
+        var sinceMs = 0L
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            if (event.eventType == android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                pkg = event.packageName
+                sinceMs = event.timeStamp
+            }
+        }
+        if (pkg == null) {
+            return buildJsonObject {
+                put("foreground_app", JsonPrimitive(""))
+                put("package", JsonPrimitive(""))
+                put("foreground_seconds", 0)
+                put("note", "No app is currently in the foreground (screen off or no recent activity).")
+            }.toString()
+        }
+        val pm = app.packageManager
+        val label = runCatching {
+            pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
+        }.getOrDefault(pkg)
+        val iso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+        return buildJsonObject {
+            put("foreground_app", label)
+            put("package", pkg)
+            put("foreground_seconds", if (sinceMs > 0) (now - sinceMs) / 1000 else 0)
+            put("since", if (sinceMs > 0) iso.format(Date(sinceMs)) else "")
+        }.toString()
+    }
 
     private fun midnightToday(): Long {
         val cal = java.util.Calendar.getInstance()
@@ -148,4 +216,17 @@ class UsageStatsToolProvider(
 
     private fun unknownTool(name: String): String =
         buildJsonObject { put("error", "unknown_tool"); put("name", name) }.toString()
+
+    companion object {
+        /** Lookback window for [foregroundApp]: 60 s is short enough that the result reflects what
+         *  the user is doing right now, while tolerating a brief pause between a query and the last
+         *  app switch. */
+        private const val FOREGROUND_LOOKBACK_MS = 60_000L
+
+        /** Max wait for the sensitive-tool approval dialog. In a chat turn the UI resolves this in a
+         *  second or two; in a workflow (esp. a background Worker) there is no observer, so without a
+         *  bound the gate would suspend until the node's hard timeout. 8 s is generous for a human
+         *  tap yet short enough that a headless workflow fails fast instead of hanging. */
+        private const val APPROVAL_TIMEOUT_MS = 8_000L
+    }
 }

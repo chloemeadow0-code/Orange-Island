@@ -9,4 +9,7 @@ object BuiltInPrompts {
 
     const val IMAGE_TRANSCRIPTION_USER =
         "Please describe this image in detail. Include all visible text, data, charts, layout, and visual elements. Preserve the original language of any text shown."
+
+    const val HISTORY_COMPRESSION_SYSTEM =
+        "You summarize conversation history. Produce a concise summary capturing key facts, decisions, and context needed to continue the conversation. Preserve names, entities, and any unresolved questions. Output only the summary."
 }

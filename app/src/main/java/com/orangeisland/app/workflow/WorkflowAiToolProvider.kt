@@ -1,5 +1,6 @@
 package com.orangeisland.app.workflow
 
+import android.content.Context
 import com.orangeisland.app.api.ToolDefinition
 import com.orangeisland.app.api.ToolFunction
 import com.orangeisland.app.api.ToolParameters
@@ -9,6 +10,7 @@ import com.orangeisland.app.data.repository.WorkflowRepository
 import com.orangeisland.app.model.LinearWorkflow
 import com.orangeisland.app.model.Workflow
 import com.orangeisland.app.tool.ToolProvider
+import com.orangeisland.app.util.DebugLog
 import com.orangeisland.app.viewmodel.GenerationContext
 import com.orangeisland.app.workflow.graph.GraphDefinitionParser
 import com.orangeisland.app.workflow.linear.LinearDefinitionParser
@@ -49,7 +51,13 @@ class WorkflowAiToolProvider(
     private val runnerProvider: () -> WorkflowRunner,
     private val knownToolNames: () -> Set<String> = { emptySet() },
     private val approval: (suspend (card: String) -> Boolean)? = null,
-    private val settingsRepository: SettingsRepository? = null
+    private val settingsRepository: SettingsRepository? = null,
+    /** Application context used to enqueue graph-mode schedule triggers into WorkManager. Linear
+     *  workflows need no context here �� [com.orangeisland.app.workflow.trigger.TimeSignalSource]
+     *  reconciles them via a Flow on the enabled set. Graph workflows have no such subscription,
+     *  so a persisted Schedule trigger must be explicitly scheduled or it never fires (the original
+     *  bug: AI-authored graph schedules were written to the DB but never enqueued). Null in tests. */
+    private val appContext: Context? = null
 ) : ToolProvider {
 
     override fun definitions(ctx: GenerationContext): List<ToolDefinition> = listOf(
@@ -135,8 +143,8 @@ class WorkflowAiToolProvider(
         "workflow_run" -> runWorkflow(arguments)
         "workflow_create" -> createWorkflow(arguments, ctx)
         "workflow_create_graph" -> createGraphWorkflow(arguments, ctx)
-        "workflow_update" -> updateWorkflow(arguments)
-        "workflow_update_graph" -> updateGraphWorkflow(arguments)
+        "workflow_update" -> updateWorkflow(arguments, ctx)
+        "workflow_update_graph" -> updateGraphWorkflow(arguments, ctx)
         "workflow_delete" -> deleteWorkflow(arguments)
         "workflow_set_enabled" -> setEnabledWorkflow(arguments)
         else -> "Unknown workflow tool: $name"
@@ -220,19 +228,23 @@ class WorkflowAiToolProvider(
         }
     }
 
-    private suspend fun updateWorkflow(arguments: String): String {
+    private suspend fun updateWorkflow(arguments: String, ctx: GenerationContext): String {
         val def = parseAndValidate(arguments) ?: return errorJson("validation failed: definition object missing")
         when (def) {
             is ValidateResult.Ok -> {
-                if (repository.getLinear(def.definition.id) == null) {
-                    return errorJson("no linear workflow with id=${def.definition.id}; use workflow_create instead")
-                }
-                val card = WorkflowApprovalRenderer.renderCreate(def.definition)  // reuse: same fields matter to the user
+                val existing = repository.getLinear(def.definition.id)
+                    ?: return errorJson("no linear workflow with id=${def.definition.id}; use workflow_create instead")
+                // Preserve bindings the model didn't re-specify: a partial update (e.g. just the
+                // trigger) must not blank out an existing project/prompt/model binding. Precedence is
+                // definition > existing row > conversation context.
+                val preserved = def.definition.preserveBindings(existing)
+                val bound = preserved.copyBindings(ctx)
+                val card = WorkflowApprovalRenderer.renderCreate(bound)  // reuse: same fields matter to the user
                 if (approval?.invoke(card) != true) {
                     return errorJson("authoring tools require foreground user approval")
                 }
-                repository.upsertLinear(def.definition)
-                return okJson("updated", def.definition.id, def.definition.name)
+                repository.upsertLinear(bound)
+                return okJson("updated", bound.id, bound.name)
             }
             is ValidateResult.Err -> return errorJson("validation failed: ${def.code} �� ${def.detail}")
         }
@@ -248,25 +260,29 @@ class WorkflowAiToolProvider(
                     return errorJson("authoring tools require foreground user approval")
                 }
                 repository.upsert(bound)
+                scheduleGraph(bound)
                 return okJson("created", bound.id, bound.name)
             }
             is GraphValidateResult.Err -> return errorJson("validation failed: ${def.code} �� ${def.detail}")
         }
     }
 
-    private suspend fun updateGraphWorkflow(arguments: String): String {
+    private suspend fun updateGraphWorkflow(arguments: String, ctx: GenerationContext): String {
         val def = parseAndValidateGraph(arguments) ?: return errorJson("validation failed: definition object missing")
         when (def) {
             is GraphValidateResult.Ok -> {
-                if (repository.get(def.workflow.id) == null) {
-                    return errorJson("no graph workflow with id=${def.workflow.id}; use workflow_create_graph instead")
-                }
-                val card = WorkflowApprovalRenderer.renderGraphCreate(def.workflow)
+                val existing = repository.get(def.workflow.id)
+                    ?: return errorJson("no graph workflow with id=${def.workflow.id}; use workflow_create_graph instead")
+                // Preserve bindings the model didn't re-specify (see updateWorkflow for rationale).
+                val preserved = def.workflow.preserveBindings(existing)
+                val bound = preserved.copyBindings(ctx)
+                val card = WorkflowApprovalRenderer.renderGraphCreate(bound)
                 if (approval?.invoke(card) != true) {
                     return errorJson("authoring tools require foreground user approval")
                 }
-                repository.upsert(def.workflow)
-                return okJson("updated", def.workflow.id, def.workflow.name)
+                repository.upsert(bound)
+                scheduleGraph(bound)
+                return okJson("updated", bound.id, bound.name)
             }
             is GraphValidateResult.Err -> return errorJson("validation failed: ${def.code} �� ${def.detail}")
         }
@@ -278,6 +294,11 @@ class WorkflowAiToolProvider(
         if (approval?.invoke(card) != true) {
             return errorJson("authoring tools require foreground user approval")
         }
+        // Cancel any pending WorkManager request before the row disappears (graph mode only ��
+        // linear is reconciled by TimeSignalSource on the next emission).
+        if (appContext != null && repository.modeOf(id) == "graph") {
+            runCatching { WorkflowWorker.cancel(appContext!!, id) }
+        }
         repository.delete(id)
         return buildJsonObject { put("ok", true); put("id", id) }.toString()
     }
@@ -285,37 +306,75 @@ class WorkflowAiToolProvider(
     private suspend fun setEnabledWorkflow(arguments: String): String {
         val id = parseId(arguments) ?: return errorJson("missing workflow_id")
         val enabled = parseEnabled(arguments) ?: return errorJson("missing enabled")
-        val verb = if (enabled) "启用" else "禁用"
+        val verb = if (enabled) "吔�" else "禁用"
         if (approval?.invoke("${verb}工作�?id=$id") != true) {
             return errorJson("authoring tools require foreground user approval")
         }
         repository.setEnabled(id, enabled)
+        // Reconcile the graph schedule: schedule() is a no-op for disabled workflows, so it doubles
+        // as both the enable and disable path for graph mode. Linear is Flow-driven; skip it.
+        if (appContext != null && repository.modeOf(id) == "graph") {
+            if (enabled) {
+                repository.get(id)?.let { runCatching { WorkflowWorker.schedule(appContext!!, it) } }
+            } else {
+                runCatching { WorkflowWorker.cancel(appContext!!, id) }
+            }
+        }
         return buildJsonObject { put("ok", true); put("id", id); put("enabled", enabled) }.toString()
+    }
+
+    /** Enqueue (or replace) the WorkManager request for a graph-mode workflow's Schedule trigger.
+     *  No-op if the workflow has no schedule trigger or is disabled �� [WorkflowWorker.schedule]
+     *  handles both guards internally. Best-effort: a scheduling failure is logged but does not
+     *  fail the authoring call, since the definition is already persisted and will be picked up by
+     *  [WorkflowWorker.rescheduleAll] on the next app start. */
+    private fun scheduleGraph(workflow: Workflow) {
+        val ctx = appContext ?: return
+        runCatching { WorkflowWorker.schedule(ctx, workflow) }
+            .onFailure { DebugLog.w(TAG, "graph schedule failed for ${workflow.id}", it) }
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────
 
-    /** Copies a [LinearWorkflow] with project / system-prompt / model bindings resolved from
-     *  the current [GenerationContext]. Called by the create tools so a workflow created in a
-     *  conversation automatically inherits that conversation's project, model, and system prompt. */
+    /** Copies a [LinearWorkflow] with project / system-prompt / model bindings resolved.
+     *  Precedence: an explicit value in the definition wins; only when it's null do we fall back to
+     *  the conversation context. This lets the model bind a workflow to any project explicitly, while
+     *  still inheriting the current conversation's project when it doesn't specify one. On update the
+     *  parser preserves the prior binding by reading it from the stored row before re-applying ctx. */
     private fun LinearWorkflow.copyBindings(ctx: GenerationContext): LinearWorkflow {
-        val projectId = ctx.projectId
-        val systemPromptId = ctx.systemPromptId
-        val modelId = ctx.modelId
-        return if (projectId != null || systemPromptId != null || modelId != null) {
-            copy(projectId = projectId, systemPromptId = systemPromptId, modelId = modelId)
-        } else this
+        val projectId = projectId ?: ctx.projectId
+        val systemPromptId = systemPromptId ?: ctx.systemPromptId
+        val modelId = modelId ?: ctx.modelId
+        return copy(projectId = projectId, systemPromptId = systemPromptId, modelId = modelId)
     }
 
     /** Same binding logic for graph [Workflow]s. */
     private fun Workflow.copyBindings(ctx: GenerationContext): Workflow {
-        val projectId = ctx.projectId
-        val systemPromptId = ctx.systemPromptId
-        val modelId = ctx.modelId
-        return if (projectId != null || systemPromptId != null || modelId != null) {
-            copy(projectId = projectId, systemPromptId = systemPromptId, modelId = modelId)
-        } else this
+        val projectId = projectId ?: ctx.projectId
+        val systemPromptId = systemPromptId ?: ctx.systemPromptId
+        val modelId = modelId ?: ctx.modelId
+        return copy(projectId = projectId, systemPromptId = systemPromptId, modelId = modelId)
     }
+
+    /** Fills in any null binding on a freshly-parsed [LinearWorkflow] with the values from the
+     *  existing stored row, so a partial update (e.g. only the trigger) keeps the prior project /
+     *  prompt / model instead of blanking them. Call before [copyBindings]. */
+    private fun LinearWorkflow.preserveBindings(existing: LinearWorkflow): LinearWorkflow =
+        if (projectId != null && systemPromptId != null && modelId != null) this
+        else copy(
+            projectId = projectId ?: existing.projectId,
+            systemPromptId = systemPromptId ?: existing.systemPromptId,
+            modelId = modelId ?: existing.modelId
+        )
+
+    /** Graph-workflow counterpart to [preserveBindings]. */
+    private fun Workflow.preserveBindings(existing: Workflow): Workflow =
+        if (projectId != null && systemPromptId != null && modelId != null) this
+        else copy(
+            projectId = projectId ?: existing.projectId,
+            systemPromptId = systemPromptId ?: existing.systemPromptId,
+            modelId = modelId ?: existing.modelId
+        )
 
     /** Parse + validate a `definition` argument into a [LinearWorkflow]. Returns the parser's
      *  structured error (code + human-readable detail) on failure so the caller can surface the
@@ -383,6 +442,8 @@ class WorkflowAiToolProvider(
     private fun errorJson(message: String) = JsonObject(mapOf("error" to JsonPrimitive(message))).toString()
 
     companion object {
+        private const val TAG = "WorkflowAiToolProvider"
+
         val TOOL_NAMES = setOf(
             "workflow_list", "workflow_get", "workflow_run",
             "workflow_create", "workflow_create_graph",
@@ -402,6 +463,9 @@ definition shape:
   "name": string (required, <=80 chars),
   "description": string (optional, <=500),
   "enabled": boolean (optional, default true),
+  "projectId": string (optional, project id to bind this workflow to; omit/leave null to inherit the current conversation's project),
+  "systemPromptId": string (optional, bind to a system prompt id),
+  "modelId": string (optional, "provider:modelId" e.g. "OpenAI:gpt-4o-mini"),
   "trigger": { "type": <one of the below>, ...params },
   "conditions": [ { "type": <one of the below>, ...params, "invert"?: boolean } ],  // optional, AND-combined
   "actions": [ { "tool": <existing tool name>, "args": {object}, "timeout_seconds"?: 1..600 } ],  // required, 1..32, in order
@@ -455,6 +519,9 @@ definition shape:
   "name": string (required, <=80 chars),
   "description": string (optional, <=500),
   "enabled": boolean (optional, default true),
+  "projectId": string (optional, project id to bind this workflow to; omit/leave null to inherit the current conversation's project),
+  "systemPromptId": string (optional, bind to a system prompt id),
+  "modelId": string (optional, "provider:modelId" e.g. "OpenAI:gpt-4o-mini"),
   "nodes": [  // 1..64 nodes
     { "kind": "start", "label": "...", "trigger": { "type": "manual" } },
     { "kind": "action", "label": "...", "tool": "<existing tool name>", "args": { "key": {"type":"literal","value":"..."} or {"type":"ref","node_index":0} } },

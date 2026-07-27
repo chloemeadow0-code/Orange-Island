@@ -35,6 +35,8 @@ import com.orangeisland.app.workflow.trigger.buildWorkerForegroundInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.util.concurrent.TimeUnit
 
@@ -69,6 +71,15 @@ class WorkflowWorker(
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val settingsRepository = SettingsRepository(settings, scope)
         val llmProviders = buildLlmProviders()
+        // Custom providers (e.g. a user-defined provider like "亲亲老公") live in the dynamic
+        // ProviderRegistry, not in the static buildLlmProviders() map. Without it, an LLM node bound
+        // to a custom provider fails with "Provider '...' not available" in background runs, even
+        // though the same provider works in chat. Rebuild the registry here the same way AppContainer
+        // does, syncing persisted custom providers synchronously before the run starts.
+        val localProvider = com.orangeisland.app.api.local.LocalProvider(appContext, settingsRepository)
+        val providerRegistry = com.orangeisland.app.viewmodel.ProviderRegistry(settingsRepository, localProvider, scope).also {
+            it.ensureCustomProvidersRegistered()
+        }
         val dispatcher = ToolDispatcher(
             app = applicationContext as android.app.Application,
             conversations = com.orangeisland.app.data.repository.ConversationRepository(db.chatDao()),
@@ -78,7 +89,7 @@ class WorkflowWorker(
             sandboxFactory = null,
             mcpPool = null,
             pluginToolProvider = null,
-            permissionController = null,
+            permissionController = com.orangeisland.app.viewmodel.PermissionController(appContext),
             chatDao = db.chatDao()
         )
         val runner = WorkflowRunner(
@@ -87,8 +98,15 @@ class WorkflowWorker(
             settings = settings,
             settingsRepository = settingsRepository,
             json = json,
-            contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(appContext),
+            contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(
+                context = appContext,
+                // Prefer the in-process value published by the accessibility service (accurate when
+                // this process is alive); DeviceContextProvider falls back to UsageStatsManager when
+                // it's null, which is the normal case in a fresh Worker process.
+                foregroundProvider = { com.orangeisland.app.workflow.trigger.AppForegroundDispatcher.lastKnown }
+            ),
             llmProviders = llmProviders,
+            providerRegistry = providerRegistry,
             chatDao = db.chatDao(),
             appContext = appContext
         )
@@ -124,6 +142,11 @@ class WorkflowWorker(
     companion object {
         private const val TAG = "WorkflowWorker"
         private const val MAX_ATTEMPTS = 3
+
+        /** Common tag applied to every scheduled graph-workflow request, so cold-start cleanup
+         *  can list them all (WorkManager has no "list all unique names" API) and cancel the ones
+         *  whose owning workflow no longer exists in the DB. */
+        private const val TAG_ALL_SCHEDULE = "graph_workflow_schedule"
 
         /** Builds the built-in LLM provider map (no LocalProvider — it needs a ViewModelScope). */
         fun buildLlmProviders(): Map<String, LlmProvider> = mapOf(
@@ -176,6 +199,8 @@ class WorkflowWorker(
                         .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
                         .setInputData(data)
                         .addTag(name)
+                        .addTag(workflow.id)   // lets pruneOrphans resolve the owning workflow id
+                        .addTag(TAG_ALL_SCHEDULE)  // common tag so cold-start can list every one
                         .build()
                     wm.enqueueUniquePeriodicWork(name, ExistingPeriodicWorkPolicy.UPDATE, request)
                     DebugLog.d(TAG, "Scheduled periodic workflow $name (interval=${periodicMs}ms delay=${delay}ms)")
@@ -190,6 +215,8 @@ class WorkflowWorker(
                         .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
                         .setInputData(data)
                         .addTag(name)
+                        .addTag(workflow.id)
+                        .addTag(TAG_ALL_SCHEDULE)
                         .build()
                     wm.enqueueUniqueWork(name, ExistingWorkPolicy.REPLACE, request)
                     DebugLog.d(TAG, "Scheduled one-shot workflow $name (delay=${delay}ms)")
@@ -209,8 +236,38 @@ class WorkflowWorker(
          * reboots, but new installs and `UPDATE` policy need a refresh).
          */
         suspend fun rescheduleAll(context: Context, repository: WorkflowRepository) {
-            repository.getEnabled().forEach { wf ->
-                runCatching { schedule(context, wf) }
+            val liveIds = repository.getEnabled().map { it.id }.toHashSet()
+            liveIds.forEach { id ->
+                runCatching { schedule(context, repository.get(id) ?: return@runCatching) }
+            }
+            pruneOrphans(context, liveIds)
+        }
+
+        /**
+         * Cancel any WorkManager request tagged [TAG_ALL_SCHEDULE] whose owning workflow id is no
+         * longer in [liveIds]. These are leftover periodic jobs from a workflow deleted at a time
+         * when [cancel] wasn't called — without this they keep firing forever, failing on the
+         * missing-row lookup, and burning battery. Safe on every cold start; idempotent.
+         *
+         * Each scheduled request carries three tags: the unique-name `workflow_<id>`, the raw
+         * workflow id, and the common [TAG_ALL_SCHEDULE]. We list by the common tag, then for each
+         * request pull out the raw-id tag; if that id isn't in [liveIds], cancel by unique name.
+         */
+        private suspend fun pruneOrphans(context: Context, liveIds: Set<String>) {
+            withContext(Dispatchers.IO) {
+                val wm = WorkManager.getInstance(context)
+                runCatching {
+                    wm.getWorkInfosByTagFlow(TAG_ALL_SCHEDULE).first().forEach { info ->
+                        // The raw-id tag is whichever tag is the bare workflow id (the unique-name
+                        // tag is the `workflow_`-prefixed form, and the common tag is the constant).
+                        val ownerId = info.tags.firstOrNull { tag ->
+                            tag != TAG_ALL_SCHEDULE && !tag.startsWith("workflow_") &&
+                                tag !in liveIds && "workflow_$tag" in info.tags
+                        } ?: return@forEach
+                        wm.cancelUniqueWork("workflow_$ownerId")
+                        DebugLog.d(TAG, "Pruned orphan graph workflow task: workflow_$ownerId")
+                    }
+                }.onFailure { DebugLog.w(TAG, "pruneOrphans failed", it) }
             }
         }
     }

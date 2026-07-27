@@ -101,4 +101,10 @@ interface WorkflowDao {
 
     @Query("DELETE FROM workflow_runs WHERE workflowId = :workflowId")
     suspend fun deleteRunsForWorkflow(workflowId: String)
+
+    /** Mark every still-RUNNING run as FAILED. Called on app start: a run that is RUNNING across a
+     *  process restart can never finish (its coroutine died with the process), so leaving it
+     *  RUNNING would show a perpetual spinner in the run log. */
+    @Query("UPDATE workflow_runs SET status = 'FAILED', finishedAt = :now, message = :message WHERE status = 'RUNNING'")
+    suspend fun failStrandedRuns(now: Long, message: String)
 }

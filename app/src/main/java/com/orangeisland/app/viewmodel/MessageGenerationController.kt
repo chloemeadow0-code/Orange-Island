@@ -577,6 +577,12 @@ class MessageGenerationController(
             if (wasNewChat && settings.titleGenerationEnabled.value && !titleGenerated.get() && lastMsg?.status != MessageStatus.ERROR) {
                 generateTitle(currentId)
             }
+            // Auto-compress: fire-and-forget after a successful reply. compressHistory()
+            // itself re-checks the path length against maxContextWindow and no-ops if the
+            // conversation is still within the window, so this is safe to call every turn.
+            if (settings.autoCompressEnabled.value && lastMsg?.status != MessageStatus.ERROR) {
+                compressHistory(currentId)
+            }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -653,6 +659,7 @@ class MessageGenerationController(
             )
 
             val provider = providerRegistry.getInstance(providerName)
+                ?: error("Provider '$providerName' is not registered")
             val config = ProviderConfig(
                 apiKey = activeKey,
                 modelId = modelId,
@@ -749,6 +756,7 @@ class MessageGenerationController(
             )
 
             val provider = providerRegistry.getInstance(providerName)
+                ?: error("Provider '$providerName' is not registered")
             val config = ProviderConfig(
                 apiKey = activeKey,
                 modelId = modelId,
@@ -790,6 +798,200 @@ class MessageGenerationController(
                 onSnackbarSuspend(appContext.getString(R.string.snackbar_title_generated))
             } else {
                 onSnackbarSuspend(appContext.getString(R.string.snackbar_title_error))
+            }
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // compressHistory — fold older messages into a running summary so long
+    // chats keep long-term context without overflowing the context window.
+    // Mirrors generateTitle()'s shape (same provider/key resolution, same
+    // LlamaEngine.modelMutex discipline for the local provider).
+    // ════════════════════════════════════════════════════════════════════
+
+    private val compressingConversationIds = mutableSetOf<String>()
+
+    fun compressHistory(conversationId: String) {
+        android.widget.Toast.makeText(appContext, "[压缩] 收到调用 convId=$conversationId", android.widget.Toast.LENGTH_LONG).show()
+        if (!compressingConversationIds.add(conversationId)) {
+            android.widget.Toast.makeText(appContext, "[压缩] 已在压缩中，跳过", android.widget.Toast.LENGTH_LONG).show()
+            return  // already compressing
+        }
+        viewModelScope.launch {
+            try {
+                android.widget.Toast.makeText(appContext, "[压缩] 协程启动", android.widget.Toast.LENGTH_SHORT).show()
+                val conversation = convRepo.getConversation(conversationId)
+                if (conversation == null) {
+                    android.widget.Toast.makeText(appContext, "[压缩] getConversation 返回 null", android.widget.Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                // Resolve the TARGET conversation's own path — not messages.value, which
+                // is the currently-open conversation. Same fix as generateTitle().
+                val entities = convRepo.getMessagesForConversationSnapshot(conversationId)
+                val path = ConversationUiState.resolvePath(
+                    allMessages = entities.map {
+                        ChatMessage(
+                            id = it.id,
+                            parentId = it.parentId,
+                            text = it.text,
+                            participant = it.participant,
+                            timestamp = it.timestamp,
+                            status = it.status,
+                            modelName = it.modelName
+                        )
+                    },
+                    streamingMsg = null,
+                    selectedChildren = emptyMap()
+                )
+
+                // Retain window: keep the most recent `maxContextWindow` user messages
+                // (plus intervening assistant/tool messages). Everything older is eligible
+                // for compression. Never compress if there's nothing older than the window.
+                //
+                // The threshold check counts ALL user messages in the conversation — NOT just
+                // those on the resolved main path. resolvePath() picks one branch at each fork
+                // (regenerated replies), so a conversation with many edits can have far more real
+                // user turns than its main path shows, and would otherwise never cross the
+                // threshold even though it's grown well past the window. The path (below) is
+                // still used to decide WHICH messages get folded into the summary.
+                // maxContextWindow is the number of MESSAGES to retain (USER + MODEL combined),
+                // NOT user turns. So a setting of 5 keeps the 5 most recent messages regardless of
+                // who sent them. Compression fires once the total visible message count exceeds it.
+                val maxContext = settings.maxContextWindow.value
+                val visibleMsgs = path.filter {
+                    it.participant == Participant.USER || it.participant == Participant.MODEL
+                }
+                if (visibleMsgs.size <= maxContext) {
+                    android.widget.Toast.makeText(appContext, "[压缩] 跳过: 消息数=${visibleMsgs.size} <= 阈值=$maxContext", android.widget.Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                // Retain the most recent `maxContext` visible messages; everything before that is
+                // eligible for compression.
+                val retainCount = visibleMsgs.size - maxContext
+                val retainBoundaryMsg = visibleMsgs[retainCount]
+                val retainFromIndex = path.indexOfLast { it.id == retainBoundaryMsg.id }.coerceAtLeast(0)
+
+                val watermark = conversation.compactedUpToTimestamp ?: -1L
+                val toCompress = path.subList(0, retainFromIndex)
+                    // Only USER/MODEL — tool_/result_ are derived and not useful in a summary.
+                    .filter { it.participant == Participant.USER || it.participant == Participant.MODEL }
+                    // Skip anything already folded into the previous summary.
+                    .filter { it.timestamp > watermark }
+                if (toCompress.isEmpty()) {
+                    android.widget.Toast.makeText(appContext, "[压缩] 跳过: 无可压缩消息 (watermark之后到retainFromIndex为空, watermark=$watermark)", android.widget.Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+
+                onSnackbarSuspend(appContext.getString(R.string.snackbar_compressing))
+                val lastToCompress = toCompress.last()
+
+                val conversationText = toCompress.joinToString("\n\n") { msg ->
+                    val role = if (msg.participant == Participant.USER) "User" else "Assistant"
+                    val body = msg.text.take(2000)
+                    "$role: $body"
+                }
+                val previousSummary = conversation.compactedSummary
+                val summaryInput = if (previousSummary != null) {
+                    "[Previous summary]\n$previousSummary\n\n[New messages to fold in]\n$conversationText"
+                } else {
+                    conversationText
+                }
+
+                val compressModelId = settings.autoCompressModel.value
+                val modelIdWithPrefix = if (!compressModelId.isNullOrBlank()) {
+                    compressModelId
+                } else {
+                    conversation.modelId ?: settings.selectedModel.value
+                }
+                val modelId = ModelId.parse(modelIdWithPrefix).modelName
+                val (providerName, activeKey) = requestBuilder.resolveProviderKey(modelIdWithPrefix) ?: run {
+                    onSnackbarSuspend(appContext.getString(R.string.snackbar_compress_error))
+                    return@launch
+                }
+
+                val prompt = listOf(
+                    ChatMessage(
+                        text = "Summarize the following conversation history so the chat can continue with full context. Preserve key facts, decisions, names, and any unresolved questions.\n\n$summaryInput",
+                        participant = Participant.USER,
+                        status = MessageStatus.SUCCESS
+                    )
+                )
+
+                val provider = providerRegistry.getInstance(providerName)
+                    ?: error("Provider '$providerName' is not registered")
+                val config = ProviderConfig(
+                    apiKey = activeKey,
+                    modelId = modelId,
+                    systemPrompt = settings.autoCompressPrompt.value.ifBlank { BuiltInPrompts.HISTORY_COMPRESSION_SYSTEM },
+                    maxContextWindow = 1,
+                    thinkingEnabled = false,
+                    baseUrl = providerRegistry.getEffectiveBaseUrl(providerName)
+                )
+
+                var summary = ""
+                try {
+                    // Serialize with embedding to avoid dual model load OOM (same as generateTitle).
+                    if (providerName == Constants.PROVIDER_LOCAL) {
+                        LlamaEngine.modelMutex.withLock {
+                            withContext(Dispatchers.IO) {
+                                provider.generateResponse(prompt, config).collect { event ->
+                                    if (event is StreamEvent.TextChunk) summary += event.text
+                                    else if (event is StreamEvent.Error) DebugLog.e("OrangeIslandVM", "History compression error: ${event.message}")
+                                }
+                            }
+                            localProvider.releaseEngine()
+                        }
+                    } else {
+                        provider.generateResponse(prompt, config).collect { event ->
+                            if (event is StreamEvent.TextChunk) summary += event.text
+                            else if (event is StreamEvent.Error) DebugLog.e("OrangeIslandVM", "History compression error: ${event.message}")
+                        }
+                    }
+                } catch (e: Exception) {
+                    DebugLog.e("OrangeIslandVM", "History compression failed for provider=$providerName model=$modelId", e)
+                    onSnackbarSuspend(appContext.getString(R.string.snackbar_compress_error))
+                    return@launch
+                }
+
+                summary = summary.trim()
+                if (summary.isNotBlank()) {
+                    // The retain boundary: the first message of the surviving window. Everything
+                    // before it gets deleted so the chat list shows ONLY the retained recent
+                    // messages + the summary card — no half-transparent "out of window" stragglers
+                    // (which would otherwise appear via visualizeContextRollout). Using
+                    // retainFromIndex (not lastToCompress.timestamp) is what keeps the delete edge
+                    // aligned with the retain edge: any messages between the old watermark and the
+                    // retain window are also removed, since they're already summarized.
+                    val retainBoundaryTs = path.getOrNull(retainFromIndex)?.timestamp ?: lastToCompress.timestamp
+                    convRepo.getConversation(conversationId)?.let { existing ->
+                        convRepo.upsertConversation(existing.copy(
+                            compactedSummary = summary,
+                            compactedUpToTimestamp = retainBoundaryTs
+                        ))
+                    }
+                    // Delete every message strictly before the retain boundary — USER/MODEL turns
+                    // we summarized PLUS their tool_/result_ children, so no orphan tool bubbles
+                    // linger once their parent is gone.
+                    val idsToDelete = entities
+                        .filter { it.timestamp < retainBoundaryTs }
+                        .map { it.id }
+                    if (idsToDelete.isNotEmpty()) {
+                        android.widget.Toast.makeText(appContext, "[压缩] 删除 ${idsToDelete.size} 条消息 watermark=${lastToCompress.timestamp}", android.widget.Toast.LENGTH_LONG).show()
+                        convRepo.deleteMessagesByIds(idsToDelete)
+                        // Re-parent: any surviving message whose parent was just deleted now has a
+                        // dangling parentId. resolvePath walks from the null-parent root, so such a
+                        // message would become unreachable. Detach it into a new root so the
+                        // surviving tail of the conversation stays visible and continuous.
+                        val deletedSet = idsToDelete.toHashSet()
+                        val orphaned = entities.filter { it.id !in deletedSet && it.parentId in deletedSet }
+                        orphaned.forEach { msg ->
+                            convRepo.upsertMessage(msg.copy(parentId = null))
+                        }
+                    }
+                    onSnackbarSuspend(appContext.getString(R.string.snackbar_compressed, idsToDelete.size))
+                }
+            } finally {
+                compressingConversationIds.remove(conversationId)
             }
         }
     }

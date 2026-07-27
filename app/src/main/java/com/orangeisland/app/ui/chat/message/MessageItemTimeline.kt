@@ -525,15 +525,25 @@ internal fun TimelineSegmentsContent(
                                             )
                                     ) {
                                         SelectionContainer(modifier = Modifier.noOpBringIntoView()) {
-                                            Text(
-                                                text = com.orangeisland.app.util.buildInlineMarkdownAnnotatedString(
+                                            // Fall back to the full markdown renderer when a segment
+                                            // carries an image; the lightweight inline renderer can't
+                                            // load ![](url) and would show it as a link instead.
+                                            if (content.contains("![")) {
+                                                MarkdownTextContent(
                                                     text = content,
-                                                    codeBackground = MaterialTheme.colorScheme.surfaceVariant,
-                                                    codeColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                                ),
-                                                style = ChatType.body,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
+                                                    renderContext = renderContext
+                                                )
+                                            } else {
+                                                Text(
+                                                    text = com.orangeisland.app.util.buildInlineMarkdownAnnotatedString(
+                                                        text = content,
+                                                        codeBackground = MaterialTheme.colorScheme.surfaceVariant,
+                                                        codeColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    ),
+                                                    style = ChatType.body,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
                                         }
                                         if (isStreaming && index == segments.lastIndex &&
                                             bubbleIndex == bubbleContents.lastIndex

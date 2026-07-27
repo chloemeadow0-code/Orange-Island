@@ -88,6 +88,13 @@ object GraphDefinitionParser {
         val description = root.str("description")?.take(MAX_DESCRIPTION).orEmpty()
         val enabled = root.bool("enabled") ?: true
 
+        // Optional bindings — let the model bind the workflow to a specific project / system
+        // prompt / model explicitly. Absent → null (copyBindings in WorkflowAiToolProvider fills
+        // these from the conversation context on create, and preserves existing ones on update).
+        val projectId = root.str("projectId") ?: root.str("project_id")
+        val systemPromptId = root.str("systemPromptId") ?: root.str("system_prompt_id")
+        val modelId = root.str("modelId") ?: root.str("model_id")
+
         // ── Nodes ─────────────────────────────────────────────────────────────
         val nodesArr = root.arrayRaw("nodes")
             ?: return ParseResult.Err("missing_nodes", "nodes array is required")
@@ -161,6 +168,7 @@ object GraphDefinitionParser {
         return ParseResult.Ok(Workflow(
             id = id, name = name.trim(), description = description, enabled = enabled,
             nodes = positionedNodes, edges = edges,
+            projectId = projectId, systemPromptId = systemPromptId, modelId = modelId,
             createdAt = now, updatedAt = now
         ))
     }

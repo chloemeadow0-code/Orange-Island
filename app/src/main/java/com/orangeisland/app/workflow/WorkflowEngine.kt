@@ -123,10 +123,27 @@ class WorkflowEngine {
     private fun resolveEntries(workflow: Wf, source: TriggerSource): List<StartNode> {
         val starts = workflow.nodes.filterIsInstance<StartNode>()
         if (starts.isEmpty()) return emptyList()
-        return when (source) {
+        val matched = when (source) {
             is TriggerSource.Manual -> starts.filter { it.trigger is TriggerSpec.Manual }
             is TriggerSource.Targeted -> starts.filter { matchesTarget(it, source) }
         }
+        // Fallback: an explicit user action ("Run now" / AI workflow_run) should fire any graph
+        // that has a start node, not just ones whose trigger type happens to match. Otherwise a
+        // graph authored with a Schedule/Intent/AppOpen start node can never be run on demand ¡ª
+        // the user taps Run and gets "No matching start node" forever. Only the SCHEDULE and API
+        // (background worker) Targeted kinds stay strict, so a periodic timer never accidentally
+        // fires a Manual node. Fall back to every start node, preserving declared order.
+        if (matched.isEmpty() && source.isExplicit()) {
+            return starts
+        }
+        return matched
+    }
+
+    /** Is this trigger source an explicit, on-demand invocation (user tapped Run, or the AI called
+     *  workflow_run) as opposed to a passive system signal (timer / boot / intent broadcast)? */
+    private fun TriggerSource.isExplicit(): Boolean = when (this) {
+        is TriggerSource.Manual -> true
+        is TriggerSource.Targeted.Node -> kind == TriggerKind.API
     }
 
     /**

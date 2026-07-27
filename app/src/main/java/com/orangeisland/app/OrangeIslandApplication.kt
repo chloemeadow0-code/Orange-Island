@@ -48,5 +48,10 @@ class OrangeIslandApplication : Application(), ImageLoaderFactory {
         // never prevent the rest of app init.
         runCatching { container.startTriggerHost() }
             .onFailure { com.orangeisland.app.util.DebugLog.e("OrangeIslandApp", "trigger host start failed", it) }
+        // Re-enqueue graph-mode Schedule triggers — they have no live Flow reconciler like linear
+        // workflows do, so a cold start (reboot / upgrade / fresh install) needs this refresh or
+        // previously-saved graph schedules would silently never fire.
+        runCatching { container.rescheduleGraphWorkflows() }
+            .onFailure { com.orangeisland.app.util.DebugLog.e("OrangeIslandApp", "graph reschedule failed", it) }
     }
 }

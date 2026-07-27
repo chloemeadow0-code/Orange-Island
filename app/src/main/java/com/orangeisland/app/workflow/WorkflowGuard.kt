@@ -111,15 +111,24 @@ class WorkflowGuard(
         /**
          * Tools considered safe to run unattended from the background: read-only or pure-query.
          * Anything not listed here is blocked in background runs when [backgroundSafeOnly] is set.
+         *
+         * The Navigation launching tools (open_app/open_url/open_settings/share_text) are included
+         * here so background-triggered workflows can switch the screen to another app/page. They are
+         * not read-only, but their only side-effect is starting an Activity; the Android 10+ system
+         * layer (not this guard) gates the actual launch on the SYSTEM_ALERT_WINDOW permission, and
+         * [com.orangeisland.app.tool.NavigationToolProvider.backgroundLaunchGuard] returns a clear
+         * `background_activity_blocked` error when that permission is missing ¡ª so an unpermitted
+         * background launch fails loudly instead of silently dropping.
          */
         val BACKGROUND_SAFE_TOOLS: Set<String> = setOf(
             "web_search", "web_fetch",
             "list_memory_files", "read_memory_file", "read_active_memory",
             "search_conversations", "list_conversations",
             "get_device_info", "get_battery_status", "get_location",
-            "get_calendar_events", "get_notifications", "get_usage_stats",
+            "get_calendar_events", "get_notifications", "get_app_usage", "get_foreground_app",
             "ui_inspect", "list_installed_apps",
-            "file_read", "file_glob", "file_grep"
+            "file_read", "file_glob", "file_grep",
+            "open_app", "open_url", "open_settings", "share_text"
         )
     }
 }

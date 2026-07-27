@@ -11,11 +11,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Smartphone
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Timeline
@@ -68,8 +70,10 @@ fun SettingsDeviceAccessPage(
     val uiAutomationEnabled by settings.uiAutomationEnabled.collectAsState()
     val userInteractionEnabled by settings.userInteractionEnabled.collectAsState()
     val environmentAwarenessEnabled by settings.environmentAwarenessEnabled.collectAsState()
+    val autoApproveSensitiveTools by settings.autoApproveSensitiveTools.collectAsState()
     val amapApiKey by settings.amapApiKey.collectAsState()
     val pc = viewModel.permissionController
+    val overlayEnabled by pc.overlayEnabledFlow.collectAsState()
     var amapKeyDraft by remember(amapApiKey) { mutableStateOf(amapApiKey) }
 
     // Health / Gadgetbridge / Sync state
@@ -92,6 +96,7 @@ fun SettingsDeviceAccessPage(
             if (e == Lifecycle.Event.ON_RESUME) {
                 pc.refreshNotificationListenerState()
                 pc.refreshAccessibilityState()
+                pc.refreshOverlayState()
             }
         }
         lifecycleOwner.lifecycle.addObserver(obs)
@@ -281,6 +286,36 @@ fun SettingsDeviceAccessPage(
                         checked = environmentAwarenessEnabled,
                         onCheckedChange = { settings.setEnvironmentAwarenessEnabled(it) },
                         permissionState = PermissionState.NotRequired
+                    )
+                }
+                // Auto-approve sensitive tools (location/notifications/usage-stats reads).
+                // Background workflows have no UI to show the approval dialog; when this is off they
+                // time out into an `approval_denied` error. Default-on so workflows run unattended.
+                add {
+                    ToolToggleRow(
+                        title = stringResource(R.string.device_access_auto_approve_title),
+                        desc = stringResource(R.string.device_access_auto_approve_desc),
+                        icon = Icons.Default.VerifiedUser,
+                        checked = autoApproveSensitiveTools,
+                        onCheckedChange = { settings.setAutoApproveSensitiveTools(it) },
+                        permissionState = PermissionState.NotRequired
+                    )
+                }
+                // Display over other apps (SYSTEM_ALERT_WINDOW) — required on Android 10+ for a
+                // backgrounded workflow to launch another app/page via open_app/open_url. It is a
+                // system special permission toggled only in system Settings, so the switch jumps
+                // there rather than flipping an in-app flag.
+                add {
+                    ToolToggleRow(
+                        title = stringResource(R.string.device_access_overlay_title),
+                        desc = stringResource(R.string.device_access_overlay_desc),
+                        icon = Icons.Default.Layers,
+                        checked = overlayEnabled,
+                        onCheckedChange = { pc.openSystemSettings(PermissionController.Tool.OVERLAY) },
+                        permissionState = if (overlayEnabled) PermissionState.Granted
+                            else PermissionState.SpecialNeeded(
+                                onClick = { pc.openSystemSettings(PermissionController.Tool.OVERLAY) }
+                            )
                     )
                 }
             })

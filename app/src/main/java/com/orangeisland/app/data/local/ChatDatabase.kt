@@ -49,7 +49,13 @@ data class ChatEntity(
     val modelId: String? = null,
     // null = ungrouped. Inherits project-level defaults (model/prompt) only when the
     // conversation itself does not override them.
-    val projectId: String? = null
+    val projectId: String? = null,
+    // Auto-compressed history: compactedSummary is the running summary of messages at or
+    // before compactedUpToTimestamp. buildApiPath drops those messages from the request
+    // path and appends the summary to the system prompt instead, so long chats keep their
+    // long-term context without overflowing the context window.
+    val compactedSummary: String? = null,
+    val compactedUpToTimestamp: Long? = null
 )
 
 /**
@@ -137,6 +143,11 @@ interface ChatDao {
 
     @Query("SELECT * FROM conversations WHERE id = :conversationId")
     suspend fun getConversation(conversationId: String): ChatEntity?
+
+    /** Reactive single-conversation observer. Used so the chat UI can react to compactedSummary
+     *  changes (e.g. after auto-compress) without re-selecting the whole conversations list. */
+    @Query("SELECT * FROM conversations WHERE id = :conversationId")
+    fun observeConversation(conversationId: String): Flow<ChatEntity?>
 
     @Query("SELECT * FROM messages WHERE conversationId = :conversationId ORDER BY timestamp ASC")
     fun getMessagesForConversation(conversationId: String): Flow<List<MessageEntity>>
@@ -299,7 +310,7 @@ abstract class ChatDatabase : RoomDatabase() {
     abstract fun workflowDao(): WorkflowDao
 
     companion object {
-        const val CURRENT_VERSION = 19
+        const val CURRENT_VERSION = 20
         const val DB_NAME = "orangeisland_db"
 
         val ALL_MIGRATIONS = listOf(
@@ -471,6 +482,15 @@ abstract class ChatDatabase : RoomDatabase() {
                     // alongside the token/cache usage stats. Nullable — old messages have
                     // no recorded duration, and showing "unknown" beats faking a 0.
                     db.execSQL("ALTER TABLE messages ADD COLUMN generationDurationMs INTEGER")
+                }
+            },
+            object : Migration(19, 20) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Auto-compress: stores a running summary of older conversation history
+                    // plus the watermark timestamp up to which messages have been folded in.
+                    // Both nullable — most conversations are never compressed.
+                    db.execSQL("ALTER TABLE conversations ADD COLUMN compactedSummary TEXT")
+                    db.execSQL("ALTER TABLE conversations ADD COLUMN compactedUpToTimestamp INTEGER")
                 }
             }
         )

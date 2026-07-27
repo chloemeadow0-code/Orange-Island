@@ -3,7 +3,9 @@ package com.orangeisland.app.ui.settings.workflow
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -193,10 +195,13 @@ private fun RunDetailSheet(run: WorkflowRunEntity) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 360.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
                 Text(
-                    text = run.logsJson,
+                    text = formatRunLogs(run.logsJson),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(12.dp),
                     fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
@@ -243,5 +248,32 @@ private fun WorkflowRunEntity.durationText(): String {
         ms < 1000 -> "${ms}ms"
         ms < 60_000 -> "${ms / 1000}s"
         else -> String.format(Locale.getDefault(), "%d:%02d", ms / 60_000, (ms % 60_000) / 1000)
+    }
+}
+
+/**
+ * Pretty-print a run's [WorkflowRunEntity.logsJson] (a JSON array of RunLogEntry) into one line per
+ * entry, e.g. `[DEBUG] (查前台app) Calling tool get_foreground_app`. Falls back to the raw JSON if
+ * parsing fails so the user is never left with nothing. Without this the sheet showed a single
+ * unscrollable wall of minified JSON that truncated past 240dp.
+ */
+private fun formatRunLogs(logsJson: String): String {
+    return try {
+        val arr = org.json.JSONArray(logsJson)
+        buildString {
+            for (i in 0 until arr.length()) {
+                val obj = arr.optJSONObject(i) ?: continue
+                val level = obj.optString("level", "")
+                val nodeLabel = obj.optString("nodeLabel", "").takeIf { it.isNotBlank() && it != "null" }
+                val message = obj.optString("message", "")
+                if (isNotEmpty()) append('\n')
+                append('[').append(level).append("] ")
+                if (nodeLabel != null) append('(').append(nodeLabel).append(") ")
+                append(message)
+            }
+        }
+    } catch (_: Exception) {
+        // Not valid JSON — show the raw text so nothing is hidden.
+        logsJson
     }
 }

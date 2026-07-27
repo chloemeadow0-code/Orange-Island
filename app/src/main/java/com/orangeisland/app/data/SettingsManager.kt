@@ -147,6 +147,9 @@ class SettingsManager(private val context: Context) {
         val TITLE_GENERATION_ENABLED = booleanPreferencesKey("title_generation_enabled")
         val TITLE_GENERATION_MODEL = stringPreferencesKey("title_generation_model")
         val TITLE_GENERATION_PROMPT = stringPreferencesKey("title_generation_prompt")
+        val AUTO_COMPRESS_ENABLED = booleanPreferencesKey("auto_compress_enabled")
+        val AUTO_COMPRESS_MODEL = stringPreferencesKey("auto_compress_model")
+        val AUTO_COMPRESS_PROMPT = stringPreferencesKey("auto_compress_prompt")
         val IMAGE_TRANSCRIPTION_ENABLED_MODELS = stringSetPreferencesKey("image_transcription_enabled_models")
         val IMAGE_TRANSCRIPTION_MODEL = stringPreferencesKey("image_transcription_model")
         val IMAGE_TRANSCRIPTION_BATCH_SIZE = intPreferencesKey("image_transcription_batch_size")
@@ -383,6 +386,11 @@ class SettingsManager(private val context: Context) {
     val titleGenerationPrompt: Flow<String> = context.dataStore.data.map { pref ->
         pref[TITLE_GENERATION_PROMPT]?.takeIf { it.isNotBlank() } ?: BuiltInPrompts.TITLE_GENERATION_SYSTEM
     }
+    val autoCompressEnabled: Flow<Boolean> = context.dataStore.data.map { it[AUTO_COMPRESS_ENABLED] ?: false }
+    val autoCompressModel: Flow<String?> = context.dataStore.data.map { it[AUTO_COMPRESS_MODEL] }
+    val autoCompressPrompt: Flow<String> = context.dataStore.data.map { pref ->
+        pref[AUTO_COMPRESS_PROMPT]?.takeIf { it.isNotBlank() } ?: BuiltInPrompts.HISTORY_COMPRESSION_SYSTEM
+    }
     val imageTranscriptionEnabledModels: Flow<Set<String>> = context.dataStore.data.map { it[IMAGE_TRANSCRIPTION_ENABLED_MODELS] ?: emptySet() }
     val imageTranscriptionModel: Flow<String?> = context.dataStore.data.map { it[IMAGE_TRANSCRIPTION_MODEL] }
     val imageTranscriptionBatchSize: Flow<Int> = context.dataStore.data.map { it[IMAGE_TRANSCRIPTION_BATCH_SIZE] ?: 3 }
@@ -559,7 +567,7 @@ class SettingsManager(private val context: Context) {
     val healthSyncSupabaseUrl: Flow<String> = context.dataStore.data.map { it[HEALTH_SYNC_SUPABASE_URL] ?: "" }
     val healthSyncSupabaseApiKey: Flow<String> = context.dataStore.data.map { it[HEALTH_SYNC_SUPABASE_API_KEY] ?: "" }
     val healthSyncTableName: Flow<String> = context.dataStore.data.map { it[HEALTH_SYNC_TABLE_NAME] ?: "device_data" }
-    val autoApproveSensitiveTools: Flow<Boolean> = context.dataStore.data.map { it[AUTO_APPROVE_SENSITIVE_TOOLS] ?: false }
+    val autoApproveSensitiveTools: Flow<Boolean> = context.dataStore.data.map { it[AUTO_APPROVE_SENSITIVE_TOOLS] ?: true }
     val environmentAwarenessEnabled: Flow<Boolean> = context.dataStore.data.map { it[ENVIRONMENT_AWARENESS_ENABLED] ?: false }
     val miniAppEntries: Flow<List<com.orangeisland.app.data.MiniAppEntry>> = context.dataStore.data.map { pref ->
         val jsonStr = pref[MINI_APP_ENTRIES_JSON] ?: "[]"
@@ -919,6 +927,22 @@ class SettingsManager(private val context: Context) {
         context.dataStore.edit {
             if (prompt.isBlank()) it.remove(TITLE_GENERATION_PROMPT)
             else it[TITLE_GENERATION_PROMPT] = prompt
+        }
+    }
+
+    suspend fun saveAutoCompressEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[AUTO_COMPRESS_ENABLED] = enabled }
+    }
+    suspend fun saveAutoCompressModel(model: String?) {
+        context.dataStore.edit {
+            if (model == null) it.remove(AUTO_COMPRESS_MODEL)
+            else it[AUTO_COMPRESS_MODEL] = model
+        }
+    }
+    suspend fun saveAutoCompressPrompt(prompt: String) {
+        context.dataStore.edit {
+            if (prompt.isBlank()) it.remove(AUTO_COMPRESS_PROMPT)
+            else it[AUTO_COMPRESS_PROMPT] = prompt
         }
     }
 

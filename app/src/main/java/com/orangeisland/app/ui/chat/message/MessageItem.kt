@@ -135,6 +135,7 @@ fun MessageItem(
         Participant.USER -> Alignment.End
         Participant.MODEL -> Alignment.Start
         Participant.ERROR -> Alignment.CenterHorizontally
+        Participant.SYSTEM -> Alignment.CenterHorizontally
     }
 
     val backgroundColor = when (message.participant) {
@@ -142,12 +143,14 @@ fun MessageItem(
             .let { it.copy(alpha = it.alpha * messageBubbleAlpha) }
         Participant.MODEL -> Color.Transparent
         Participant.ERROR -> MaterialTheme.colorScheme.errorContainer
+        Participant.SYSTEM -> MaterialTheme.colorScheme.surfaceVariant
     }
 
     val textColor = when (message.participant) {
         Participant.USER -> customChatTextColor?.let { ColorMath.argbToColor(it) } ?: customGlobalTextColor?.let { ColorMath.argbToColor(it) } ?: MaterialTheme.colorScheme.onPrimaryContainer
         Participant.MODEL -> customChatTextColor?.let { ColorMath.argbToColor(it) } ?: customGlobalTextColor?.let { ColorMath.argbToColor(it) } ?: MaterialTheme.colorScheme.onSurface
         Participant.ERROR -> MaterialTheme.colorScheme.onErrorContainer
+        Participant.SYSTEM -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     // Scrim over user-bubble background images: color follows the same custom-bubble-color
@@ -159,6 +162,7 @@ fun MessageItem(
         Participant.USER -> RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 4.dp)
         Participant.MODEL -> RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 20.dp)
         Participant.ERROR -> RoundedCornerShape(12.dp)
+        Participant.SYSTEM -> RoundedCornerShape(18.dp)
     }
 
     val markdownAssets = rememberChatMarkdownAssets(textColor, codeBlockWrapEnabled)
@@ -182,7 +186,16 @@ fun MessageItem(
         horizontalAlignment = alignment
     ) {
         val contextAlpha = if (visualizeContextRollout && !isInContext) Modifier.alpha(0.38f) else Modifier
-        if (message.participant == Participant.USER) {
+        if (message.participant == Participant.SYSTEM) {
+            // Virtual system card (compacted-history summary). Not a real bubble — rendered as a
+            // centered, expandable surface. The compressed-count is encoded by the ViewModel into
+            // the message's contextMessageCount field when it injects the card.
+            CompactedHistoryCard(
+                messageText = message.text,
+                compactedCount = message.contextMessageCount,
+                modifier = Modifier.fillMaxWidth(0.92f)
+            )
+        } else if (message.participant == Participant.USER) {
             UserMessageBubble(
                 message = message,
                 shape = shape,

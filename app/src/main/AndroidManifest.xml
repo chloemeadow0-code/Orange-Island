@@ -31,6 +31,12 @@
          Settings.ACTION_USAGE_ACCESS_SETTINGS, not the runtime permission dialog. -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
+    <!-- Background-activity launch for the Navigation tool: on Android 10+ (targetSdk 29+) a
+         backgrounded process calling startActivity() to open another app is silently dropped
+         unless it holds the SYSTEM_ALERT_WINDOW (overlay) permission. Workflow-triggered
+         open_app/open_url calls need this to actually switch the screen when the user is away.
+         Granted via Settings.ACTION_MANAGE_OVERLAY_PERMISSION (special permission, like usage access). -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <!-- Package visibility for the Navigation tool: lets PackageManager see apps that
          expose a launcher icon, so the AI can list and launch them. This is Android's

@@ -15,6 +15,7 @@ import com.orangeisland.app.model.ModelId
 import com.orangeisland.app.util.Constants
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.ConcurrentHashMap
@@ -54,11 +55,21 @@ class ProviderRegistry(
 
     fun isBuiltIn(name: String): Boolean = name in builtInProviders
 
-    fun getInstance(name: String): LlmProvider = providers[name] ?: GeminiProvider()
+    /**
+     * Returns the live provider for [name], or null if none is registered.
+     *
+     * Previously this silently fell back to [GeminiProvider] when a provider was missing — a choice
+     * that made failures invisible: a custom OpenAI-compatible provider not yet registered in a
+     * freshly-started background Worker would resolve to Gemini, which then POSTed a
+     * `:streamGenerateContent` URL to the OpenAI endpoint and 404'd, with nothing in the error to
+     * point at the real cause (a missing provider, not a bad URL). Returning null forces callers to
+     * decide how to handle an absent provider, instead of papering over it with a wrong-type request.
+     */
+    fun getInstance(name: String): LlmProvider? = providers[name]
 
     fun getEffectiveBaseUrl(providerName: String): String? =
         settings.providerBaseUrls.value[providerName]
-            ?: if (!isBuiltIn(providerName)) getInstance(providerName).defaultBaseUrl else null
+            ?: if (!isBuiltIn(providerName)) getInstance(providerName)?.defaultBaseUrl else null
 
     fun isConfigured(providerName: String, activeKey: String): Boolean = when {
         providerName == Constants.PROVIDER_UNKNOWN -> false
@@ -97,11 +108,15 @@ class ProviderRegistry(
         settings.deleteCustomProvider(name) { providers.remove(it) }
     }
 
-    /** Registers any persisted custom provider not yet present in the live map. */
-    fun ensureCustomProvidersRegistered() {
-        settings.customProviders.value.forEach { config ->
+    /** Registers any persisted custom provider not yet present in the live map. Suspends until the
+     *  persisted base URLs have loaded so a freshly-started Worker process registers custom
+     *  providers with their real endpoint instead of an empty string. */
+    suspend fun ensureCustomProvidersRegistered() {
+        val custom = settings.customProviders.first()
+        val baseUrls = settings.providerBaseUrls.first()
+        custom.forEach { config ->
             if (config.name !in providers) {
-                providers[config.name] = CustomOpenAiProvider(config.name, settings.providerBaseUrls.value[config.name] ?: "")
+                providers[config.name] = CustomOpenAiProvider(config.name, baseUrls[config.name] ?: "")
             }
         }
     }

@@ -5,6 +5,8 @@ import android.graphics.Canvas
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,12 +22,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import com.mikepenz.markdown.model.ImageData
 import com.mikepenz.markdown.model.ImageTransformer
 import com.mikepenz.markdown.model.ImageWidth
@@ -38,8 +42,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import ru.noties.jlatexmath.JLatexMathDrawable
-import coil.compose.rememberAsyncImagePainter
+import coil.imageLoader
+import coil.request.ImageRequest
+import coil.request.SuccessResult
 import kotlin.io.encoding.Base64
 import kotlin.math.roundToInt
 
@@ -596,15 +603,15 @@ class LatexImageTransformer(
         val request = decodeLatexLink(link)
         if (request == null) {
             // Not a latex:// link — treat as a normal network/local image (e.g. stickers,
-            // emoji images sent by the model) and load it via Coil instead of returning null.
-            val painter = rememberAsyncImagePainter(model = link)
-            return ImageData(
-                painter = painter,
-                contentDescription = null,
-                modifier = Modifier,
-                alignment = Alignment.Center,
-                contentScale = ContentScale.Fit,
-            )
+            // emoji images sent by the model) and load it via Coil.
+            //
+            // The markwon library renders this painter with a bare `Image(painter)` and
+            // `ContentScale.Fit`, sizing it from `painter.intrinsicSize`. Coil's async
+            // painter reports `Size.Unspecified` until the fetch resolves, so the image
+            // measures 0x0 and never appears. We wrap it so `intrinsicSize` returns a
+            // sensible non-zero placeholder derived from the container width; once the
+            // real bitmap lands, intrinsicSize updates and `Image()` re-measures.
+            return networkImageData(link)
         }
         val key = LatexRenderKey(request.latex, textSize, color)
         var bitmap by remember(key) { mutableStateOf(LatexBitmapCache.get(key)) }
@@ -678,6 +685,54 @@ class LatexImageTransformer(
             )
         }
         return PlaceholderConfig(size = sizeDp, verticalAlign = PlaceholderVerticalAlign.TextCenter)
+    }
+
+    /**
+     * Builds an [ImageData] for a non-latex (network/local) image link.
+     *
+     * The markdown library renders this with a bare `Image(painter)`. Coil's
+     * `rememberAsyncImagePainter` does not reliably trigger the library's `Image` to
+     * re-measure/redraw once the fetch resolves, so the image stays at 0x0. Instead we
+     * drive the load ourselves via [produceState] and hand back a [BitmapPainter] once
+     * the bitmap is ready — that painter reports a concrete [intrinsicSize] and draws
+     * immediately. The `fillMaxWidth().aspectRatio()` modifier gives a non-zero box
+     * during loading too, so the layout never collapses.
+     */
+    @Composable
+    private fun networkImageData(link: String): ImageData {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val bitmap by androidx.compose.runtime.produceState<ImageBitmap?>(initialValue = null, link) {
+            value = withContext(Dispatchers.IO) {
+                try {
+                    val loader = context.imageLoader
+                    val request = ImageRequest.Builder(context).data(link).build()
+                    val result = loader.execute(request)
+                    (result as? SuccessResult)?.drawable?.let { drawable ->
+                        (drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap?.asImageBitmap()
+                    }
+                } catch (_: Throwable) {
+                    null
+                }
+            }
+        }
+        val ratio = if (bitmap != null && bitmap!!.width > 0 && bitmap!!.height > 0) {
+            bitmap!!.width.toFloat() / bitmap!!.height.toFloat()
+        } else {
+            16f / 9f
+        }
+        val painter = bitmap?.let { BitmapPainter(it) } ?: ColorPainter(Color.Transparent)
+        return ImageData(
+            painter = painter,
+            contentDescription = null,
+            // Cap the image at ~half the bubble width so stickers/emoji images don't
+            // fill the whole row. widthIn keeps small images at their natural size and
+            // only constrains the upper bound; aspectRatio preserves the proportions.
+            modifier = Modifier
+                .widthIn(max = 120.dp)
+                .aspectRatio(ratio),
+            alignment = Alignment.Center,
+            contentScale = ContentScale.Fit,
+        )
     }
 }
 

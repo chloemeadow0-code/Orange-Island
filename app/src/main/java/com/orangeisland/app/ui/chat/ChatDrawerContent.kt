@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Compress
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
@@ -351,7 +352,11 @@ internal fun ChatDrawerContent(
                                         },
                                         onRename = { onRequestRename(conversation.id, conversation.title) },
                                         onDelete = { onRequestDelete(conversation.id) },
-                                        onMove = { targetPid -> onRequestMoveConversation(conversation.id, targetPid) }
+                                        onMove = { targetPid -> onRequestMoveConversation(conversation.id, targetPid) },
+                                        onCompress = {
+                                            haptics.action()
+                                            viewModel.compressHistory(conversation.id)
+                                        }
                                     )
                                 }
                             }
@@ -532,7 +537,8 @@ private fun ConversationRow(
     onGenerateTitle: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
-    onMove: (String?) -> Unit
+    onMove: (String?) -> Unit,
+    onCompress: () -> Unit = {}
 ) {
     val density = LocalDensity.current
     val haptics = LocalOrangeIslandHaptics.current
@@ -608,6 +614,16 @@ private fun ConversationRow(
                     haptics.action()
                     showMenu = false
                     onRename()
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.compress_history_now)) },
+                leadingIcon = { Icon(Icons.Default.Compress, contentDescription = null) },
+                enabled = !isSwitching && !isLoading,
+                onClick = {
+                    haptics.action()
+                    showMenu = false
+                    onCompress()
                 }
             )
             DropdownMenuItem(

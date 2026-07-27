@@ -96,6 +96,15 @@ class WorkflowIntentReceiver : BroadcastReceiver() {
         val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
         val settingsRepository = com.orangeisland.app.data.repository.SettingsRepository(settings, scope)
         val llmProviders = WorkflowWorker.buildLlmProviders()
+        // Sync custom providers into a registry so LLM nodes bound to a user-defined provider
+        // resolve in background runs (see WorkflowWorker for rationale).
+        val localProvider = com.orangeisland.app.api.local.LocalProvider(appContext, settingsRepository)
+        val providerRegistry = com.orangeisland.app.viewmodel.ProviderRegistry(settingsRepository, localProvider, scope).also { reg ->
+            // runBlocking: this builds the runner synchronously in onReceive; ensureCustomProvidersRegistered
+            // is suspend (waits for DataStore) so we block briefly to register custom providers with
+            // their real base URLs before the run starts.
+            kotlinx.coroutines.runBlocking { reg.ensureCustomProvidersRegistered() }
+        }
         val dispatcher = ToolDispatcher(
             app = appContext as android.app.Application,
             conversations = com.orangeisland.app.data.repository.ConversationRepository(db.chatDao()),
@@ -105,7 +114,7 @@ class WorkflowIntentReceiver : BroadcastReceiver() {
             sandboxFactory = null,
             mcpPool = null,
             pluginToolProvider = null,
-            permissionController = null,
+            permissionController = com.orangeisland.app.viewmodel.PermissionController(appContext),
             chatDao = db.chatDao()
         )
         return WorkflowRunner(
@@ -114,8 +123,12 @@ class WorkflowIntentReceiver : BroadcastReceiver() {
             settings = settings,
             settingsRepository = settingsRepository,
             json = json,
-            contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(appContext),
-            llmProviders = llmProviders
+            contextProvider = com.orangeisland.app.workflow.linear.DeviceContextProvider(
+                context = appContext,
+                foregroundProvider = { com.orangeisland.app.workflow.trigger.AppForegroundDispatcher.lastKnown }
+            ),
+            llmProviders = llmProviders,
+            providerRegistry = providerRegistry
         )
     }
 

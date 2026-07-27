@@ -6,10 +6,14 @@ import com.orangeisland.app.data.local.WorkflowRunEntity
 import com.orangeisland.app.data.repository.WorkflowRepository
 import com.orangeisland.app.model.RunStatus
 import com.orangeisland.app.model.Workflow
+import android.content.Context
+import android.widget.Toast
+import com.orangeisland.app.model.TriggerSpec
 import com.orangeisland.app.workflow.NodeState
 import com.orangeisland.app.workflow.RunResult
 import com.orangeisland.app.workflow.TriggerSource
 import com.orangeisland.app.workflow.WorkflowRunner
+import com.orangeisland.app.workflow.WorkflowWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -28,11 +32,14 @@ import java.util.UUID
  */
 class WorkflowViewModel(
     private val repository: WorkflowRepository,
+    private val appContext: Context,
     private val runnerFactory: (
         onConfirmDestructive: (suspend (toolName: String, args: String) -> Boolean)?,
         onNodeState: ((String, NodeState) -> Unit)?
     ) -> WorkflowRunner
 ) : ViewModel() {
+
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
     // ── UI State ──────────────────────────────────────────────
 
@@ -144,6 +151,7 @@ class WorkflowViewModel(
         // a non-null workflow to render as soon as navigation lands on it.
         viewModelScope.launch {
             repository.upsert(wf)
+            syncSchedule(wf)
             _selectedWorkflow.value = wf
             _selectedLinear.value = null
         }
@@ -157,6 +165,8 @@ class WorkflowViewModel(
     fun saveWorkflow(workflow: Workflow) {
         viewModelScope.launch {
             repository.upsert(workflow)
+            val scheduled = syncSchedule(workflow)
+            toast("已保存 · ${scheduleToast(workflow, scheduled)}")
             if (_selectedWorkflow.value?.id == workflow.id) {
                 _selectedWorkflow.value = workflow
             }
@@ -166,6 +176,7 @@ class WorkflowViewModel(
     fun deleteWorkflow(id: String) {
         viewModelScope.launch {
             repository.delete(id)
+            cancelSchedule(id)
             if (_selectedWorkflow.value?.id == id) {
                 _selectedWorkflow.value = null
                 _selectedLinear.value = null
@@ -177,6 +188,8 @@ class WorkflowViewModel(
     fun setEnabled(id: String, enabled: Boolean) {
         viewModelScope.launch {
             repository.setEnabled(id, enabled)
+            // Reconcile the WorkManager request: a schedule trigger only fires while enabled.
+            repository.get(id)?.let { syncSchedule(it) }
         }
     }
 
@@ -191,7 +204,45 @@ class WorkflowViewModel(
                 updatedAt = now
             )
             repository.upsert(copy)
+            syncSchedule(copy)
         }
+    }
+
+    // ── Schedule reconciliation ───────────────────────────────
+
+    /** Mirror the persisted workflow's schedule trigger into WorkManager. Called after every
+     *  create/save/enable/duplicate so the editor path (unlike the AI authoring path) keeps the
+     *  timer in sync without waiting for a cold start. [WorkflowWorker.schedule] is itself a no-op
+     *  for workflows with no Schedule trigger or that are disabled, so this is safe for any workflow.
+     *  Returns true if a WorkManager request was actually enqueued. */
+    private fun syncSchedule(workflow: Workflow): Boolean {
+        return runCatching { WorkflowWorker.schedule(appContext, workflow) }
+            .getOrDefault(false)
+    }
+
+    /** Cancel any pending WorkManager request for [id]. Idempotent. */
+    private fun cancelSchedule(id: String) {
+        runCatching { WorkflowWorker.cancel(appContext, id) }
+    }
+
+    /** Describe the schedule outcome for the diagnostic Toast added while debugging the editor
+     *  save → schedule path. Safe to remove once the path is verified end-to-end. */
+    private fun scheduleToast(workflow: Workflow, scheduled: Boolean): String {
+        val start = workflow.nodes.filterIsInstance<com.orangeisland.app.model.StartNode>()
+            .firstOrNull { it.trigger is TriggerSpec.Schedule }
+        val trigger = start?.trigger as? TriggerSpec.Schedule
+        return when {
+            !workflow.enabled -> "未启用"
+            trigger == null -> "无定时触发器"
+            trigger.config["intervalMs"] == null ->
+                "intervalMs 缺失 (config=${trigger.config})"
+            scheduled -> "已登记定时 intervalMs=${trigger.config["intervalMs"]}"
+            else -> "登记失败 (config=${trigger.config})"
+        }
+    }
+
+    private fun toast(message: String) {
+        mainHandler.post { Toast.makeText(appContext, message, Toast.LENGTH_LONG).show() }
     }
 
     // ── Trigger / Run ─────────────────────────────────────────

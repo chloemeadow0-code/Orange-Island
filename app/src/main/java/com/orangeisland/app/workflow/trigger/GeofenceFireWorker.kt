@@ -67,6 +67,12 @@ class GeofenceFireWorker(
             val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
             val settingsRepository = SettingsRepository(settings, scope)
             val llmProviders = WorkflowWorker.buildLlmProviders()
+            // Sync custom providers into a registry so LLM nodes bound to a user-defined provider
+            // resolve in background runs (see WorkflowWorker for rationale).
+            val localProvider = com.orangeisland.app.api.local.LocalProvider(appContext, settingsRepository)
+            val providerRegistry = com.orangeisland.app.viewmodel.ProviderRegistry(settingsRepository, localProvider, scope).also {
+                it.ensureCustomProvidersRegistered()
+            }
             val dispatcher = ToolDispatcher(
                 app = appContext as android.app.Application,
                 conversations = com.orangeisland.app.data.repository.ConversationRepository(db.chatDao()),
@@ -76,7 +82,7 @@ class GeofenceFireWorker(
                 sandboxFactory = null,
                 mcpPool = null,
                 pluginToolProvider = null,
-                permissionController = null,
+                permissionController = com.orangeisland.app.viewmodel.PermissionController(appContext),
                 chatDao = db.chatDao()
             )
             val runner = WorkflowRunner(
@@ -85,8 +91,12 @@ class GeofenceFireWorker(
                 settings = settings,
                 settingsRepository = settingsRepository,
                 json = json,
-                contextProvider = DeviceContextProvider(appContext),
+                contextProvider = DeviceContextProvider(
+                    context = appContext,
+                    foregroundProvider = { com.orangeisland.app.workflow.trigger.AppForegroundDispatcher.lastKnown }
+                ),
                 llmProviders = llmProviders,
+                providerRegistry = providerRegistry,
                 chatDao = db.chatDao(),
                 appContext = appContext
             )

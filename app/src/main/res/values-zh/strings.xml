@@ -93,6 +93,8 @@
     <string name="settings_web_search_desc">为所有提供商配置网页搜索工具</string>
     <string name="settings_title_gen">标题生成</string>
     <string name="settings_title_gen_desc">自动生成对话标题</string>
+    <string name="settings_auto_compress">压缩历史</string>
+    <string name="settings_auto_compress_desc">对话过长时自动总结历史消息</string>
     <string name="settings_transcription">图像转述</string>
     <string name="settings_transcription_desc">使用视觉模型为无视觉能力的模型描述图片内容</string>
     <string name="settings_tts">语音合成</string>
@@ -502,6 +504,15 @@
     <string name="title_gen_prompt">标题 Prompt</string>
     <string name="title_gen_prompt_desc">生成对话标题时使用的系统指令</string>
 
+    <!-- Settings - Auto-Compress Page -->
+    <string name="auto_compress_auto">自动压缩对话</string>
+    <string name="auto_compress_auto_desc">总结较早的消息，让长对话保持在上下文窗口内</string>
+    <string name="auto_compress_model">压缩模型</string>
+    <string name="auto_compress_current_model">使用当前模型</string>
+    <string name="auto_compress_select_model">选择压缩模型</string>
+    <string name="auto_compress_prompt">压缩 Prompt</string>
+    <string name="auto_compress_prompt_desc">总结对话历史时使用的系统指令</string>
+
     <!-- Settings - Image Transcription Page -->
     <string name="transcription_model">转述模型</string>
     <string name="transcription_no_model">未选择</string>
@@ -580,6 +591,9 @@
     <string name="snackbar_generating_title">正在生成标题...</string>
     <string name="snackbar_title_generated">标题已生成。</string>
     <string name="snackbar_title_error">生成标题时遇到错误。</string>
+    <string name="snackbar_compressing">正在压缩历史…</string>
+    <string name="snackbar_compressed">已压缩 %1$d 条消息。</string>
+    <string name="snackbar_compress_error">压缩历史时遇到错误。</string>
 
     <!-- Appearance -->
     <string name="settings_appearance">外观</string>
@@ -854,6 +868,7 @@
 
     <!-- Chat Actions -->
     <string name="generate_title">生成标题</string>
+    <string name="compress_history_now">压缩历史</string>
     <string name="rename_chat">重命名对话</string>
     <string name="delete_chat">删除对话</string>
     <string name="delete_chat_confirm">确定要删除此对话吗？此操作无法撤销。</string>

@@ -176,6 +176,7 @@ private val settingsGroups = listOf(
         SettingsCategory("prompts", R.string.settings_prompts, R.string.settings_prompts_desc, IslandIcons.Prompts.res),
         SettingsCategory("generation", R.string.settings_generation, R.string.settings_generation_desc, IslandIcons.Generation.res),
         SettingsCategory("titlegen", R.string.settings_title_gen, R.string.settings_title_gen_desc, IslandIcons.TitleGeneration.res),
+        SettingsCategory("autocompress", R.string.settings_auto_compress, R.string.settings_auto_compress_desc, IslandIcons.Generation.res),
     )),
     SettingsGroupData(titleRes = R.string.settings_group_tools, items = listOf(
         SettingsCategory("websearch", R.string.settings_web_search, R.string.settings_web_search_desc, IslandIcons.WebSearch.res),
@@ -268,6 +269,7 @@ fun SettingsScreen(
                 "proxy" -> SettingsProxyPage(viewModel, onBack = { selectedCategory = null })
                 "language" -> SettingsLanguagePage(viewModel, onBack = { selectedCategory = null })
                 "titlegen" -> SettingsTitleGenPage(viewModel, onBack = { selectedCategory = null })
+                "autocompress" -> SettingsAutoCompressPage(viewModel, onBack = { selectedCategory = null })
                 "memory" -> SettingsMemoryPage(viewModel, onBack = { selectedCategory = null })
                 "datacontrol" -> SettingsDataControlPage(viewModel, onBack = { selectedCategory = null })
                 "appearance" -> SettingsAppearancePage(viewModel, onBack = { selectedCategory = null })

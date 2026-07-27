@@ -417,6 +417,11 @@ private fun NodeDetailEditor(
 private fun StartNodeEditor(node: StartNode, onUpdate: (FlowNode) -> Unit) {
     var label by remember(node.id) { mutableStateOf(node.label) }
     var triggerKind by remember(node.id) { mutableStateOf(triggerKindOf(node.trigger)) }
+    // Schedule interval in minutes. Persisted as intervalMs in the trigger config. Defaults to
+    // 15 (WorkManager's minimum periodic interval) when the user first picks "定时".
+    var intervalMinutes by remember(node.id) {
+        mutableStateOf(scheduleIntervalMinutes(node.trigger))
+    }
 
     OutlinedTextField(
         value = label,
@@ -435,13 +440,40 @@ private fun StartNodeEditor(node: StartNode, onUpdate: (FlowNode) -> Unit) {
                 selected = triggerKind == kind,
                 onClick = {
                     triggerKind = kind
-                    onUpdate(node.copy(trigger = triggerFromKind(kind)))
+                    // Preserve the existing interval when switching to (or staying on) "定时",
+                    // so toggling the segment doesn't wipe a value the user just typed.
+                    val newTrigger = triggerFromKind(kind, node.trigger, intervalMinutes)
+                    if (kind == "定时") {
+                        // triggerFromKind clamps to the 15-minute minimum; reflect that back.
+                        intervalMinutes = scheduleIntervalMinutes(newTrigger)
+                    }
+                    onUpdate(node.copy(trigger = newTrigger))
                 },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = kinds.size)
             ) {
                 Text(kind, style = MaterialTheme.typography.labelSmall)
             }
         }
+    }
+
+    // Only show the interval field for the Schedule trigger.
+    if (triggerKind == "定时") {
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = intervalMinutes.toString(),
+            onValueChange = { input ->
+                val minutes = input.toIntOrNull()
+                if (minutes != null && minutes > 0) {
+                    intervalMinutes = minutes
+                    onUpdate(node.copy(trigger = scheduleTrigger(minutes)))
+                }
+            },
+            label = { Text("间隔（分钟，最少 15）") },
+            supportingText = { Text("WorkManager 最低 15 分钟，更小的值会被自动上调") },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
     }
 }
 
@@ -1289,13 +1321,37 @@ private fun triggerKindOf(trigger: TriggerSpec): String = when (trigger) {
     is TriggerSpec.Voice -> "语音"
 }
 
-private fun triggerFromKind(kind: String): TriggerSpec = when (kind) {
+/**
+ * Build a [TriggerSpec] from the segmented-button [kind]. For "定时" (Schedule), [current] is the
+ * node's existing trigger and [fallbackMinutes] is the in-progress editor value; the returned
+ * Schedule reuses [current]'s intervalMs if it was already a Schedule, else falls back to
+ * [fallbackMinutes]. This stops the segment toggle from wiping a half-typed interval.
+ */
+private fun triggerFromKind(kind: String, current: TriggerSpec? = null, fallbackMinutes: Int = 15): TriggerSpec = when (kind) {
     "打开应用" -> TriggerSpec.AppOpen
     "接口" -> TriggerSpec.Api
-    "定时" -> TriggerSpec.Schedule(ScheduleMode.Interval, emptyMap())
+    "定时" -> {
+        val minutes = (current as? TriggerSpec.Schedule)?.let(::scheduleIntervalMinutes) ?: fallbackMinutes
+        scheduleTrigger(minutes)
+    }
     "意图" -> TriggerSpec.IntentAction("")
     "语音" -> TriggerSpec.Voice()
     else -> TriggerSpec.Manual
+}
+
+/** Build a Schedule trigger for [minutes], clamped to WorkManager's 15-minute minimum. The
+ *  interval is stored as intervalMs in the config map (the format ScheduleCalculator expects). */
+private fun scheduleTrigger(minutes: Int): TriggerSpec.Schedule {
+    val clamped = minutes.coerceAtLeast(15)
+    return TriggerSpec.Schedule(ScheduleMode.Interval, mapOf("intervalMs" to (clamped * 60_000L).toString()))
+}
+
+/** Read the interval (in whole minutes) out of a Schedule trigger's config, defaulting to 15 when
+ *  absent or unparseable. */
+private fun scheduleIntervalMinutes(trigger: TriggerSpec): Int {
+    val schedule = trigger as? TriggerSpec.Schedule ?: return 15
+    val ms = schedule.config["intervalMs"]?.toLongOrNull() ?: return 15
+    return (ms / 60_000L).toInt().coerceAtLeast(1)
 }
 
 private fun guardLabel(guard: EdgeGuard): String = when (guard) {

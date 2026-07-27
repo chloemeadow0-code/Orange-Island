@@ -21,6 +21,7 @@ import com.orangeisland.app.sandbox.SandboxManagerFactory
 import com.orangeisland.app.util.Constants
 import com.orangeisland.app.viewmodel.ChatViewModel
 import com.orangeisland.app.viewmodel.ChatViewModelFactory
+import kotlinx.coroutines.launch
 
 /**
  * Centralized dependency container (manual DI).
@@ -196,7 +197,10 @@ class AppContainer(private val appContext: Context) {
             // Foreground approval gate: when the model calls workflow_create / _update / _delete /
             // _set_enabled, the provider renders a card and suspends on this callback. The chat
             // screen observes workflowApprovalGate.pending and pops an AlertDialog.
-            approval = workflowApprovalGate.approval
+            approval = workflowApprovalGate.approval,
+            // Application context so graph-mode Schedule triggers can be enqueued into WorkManager
+            // at create/update/enable time (they have no Flow-driven reconciler like linear).
+            appContext = appContext
         )
     }
 
@@ -207,9 +211,19 @@ class AppContainer(private val appContext: Context) {
     }
 
     /** Approval gate for sensitive device-access tools (location, notifications, usage stats).
-     *  When autoApprove is false, AI-driven calls suspend until the user confirms via dialog. */
+     *  When autoApprove is false, AI-driven calls suspend until the user confirms via dialog.
+     *
+     *  Driven by the user-facing `autoApproveSensitiveTools` setting (default on): when on, the gate
+     *  short-circuits every request — essential for background workflows, which have no UI to show
+     *  the [com.orangeisland.app.ui.chat.SensitiveToolApprovalDialog] and otherwise time out into
+     *  an `approval_denied` error. The chat path already bypasses this gate (null gate in the
+     *  standalone dispatcher), so this only affects workflow tool dispatch. */
     val sensitiveToolApprovalGate: com.orangeisland.app.tool.SensitiveToolApprovalGate by lazy {
-        com.orangeisland.app.tool.SensitiveToolApprovalGate()
+        com.orangeisland.app.tool.SensitiveToolApprovalGate().also { gate ->
+            appScope.launch {
+                settingsRepository.autoApproveSensitiveTools.collect { gate.autoApprove = it }
+            }
+        }
     }
 
     /** Collects environment changes (app foreground, model, prompt, wallpaper, theme, battery,
@@ -250,8 +264,10 @@ class AppContainer(private val appContext: Context) {
         val localProvider = com.orangeisland.app.api.local.LocalProvider(appContext, settingsRepository)
         val registry = com.orangeisland.app.viewmodel.ProviderRegistry(settingsRepository, localProvider, appScope)
         // Sync persisted custom providers into the live map now, so a workflow firing before the
-        // user opens the chat (e.g. a boot trigger) still resolves custom providers.
-        registry.ensureCustomProvidersRegistered()
+        // user opens the chat (e.g. a boot trigger) still resolves custom providers. This is suspend
+        // (it waits for DataStore); run it in appScope — launchSyncJobs' collectors also register
+        // custom providers, so this just front-loads it for the earliest triggers.
+        appScope.launch { registry.ensureCustomProvidersRegistered() }
         registry.launchSyncJobs()
         registry
     }
@@ -266,7 +282,7 @@ class AppContainer(private val appContext: Context) {
             sandboxFactory = sandboxManagerFactory,
             mcpPool = null,
             pluginToolProvider = pluginToolProvider,
-            permissionController = null,   // device tools run but cannot check permission state here yet
+            permissionController = com.orangeisland.app.viewmodel.PermissionController(appContext),
             workflowToolProvider = workflowAiToolProvider,
             sensitiveToolApproval = sensitiveToolApprovalGate,
             chatDao = chatDao,
@@ -301,6 +317,28 @@ class AppContainer(private val appContext: Context) {
             .onFailure { com.orangeisland.app.util.DebugLog.e("AppContainer", "trigger host start failed", it) }
     }
 
+    /** Re-enqueue every enabled graph-mode workflow's Schedule trigger into WorkManager.
+     *
+     *  Linear workflows are reconciled live by [com.orangeisland.app.workflow.trigger.TimeSignalSource]
+     *  (it subscribes to the enabled set on host start), so they need no extra step. Graph workflows
+     *  have no such Flow-driven reconciler — they are scheduled at authoring time and must be
+     *  refreshed here on cold start, since WorkManager's `UPDATE` policy and a fresh install / app
+     *  upgrade both need a re-enqueue to guarantee the pending run survives. Idempotent; safe to
+     *  call on every process start. */
+    fun rescheduleGraphWorkflows() {
+        runCatching {
+            appScope.launch {
+                runCatching { com.orangeisland.app.workflow.WorkflowWorker.rescheduleAll(appContext, workflowRepository) }
+                    .onFailure { com.orangeisland.app.util.DebugLog.w("AppContainer", "graph rescheduleAll failed", it) }
+                // A run left RUNNING across a process restart is wedged — its coroutine died with
+                // the old process and can never call recordRunEnd. Sweep them to FAILED so the run
+                // log doesn't show a perpetual spinner. Safe on every start; no-op when none stuck.
+                runCatching { workflowRepository.failStrandedRuns() }
+                    .onFailure { com.orangeisland.app.util.DebugLog.w("AppContainer", "failStrandedRuns failed", it) }
+            }
+        }.onFailure { com.orangeisland.app.util.DebugLog.w("AppContainer", "rescheduleGraphWorkflows launch failed", it) }
+    }
+
     // ── JS Plugins ────────────────────────────────────────────
     // Three singletons: the filesystem scanner, the QuickJS runtime pool, and the ToolProvider
     // bridge. All app-lifetime; settings reads happen lazily so this is safe to construct early.
@@ -332,6 +370,7 @@ class AppContainer(private val appContext: Context) {
     fun workflowViewModel(): com.orangeisland.app.viewmodel.WorkflowViewModel =
         com.orangeisland.app.viewmodel.WorkflowViewModel(
             repository = workflowRepository,
+            appContext = appContext,
             runnerFactory = { onConfirm, onNodeState ->
                 workflowRunner(onConfirm, onNodeState)
             }

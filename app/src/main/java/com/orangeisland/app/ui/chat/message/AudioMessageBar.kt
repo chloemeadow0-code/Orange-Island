@@ -54,9 +54,13 @@ fun AudioMessageBar(path: String, modifier: Modifier = Modifier) {
                     durationMs = player.duration.coerceAtLeast(0L)
                 }
                 if (state == Player.STATE_ENDED) {
+                    // Stop and reset the UI to the start, but do NOT seekTo(0) here —
+                    // the player's playWhenReady is still true at STATE_ENDED, so seeking
+                    // back to 0 would immediately resume playback and loop forever.
+                    player.pause()
+                    player.seekTo(0L)
                     isPlaying = false
                     currentMs = 0L
-                    player.seekTo(0L)
                 }
             }
 
