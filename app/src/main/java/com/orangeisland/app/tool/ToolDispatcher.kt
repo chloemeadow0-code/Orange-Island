@@ -215,8 +215,8 @@ class ToolDispatcher(
     fun fileDefinitions(ctx: GenerationContext): List<ToolDefinition> =
         shellToolProvider.definitions(ctx).filter { it.function.name in FILE_TOOL_NAMES }
 
-    fun mcpDefinitions(ctx: GenerationContext): List<ToolDefinition> =
-        mcpToolProvider?.definitions(ctx) ?: emptyList()
+    suspend fun mcpDefinitions(ctx: GenerationContext): List<ToolDefinition> =
+        mcpToolProvider?.definitionsSuspend(ctx) ?: emptyList()
 
     fun pluginDefinitions(ctx: GenerationContext): List<ToolDefinition> =
         pluginToolProvider?.definitions(ctx) ?: emptyList()

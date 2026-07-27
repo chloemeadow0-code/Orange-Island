@@ -1,8 +1,10 @@
 package com.orangeisland.app.data.repository
 
+import android.content.Context
 import com.orangeisland.app.data.local.ChatDao
 import com.orangeisland.app.data.local.ChatEntity
 import com.orangeisland.app.data.local.EmbeddingEntity
+import com.orangeisland.app.data.local.LargeTextStore
 import com.orangeisland.app.data.local.MessageEntity
 import com.orangeisland.app.data.local.ProjectEntity
 import com.orangeisland.app.model.AttachmentMeta
@@ -17,7 +19,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class ConversationRepository(
-    private val chatDao: ChatDao
+    private val chatDao: ChatDao,
+    private val appContext: Context
 ) {
     // ── Conversations ─────────────────────────────────────────
 
@@ -60,6 +63,7 @@ class ConversationRepository(
     suspend fun deleteConversation(id: String) {
         val messages = chatDao.getMessagesForConversation(id).first()
         deleteAttachmentFilesFromEntities(messages)
+        deleteOverflowFilesFromEntities(messages)
         chatDao.deleteEmbeddingsByConversation(id)
         chatDao.deleteMessagesByConversation(id)
         chatDao.deleteConversation(id)
@@ -107,22 +111,31 @@ class ConversationRepository(
     // ── Messages ──────────────────────────────────────────────
 
     fun getMessagesForConversation(conversationId: String): Flow<List<MessageEntity>> =
-        chatDao.getMessagesForConversation(conversationId)
+        chatDao.getMessagesForConversation(conversationId).map { list ->
+            list.map { it.decodeLargeText(appContext) }
+        }
 
     suspend fun getMessagesForConversationSnapshot(conversationId: String): List<MessageEntity> =
-        chatDao.getMessagesForConversation(conversationId).first()
+        chatDao.getMessagesForConversation(conversationId).first().map { it.decodeLargeText(appContext) }
 
-    suspend fun upsertMessage(entity: MessageEntity) = chatDao.upsertMessage(entity)
+    suspend fun upsertMessage(entity: MessageEntity) {
+        val encoded = entity.encodeLargeText(appContext)
+        chatDao.upsertMessage(encoded)
+    }
 
-    suspend fun deleteMessagesByIds(ids: List<String>) = chatDao.deleteMessagesByIds(ids)
+    suspend fun deleteMessagesByIds(ids: List<String>) {
+        val messages = chatDao.getMessagesByIds(ids)
+        deleteOverflowFilesFromEntities(messages)
+        chatDao.deleteMessagesByIds(ids)
+    }
 
     suspend fun getMessagesByIds(ids: List<String>): List<MessageEntity> =
-        chatDao.getMessagesByIds(ids)
+        chatDao.getMessagesByIds(ids).map { it.decodeLargeText(appContext) }
 
     /** Recent messages across every conversation in [projectId], newest first.
      *  Used by the workflow engine to inject project chat history into LLMNode context. */
     suspend fun getRecentMessagesForProject(projectId: String, limit: Int = 20): List<MessageEntity> =
-        chatDao.getRecentMessagesForProject(projectId, limit)
+        chatDao.getRecentMessagesForProject(projectId, limit).map { it.decodeLargeText(appContext) }
 
     /** MessageId → projectId mapping for RAG scope filtering. See [ChatDao.getProjectIdsForMessages]. */
     suspend fun getProjectIdsForMessages(ids: List<String>): Map<String, String?> =
@@ -203,7 +216,7 @@ class ConversationRepository(
     // ── Search ────────────────────────────────────────────────
 
     suspend fun searchMessages(query: String, limit: Int = 10): List<MessageEntity> =
-        chatDao.searchMessages(query, limit)
+        chatDao.searchMessages(query, limit).map { it.decodeLargeText(appContext) }
 
     /**
      * Scope-aware search. [projectId] = null searches only ungrouped conversations (the
@@ -212,8 +225,8 @@ class ConversationRepository(
      * outside the project" for both the drawer search and the AI's RAG retrieval.
      */
     suspend fun searchMessagesScoped(query: String, projectId: String?, limit: Int = 10): List<MessageEntity> =
-        if (projectId == null) chatDao.searchMessagesGlobal(query, limit)
-        else chatDao.searchMessagesInProject(query, projectId, limit)
+        if (projectId == null) chatDao.searchMessagesGlobal(query, limit).map { it.decodeLargeText(appContext) }
+        else chatDao.searchMessagesInProject(query, projectId, limit).map { it.decodeLargeText(appContext) }
 
     suspend fun getAllConversationsList(): List<ChatEntity> =
         chatDao.getAllConversationsList()
@@ -224,10 +237,10 @@ class ConversationRepository(
         else chatDao.getConversationsInProject(projectId)
 
     suspend fun getAllMessagesList(): List<MessageEntity> =
-        chatDao.getAllMessagesList()
+        chatDao.getAllMessagesList().map { it.decodeLargeText(appContext) }
 
     suspend fun getAllMessagesForIndexing(): List<MessageEntity> =
-        chatDao.getAllMessagesForIndexing()
+        chatDao.getAllMessagesForIndexing().map { it.decodeLargeText(appContext) }
 
     /** Deletes all on-disk attachment files referenced by [messages]. Safe to call with
      *  an empty list. Errors per-file are swallowed so one bad path never aborts a delete. */
@@ -268,6 +281,13 @@ class ConversationRepository(
                     }
                 }
             }
+        }
+    }
+
+    private fun deleteOverflowFilesFromEntities(messages: List<MessageEntity>) {
+        for (msg in messages) {
+            LargeTextStore.deleteIfOverflow(appContext, msg.text)
+            LargeTextStore.deleteIfOverflow(appContext, msg.thoughts)
         }
     }
 }

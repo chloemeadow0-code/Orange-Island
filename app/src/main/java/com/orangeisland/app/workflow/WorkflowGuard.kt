@@ -125,7 +125,8 @@ class WorkflowGuard(
             "list_memory_files", "read_memory_file", "read_active_memory",
             "search_conversations", "list_conversations",
             "get_device_info", "get_battery_status", "get_location",
-            "get_calendar_events", "get_notifications", "get_app_usage", "get_foreground_app",
+            "get_calendar_events", "get_notifications", "get_app_usage",
+            "get_foreground_app", "get_foreground_app_nav",
             "ui_inspect", "list_installed_apps",
             "file_read", "file_glob", "file_grep",
             "open_app", "open_url", "open_settings", "share_text"

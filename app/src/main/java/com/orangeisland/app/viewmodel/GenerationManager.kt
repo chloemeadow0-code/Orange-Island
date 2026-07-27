@@ -271,7 +271,7 @@ class GenerationManager(
 
     /** Tools exposed by active remote MCP servers. Empty when MCP is disabled or no servers
      *  are configured/active for this conversation. */
-    fun buildMcpTools(ctx: GenerationContext): List<ToolDefinition> =
+    suspend fun buildMcpTools(ctx: GenerationContext): List<ToolDefinition> =
         tools.mcpDefinitions(ctx)
 
     /** Tools exposed by active JS plugins. Empty when no plugins are installed/active. */

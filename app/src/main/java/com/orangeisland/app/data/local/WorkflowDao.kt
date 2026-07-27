@@ -107,4 +107,15 @@ interface WorkflowDao {
      *  RUNNING would show a perpetual spinner in the run log. */
     @Query("UPDATE workflow_runs SET status = 'FAILED', finishedAt = :now, message = :message WHERE status = 'RUNNING'")
     suspend fun failStrandedRuns(now: Long, message: String)
+
+    /**
+     * Atomically replaces the entire workflow dataset.
+     * Deletes every existing workflow (and its runs) then upserts the new definitions.
+     * Called by DataImporter on REPLACE strategy so old data is never partially visible.
+     */
+    @androidx.room.Transaction
+    suspend fun replaceAllWorkflows(workflows: List<com.orangeisland.app.data.local.WorkflowEntity>) {
+        getAllWorkflowsList().forEach { deleteWorkflow(it.id) }
+        workflows.forEach { upsertWorkflow(it) }
+    }
 }

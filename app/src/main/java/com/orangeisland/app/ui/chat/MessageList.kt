@@ -57,6 +57,7 @@ fun MessageList(
     viewportHeight: Int = 0,
     messageHeights: SnapshotStateMap<String, Int> = remember { mutableStateMapOf() },
     onEditMessage: (String, String) -> Unit = { _, _ -> },
+    onEditAssistantMessage: (String, String) -> Unit = { _, _ -> },
     onSwitchBranch: (String?, String, Int) -> Unit = { _, _, _ -> },
     onRegenerate: (String) -> Unit = {},
     onDelete: (String) -> Unit = {},
@@ -135,6 +136,10 @@ fun MessageList(
                     message = message,
                     onEdit = { id, text ->
                         onEditMessage(id, text)
+                        editingMessageId = null
+                    },
+                    onEditAssistantMessage = { id, text ->
+                        onEditAssistantMessage(id, text)
                         editingMessageId = null
                     },
                     customUserBubbleColor = customUserBubbleColor,

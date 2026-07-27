@@ -1343,6 +1343,16 @@ class ChatViewModel(
         generationController.editMessage(messageId, newText)
     }
 
+    /** Text-only correction for an AI reply — creates a new branch, never calls the model. */
+    fun editAssistantMessage(messageId: String, newText: String) {
+        UsageLogManager.log(
+            UsageLogManager.Type.CONVERSATION,
+            "edit_assistant_message",
+            "conversationId=${_currentConversationId.value}, messageId=$messageId, length=${newText.length}"
+        )
+        generationController.editAssistantMessage(messageId, newText)
+    }
+
     private fun getFileName(context: android.content.Context, uri: android.net.Uri): String {
         return try {
             val cursor = context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)

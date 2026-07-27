@@ -12,6 +12,7 @@ import io.modelcontextprotocol.kotlin.sdk.client.StreamableHttpClientTransport
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import io.modelcontextprotocol.kotlin.sdk.shared.RequestOptions
 import io.modelcontextprotocol.kotlin.sdk.types.Tool
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -33,6 +34,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Per-server connection status, surfaced to the UI as the leading icon on each MCP server row. */
 enum class McpStatus {
@@ -254,7 +256,14 @@ class McpClientPool(
                 setStatus(config.id, if (cached.tools.isNotEmpty()) McpStatus.READY else McpStatus.DISCONNECTED)
                 return cached.tools
             }
-            val tools = withTimeout(REQUEST_TIMEOUT_MS) { server.client.listTools().tools }
+            // Timeout is delegated to the SDK's own RequestOptions instead of an extra
+            // withTimeout() wrapper — Protocol.request() already applies this timeout
+            // internally (see kotlin-sdk-core Protocol.kt), so wrapping it again here
+            // just added a second, redundant layer of coroutine cancellation around the
+            // SDK's own suspend call.
+            val tools = server.client.listTools(
+                options = RequestOptions(timeout = REQUEST_TIMEOUT_MS.milliseconds)
+            ).tools
             server.toolsCache = CachedTools(tools, now)
             // Per the user's decision, "connected but zero tools" is merged with "couldn't connect"
             // into the single error icon — both mean the server isn't actually useful right now.
@@ -266,18 +275,34 @@ class McpClientPool(
         } catch (e: TimeoutCancellationException) {
             DebugLog.w(TAG, "listTools timed out for '${config.name}', retrying once after reconnect", e)
             invalidate(config.id)
-            try { once() } catch (e2: CancellationException) { throw e2 } catch (e2: Exception) {
+            try { once() } catch (e2: CancellationException) {
+                // The retry's own request was itself cut off (e.g. by a pause) mid-flight — the
+                // freshly-(re)established connection is now in the same half-torn-down state the
+                // outer cancellation branch below guards against. Drop it too so nothing reuses it.
+                invalidate(config.id)
+                throw e2
+            } catch (e2: Exception) {
                 DebugLog.e(TAG, "listTools retry failed for '${config.name}'", e2)
                 invalidate(config.id)
                 setStatus(config.id, McpStatus.DISCONNECTED)
                 emptyList()
             }
         } catch (e: CancellationException) {
+            // A pause/stop cuts this request off mid-flight. Unlike every other failure branch
+            // here, this one used to just rethrow without calling invalidate() — leaving the
+            // half-torn-down SSE/HTTP connection sitting in the pool as if it were still healthy.
+            // The next call (this server or otherwise) could then reuse that connection object
+            // while its underlying transport is in an inconsistent state. Drop it like every
+            // other failure path does.
+            invalidate(config.id)
             throw e
         } catch (e: java.io.IOException) {
             DebugLog.w(TAG, "listTools IO failed for '${config.name}', retrying once after reconnect", e)
             invalidate(config.id)
-            try { once() } catch (e2: CancellationException) { throw e2 } catch (e2: Exception) {
+            try { once() } catch (e2: CancellationException) {
+                invalidate(config.id)
+                throw e2
+            } catch (e2: Exception) {
                 DebugLog.e(TAG, "listTools retry failed for '${config.name}'", e2)
                 invalidate(config.id)
                 setStatus(config.id, McpStatus.DISCONNECTED)
@@ -301,27 +326,44 @@ class McpClientPool(
         val args = parseArguments(argumentsJson)
         suspend fun once(): CallToolResult {
             val server = getOrConnect(config)
-            return withTimeout(REQUEST_TIMEOUT_MS) {
-                server.client.callTool(name = name, arguments = args)
-            }
+            // See the comment in listTools()'s once() — timeout delegated to the SDK's
+            // own RequestOptions rather than an extra withTimeout() wrapper.
+            return server.client.callTool(
+                name = name,
+                arguments = args,
+                options = RequestOptions(timeout = REQUEST_TIMEOUT_MS.milliseconds)
+            )
         }
         val result: CallToolResult = try {
             once()
         } catch (e: TimeoutCancellationException) {
             DebugLog.w(TAG, "callTool timed out for '${config.name}' / '$name', retrying once after reconnect", e)
             invalidate(config.id)
-            try { once() } catch (e2: CancellationException) { throw e2 } catch (e2: Exception) {
+            try { once() } catch (e2: CancellationException) {
+                invalidate(config.id)
+                throw e2
+            } catch (e2: Exception) {
                 DebugLog.e(TAG, "callTool retry failed for '${config.name}' / '$name'", e2)
                 invalidate(config.id)
                 setStatus(config.id, McpStatus.DISCONNECTED)
                 throw e2
             }
         } catch (e: CancellationException) {
+            // A pause/stop cuts this request off mid-flight. Unlike every other failure branch
+            // here, this one used to just rethrow without calling invalidate() — leaving the
+            // half-torn-down SSE/HTTP connection sitting in the pool as if it were still healthy.
+            // The next call (this server or otherwise) could then reuse that connection object
+            // while its underlying transport is in an inconsistent state. Drop it like every
+            // other failure path does.
+            invalidate(config.id)
             throw e
         } catch (e: java.io.IOException) {
             DebugLog.w(TAG, "callTool IO failed for '${config.name}' / '$name', retrying once after reconnect", e)
             invalidate(config.id)
-            try { once() } catch (e2: CancellationException) { throw e2 } catch (e2: Exception) {
+            try { once() } catch (e2: CancellationException) {
+                invalidate(config.id)
+                throw e2
+            } catch (e2: Exception) {
                 DebugLog.e(TAG, "callTool retry failed for '${config.name}' / '$name'", e2)
                 invalidate(config.id)
                 setStatus(config.id, McpStatus.DISCONNECTED)

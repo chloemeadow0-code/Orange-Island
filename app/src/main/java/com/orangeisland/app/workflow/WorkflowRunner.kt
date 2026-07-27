@@ -260,7 +260,9 @@ class WorkflowRunner(
                     chatDao.getRecentMessagesForProject(projectId, limit = 10)
                 }
                 // DAO returns DESC (newest first); reverse to ASC for chronological order.
-                recent.reversed().forEach { msg ->
+                // Decode overflow pointers so workflow history contains real text.
+                recent.reversed().forEach { raw ->
+                    val msg = raw.decodeLargeText(appContext!!)
                     history += ChatMessage(
                         text = msg.text,
                         participant = when (msg.participant) {
@@ -444,6 +446,7 @@ class WorkflowRunner(
             // user replies. Compute the same tail resolvePath would reach, parent on it, and then
             // register ourselves in selectedBranchesJson so we become the new tail.
             val allMsgs = dao.getMessagesForConversation(conversation.id).first()
+                .map { it.decodeLargeText(appContext!!) }
             val branches = parseSelectedBranches(conversation.selectedBranchesJson)
             val parentId = visiblePathTailId(allMsgs, branches)
 
@@ -457,7 +460,7 @@ class WorkflowRunner(
                 participant = if (participant.uppercase() == "USER") Participant.USER else Participant.MODEL,
                 status = MessageStatus.SUCCESS,
                 timestamp = now
-            )
+            ).encodeLargeText(appContext!!)
             dao.upsertMessage(entity)
             // Make this message the selected child of its parent so resolvePath walks into it.
             // Persist with the literal "null" key for a root-level (null-parent) entry — JSON keys

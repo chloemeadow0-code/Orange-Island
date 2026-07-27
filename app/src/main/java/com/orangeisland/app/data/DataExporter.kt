@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.orangeisland.app.data.local.ChatDao
 import com.orangeisland.app.data.local.ChatEntity
+import com.orangeisland.app.data.local.LargeTextStore
 import com.orangeisland.app.data.local.MessageEntity
 import com.orangeisland.app.data.local.ProjectEntity
 import com.orangeisland.app.model.AttachmentMeta
@@ -200,7 +201,7 @@ class DataExporter(
 
             // Conversations
             if (ExportCategory.CONVERSATIONS in categories) {
-                val allMessages = chatDao.getAllMessagesList()
+                val allMessages = chatDao.getAllMessagesList().map { it.decodeLargeText(context) }
                 val imageMap = mutableMapOf<String, List<String>>() // messageId -> list of image URIs to keep
 
                 // Export image files alongside the JSON

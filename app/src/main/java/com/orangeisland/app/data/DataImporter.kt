@@ -245,7 +245,7 @@ class DataImporter(
                                 modelName = m.modelName,
                                 toolCallJson = m.toolCallJson,
                                 attachmentMeta = m.attachmentMeta
-                            )
+                            ).encodeLargeText(context)
                         }
                         // Restore image files from ZIP to app storage
                         val imagesDir = java.io.File(context.filesDir, "images")
@@ -306,9 +306,17 @@ class DataImporter(
                         }
 
                         if (convDecision == ImportStrategy.REPLACE) {
-                            chatDao.deleteAllConversations()
-                            convEntities.forEach { chatDao.upsertConversation(it) }
-                            finalMsgEntities.forEach { chatDao.upsertMessage(it) }
+                            // Atomic replace: old data is never partially visible.
+                            val projectEntities = archive.stream("projects.json")?.use { ps ->
+                                importJson.decodeFromStream<ExportProjects>(ps)
+                            }?.projects?.map { p ->
+                                ProjectEntity(p.id, p.name, p.sortOrder, p.systemPromptId, p.modelId, p.createdAt)
+                            } ?: emptyList()
+                            chatDao.replaceAllConversationsAndMessages(
+                                convEntities,
+                                finalMsgEntities,
+                                projectEntities
+                            )
                             conversationsImported = data.conversations.size
                         } else {
                             // MERGE: upsert conversations, insert new messages,
@@ -330,19 +338,18 @@ class DataImporter(
                 // Projects ride on the same CONVERSATIONS decision — they're the folders that
                 // hold the conversations. projects.json is optional (pre-projects exports have
                 // none; conversations just import as ungrouped).
+                // For REPLACE, projects are already handled atomically inside
+                // replaceAllConversationsAndMessages() above, so we only need to upsert here
+                // for MERGE or when REPLACE didn't include a projects.json.
                 try {
-                    archive.stream("projects.json")?.use { stream ->
-                        val data = importJson.decodeFromStream<ExportProjects>(stream)
-                        if (convDecision == ImportStrategy.REPLACE) {
-                            // Detach every conversation then drop all projects so REPLACE truly
-                            // mirrors the source state. Conversations were already cleared above,
-                            // so this only matters if the user re-imports over existing data.
-                            chatDao.getAllProjectsList().forEach { chatDao.deleteProject(it.id) }
-                        }
-                        data.projects.forEach { p ->
-                            chatDao.upsertProject(
-                                ProjectEntity(p.id, p.name, p.sortOrder, p.systemPromptId, p.modelId, p.createdAt)
-                            )
+                    if (convDecision != ImportStrategy.REPLACE) {
+                        archive.stream("projects.json")?.use { stream ->
+                            val data = importJson.decodeFromStream<ExportProjects>(stream)
+                            data.projects.forEach { p ->
+                                chatDao.upsertProject(
+                                    ProjectEntity(p.id, p.name, p.sortOrder, p.systemPromptId, p.modelId, p.createdAt)
+                                )
+                            }
                         }
                     }
                 } catch (e: Exception) {
@@ -356,16 +363,10 @@ class DataImporter(
             if (memDecision != null && memDecision != ImportStrategy.SKIP) {
                 try {
                     val memNames = archive.names().filter { it.startsWith("memories/") }
-                    if (memDecision == ImportStrategy.REPLACE) {
-                        for (file in memoryManager.listFiles()) {
-                            memoryManager.deleteFile(file.name)
-                        }
-                        val activeMem = memoryManager.getActiveMemory()
-                        if (activeMem.isNotEmpty()) {
-                            memoryManager.updateActiveMemory("", "replace")
-                        }
-                    }
-                    val existingNames = memoryManager.listFiles().map { it.name }.toSet()
+                    // For REPLACE, stage everything into a temp directory then swap atomically.
+                    val useStaging = memDecision == ImportStrategy.REPLACE
+                    if (useStaging) memoryManager.beginStaging()
+                    val existingNames = if (useStaging) emptySet() else memoryManager.listFiles().map { it.name }.toSet()
                     for (path in memNames) {
                         // Project-private memory bundle: memories/projects/<projectId>/<file>.
                         // Written as raw bytes via the project-scoped helper so each file lands
@@ -380,7 +381,11 @@ class DataImporter(
                             if (fileName.isBlank()) continue
                             val bytes = archive.bytes(path) ?: continue
                             try {
-                                memoryManager.writeProjectMemoryBytes(projectId, fileName, bytes)
+                                if (useStaging) {
+                                    memoryManager.stageFile("memory_db_projects/$projectId/$fileName", bytes)
+                                } else {
+                                    memoryManager.writeProjectMemoryBytes(projectId, fileName, bytes)
+                                }
                                 memoriesImported++
                             } catch (_: Exception) {
                                 // Skip files that can't be written (bad name, IO error).
@@ -389,27 +394,41 @@ class DataImporter(
                         }
                         val text = archive.bytes(path)?.decodeToString() ?: continue
                         if (path == "memories/active_memory.md" && text.isNotBlank()) {
-                            if (memDecision == ImportStrategy.REPLACE || memoryManager.getActiveMemory().isEmpty()) {
+                            if (useStaging) {
+                                memoryManager.stageFile("active_memory.md", text.toByteArray())
+                            } else if (memoryManager.getActiveMemory().isEmpty()) {
                                 memoryManager.updateActiveMemory(text, "replace")
                             }
                             memoriesImported++
                         } else if (path == "memories/memory_db/memory_meta.json") {
-                            if (memDecision == ImportStrategy.REPLACE || memoryManager.getMetaJson() == "{}") {
+                            if (useStaging) {
+                                memoryManager.stageFile("memory_db/memory_meta.json", text.toByteArray())
+                            } else if (memoryManager.getMetaJson() == "{}") {
                                 memoryManager.saveMetaJson(text)
                             }
                         } else if (path.startsWith("memories/memory_db/")) {
                             val name = path.removePrefix("memories/memory_db/")
-                            if (memDecision == ImportStrategy.REPLACE || name !in existingNames) {
+                            if (useStaging) {
+                                memoryManager.stageFile("memory_db/$name", text.toByteArray())
+                                memoriesImported++
+                            } else if (name !in existingNames) {
                                 try {
                                     memoryManager.createFile(name, text)
                                 } catch (_: Exception) {
                                     memoryManager.editFile(name, text)
                                 }
+                                memoriesImported++
                             }
-                            memoriesImported++
+                        }
+                    }
+                    if (useStaging) {
+                        if (!memoryManager.commitStaging()) {
+                            memoryManager.abortStaging()
+                            errors.add("Memories: atomic commit failed")
                         }
                     }
                 } catch (e: Exception) {
+                    if (memDecision == ImportStrategy.REPLACE) memoryManager.abortStaging()
                     errors.add("Memories: ${e.localizedMessage ?: "Unknown error"}")
                 }
                 step()
@@ -591,18 +610,18 @@ class DataImporter(
                 try {
                     archive["workflows.json"]?.decodeToString()?.let { json ->
                         val workflows = importJson.decodeFromString<List<com.orangeisland.app.model.Workflow>>(json)
-                        if (wfDecision == ImportStrategy.REPLACE) {
-                            workflowRepository?.let { repo ->
-                                runBlocking { repo.getAll().forEach { repo.delete(it.id) } }
-                            }
-                        }
                         workflowRepository?.let { repo ->
                             runBlocking {
-                                val existingIds = repo.getAll().map { it.id }.toSet()
-                                for (wf in workflows) {
-                                    if (wfDecision == ImportStrategy.REPLACE || wf.id !in existingIds) {
-                                        repo.upsert(wf)
-                                        workflowsImported++
+                                if (wfDecision == ImportStrategy.REPLACE) {
+                                    repo.replaceAll(workflows)
+                                    workflowsImported = workflows.size
+                                } else {
+                                    val existingIds = repo.getAll().map { it.id }.toSet()
+                                    for (wf in workflows) {
+                                        if (wf.id !in existingIds) {
+                                            repo.upsert(wf)
+                                            workflowsImported++
+                                        }
                                     }
                                 }
                             }

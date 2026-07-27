@@ -64,7 +64,7 @@ class LinearTimeWorker(
             }
             val dispatcher = ToolDispatcher(
                 app = appContext as android.app.Application,
-                conversations = com.orangeisland.app.data.repository.ConversationRepository(db.chatDao()),
+                conversations = com.orangeisland.app.data.repository.ConversationRepository(db.chatDao(), appContext),
                 memoryManager = com.orangeisland.app.data.MemoryManager(appContext),
                 llmProviders = llmProviders,
                 appContext = appContext,

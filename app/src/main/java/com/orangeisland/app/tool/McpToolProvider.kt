@@ -9,8 +9,11 @@ import com.orangeisland.app.mcp.McpClientPool
 import com.orangeisland.app.util.DebugLog
 import com.orangeisland.app.viewmodel.GenerationContext
 import io.modelcontextprotocol.kotlin.sdk.types.Tool
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
@@ -133,12 +136,55 @@ class McpToolProvider(
         }
     }
 
+    // NOTE: uses runBlocking because ToolProvider.definitions() is a non-suspend interface
+    // method (it's also called from non-coroutine contexts like the workflow editor's tool
+    // picker). This is NOT on the live-generation hot path — buildApiPath() uses
+    // [definitionsSuspend] instead — so it never runs on a thread that session.stop() might be
+    // trying to cancel concurrently. Left as-is; only the hot-path caller was moved off runBlocking.
     override fun definitions(ctx: GenerationContext): List<ToolDefinition> {
         val servers = activeServers(ctx)
         if (servers.isEmpty()) return emptyList()
         val used = mutableSetOf<String>()
 
         val perServerResults = kotlinx.coroutines.runBlocking {
+            val deferreds = servers.map { server ->
+                async {
+                    server to try {
+                        pool.listTools(server)
+                    } catch (e: Exception) {
+                        DebugLog.w(TAG, "Failed to list tools for '${server.name}': ${e.message}")
+                        emptyList()
+                    }
+                }
+            }
+            deferreds.awaitAll()
+        }
+
+        val all = mutableListOf<ToolDefinition>()
+        for ((server, tools) in perServerResults) {
+            for (tool in tools) {
+                if (tool.name in server.disabledToolNames) continue
+                val apiName = allocateApiName(server, tool.name, used)
+                originalToolNames[apiName] = tool.name
+                all += tool.toToolDefinition(serverName = server.name, apiName = apiName)
+            }
+        }
+        return all
+    }
+
+    /**
+     * Suspend-safe twin of [definitions], used on the live-generation hot path (see
+     * [com.orangeisland.app.tool.ToolDispatcher.mcpDefinitions]). Uses [coroutineScope] instead
+     * of [kotlinx.coroutines.runBlocking], so listing each active server's tools runs as a normal
+     * child of the calling generation coroutine — reachable by session.stop()'s cancellation and
+     * never blocking a shared dispatcher thread the way runBlocking's own detached root would.
+     */
+    suspend fun definitionsSuspend(ctx: GenerationContext): List<ToolDefinition> {
+        val servers = activeServers(ctx)
+        if (servers.isEmpty()) return emptyList()
+        val used = mutableSetOf<String>()
+
+        val perServerResults = coroutineScope {
             val deferreds = servers.map { server ->
                 async {
                     server to try {
@@ -178,7 +224,18 @@ class McpToolProvider(
             ?: return "MCP tool name mapping expired for '$name' — the tool list may have changed " +
                 "since this call was generated. Please retry; the tool list will be refreshed."
         return try {
-            pool.callTool(server, originalName, arguments)
+            // Pausing generation must not physically sever an in-flight MCP call — forcibly
+            // cancelling one mid-flight is the trigger for a native SIGSEGV crash somewhere in
+            // the MCP SDK/transport layer that repeated targeted fixes there couldn't close off.
+            // MCP calls hit an external tool server, not the LLM provider, so letting one finish
+            // (or hit its own REQUEST_TIMEOUT_MS via the SDK's RequestOptions) after a pause costs
+            // no tokens — only a discarded result a few seconds later. The Stop button still halts
+            // the LLM stream and flips the UI to "stopped" immediately (GenerationSession does that
+            // synchronously, independent of this call); this only exempts the tool-call leg from
+            // that same cancellation signal.
+            withContext(NonCancellable) {
+                pool.callTool(server, originalName, arguments)
+            }
         } catch (e: Exception) {
             DebugLog.e(TAG, "callTool failed for '$name'", e)
             "MCP tool '$name' failed: ${e.localizedMessage ?: e::class.simpleName}"

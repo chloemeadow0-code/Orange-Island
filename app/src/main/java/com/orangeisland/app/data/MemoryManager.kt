@@ -16,6 +16,16 @@ class MemoryManager(context: Context) {
     private val projectsMemoryRoot: File =
         File(context.filesDir, "memory_db_projects").also { it.mkdirs() }
 
+    /** Staging directory for atomic REPLACE imports. Writes go here; commit swaps atomically. */
+    private val stagingDir: File =
+        File(context.filesDir, "memory_db_staging").also { it.mkdirs() }
+
+    private val stagingActiveMemory: File
+        get() = File(stagingDir, "active_memory.md")
+
+    private val stagingProjectsRoot: File
+        get() = File(stagingDir, "memory_db_projects").also { it.mkdirs() }
+
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
     @kotlinx.serialization.Serializable
@@ -302,6 +312,91 @@ class MemoryManager(context: Context) {
     fun writeProjectMemoryBytes(projectId: String, name: String, bytes: ByteArray) {
         val dir = dirFor(projectId)
         java.io.File(dir, name).writeBytes(bytes)
+    }
+
+    // ── Atomic REPLACE staging ─────────────────────────────────────────
+
+    /** Wipes and returns the staging directory for a fresh import. */
+    @Synchronized
+    fun beginStaging(): File {
+        stagingDir.deleteRecursively()
+        stagingDir.mkdirs()
+        return stagingDir
+    }
+
+    /** Writes a file into the staging directory under the given relative path. */
+    @Synchronized
+    fun stageFile(relativePath: String, bytes: ByteArray) {
+        val file = File(stagingDir, relativePath)
+        file.parentFile?.mkdirs()
+        file.writeBytes(bytes)
+    }
+
+    /**
+     * Atomically commits the staging directory.
+     * The staging tree mirrors the filesDir layout (memory_db/, active_memory.md,
+     * memory_db_projects/). Each target is renamed to a backup, then the staged
+     * version is moved into place. If any move fails, all successful moves are
+     * rolled back.
+     */
+    @Synchronized
+    fun commitStaging(): Boolean {
+        val filesDir = appContext.filesDir
+        val backupDir = File(filesDir, "memory_db_backup")
+        val backupProjects = File(filesDir, "memory_db_projects_backup")
+        val backupActive = File(filesDir, "active_memory_backup.md")
+
+        // Clean old backups
+        backupDir.deleteRecursively()
+        backupProjects.deleteRecursively()
+        backupActive.delete()
+
+        val stagedMemoryDir = File(stagingDir, "memory_db")
+        val stagedProjects = File(stagingDir, "memory_db_projects")
+        val stagedActive = File(stagingDir, "active_memory.md")
+
+        val movedMemory = if (memoryDir.exists()) memoryDir.renameTo(backupDir) else true
+        val movedProjects = if (projectsMemoryRoot.exists()) projectsMemoryRoot.renameTo(backupProjects) else true
+        val movedActive = if (activeMemoryFile.exists()) activeMemoryFile.renameTo(backupActive) else true
+
+        val success = if (movedMemory && movedProjects && movedActive) {
+            val okMemory = if (stagedMemoryDir.exists()) stagedMemoryDir.renameTo(memoryDir) else true
+            val okProjects = if (stagedProjects.exists()) stagedProjects.renameTo(projectsMemoryRoot) else true
+            val okActive = if (stagedActive.exists()) stagedActive.renameTo(activeMemoryFile) else true
+            if (okMemory && okProjects && okActive) {
+                backupDir.deleteRecursively()
+                backupProjects.deleteRecursively()
+                backupActive.delete()
+                true
+            } else {
+                // Rollback any successful moves
+                if (okMemory && memoryDir.exists()) memoryDir.renameTo(stagedMemoryDir)
+                if (okProjects && projectsMemoryRoot.exists()) projectsMemoryRoot.renameTo(stagedProjects)
+                if (okActive && activeMemoryFile.exists()) activeMemoryFile.renameTo(stagedActive)
+                if (movedMemory) backupDir.renameTo(memoryDir)
+                if (movedProjects) backupProjects.renameTo(projectsMemoryRoot)
+                if (movedActive) backupActive.renameTo(activeMemoryFile)
+                false
+            }
+        } else {
+            // Rollback any successful backup moves
+            if (movedMemory && backupDir.exists()) backupDir.renameTo(memoryDir)
+            if (movedProjects && backupProjects.exists()) backupProjects.renameTo(projectsMemoryRoot)
+            if (movedActive && backupActive.exists()) backupActive.renameTo(activeMemoryFile)
+            false
+        }
+
+        // Reset staging for next use
+        stagingDir.deleteRecursively()
+        stagingDir.mkdirs()
+        return success
+    }
+
+    /** Aborts a staging import and cleans up. */
+    @Synchronized
+    fun abortStaging() {
+        stagingDir.deleteRecursively()
+        stagingDir.mkdirs()
     }
 
     /**

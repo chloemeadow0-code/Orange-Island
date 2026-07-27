@@ -651,6 +651,7 @@ fun ChatApp(
                                         }
                                     }
                                 },
+                                onEditAssistantMessage = { id, text -> viewModel.editAssistantMessage(id, text) },
                                 onSwitchBranch = { parentId, currentMessageId, direction ->
                                     haptics.selection()
                                     viewModel.switchBranch(parentId, currentMessageId, direction)

@@ -91,6 +91,35 @@ class WorkflowRepository(
         dao.deleteWorkflow(id)
     }
 
+    /**
+     * Atomically replaces the entire workflow dataset.
+     * Deletes every existing workflow (and its runs) then inserts the new definitions.
+     * Called by DataImporter on REPLACE strategy so old data is never partially visible.
+     */
+    suspend fun replaceAll(workflows: List<Workflow>) = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        val entities = workflows.map { wf ->
+            WorkflowEntity(
+                id = wf.id,
+                name = wf.name,
+                description = wf.description,
+                graphJson = json.encodeToString(wf),
+                enabled = wf.enabled,
+                createdAt = now,
+                updatedAt = now,
+                lastRunAt = null,
+                lastRunStatus = null,
+                totalRuns = 0,
+                successRuns = 0,
+                failedRuns = 0,
+                projectId = wf.projectId,
+                systemPromptId = wf.systemPromptId,
+                modelId = wf.modelId
+            )
+        }
+        dao.replaceAllWorkflows(entities)
+    }
+
     suspend fun setEnabled(id: String, enabled: Boolean) = withContext(Dispatchers.IO) {
         dao.setEnabled(id, enabled, System.currentTimeMillis())
     }

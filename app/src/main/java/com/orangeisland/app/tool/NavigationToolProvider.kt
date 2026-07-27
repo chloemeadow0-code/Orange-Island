@@ -101,9 +101,11 @@ class NavigationToolProvider(private val app: Application) : ToolProvider {
                 )
             )),
             ToolDefinition(function = ToolFunction(
-                name = "get_foreground_app",
-                description = "Get the currently foreground app package name. " +
-                    "Returns the package name (e.g. com.tencent.mm) or null if unknown.",
+                name = "get_foreground_app_nav",
+                description = "Get the currently foreground app package name and app name, " +
+                    "via the accessibility-based navigation tracker. Returns the package name " +
+                    "(e.g. com.tencent.mm), resolved app name, or null if unknown. If you need " +
+                    "usage duration too, prefer get_foreground_app instead.",
                 parameters = ToolParameters(properties = emptyMap(), required = emptyList())
             ))
         )
@@ -117,7 +119,7 @@ class NavigationToolProvider(private val app: Application) : ToolProvider {
                 "open_settings" -> openSettings(arguments)
                 "share_text" -> shareText(arguments)
                 "get_installed_apps" -> getInstalledApps(arguments)
-                "get_foreground_app" -> getForegroundApp()
+                "get_foreground_app_nav" -> getForegroundApp()
                 else -> unknownTool(name)
             }
         } catch (e: Exception) {
@@ -126,7 +128,7 @@ class NavigationToolProvider(private val app: Application) : ToolProvider {
     }
 
     override fun handles(name: String): Boolean = name in setOf(
-        "open_url", "open_app", "open_settings", "share_text", "get_installed_apps", "get_foreground_app"
+        "open_url", "open_app", "open_settings", "share_text", "get_installed_apps", "get_foreground_app_nav"
     )
 
     // ── Implementation ─────────────────────────────────────

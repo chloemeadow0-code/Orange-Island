@@ -14,7 +14,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -23,6 +25,7 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -37,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -83,10 +87,15 @@ internal fun AssistantMessageContent(
     customReasoningPanelColor: Long? = null,
     reasoningPanelAlpha: Float = 1f,
     reasoningBackgroundImagePath: String = "",
+    messageBubbleAlpha: Float = 1f,
     contextAlpha: Modifier,
     isStreaming: Boolean,
     isLoading: Boolean,
     isEditingAllowed: Boolean,
+    isEditing: Boolean = false,
+    onStartEdit: () -> Unit = {},
+    onCancelEdit: () -> Unit = {},
+    onEditAssistantMessage: (String, String) -> Unit = { _, _ -> },
     showUsageStats: Boolean = false,
     splitBubbleByLine: Boolean = false,
     toolCallDisplayMode: String,
@@ -134,13 +143,22 @@ internal fun AssistantMessageContent(
             .then(if (isStreaming) Modifier.nestedScroll(horizontalScrollEater) else Modifier)
             .then(
                 if (useSingleOuterBubble) {
+                    val baseColor = ColorMath.argbToColor(customAssistantBubbleColor!!)
                     Modifier
                         .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 20.dp))
-                        .background(ColorMath.argbToColor(customAssistantBubbleColor!!))
+                        .background(baseColor.copy(alpha = baseColor.alpha * messageBubbleAlpha))
                 } else Modifier
             )
     ) {
         Column(modifier = if (useSingleOuterBubble) Modifier.padding(12.dp) else Modifier) {
+            if (isEditing) {
+                AssistantEditModeContent(
+                    initialText = message.text,
+                    onSave = { newText -> onEditAssistantMessage(message.id, newText); onCancelEdit() },
+                    onCancel = onCancelEdit,
+                )
+                return@Column
+            }
             // Status Header
             if (message.participant == Participant.MODEL) {
                 val thinkingStatus = stringResource(R.string.thinking_ellipsis)
@@ -325,6 +343,7 @@ internal fun AssistantMessageContent(
                         reasoningPanelAlpha = reasoningPanelAlpha,
                         reasoningBackgroundImagePath = reasoningBackgroundImagePath,
                         customAssistantBubbleColor = customAssistantBubbleColor,
+                        messageBubbleAlpha = messageBubbleAlpha,
                         splitBubbleByLine = splitBubbleByLine,
                     )
                 }
@@ -583,12 +602,11 @@ internal fun AssistantMessageContent(
                             ) {
                                 bubbleSegments.forEachIndexed { segIndex, segment ->
                                     key(segIndex) {
-                                        // Per-segment bubble. When a custom assistant bubble color is
-                                        // set, force it fully opaque so the color reads clearly across
-                                        // every segment (the stored ARGB may carry a low alpha that
-                                        // makes split bubbles look like they lost their color).
+                                        // Per-segment bubble. Applies the same bubble-transparency
+                                        // slider as the single-bubble shell, so split bubbles stay
+                                        // visually consistent with the unsplit view.
                                         val segmentColor = customAssistantBubbleColor
-                                            ?.let { ColorMath.argbToColor(it).copy(alpha = 1f) }
+                                            ?.let { ColorMath.argbToColor(it).let { c -> c.copy(alpha = c.alpha * messageBubbleAlpha) } }
                                             ?: MaterialTheme.colorScheme.surfaceContainerHigh
                                         // A segment carrying a markdown image (or any block-level
                                         // construct the lightweight inline renderer can't handle) falls
@@ -781,6 +799,12 @@ internal fun AssistantMessageContent(
                                     onDismissRequest = { showMenu = false }
                                 ) {
                                     DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.edit)) },
+                                        onClick = { showMenu = false; onStartEdit() },
+                                        enabled = isEditingAllowed,
+                                        leadingIcon = { Icon(Icons.Default.Edit, null) }
+                                    )
+                                    DropdownMenuItem(
                                         text = { Text(stringResource(R.string.info)) },
                                         onClick = { showMenu = false; onShowInfo() },
                                         leadingIcon = { Icon(Icons.Default.Info, null) }
@@ -834,6 +858,41 @@ internal fun AssistantMessageContent(
                 offsetY = (-6).dp,
                 alpha = 0.9f,
             )
+        }
+    }
+}
+
+/**
+ * Inline editor shown in place of the whole assistant bubble content when [isEditing].
+ * Edits only the flat text; [MessageGenerationController.editAssistantMessage] handles
+ * folding it back into segments (if any) and creating the new branch on save.
+ */
+@Composable
+private fun AssistantEditModeContent(
+    initialText: String,
+    onSave: (String) -> Unit,
+    onCancel: () -> Unit,
+) {
+    val editState = rememberTextFieldState(initialText)
+    val editScrollState = rememberScrollState()
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Box(modifier = Modifier.noOpBringIntoView()) {
+            TextField(
+                state = editState,
+                scrollState = editScrollState,
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent
+                )
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
+            TextButton(onClick = { onSave(editState.text.toString()) }) { Text(stringResource(R.string.save)) }
         }
     }
 }

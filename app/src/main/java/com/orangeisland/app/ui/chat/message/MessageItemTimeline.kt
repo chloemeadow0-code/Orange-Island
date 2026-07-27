@@ -480,6 +480,7 @@ internal fun TimelineSegmentsContent(
     reasoningPanelAlpha: Float = 1f,
     reasoningBackgroundImagePath: String = "",
     customAssistantBubbleColor: Long? = null,
+    messageBubbleAlpha: Float = 1f,
     splitBubbleByLine: Boolean = false,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -492,12 +493,13 @@ internal fun TimelineSegmentsContent(
             when (seg.type) {
                 "answer" -> {
                     if (seg.content.isNotBlank()) {
-                        // Answer bubble in timeline mode. When a custom assistant bubble
-                        // color is set, paint it fully opaque here too — otherwise finished
-                        // (non-streaming) timeline answers lose their color because the outer
-                        // single-bubble shell is suppressed once streaming ends.
+                        // Answer bubble in timeline mode. Repaints the custom assistant bubble
+                        // color here too — the outer single-bubble shell is suppressed once
+                        // streaming ends, so this is the only place finished timeline answers
+                        // get their color. Applies the same bubble-transparency slider as the
+                        // single-bubble shell for visual consistency.
                         val answerColor = customAssistantBubbleColor
-                            ?.let { ColorMath.argbToColor(it).copy(alpha = 1f) }
+                            ?.let { ColorMath.argbToColor(it).let { c -> c.copy(alpha = c.alpha * messageBubbleAlpha) } }
                         // Split finished answers across stacked bubbles at the model's own
                         // \n boundaries (same rule as non-timeline split-bubble mode).
                         // Streaming answers stay whole so the segment count doesn't thrash

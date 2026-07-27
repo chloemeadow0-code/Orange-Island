@@ -15,6 +15,7 @@ import com.orangeisland.app.data.local.MessageEntity
 import com.orangeisland.app.data.repository.ConversationRepository
 import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.model.ChatMessage
+import com.orangeisland.app.model.MessageSegment
 import com.orangeisland.app.model.MessageStatus
 import com.orangeisland.app.model.ModelId
 import com.orangeisland.app.model.Participant
@@ -30,6 +31,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.util.UUID
 
 /**
@@ -451,6 +454,100 @@ class MessageGenerationController(
                 )
             } finally {
                 session.loadingChange(myUiToken, false)
+            }
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // editAssistantMessage — text-only correction for an AI reply. Creates a
+    // new sibling branch (same parentId, auto-selected) carrying the edited
+    // text — NEVER calls the model. If the original message had segments
+    // (thought/tool/answer blocks), all "answer" segments are collapsed into
+    // one at the position of the first, holding the edited text; thought/tool
+    // segments are preserved untouched so the visible tool-call history stays
+    // intact. Only meant to be invoked once generation has finished (the UI
+    // gates the entry point on isEditingAllowed / !isLoading).
+    // ════════════════════════════════════════════════════════════════════
+
+    fun editAssistantMessage(messageId: String, newText: String) {
+        if (isLoading.value) return
+        val currentId = currentConversationId.value ?: return
+        val messageToEdit = allMessages.value.find { it.id == messageId } ?: return
+        if (messageToEdit.participant != Participant.MODEL) return
+
+        val parentId = messageToEdit.parentId
+        val originalSegments = messageToEdit.segments
+        val newSegments: List<MessageSegment>? = originalSegments?.let { segs ->
+            // GenerationManager seeds every generation with a blank placeholder answer
+            // segment at position 0 (`mutableListOf(MessageSegment(type = "answer"))`),
+            // which stays untouched — and stays in FIRST place — whenever the model thinks
+            // or calls a tool before writing any visible text. Anchoring the edited text on
+            // "the first answer segment" would land on that invisible placeholder instead of
+            // the real one, shoving thought/tool blocks that actually happened first down
+            // below the edited answer. Drop blank answer segments before anchoring so the
+            // edit lands where the real (rendered) answer segment was.
+            val cleaned = segs.filterNot { it.type == "answer" && it.content.isBlank() }
+            val hadAnswer = cleaned.any { it.type == "answer" }
+            if (hadAnswer) {
+                val result = mutableListOf<MessageSegment>()
+                var answerInserted = false
+                for (seg in cleaned) {
+                    if (seg.type == "answer") {
+                        if (!answerInserted) {
+                            result.add(MessageSegment(type = "answer", content = newText))
+                            answerInserted = true
+                        }
+                        // Subsequent answer segments are merged away — only one survives.
+                    } else {
+                        result.add(seg)
+                    }
+                }
+                result
+            } else {
+                cleaned + MessageSegment(type = "answer", content = newText)
+            }
+        }
+
+        val newBranchId = UUID.randomUUID().toString()
+        val newTimestamp = System.currentTimeMillis()
+        val newBranch = messageToEdit.copy(
+            id = newBranchId,
+            text = newText,
+            segments = newSegments,
+            status = MessageStatus.SUCCESS,
+            timestamp = newTimestamp
+        )
+
+        // No placeholder/streaming phase needed — this isn't a generation, so the
+        // branch can just appear as a finished SUCCESS message immediately.
+        allMessages.update { it + newBranch }
+        val newMap = selectedChildren.value.toMutableMap()
+        newMap[parentId] = newBranchId
+        val selectedAfterEdit = newMap.toMap()
+        selectedChildren.value = selectedAfterEdit
+
+        viewModelScope.launch(Dispatchers.IO) {
+            convRepo.upsertMessage(MessageEntity(
+                id = newBranchId, conversationId = currentId, parentId = parentId,
+                text = newText,
+                images = messageToEdit.images,
+                audio = messageToEdit.audio,
+                thoughts = messageToEdit.thoughts,
+                thoughtTitle = messageToEdit.thoughtTitle,
+                tokenCount = messageToEdit.tokenCount,
+                cachedTokenCount = messageToEdit.cachedTokenCount,
+                contextMessageCount = messageToEdit.contextMessageCount,
+                status = MessageStatus.SUCCESS,
+                participant = Participant.MODEL,
+                timestamp = newTimestamp,
+                thoughtTimeMs = messageToEdit.thoughtTimeMs,
+                generationDurationMs = messageToEdit.generationDurationMs,
+                modelName = messageToEdit.modelName,
+                toolCallJson = newSegments?.let { Json.encodeToString(it) }
+            ))
+            onPersistSelectedChildren(currentId, selectedAfterEdit)
+            convRepo.getConversation(currentId)?.let { conv ->
+                convRepo.upsertConversation(conv.copy(lastUpdated = System.currentTimeMillis()))
             }
         }
     }

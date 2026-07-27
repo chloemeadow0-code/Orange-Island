@@ -52,7 +52,7 @@ class AppContainer(private val appContext: Context) {
     // ── Repositories ──────────────────────────────────────────
 
     val conversationRepository: ConversationRepository by lazy {
-        ConversationRepository(chatDao)
+        ConversationRepository(chatDao, appContext)
     }
     val settingsRepository: SettingsRepository by lazy {
         SettingsRepository(settingsManager, appScope)
