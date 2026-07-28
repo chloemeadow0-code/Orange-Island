@@ -103,7 +103,9 @@ class ChatViewModel(
     val userInteractionGate: com.orangeisland.app.tool.UserInteractionGate? = null,
     /** Collects environment changes (foreground app, model, prompt, wallpaper, theme, battery,
      *  WiFi, Bluetooth) and formats them for injection into the system prompt via {app_context}. */
-    private val appContextCollector: com.orangeisland.app.data.environment.AppContextCollector? = null
+    private val appContextCollector: com.orangeisland.app.data.environment.AppContextCollector? = null,
+    /** Receives plugin-sent messages and triggers AI generation for them. */
+    private val pluginMemoryProvider: com.orangeisland.app.plugin.AppPluginMemoryProvider? = null,
 ) : AndroidViewModel(application) {
 
     companion object {
@@ -779,6 +781,21 @@ class ChatViewModel(
                 if (id != null) {
                     persistSelectedChildren(id, childrenMap)
                 }
+            }
+        }
+
+        // Wire plugin-sent messages into the chat generation pipeline.
+        pluginMemoryProvider?.onMessageSent = { conversationId, text ->
+            viewModelScope.launch {
+                val originalId = _currentConversationId.value
+                if (originalId != conversationId) {
+                    _currentConversationId.value = conversationId
+                    // Clear new-chat mode so MessageGenerationController does not spawn
+                    // a brand-new conversation and strand the AI reply there.
+                    _isNewChatMode.value = false
+                    _isTransitioningToNewChat.value = false
+                }
+                sendMessage(text)
             }
         }
     }

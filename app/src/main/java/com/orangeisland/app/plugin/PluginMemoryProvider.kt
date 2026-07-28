@@ -39,9 +39,9 @@ interface PluginMemoryProvider {
 
     /**
      * Insert a user message into [conversationId]. Returns `true` if the message was persisted.
-     * The caller is responsible for ensuring the conversation exists.
+     * If the conversation does not exist yet, it is created and bound to [projectId] when provided.
      */
-    suspend fun sendChatMessage(conversationId: String, text: String): Boolean
+    suspend fun sendChatMessage(conversationId: String, text: String, projectId: String? = null): Boolean
 
     /**
      * Resolves the project id that owns [conversationId]. Returns `null` for ungrouped

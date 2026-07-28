@@ -242,21 +242,6 @@ class NavigationToolProvider(private val app: Application) : ToolProvider {
         }
     }
 
-    private fun getForegroundApp(): String {
-        val pkg = AppForegroundDispatcher.lastKnown
-        return buildJsonObject {
-            put("success", JsonPrimitive(true))
-            put("package_name", JsonPrimitive(pkg))
-            put("app_name", JsonPrimitive(pkg?.let {
-                try {
-                    app.packageManager.getApplicationLabel(
-                        app.packageManager.getApplicationInfo(it, 0)
-                    ).toString()
-                } catch (_: Exception) { it }
-            }))
-        }.toString()
-    }
-
     private fun getInstalledApps(arguments: String): String {
         val args = json.parseToJsonElement(arguments).jsonObject
         val query = args["query"]?.toString()?.trim('"')?.lowercase()
@@ -285,6 +270,23 @@ class NavigationToolProvider(private val app: Application) : ToolProvider {
             put("success", JsonPrimitive(true))
             put("count", JsonPrimitive(apps.size))
             put("apps", JsonArray(apps))
+        }.toString()
+    }
+
+    private fun getForegroundApp(): String {
+        val pkg = AppForegroundDispatcher.lastKnown
+            ?: return error("unknown", "No foreground app detected yet")
+        val appName = try {
+            app.packageManager.getApplicationLabel(
+                app.packageManager.getApplicationInfo(pkg, 0)
+            ).toString()
+        } catch (_: Exception) {
+            pkg
+        }
+        return buildJsonObject {
+            put("success", JsonPrimitive(true))
+            put("package_name", JsonPrimitive(pkg))
+            put("app_name", JsonPrimitive(appName))
         }.toString()
     }
 

@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
 import com.orangeisland.app.data.InstalledPlugin
+import com.orangeisland.app.plugin.PluginMemoryProvider
 import com.orangeisland.app.viewmodel.ChatViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,7 +32,11 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsPluginPage(viewModel: ChatViewModel, onBack: () -> Unit) {
+fun SettingsPluginPage(
+    viewModel: ChatViewModel,
+    onBack: () -> Unit,
+    memoryProvider: PluginMemoryProvider? = null,
+) {
     val settings = viewModel.settings
     val enabledIds by settings.enabledPluginIds.collectAsState()
     val pluginConfigs by settings.pluginConfigs.collectAsState()
@@ -96,7 +101,12 @@ fun SettingsPluginPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val openPlugin = openUiFor
     val sandbox = viewModel.pluginSandbox
     if (openPlugin != null && sandbox != null) {
-        PluginWebViewPage(plugin = openPlugin, sandbox = sandbox, onBack = { openUiFor = null })
+        PluginWebViewPage(
+            plugin = openPlugin,
+            sandbox = sandbox,
+            onBack = { openUiFor = null },
+            memoryProvider = memoryProvider,
+        )
         return
     }
 

@@ -83,23 +83,20 @@ class AppPluginMemoryProvider(
         }
     }
 
-    override suspend fun sendChatMessage(conversationId: String, text: String): Boolean {
+    override suspend fun sendChatMessage(conversationId: String, text: String, projectId: String?): Boolean {
         if (text.isBlank()) return false
         return try {
             // Ensure the conversation exists — plugin window ids may not correspond to a real
             // conversation yet, so create one on first send using the id directly.
+            // When projectId is provided, bind the new conversation to that project.
             conversations.ensureConversation(
                 id = conversationId,
                 title = "插件对话",
+                projectId = projectId,
             )
-            val entity = MessageEntity(
-                id = UUID.randomUUID().toString(),
-                conversationId = conversationId,
-                text = text,
-                participant = Participant.USER,
-                timestamp = System.currentTimeMillis(),
-            )
-            conversations.upsertMessage(entity)
+            // Do NOT insert the user message here — ChatViewModel.sendMessage will write it
+            // uniformly via MessageGenerationController, ensuring correct parentId and avoiding
+            // duplicate messages. We just fire the callback so the host triggers generation.
             onMessageSent?.invoke(conversationId, text)
             true
         } catch (e: Exception) {

@@ -11,8 +11,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
 /**
@@ -154,13 +157,21 @@ class OrangeIslandWebViewBridge(
         }.getOrElse { errorJson("memory_error", it.message ?: "read failed") }
     }
 
-    /** Send a user message into [conversationId]. Returns `"true"` or `"false"`. */
+    /** Send a user message into [conversationId]. Returns `"true"` or `"false"`.
+     *  When the plugin config contains a `projectId`, the conversation is bound to that project on creation. */
     @JavascriptInterface
     fun sendChatMessage(conversationId: String, text: String): String {
         val provider = memoryProvider ?: return "false"
+        val projectId = runCatching {
+            kotlinx.serialization.json.Json.parseToJsonElement(pluginConfigJson)
+                .jsonObject["projectId"]
+                ?.jsonPrimitive
+                ?.content
+                ?.takeIf { it.isNotBlank() }
+        }.getOrNull()
         return runCatching {
             kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
-                provider.sendChatMessage(conversationId, text).toString()
+                provider.sendChatMessage(conversationId, text, projectId).toString()
             }
         }.getOrElse { "false" }
     }

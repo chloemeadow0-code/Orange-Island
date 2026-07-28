@@ -1,15 +1,14 @@
-// 插件开发指南 —— 为 AI 提供的 Orange Island 插件开发规范
-//
-// 本插件只暴露一个工具 get_plugin_dev_guide，返回一份 Markdown 文档。
-// AI 在帮用户写/调试插件时调用此工具，按文档规范编写。
+// 插件开发指南 v2.0 —— Orange Island 插件开发完整规范
+// AI 在帮用户编写/调试插件前必须调用 get_plugin_dev_guide 读取。
 
-var GUIDE = '# Orange Island 插件开发规范\n\
+var GUIDE = '# Orange Island 插件开发规范 v2.0\n\
 \n\
-本规范由实战调试得出，**请严格遵守**，否则会重蹈已知的坑。\n\
+> 本规范由实战调试得出，**请严格遵守**，否则会重蹈已知的坑。\n\
+> 涵盖 main.js（QuickJS 沙箱）、ui.html（WebView）、manifest、打包、故障排查全流程。\n\
 \n\
 ## 1. 目录结构与打包\n\
 \n\
-一个插件是 3 个文件，打包成 zip（文件放在 zip 根目录，不要套文件夹）：\n\
+一个插件最少 2 个文件，最多 3 个，打包成 zip（文件放在 zip **根目录**，不要套文件夹）：\n\
 \n\
 ```\n\
 my-plugin.zip\n\
@@ -34,6 +33,7 @@ host (PluginLoader) 校验规则：\n\
   "version": "1.0.0",\n\
   "author": "作者名",\n\
   "description": "一句话描述",\n\
+  "icon": "🔮",\n\
   "allowedHosts": ["api.example.com"],\n\
   "ui": "ui.html",\n\
   "config": [\n\
@@ -66,9 +66,9 @@ host (PluginLoader) 校验规则：\n\
 - `tools`：AI 可调用的工具。工具名在 LLM 那边会变成 `plugin__<sanitizedId>__<toolName>`。\n\
 - `type`：`string` | `integer` | `number` | `boolean`（`int`/`bool` 等别名也接受）。\n\
 \n\
-## 3. main.js 工具实现\n\
+## 3. main.js 工具实现（QuickJS 沙箱）\n\
 \n\
-**核心契约（必须遵守）**：\n\
+### 3.1 核心契约（必须遵守）\n\
 \n\
 ```js\n\
 // 1) 用 CommonJS exports，不要 export / module.exports（host 只识别 exports.xxx）\n\
@@ -76,7 +76,7 @@ exports.my_tool = function (params) {\n\
     // 2) 函数必须是【同步】的！不能用 async/await/Promise。\n\
     //    host 同步取返回值并 JSON.stringify，async 函数会返回 {} （Promise 序列化结果）。\n\
     params = params || {};\n\
-    if (!params.text) return { ok: false, error: "missing text" };\n\
+    if (!params.text) return { success: false, error: "missing text" };\n\
 \n\
     // 3) 想发网络请求用同步 fetch（见第 6 节）。\n\
     var resp = fetch("https://api.example.com/data", {\n\
@@ -84,82 +84,176 @@ exports.my_tool = function (params) {\n\
         headers: { "Content-Type": "application/json" },\n\
         body: JSON.stringify({ q: params.text })\n\
     });\n\
-    if (!resp.ok) return { ok: false, status: resp.status, error: resp.body };\n\
-    var data = JSON.parse(resp.body);\n\
-    return { ok: true, data: data };\n\
+    // 4) fetch 返回的不是浏览器 Response，而是 JSON 字符串！必须先 parse\n\
+    var result = (typeof resp === "string") ? JSON.parse(resp) : resp;\n\
+    if (!result || !result.ok) {\n\
+        return { success: false, error: result ? (result.error || ("HTTP " + result.status)) : "无响应" };\n\
+    }\n\
+    var data = JSON.parse(result.body || "{}");\n\
+    return { success: true, data: data };\n\
 };\n\
 ```\n\
 \n\
-**host 在每次工具调用前注入的全局变量**：\n\
+### 3.2 读取配置（向后兼容写法）\n\
 \n\
-| 变量 | 类型 | 说明 |\n\
-|---|---|---|\n\
-| `__OI_USER_ID` | string | 当前设备的稳定 UUID（永不变，跨所有插件共享）|\n\
-| `__OI_PLUGIN_CONFIG` | object | 用户在配置弹窗填的值，形如 `{"user_nickname":"Alice"}`；无 config 字段时是 `{}` |\n\
-| `__OI_TOOL_NAME` | string | 当前被调用的工具名（一般用不到）|\n\
-| `__OI_TOOL_ARGS` | object | 调用参数（同 `params` 形参，一般用 params 即可）|\n\
-| `fetch` | function | 同步 HTTP（见第 6 节）|\n\
-| `console.log/warn/error` | function | 日志打到 logcat（tag: `plugin/<id>`）|\n\
+**【致命坑】旧版宿主注入 `config` 全局变量，新版改为 `__OI_PLUGIN_CONFIG`。必须写兼容代码！**\n\
 \n\
-**读取身份/配置的推荐写法**：\n\
 ```js\n\
-function getDeviceId() {\n\
-    return (typeof __OI_USER_ID === "string") ? __OI_USER_ID : "";\n\
-}\n\
 function getConfig() {\n\
-    try {\n\
-        if (typeof __OI_PLUGIN_CONFIG === "object" && __OI_PLUGIN_CONFIG) return __OI_PLUGIN_CONFIG;\n\
-        if (typeof __OI_PLUGIN_CONFIG === "string") return JSON.parse(__OI_PLUGIN_CONFIG);\n\
-    } catch (e) {}\n\
-    return {};\n\
+  try {\n\
+    // 新版 Orange Island\n\
+    var cfg = (typeof __OI_PLUGIN_CONFIG !== "undefined") ? __OI_PLUGIN_CONFIG\n\
+          : ((typeof __AGORA_PLUGIN_CONFIG !== "undefined") ? __AGORA_PLUGIN_CONFIG : undefined);\n\
+    if (typeof cfg === "object" && cfg) return cfg;\n\
+    if (typeof cfg === "string") return JSON.parse(cfg);\n\
+  } catch (e) {}\n\
+  return {};\n\
+}\n\
+\n\
+function getDeviceId() {\n\
+  var id = (typeof __OI_USER_ID !== "undefined") ? __OI_USER_ID\n\
+         : ((typeof __AGORA_USER_ID !== "undefined") ? __AGORA_USER_ID : "");\n\
+  return (typeof id === "string") ? id : "";\n\
 }\n\
 ```\n\
 \n\
-## 4. ui.html 插件 UI 页面\n\
+### 3.3 host 注入的全局变量\n\
+\n\
+| 变量 | 类型 | 说明 |\n\
+|---|---|---|\n\
+| `__OI_USER_ID` | string | 当前设备的稳定 UUID（新版）|\n\
+| `__OI_PLUGIN_CONFIG` | object/string | 用户填的配置值（新版）|\n\
+| `__AGORA_USER_ID` | string | 旧版设备 ID（兼容用）|\n\
+| `__AGORA_PLUGIN_CONFIG` | object/string | 旧版配置（兼容用）|\n\
+| `__OI_TOOL_NAME` | string | 当前被调用的工具名 |\n\
+| `__OI_TOOL_ARGS` | object | 调用参数（同 params）|\n\
+| `fetch` | function | 同步 HTTP（见第 6 节）|\n\
+| `console.log/warn/error` | function | 日志打到 logcat（tag: `plugin/<id>`）|\n\
+\n\
+## 4. fetch 约束（main.js 里）—— 【必读】\n\
+\n\
+### 4.1 返回值类型（最大坑）\n\
+\n\
+**QuickJS 沙箱里的 `fetch` 返回的是 JSON 字符串，不是浏览器 Response 对象！**\n\
+\n\
+```js\n\
+var raw = fetch(url, options);\n\
+// raw 是一个 JSON 字符串：\n\
+// \'{ "ok": true, "status": 200, "body": "...响应文本...", "truncated": false }\'\n\
+\n\
+// 必须先 parse\n\
+var resp = (typeof raw === "string") ? JSON.parse(raw) : raw;\n\
+\n\
+// 然后才能访问字段\n\
+if (!resp || !resp.ok) { /* 处理错误 */ }\n\
+var text = resp.body || "";\n\
+var data = text ? JSON.parse(text) : {};\n\
+```\n\
+\n\
+### 4.2 选项与限制\n\
+\n\
+```js\n\
+var resp = fetch(url, {\n\
+    method: "POST",      // GET | POST | PUT | PATCH | DELETE | HEAD\n\
+    headers: {\n\
+        "Content-Type": "application/json",\n\
+        "Authorization": "Bearer xxx"\n\
+    },\n\
+    body: JSON.stringify({ q: "hello" }),  // 必须是字符串\n\
+    timeout: 15000       // 毫秒，范围 1000-30000，默认 30000\n\
+});\n\
+```\n\
+\n\
+**安全规则**：\n\
+- URL 必须 http/https；https 强制（除非目标是 localhost/LAN，可走 http）\n\
+- 域名必须在 `manifest.allowedHosts` 里，否则请求被拦（返回 `{ok:false, status:0, error:"Host not in allowedHosts"}`）\n\
+- 响应体上限 512KB；超出会被截断并设 `truncated:true`\n\
+- 不支持 `await`，不支持 `.then()`，不支持 `.text()` / `.json()` 方法\n\
+\n\
+### 4.3 安全的请求封装模板\n\
+\n\
+```js\n\
+var LAST_ERROR = null;\n\
+\n\
+function apiRequest(url, method, headers, body, timeout) {\n\
+  var raw;\n\
+  try {\n\
+    raw = fetch(url, {\n\
+      method: method || "GET",\n\
+      headers: headers || {},\n\
+      body: body || undefined,\n\
+      timeout: timeout || 15000\n\
+    });\n\
+  } catch (e) {\n\
+    LAST_ERROR = "请求异常: " + (e.message || String(e));\n\
+    return null;\n\
+  }\n\
+  var resp = (typeof raw === "string") ? JSON.parse(raw) : raw;\n\
+  if (!resp || !resp.ok) {\n\
+    LAST_ERROR = resp ? (resp.error || ("HTTP " + (resp.status || 0))) : "无响应";\n\
+    return null;\n\
+  }\n\
+  LAST_ERROR = null;\n\
+  var text = resp.body || "";\n\
+  try { return JSON.parse(text); } catch (e) { return text; }\n\
+}\n\
+```\n\
+\n\
+## 5. ui.html 插件 UI 页面\n\
 \n\
 ui.html 是一个完整的 HTML 文档（`<!DOCTYPE html>...`），在 WebView 里加载。\n\
 \n\
 **host 会自动**：\n\
-1. 在页面 HTML 前注入一段 `<script>` bootstrap，定义 `window.orangeisland`（见下）\n\
+1. 在页面 HTML 前注入一段 `<script>` bootstrap，定义 `window.orangeisland`\n\
 2. 把 `__oiNative` 作为 JavascriptInterface 注入 WebView\n\
 \n\
-**`window.orangeisland` 桥 API**：\n\
-```js\n\
-// 异步调用本插件的某个工具（只能调 manifest 里声明的工具）\n\
-orangeisland.call("tool_name", { key: "value" }, function (resultJson) {\n\
-    var result = JSON.parse(resultJson);\n\
-    // result 就是 main.js 里 return 的对象\n\
-});\n\
+### 5.1 桥接对象改名（兼容写法）\n\
 \n\
-// 同步读取配置（实时值，零时序竞态）\n\
-var cfg = orangeisland.config;          // 用户填的配置对象\n\
-var deviceId = orangeisland.deviceId;   // 设备 UUID\n\
+**【致命坑】旧版宿主注入 `window.agora`，新版改为 `window.orangeisland`。**\n\
+UI 里必须同时检测两者：\n\
+\n\
+```js\n\
+var bridge = (typeof orangeisland !== "undefined" && orangeisland)\n\
+         ? orangeisland\n\
+         : ((typeof agora !== "undefined" && agora) ? agora : null);\n\
+\n\
+if (!bridge || typeof bridge.call !== "function") {\n\
+  // 桥接未加载，提示用户从插件列表打开\n\
+}\n\
+\n\
+// 调用工具\n\
+bridge.call("tool_name", { key: "value" }, function (resultJson) {\n\
+  var result = (typeof resultJson === "string") ? JSON.parse(resultJson) : resultJson;\n\
+  // ...\n\
+});\n\
 ```\n\
 \n\
-**重要约束（踩过的坑）**：\n\
-- ui.html 里的 `fetch` 是【浏览器原生 fetch】，返回 Promise，**可以**用 async/await（这点和 main.js 相反！）\n\
-- 配置读取**优先用 `orangeisland.config`**（同步 getter，零竞态），兜底用 `__OI_PLUGIN_CONFIG` 全局\n\
-- 页面 origin 是 `about:blank`；跨域请求靠目标服务器返回 `Access-Control-Allow-Origin: *`（大多数后端 API 如 Supabase 默认支持）\n\
-- WebView 禁用了 file/dom access；JS 不能读本地文件\n\
+### 5.2 读取配置\n\
 \n\
-**ui.html 读配置的安全写法**：\n\
 ```js\n\
 function readConfig() {\n\
-    try {\n\
-        if (typeof orangeisland !== "undefined" && orangeisland.config) return orangeisland.config;\n\
-    } catch (e) {}\n\
-    try {\n\
-        if (typeof __OI_PLUGIN_CONFIG === "object") return __OI_PLUGIN_CONFIG;\n\
-        if (typeof __OI_PLUGIN_CONFIG === "string") return JSON.parse(__OI_PLUGIN_CONFIG);\n\
-    } catch (e) {}\n\
-    return {};\n\
+  try {\n\
+    if (typeof orangeisland !== "undefined" && orangeisland.config) return orangeisland.config;\n\
+  } catch (e) {}\n\
+  try {\n\
+    var cfg = (typeof __OI_PLUGIN_CONFIG !== "undefined") ? __OI_PLUGIN_CONFIG\n\
+              : ((typeof __AGORA_PLUGIN_CONFIG !== "undefined") ? __AGORA_PLUGIN_CONFIG : undefined);\n\
+    if (typeof cfg === "object" && cfg) return cfg;\n\
+    if (typeof cfg === "string") return JSON.parse(cfg);\n\
+  } catch (e) {}\n\
+  return {};\n\
 }\n\
-// 直接读，不需要 waitForConfig 轮询（orangeisland.config 是同步 getter）\n\
-var cfg = readConfig();\n\
-var nickname = cfg.user_nickname || "默认值";\n\
 ```\n\
 \n\
-## 5. 配置项（manifest.config）工作流\n\
+### 5.3 重要约束\n\
+\n\
+- ui.html 里的 `fetch` 是【浏览器原生 fetch】，返回 Promise，**可以**用 async/await（和 main.js 相反！）\n\
+- 配置读取**优先用 `orangeisland.config`**（同步 getter，零竞态），兜底用 `__OI_PLUGIN_CONFIG` 全局\n\
+- 页面 origin 是 `about:blank`；跨域请求靠目标服务器返回 `Access-Control-Allow-Origin: *`\n\
+- WebView 禁用了 file/dom access；JS 不能读本地文件\n\
+- ui.html 是完整 HTML 文档，必须 `<!DOCTYPE html>` 开头；不要把 JS 代码裸放在 DOCTYPE 前（会被当文字渲染）\n\
+\n\
+## 6. 配置项（manifest.config）工作流\n\
 \n\
 1. manifest 里声明 `config` 字段（name/type/label/required/placeholder 等）\n\
 2. 用户点插件🌐图标时，若 config 非空且未填过，host 自动弹配置表单\n\
@@ -168,27 +262,6 @@ var nickname = cfg.user_nickname || "默认值";\n\
 5. 插件列表的⚙齿轮按钮可随时改配置\n\
 \n\
 **type 字段**：目前只支持 `"string"`（渲染为文本输入框）；其他类型会被当成文本框（未来会扩展 number/boolean/select）。\n\
-\n\
-## 6. fetch 约束（main.js 里）\n\
-\n\
-**main.js 的 fetch 是【同步】的**，签名：\n\
-```js\n\
-var resp = fetch(url, options);\n\
-// options: { method, headers, body, timeout }\n\
-//   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD"\n\
-//   headers: {key: value}\n\
-//   body: string（JSON.stringify(...) 或纯文本）\n\
-//   timeout: 1000-30000 ms（默认 30000）\n\
-//\n\
-// resp = { ok: bool, status: int, body: string, truncated?: bool, error?: string }\n\
-```\n\
-\n\
-**安全规则**：\n\
-- URL 必须 http/https；https 强制（除非目标是 localhost/LAN，可走 http）\n\
-- 域名必须在 `manifest.allowedHosts` 里，否则请求被拦（返回 `{ok:false, status:0, error:"Host not in allowedHosts"}`）\n\
-- 响应体上限 512KB；超出会被截断并设 `truncated:true`\n\
-\n\
-**ui.html 里的 fetch 是浏览器原生的**（Promise/Response），不受 allowedHosts 限制，但受 CORS 限制。\n\
 \n\
 ## 7. 打包成 zip\n\
 \n\
@@ -204,18 +277,25 @@ Compress-Archive -Path manifest.json,main.js,ui.html -DestinationPath my-plugin.
 \n\
 校验：解压后应该直接看到 manifest.json（不是 `my-plugin/manifest.json`）。\n\
 \n\
-## 8. 已知坑（必读）\n\
+## 8. 已知坑（实战血泪总结）\n\
 \n\
-1. **main.js 工具函数不能 async**：host 同步取返回值，async 返回 Promise 会被序列化成 `{}`。\n\
-2. **main.js fetch 不能 await**：是同步函数，直接 `var resp = fetch(...)`。\n\
-3. **ui.html 读配置用 `orangeisland.config`**：不要靠全局 `__OI_PLUGIN_CONFIG`（有时序竞态）。`orangeisland.config` 是同步 getter，零竞态。\n\
-4. **ui.html 是完整 HTML 文档**：必须 `<!DOCTYPE html>` 开头；不要把 JS 代码裸放在 DOCTYPE 前（会被当文字渲染）。\n\
-5. **manifest.ui 不能含路径**：用 `"ui": "ui.html"`，不是 `"ui/index.html"`。\n\
-6. **manifest.id 含特殊字符会被拒**：只能小写字母/数字/`_`/`.`/`-`。\n\
-7. **工具名/参数名/config 字段名必须是合法 JS 标识符**：`^[a-zA-Z_][a-zA-Z0-9_]*$`。\n\
-8. **exports 而非 export**：用 CommonJS `exports.tool_name = function(){}`；不要 ES module 的 `export`。\n\
-9. **fetch 域名要加进 allowedHosts**：连 Supabase 就加 `["xxx.supabase.co"]`，否则请求被拦。\n\
-10. **zip 文件放根目录**：不要套文件夹，否则 manifest.json 找不到。\n\
+| # | 坑 | 后果 | 解决 |\n\
+|---|---|---|---|\n\
+| 1 | main.js 工具函数 async | host 同步取返回值，async 返回 Promise 被序列化成 `{}` | 全部用同步函数 |\n\
+| 2 | main.js 里 `await fetch(...)` | QuickJS 不支持 await，直接报错 | `var raw = fetch(...)` |\n\
+| 3 | fetch 返回当 Response 对象用 | 访问 `.ok` / `.body` / `.status` 时全是 undefined，判定永远失败 | 先 `JSON.parse(raw)` |\n\
+| 4 | 直接访问 `config` 全局变量 | `ReferenceError: config is not defined` | 用 `getConfig()` 封装兼容 `__OI_PLUGIN_CONFIG` / `__AGORA_PLUGIN_CONFIG` |\n\
+| 5 | UI 里检测 `window.agora` | 新版宿主只注入 `orangeisland`，检测失败 | 优先检测 `orangeisland`，回退 `agora` |\n\
+| 6 | manifest 缺少 `allowedHosts` | 沙箱拦截所有请求，返回 Host not in allowedHosts | 必填，至少填目标域名 |\n\
+| 7 | manifest.ui 含路径 | 校验失败，插件无法加载 | 用 `"ui": "ui.html"`，不是 `"ui/index.html"` |\n\
+| 8 | manifest.id 含大写/特殊字符 | 校验失败 | 只用小写字母/数字/`_`/`.`/`-` |\n\
+| 9 | 工具名/参数名/config 字段名含 `-` | 校验失败 | 用下划线 `_`，不要用连字符 |\n\
+| 10 | zip 套了文件夹 | host 找不到 manifest.json | 文件放 zip 根目录 |\n\
+| 11 | `response.text()` / `.json()` | 沙箱 fetch 没有这些方法 | 直接读 `resp.body`（字符串） |\n\
+| 12 | Supabase URL 末尾带 `/` | 拼接后变成 `//rest/v1/`，404 | `url.replace(/\\/+$/, "")` 去尾斜杠 |\n\
+| 13 | `Array.prototype.filter` / `.some` / `.includes` | QuickJS 可能不支持或行为异常 | 改用 `for` 循环 + `indexOf` |\n\
+| 14 | `JSON.stringify(undefined)` | 返回 undefined（不是字符串 `"undefined"`） | 显式判断 `data ? JSON.stringify(data) : undefined` |\n\
+| 15 | 函数内用 `const` / `let` / `箭头函数` / `模板字符串` | QuickJS 支持但建议保守；`const` 在旧版可能有坑 | 用 `var` + 传统函数最稳 |\n\
 \n\
 ## 9. 完整最小示例\n\
 \n\
@@ -237,11 +317,22 @@ Compress-Archive -Path manifest.json,main.js,ui.html -DestinationPath my-plugin.
 \n\
 **main.js**：\n\
 ```js\n\
+function getConfig() {\n\
+  try {\n\
+    var cfg = (typeof __OI_PLUGIN_CONFIG !== "undefined") ? __OI_PLUGIN_CONFIG\n\
+          : ((typeof __AGORA_PLUGIN_CONFIG !== "undefined") ? __AGORA_PLUGIN_CONFIG : undefined);\n\
+    if (typeof cfg === "object" && cfg) return cfg;\n\
+    if (typeof cfg === "string") return JSON.parse(cfg);\n\
+  } catch (e) {}\n\
+  return {};\n\
+}\n\
+\n\
 exports.greet = function (params) {\n\
-    var cfg = (typeof __OI_PLUGIN_CONFIG === "object") ? __OI_PLUGIN_CONFIG : {};\n\
-    var name = cfg.name || "世界";\n\
-    var deviceId = (typeof __OI_USER_ID === "string") ? __OI_USER_ID : "";\n\
-    return { message: "你好，" + name + "！", deviceId: deviceId };\n\
+  var cfg = getConfig();\n\
+  var name = cfg.name || "世界";\n\
+  var deviceId = (typeof __OI_USER_ID === "string") ? __OI_USER_ID\n\
+               : ((typeof __AGORA_USER_ID === "string") ? __AGORA_USER_ID : "");\n\
+  return { success: true, message: "你好，" + name + "！", deviceId: deviceId };\n\
 };\n\
 ```\n\
 \n\
@@ -252,15 +343,32 @@ exports.greet = function (params) {\n\
 <body>\n\
 <div id="out">加载中…</div>\n\
 <script>\n\
-    var cfg = (typeof orangeisland !== "undefined" && orangeisland.config) ? orangeisland.config : {};\n\
+  var bridge = (typeof orangeisland !== "undefined" && orangeisland)\n\
+             ? orangeisland : ((typeof agora !== "undefined" && agora) ? agora : null);\n\
+  if (!bridge || typeof bridge.call !== "function") {\n\
+    document.getElementById("out").textContent = "桥接未加载";\n\
+  } else {\n\
+    var cfg = bridge.config || {};\n\
     document.getElementById("out").textContent = "你好，" + (cfg.name || "世界") + "！";\n\
+  }\n\
 </script>\n\
 </body></html>\n\
 ```\n\
 \n\
 打包：`zip hello.zip manifest.json main.js ui.html`，然后在 app 设置→插件→Import plugin (.zip) 导入。\n\
-';
-
-exports.get_plugin_dev_guide = function () {
-    return { content: GUIDE, format: "markdown" };
-};
+\n\
+## 10. 调试技巧\n\
+\n\
+1. **看 logcat**：插件代码里的 `console.log("xxx")` 会输出到 Android logcat，tag 为 `plugin/<id>`。\n\
+2. **先用最小示例验证**：不要一上来就写几百行，先写一个 `greet` 工具确认环境正常。\n\
+3. **逐步增加功能**：先通网络（fetch 能拿到数据），再处理业务逻辑。\n\
+4. **manifest 改后重启 App**：host 只在启动时扫描插件目录，修改 manifest 后需要重启才能生效。\n\
+5. **fetch 问题先隔离测试**：把请求参数和返回结果打印出来，确认域名在 allowedHosts 里、URL 拼接正确、返回已 parse。\n\
+\n\
+---\n\
+*规范版本：v2.0 | 最后更新：2026-07-27*\n\
+';\n\
+\n\
+exports.get_plugin_dev_guide = function () {\n\
+    return { content: GUIDE, format: "markdown" };\n\
+};\n

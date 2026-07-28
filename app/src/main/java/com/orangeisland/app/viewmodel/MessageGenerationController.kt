@@ -611,8 +611,14 @@ class MessageGenerationController(
                 settings.setConversationSettings(currentId, pendingSettings)
                 pendingConversationSettings.value = null
             }
-            val currentPath = messages.value
-            val lastMessageId = currentPath.lastOrNull()?.id
+            // Always read the latest DB message for parentId — messages.value is a reactive
+            // flow that can lag behind currentConversationId changes (e.g. plugin callbacks
+            // switch the id and immediately call sendMessage). Using the DB directly avoids
+            // parentId pointing at a message from a different conversation.
+            val lastMessageId = convRepo.getMessagesForConversationSnapshot(currentId)
+                .filter { it.participant == Participant.USER || it.participant == Participant.MODEL }
+                .maxByOrNull { it.timestamp }
+                ?.id
             val userMessageId = UUID.randomUUID().toString()
             convRepo.upsertMessage(MessageEntity(
                 id = userMessageId, conversationId = currentId, parentId = lastMessageId,

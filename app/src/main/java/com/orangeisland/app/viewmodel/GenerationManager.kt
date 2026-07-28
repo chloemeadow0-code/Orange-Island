@@ -400,6 +400,13 @@ class GenerationManager(
         // Inject tool call chains that are children of messages in the ancestor path.
         val expanded = mutableListOf<MessageEntity>()
         for (entity in pathEntities) {
+            // Synthetic tool_/result_ messages can appear in the ancestor chain when a
+            // workflow chat_message was parented on a result_ node (legacy / edge case).
+            // They are already injected as toolChildren of their parent model message above,
+            // so adding them again here would create duplicate (and broken) tool_use blocks.
+            if (entity.id.startsWith(Constants.TOOL_MSG_PREFIX) || entity.id.startsWith(Constants.RESULT_MSG_PREFIX)) {
+                continue
+            }
             val toolChildren = dbMessages
                 .filter { it.parentId == entity.id && it.id.startsWith(Constants.TOOL_MSG_PREFIX) }
                 .sortedBy { it.timestamp }

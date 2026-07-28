@@ -74,6 +74,11 @@ abstract class BaseOpenAiProvider : LlmProvider {
 
     protected open val retryMissingV1BaseUrl: Boolean = false
 
+    /** When false the `stream_options` field is omitted from the request body.
+     *  Some OpenAI-compatible proxies/gateways (e.g. OpenCode) do not support
+     *  `stream_options` and return "Upstream request failed" if it is present. */
+    protected open val includeStreamOptions: Boolean = true
+
     protected open fun retryDelayMillis(statusCode: Int, attempt: Int): Long = 1000L * attempt
 
     // -- Template method --
@@ -97,7 +102,7 @@ abstract class BaseOpenAiProvider : LlmProvider {
             model = config.modelId,
             messages = apiMessages,
             stream = true,
-            streamOptions = OpenAiStreamOptions(includeUsage = true),
+            streamOptions = if (includeStreamOptions) OpenAiStreamOptions(includeUsage = true) else null,
             tools = config.tools,
             temperature = config.temperature,
             maxTokens = config.maxTokens,
@@ -112,6 +117,7 @@ abstract class BaseOpenAiProvider : LlmProvider {
         try {
             val requestBodyJson = json.encodeToString(OpenAiChatRequest.serializer(), request)
             DebugLog.d("OrangeIslandAPI", "[$name] REQ -> ${endpointUrls.first()} | model=${config.modelId} | msgs=${apiMessages.size} | tools=${config.tools?.size ?: 0}")
+            DebugLog.d("OrangeIslandAPI", "[$name] REQ_BODY -> ${requestBodyJson.take(4000)}")
 
             val headers = mutableMapOf("Content-Type" to "application/json")
             if (config.apiKey.isNotBlank()) headers["Authorization"] = "Bearer ${config.apiKey}"
@@ -142,7 +148,7 @@ abstract class BaseOpenAiProvider : LlmProvider {
                                 continue
                             }
 
-                            DebugLog.e("OrangeIslandAPI", "[$name] ERR ${handle.code} at $endpointUrl: $errorRaw")
+                            DebugLog.e("OrangeIslandAPI", "[$name] ERR ${handle.code} at $endpointUrl: ${errorRaw.take(4000)}")
 
                             if (handle.code in retryableStatusCodes && attempt < maxAttempts) {
                                 val retryDelayMs = retryDelayMillis(handle.code, attempt)
@@ -203,12 +209,12 @@ abstract class BaseOpenAiProvider : LlmProvider {
                     parseDeltaContent(delta, config, thinkParser) { emit(it) }
 
                     delta.toolCalls?.forEach { tc ->
-                        val existing = if (tc.id != null) pendingToolCalls.values.firstOrNull { it.id == tc.id } else null
+                        val existing = if (!tc.id.isNullOrBlank()) pendingToolCalls.values.firstOrNull { it.id == tc.id } else null
                         val pending = if (existing != null) existing else {
                             val idx = tc.index ?: pendingToolCalls.size
                             pendingToolCalls.getOrPut(idx) { PendingToolCall() }
                         }
-                        if (tc.id != null) pending.id = tc.id
+                        if (!tc.id.isNullOrBlank()) pending.id = tc.id
                         tc.function?.name?.let { if (it.isNotEmpty()) pending.name = it }
                         tc.function?.arguments?.let {
                             pending.args.append(if (it is JsonPrimitive) it.content else it.toString())

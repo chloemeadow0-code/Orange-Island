@@ -359,6 +359,8 @@ class AppContainer(private val appContext: Context) {
             com.orangeisland.app.plugin.PluginSandbox.PluginConfigProvider { pluginId ->
                 settingsRepository.pluginConfigJson(pluginId)
             },
+            // Enable plugin UI pages to read/write chat history and long-term memories.
+            memoryProvider = pluginMemoryProvider,
         )
     }
     val pluginToolProvider: com.orangeisland.app.plugin.PluginToolProvider by lazy {
@@ -383,7 +385,8 @@ class AppContainer(private val appContext: Context) {
             application, chatDao, settingsManager, memoryManager, appContext, sandboxManagerFactory,
             autoBackupManager, conversationRepository, settingsRepository, workflowRepository,
             workflowApprovalGate, pluginToolProvider, pluginLoader, pluginSandbox,
-            workflowAiToolProvider, userInteractionGate, appContextCollector
+            workflowAiToolProvider, userInteractionGate, appContextCollector,
+            pluginMemoryProvider
         )
 
     fun healthViewModelFactory(): com.orangeisland.app.viewmodel.HealthViewModelFactory =

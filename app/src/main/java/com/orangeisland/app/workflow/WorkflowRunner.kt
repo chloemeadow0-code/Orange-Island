@@ -507,9 +507,13 @@ class WorkflowRunner(
             val siblings = messages.filter { it.parentId == cursor }
             if (siblings.isEmpty()) break
             val visible = siblings.filter { !it.id.startsWith("tool_") && !it.id.startsWith("result_") }
-            val pool = if (visible.isNotEmpty()) visible else siblings
-            val selected = branches[cursor]?.let { sel -> pool.firstOrNull { it.id == sel } }
-                ?: pool.maxByOrNull { it.timestamp }
+            // Never descend into synthetic tool_/result_ nodes: if there are no visible
+            // children the walk stops here.  This prevents workflow chat_message nodes
+            // from parenting on hidden result_ messages, which would later break API
+            // tool_use / tool_result pairing in GenerationManager.buildApiPath.
+            if (visible.isEmpty()) break
+            val selected = branches[cursor]?.let { sel -> visible.firstOrNull { it.id == sel } }
+                ?: visible.maxByOrNull { it.timestamp }
                 ?: break
             cursor = selected.id
         }

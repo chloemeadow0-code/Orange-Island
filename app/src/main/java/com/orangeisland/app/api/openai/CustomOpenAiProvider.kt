@@ -9,6 +9,8 @@ class CustomOpenAiProvider(
 
     override val retryMissingV1BaseUrl: Boolean = true
 
+    override val includeStreamOptions: Boolean = false
+
     override fun retryDelayMillis(statusCode: Int, attempt: Int): Long =
         if (statusCode == 401) 5000L else super.retryDelayMillis(statusCode, attempt)
 

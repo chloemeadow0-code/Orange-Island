@@ -402,7 +402,7 @@ class AnthropicProvider : LlmProvider {
     }
 
     private fun buildToolUseBlock(id: String?, name: String?, args: String?): AnthropicContentPart {
-        val toolId = id ?: buildToolCallId(name ?: "", args ?: "{}", "tool_")
+        val toolId = id?.takeIf { it.isNotBlank() } ?: buildToolCallId(name ?: "", args ?: "{}", "tool_")
         val input = try {
             json.parseToJsonElement(args ?: "{}") as? JsonObject ?: JsonObject(emptyMap())
         } catch (_: Exception) { JsonObject(emptyMap()) }
@@ -413,12 +413,12 @@ class AnthropicProvider : LlmProvider {
         val toolSegs = msg.segments?.filter { it.type == "tool" }
         if (!toolSegs.isNullOrEmpty()) {
             return toolSegs.map { seg ->
-                val toolId = seg.toolCallId ?: buildToolCallId(seg.toolName ?: "", seg.toolArgs ?: "{}", "tool_")
+                val toolId = seg.toolCallId?.takeIf { it.isNotBlank() } ?: buildToolCallId(seg.toolName ?: "", seg.toolArgs ?: "{}", "tool_")
                 AnthropicContentPart(type = "tool_result", toolUseId = toolId, content = seg.toolResult ?: "")
             }
         }
         val tc = msg.toolCall ?: return emptyList()
-        val toolId = tc.toolCallId ?: buildToolCallId(tc.toolName, tc.arguments, "tool_")
+        val toolId = tc.toolCallId?.takeIf { it.isNotBlank() } ?: buildToolCallId(tc.toolName, tc.arguments, "tool_")
         return listOf(AnthropicContentPart(type = "tool_result", toolUseId = toolId, content = tc.result))
     }
 

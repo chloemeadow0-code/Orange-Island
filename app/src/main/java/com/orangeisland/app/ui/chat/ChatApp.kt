@@ -244,7 +244,7 @@ fun ChatApp(
         if (isExpanded) expandedCapsuleOffset else (bottomBarHeight - 4.dp).coerceAtLeast(0.dp)
     } else {
         val t = ((drawerProgress - 0.5f) * 2f).coerceIn(0f, 1f)
-        (bottomBarHeight.value + (settingsButtonTopDp - bottomBarHeight.value) * t).dp
+        (bottomBarHeight.value + (settingsButtonTopDp - bottomBarHeight.value) * t).dp.coerceAtLeast(0.dp)
     }
     LaunchedEffect(targetSnackbarOffset) { onSnackbarOffsetChanged(targetSnackbarOffset) }
     val listState = rememberLazyListState()

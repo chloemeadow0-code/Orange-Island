@@ -1027,7 +1027,7 @@ fun MainNavigation(
                 visible = showing,
                 enter = fadeIn(tween(400)) + scaleIn(tween(400), initialScale = 0.8f),
                 exit = fadeOut(tween(400)) + scaleOut(tween(400), targetScale = 0.8f),
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = snackbarBottomPadding + 2.dp)
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = (snackbarBottomPadding + 2.dp).coerceAtLeast(0.dp))
             ) {
                 content?.let { data ->
                     Snackbar(

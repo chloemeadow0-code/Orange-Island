@@ -399,7 +399,7 @@ internal fun ChatDrawerContent(
                     .onGloballyPositioned { coords ->
                         val screenHeightPx = configuration.screenHeightDp * density.density
                         val buttonTopPx = coords.positionInWindow().y
-                        onSettingsButtonTop((screenHeightPx - buttonTopPx) / density.density)
+                        onSettingsButtonTop(((screenHeightPx - buttonTopPx) / density.density).coerceAtLeast(0f))
                     },
                 shape = CircleShape
             ) {

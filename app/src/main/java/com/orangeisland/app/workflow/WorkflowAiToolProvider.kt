@@ -528,7 +528,9 @@ definition shape:
     { "kind": "branch", "label": "...", "lhs": {"type":"literal","value":"..."}, "cmp": "EQ", "rhs": {"type":"literal","value":"..."} },
     { "kind": "merge", "label": "...", "reducer": "ALL_TRUE" },
     { "kind": "transform", "label": "...", "op": { "kind": "regex", "pattern": "...", "group": 0, "fallback": "" } },
-    { "kind": "llm", "label": "...", "prompt": {"type":"literal","value":"..."}, "provider": "OpenAI", "model_id": "gpt-4o-mini" }
+    { "kind": "llm", "label": "...", "prompt": {"type":"literal","value":"..."}, "provider": "OpenAI", "model_id": "gpt-4o-mini" },
+    { "kind": "notify", "label": "...", "title": {"type":"literal","value":"..."}, "content": {"type":"literal","value":"..."}, "priority": "default" },
+    { "kind": "chat_message", "label": "...", "text": {"type":"literal","value":"..."}, "participant": "MODEL" }
   ],
   "edges": [  // 0..128 edges
     { "from_index": 0, "to_index": 1, "guard": { "type": "on_success" } },
@@ -543,6 +545,8 @@ NODE KINDS:
   merge - Reduces multiple incoming booleans. Field: reducer (ALL_TRUE or ANY_TRUE).
   transform - Shapes a string. Field: op (one of the below).
   llm - Runs an LLM inference. Fields: prompt (NodeValue), provider (default OpenAI), model_id (default gpt-4o-mini), system_prompt, temperature (default 0.7).
+  notify - Posts a system notification. Fields: title (NodeValue), content (NodeValue), priority (string, default "default").
+  chat_message - Inserts a message into the bound project's chat. Fields: text (NodeValue), participant ("MODEL" or "USER", default "MODEL").
 
 NODEVALUE format (used in action args, branch lhs/rhs, transform join, llm prompt):
   {"type": "literal", "value": "..."}  - a plain string
