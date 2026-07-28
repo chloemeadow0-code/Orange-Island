@@ -1,0 +1,77 @@
+{
+  "id": "com.orangechat.plugin.voiceroom",
+  "name": "语音聊天室",
+  "description": "专属语音聊天室，支持 TTS 语音播放。消息与主聊天互通，可读取项目记忆。兼容 ElevenLabs / OpenAI / MiniMax",
+  "version": "2.0.0",
+  "author": "OrangeChat",
+  "icon": "🎙️",
+  "entry": "main.js",
+  "allowedHosts": ["api.elevenlabs.io", "api.openai.com", "api.minimax.chat", "api.minimax.io"],
+  "ui": "ui.html",
+  "config": [
+    {
+      "name": "windowId",
+      "type": "string",
+      "label": "对话窗口 ID",
+      "description": "从项目编辑详情页复制，用于和主聊天互通消息",
+      "required": true
+    },
+    {
+      "name": "projectId",
+      "type": "string",
+      "label": "项目 ID",
+      "description": "从项目编辑详情页复制，用于读取项目长期记忆",
+      "required": false
+    },
+    {
+      "name": "user_name",
+      "type": "string",
+      "label": "用户昵称",
+      "required": false,
+      "placeholder": "小猫"
+    },
+    {
+      "name": "ai_name",
+      "type": "string",
+      "label": "AI 昵称",
+      "required": false,
+      "placeholder": "知厌"
+    },
+    {
+      "name": "tts_provider",
+      "type": "string",
+      "label": "TTS 服务商",
+      "description": "填写 elevenlabs、openai 或 minimax，不填则只显示文字",
+      "required": false,
+      "placeholder": "elevenlabs"
+    },
+    {
+      "name": "tts_key",
+      "type": "string",
+      "label": "TTS API Key",
+      "required": false
+    },
+    {
+      "name": "tts_voice_id",
+      "type": "string",
+      "label": "TTS 音色 ID",
+      "description": "ElevenLabs 填 voice_id；OpenAI 填 alloy/nova/echo 等；MiniMax 填 voice_id",
+      "required": false
+    },
+    {
+      "name": "tts_model",
+      "type": "string",
+      "label": "TTS 模型",
+      "description": "OpenAI 填 tts-1 或 tts-1-hd；MiniMax 填 speech-02-turbo 等；ElevenLabs 可留空",
+      "required": false,
+      "placeholder": "tts-1"
+    }
+  ],
+  "tools": [
+    {
+      "name": "open_voice_room",
+      "description": "打开语音聊天室界面。消息与主聊天互通，AI 回复会自动 TTS 朗读。",
+      "parameters": []
+    }
+  ]
+}

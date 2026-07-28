@@ -1,0 +1,48 @@
+{
+  "id": "com.orangechat.plugin.chatroom",
+  "name": "聊天室",
+  "description": "专属聊天室，消息与主聊天互通，可读取项目记忆。",
+  "version": "2.1.0",
+  "author": "OrangeChat",
+  "icon": "💬",
+  "entry": "main.js",
+  "allowedHosts": [],
+  "ui": "ui.html",
+  "config": [
+    {
+      "name": "windowId",
+      "type": "string",
+      "label": "对话窗口 ID",
+      "description": "从项目编辑详情页复制，用于和主聊天互通消息",
+      "required": true
+    },
+    {
+      "name": "projectId",
+      "type": "string",
+      "label": "项目 ID",
+      "description": "从项目编辑详情页复制，用于读取项目长期记忆",
+      "required": false
+    },
+    {
+      "name": "user_name",
+      "type": "string",
+      "label": "用户昵称",
+      "required": false,
+      "placeholder": "小猫"
+    },
+    {
+      "name": "ai_name",
+      "type": "string",
+      "label": "AI 昵称",
+      "required": false,
+      "placeholder": "知厌"
+    }
+  ],
+  "tools": [
+    {
+      "name": "open_chat_room",
+      "description": "打开聊天室界面。消息与主聊天互通。",
+      "parameters": []
+    }
+  ]
+}
