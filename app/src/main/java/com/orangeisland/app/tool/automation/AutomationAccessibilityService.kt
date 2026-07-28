@@ -49,13 +49,14 @@ class AutomationAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         // Forward window-state transitions to the workflow trigger layer's foreground dispatcher.
-        // The dispatcher dedupes by package; when no workflow subscribes to app_* triggers its
+        // The dispatcher filters out noise packages (IME / SystemUI / Launcher), dedupes by
+        // package, and fans out to subscribers. When no workflow subscribes to app_* triggers its
         // listener list is empty and the fan-out is a no-op, so the service's primary job
         // (gesture / window-tree tools) is unaffected.
         if (event != null && event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val pkg = event.packageName?.toString()
             if (!pkg.isNullOrBlank()) {
-                com.orangeisland.app.workflow.trigger.AppForegroundDispatcher.publish(pkg)
+                com.orangeisland.app.workflow.trigger.AppForegroundDispatcher.publish(this, pkg)
             }
         }
     }

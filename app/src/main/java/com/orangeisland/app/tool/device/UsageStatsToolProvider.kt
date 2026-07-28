@@ -9,6 +9,7 @@ import com.orangeisland.app.api.ToolProperty
 import com.orangeisland.app.tool.SensitiveToolApprovalGate
 import com.orangeisland.app.tool.ToolProvider
 import com.orangeisland.app.util.DebugLog
+import com.orangeisland.app.util.NoisePackageFilter
 import com.orangeisland.app.viewmodel.GenerationContext
 import com.orangeisland.app.viewmodel.PermissionController
 import kotlinx.serialization.json.Json
@@ -177,7 +178,11 @@ class UsageStatsToolProvider(
         while (events.hasNextEvent()) {
             events.getNextEvent(event)
             if (event.eventType == android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND) {
-                pkg = event.packageName
+                val candidate = event.packageName
+                // The most recent MOVE_TO_FOREGROUND is frequently the IME (typing) or SystemUI
+                // (notification shade). Skip those and keep walking back to the last real app.
+                if (candidate != null && NoisePackageFilter.isNoise(app, candidate)) continue
+                pkg = candidate
                 sinceMs = event.timeStamp
             }
         }

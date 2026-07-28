@@ -1,5 +1,6 @@
 package com.orangeisland.app.data.environment
 
+import android.app.usage.UsageStatsManager
 import android.bluetooth.BluetoothAdapter
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -10,7 +11,7 @@ import android.os.BatteryManager
 import androidx.core.content.ContextCompat
 import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.util.DebugLog
-import com.orangeisland.app.workflow.trigger.AppForegroundDispatcher
+import com.orangeisland.app.util.NoisePackageFilter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -38,8 +39,16 @@ class AppContextCollector(
     private val maxEvents = 20
     private val timeSdf = SimpleDateFormat("HH:mm", Locale.getDefault())
 
+    /** How far back the usage summary looks when building the snapshot. 30 min is a balance:
+     *  long enough to cover a typical "switch between a few apps then come back to chat" burst,
+     *  short enough that the summary reflects what the user is doing *recently* rather than
+     *  averaging over the whole day. */
+    private val usageLookbackMs = 30L * 60 * 1000
+
+    /** Max apps listed in the usage summary. Keeps the {app_context} block concise. */
+    private val usageTopN = 8
+
     // ── Subscription handles ─────────────────────────────────────────────
-    private var foregroundRemover: Runnable? = null
     private var modelJob: Job? = null
     private var promptJob: Job? = null
     private var themeJob: Job? = null
@@ -77,13 +86,55 @@ class AppContextCollector(
         endCollecting()
     }
 
-    /** Formats the most recent events as a bullet list, or empty string if none. */
+    /** Formats the snapshot injected via `{app_context}`: a recent-usage summary (top apps by
+     *  foreground minutes over the last [usageLookbackMs]) followed by the ring buffer of
+     *  environment events (model / theme / battery / wifi / ...).
+     *
+     *  The usage summary is queried on demand rather than accumulated from window-change events,
+     *  because the event-based approach recorded the IME ↔ app ↔ Launcher churn as "app switches"
+     *  and produced a noise-only snapshot. Querying [UsageStatsManager] reports what the user
+     *  actually spent time in instead. If usage access isn't granted or the query returns nothing,
+     *  the summary is omitted and only the event list is emitted — the model still gets the rest
+     *  of the context. */
     fun getSnapshot(): String {
+        val usageBlock = buildUsageSummary()
         val copy = synchronized(events) { events.toList() }
-        if (copy.isEmpty()) return ""
-        return copy.joinToString("\n") {
+        val eventBlock = if (copy.isEmpty()) "" else copy.joinToString("\n") {
             "• ${timeSdf.format(Date(it.timestamp))} ${it.description}"
         }
+        return listOf(usageBlock, eventBlock).filter { it.isNotBlank() }.joinToString("\n")
+    }
+
+    /**
+     * Best-effort recent-usage summary. Returns "" when there's no permission, no service, or no
+     * usable data — callers then fall back to the event list alone. Noise packages (IME, SystemUI,
+     * Launcher) are stripped so the summary reflects real app usage, not input-method churn.
+     */
+    private fun buildUsageSummary(): String = runCatching {
+        val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+            ?: return@runCatching ""
+        val now = System.currentTimeMillis()
+        val stats = usm.queryUsageStats(UsageStatsManager.INTERVAL_BEST, now - usageLookbackMs, now)
+            ?: return@runCatching ""
+        val pm = context.packageManager
+        val top = stats.asSequence()
+            .filter { it.totalTimeInForeground > 0 }
+            .filter { !NoisePackageFilter.isNoise(context, it.packageName) }
+            .sortedByDescending { it.totalTimeInForeground }
+            .take(usageTopN)
+            .toList()
+        if (top.isEmpty()) return@runCatching ""
+        val minutesWindow = (usageLookbackMs / 60_000L).toInt()
+        val lines = top.joinToString("\n") { s ->
+            val label = runCatching {
+                pm.getApplicationLabel(pm.getApplicationInfo(s.packageName, 0)).toString()
+            }.getOrDefault(s.packageName)
+            "• $label  ${s.packageName}  ${s.totalTimeInForeground / 60_000L} 分"
+        }
+        "近 $minutesWindow 分钟使用的应用：\n$lines"
+    }.getOrElse {
+        DebugLog.w("AppContext", "usage summary failed (likely no usage-access permission)", it)
+        ""
     }
 
     // ── Internal ────────────────────────────────────────────────────────
@@ -110,19 +161,11 @@ class AppContextCollector(
     }
 
     private fun beginCollecting() {
-        if (foregroundRemover != null) return // already running
+        if (modelJob != null) return // already running
 
-        // 1. App foreground transitions
-        foregroundRemover = AppForegroundDispatcher.subscribe { pkg ->
-            if (!pkg.isNullOrBlank()) {
-                pushEvent(
-                    EnvironmentEventType.APP_FOREGROUND_CHANGED,
-                    "前台应用：$pkg"
-                )
-            }
-        }
-
-        // 2. Model changes
+        // 1. Model changes (foreground apps are no longer recorded as events — see getSnapshot(),
+        //    which queries UsageStatsManager on demand. The event-based approach logged IME and
+        //    Launcher churn as "app switches" and produced a noise-only snapshot.)
         lastModel = settingsRepository.selectedModel.value
         modelJob = scope.launch {
             settingsRepository.selectedModel.collect { model ->
@@ -133,7 +176,7 @@ class AppContextCollector(
             }
         }
 
-        // 3. System prompt changes
+        // 2. System prompt changes
         lastPromptId = settingsRepository.activeSystemPromptId.value
         promptJob = scope.launch {
             settingsRepository.activeSystemPromptId.collect { promptId ->
@@ -146,7 +189,7 @@ class AppContextCollector(
             }
         }
 
-        // 4. Theme mode
+        // 3. Theme mode
         lastTheme = settingsRepository.themeMode.value
         themeJob = scope.launch {
             settingsRepository.themeMode.collect { theme ->
@@ -162,7 +205,7 @@ class AppContextCollector(
             }
         }
 
-        // 5. Dynamic color
+        // 4. Dynamic color
         lastDynamicColor = settingsRepository.dynamicColor.value
         dynamicColorJob = scope.launch {
             settingsRepository.dynamicColor.collect { enabled ->
@@ -176,7 +219,7 @@ class AppContextCollector(
             }
         }
 
-        // 6. Color scheme
+        // 5. Color scheme
         lastColorScheme = settingsRepository.colorScheme.value
         colorSchemeJob = scope.launch {
             settingsRepository.colorScheme.collect { scheme ->
@@ -187,7 +230,7 @@ class AppContextCollector(
             }
         }
 
-        // 7. OS broadcasts (wallpaper, battery, WiFi, Bluetooth)
+        // 6. OS broadcasts (wallpaper, battery, WiFi, Bluetooth)
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context, intent: Intent) {
                 when (intent.action) {
@@ -261,8 +304,6 @@ class AppContextCollector(
     }
 
     private fun endCollecting() {
-        foregroundRemover?.run()
-        foregroundRemover = null
         modelJob?.cancel(); modelJob = null
         promptJob?.cancel(); promptJob = null
         themeJob?.cancel(); themeJob = null

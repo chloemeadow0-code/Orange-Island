@@ -8,6 +8,7 @@ import android.content.IntentFilter
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import com.orangeisland.app.util.DebugLog
+import com.orangeisland.app.util.NoisePackageFilter
 
 /**
  * Builds a [DeviceContext] snapshot by reading the live device state. Called by the linear engine
@@ -72,9 +73,13 @@ class DeviceContextProvider(
         while (events.hasNextEvent()) {
             events.getNextEvent(event)
             if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                val candidate = event.packageName
+                // The most recent MOVE_TO_FOREGROUND is frequently the IME or SystemUI; skip those
+                // and keep walking back so the foreground guard reflects the real active app.
+                if (candidate != null && NoisePackageFilter.isNoise(context, candidate)) continue
                 if (event.timeStamp > latestTime) {
                     latestTime = event.timeStamp
-                    latestPackage = event.packageName
+                    latestPackage = candidate
                 }
             }
         }

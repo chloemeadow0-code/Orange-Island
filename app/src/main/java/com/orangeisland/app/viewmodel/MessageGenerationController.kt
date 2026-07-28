@@ -611,14 +611,42 @@ class MessageGenerationController(
                 settings.setConversationSettings(currentId, pendingSettings)
                 pendingConversationSettings.value = null
             }
-            // Always read the latest DB message for parentId — messages.value is a reactive
-            // flow that can lag behind currentConversationId changes (e.g. plugin callbacks
-            // switch the id and immediately call sendMessage). Using the DB directly avoids
-            // parentId pointing at a message from a different conversation.
-            val lastMessageId = convRepo.getMessagesForConversationSnapshot(currentId)
-                .filter { it.participant == Participant.USER || it.participant == Participant.MODEL }
-                .maxByOrNull { it.timestamp }
-                ?.id
+            // Compute the visible-path tail from the DB (including any workflow chat_message
+            // nodes that may have landed).  Timestamp-based parentId alone is unsafe when
+            // workflow messages and user turns race: the new message can become a sibling of
+            // a workflow message, and without an explicit branch selection the resolver hides
+            // the user turn (it falls back to newest-by-timestamp, which may be the model
+            // placeholder that was inserted after the user message).
+            val dbMessages = convRepo.getMessagesForConversationSnapshot(currentId)
+            val conv = convRepo.getConversation(currentId)
+            val dbBranches = if (conv?.selectedBranchesJson != null) {
+                try {
+                    Json.decodeFromString<Map<String, String>>(conv.selectedBranchesJson)
+                        .mapKeys { if (it.key == "null") null else it.key }
+                } catch (_: Exception) { emptyMap() }
+            } else emptyMap()
+            var tail: String? = null
+            var cursor: String? = null
+            while (true) {
+                val siblings = dbMessages.filter { it.parentId == cursor }
+                if (siblings.isEmpty()) break
+                val visible = siblings.filter {
+                    !it.id.startsWith(Constants.TOOL_MSG_PREFIX) &&
+                    !it.id.startsWith(Constants.RESULT_MSG_PREFIX)
+                }
+                val pool = if (visible.isNotEmpty()) visible else siblings
+                val selected = dbBranches[cursor]?.let { sel -> pool.firstOrNull { it.id == sel } }
+                    ?: pool.maxByOrNull { it.timestamp }
+                    ?: break
+                tail = selected.id
+                cursor = selected.id
+            }
+            val lastMessageId = tail
+                ?: messages.value.lastOrNull()?.id
+                ?: dbMessages.filter {
+                    it.participant == Participant.USER || it.participant == Participant.MODEL
+                }.maxByOrNull { it.timestamp }?.id
+
             val userMessageId = UUID.randomUUID().toString()
             convRepo.upsertMessage(MessageEntity(
                 id = userMessageId, conversationId = currentId, parentId = lastMessageId,
@@ -633,9 +661,18 @@ class MessageGenerationController(
                 text = "", thoughts = null, status = MessageStatus.SENDING, participant = Participant.MODEL, timestamp = startTime,
                 modelName = currentActiveModel.value
             ))
-            convRepo.getConversation(currentId)?.let { conv ->
-                convRepo.upsertConversation(conv.copy(lastUpdated = System.currentTimeMillis()))
+            convRepo.getConversation(currentId)?.let { c ->
+                convRepo.upsertConversation(c.copy(lastUpdated = System.currentTimeMillis()))
             }
+            // Sync branch selection so the new user message (and its model placeholder)
+            // are on the visible path.  Workflow chat_message nodes write selectedBranchesJson
+            // directly in the DB, so memory can be stale.
+            val newSelected = dbBranches.toMutableMap()
+            if (lastMessageId != null) {
+                newSelected[lastMessageId] = userMessageId
+            }
+            newSelected[userMessageId] = modelMessageId
+            selectedChildren.value = newSelected.toMap()
             // Set streamingMessage BEFORE allMessages, so when the combine
             // re-evaluates on the allMessages change, streamingMessage is already
             // visible — eliminating the single-frame gap.
