@@ -198,6 +198,7 @@ class GenerationRequestBuilder(
             alarmEnabled = settings.alarmEnabled.value,
             healthEnabled = settings.healthToolEnabled.value,
             healthDbPath = settings.gadgetbridgeDbPath.value,
+            timeToolEnabled = settings.timeToolEnabled.value,
             uiAutomationEnabled = settings.uiAutomationEnabled.value,
             userInteractionEnabled = settings.userInteractionEnabled.value,
             // Memory + RAG scope: a conversation inside a project only sees that project's

@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Layers
@@ -67,6 +68,7 @@ fun SettingsDeviceAccessPage(
     val toastEnabled by settings.toastEnabled.collectAsState()
     val alarmEnabled by settings.alarmEnabled.collectAsState()
     val healthToolEnabled by settings.healthToolEnabled.collectAsState()
+    val timeToolEnabled by settings.timeToolEnabled.collectAsState()
     val uiAutomationEnabled by settings.uiAutomationEnabled.collectAsState()
     val userInteractionEnabled by settings.userInteractionEnabled.collectAsState()
     val environmentAwarenessEnabled by settings.environmentAwarenessEnabled.collectAsState()
@@ -249,6 +251,17 @@ fun SettingsDeviceAccessPage(
                         icon = Icons.Default.Alarm,
                         checked = alarmEnabled,
                         onCheckedChange = { settings.setAlarmEnabled(it) },
+                        permissionState = PermissionState.NotRequired
+                    )
+                }
+                // 获取时间（get_current_time，只返回 HH:mm:ss，无权限需求）
+                add {
+                    ToolToggleRow(
+                        title = "获取时间",
+                        desc = "允许 AI 调用工具获取设备当前时间（仅时:分:秒，不含日期）",
+                        icon = Icons.Default.AccessTime,
+                        checked = timeToolEnabled,
+                        onCheckedChange = { settings.setTimeToolEnabled(it) },
                         permissionState = PermissionState.NotRequired
                     )
                 }

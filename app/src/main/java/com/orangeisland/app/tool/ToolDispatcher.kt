@@ -10,6 +10,7 @@ import com.orangeisland.app.data.repository.ConversationRepository
 import com.orangeisland.app.mcp.McpClientPool
 import com.orangeisland.app.plugin.PluginToolProvider
 import com.orangeisland.app.sandbox.SandboxManagerFactory
+import kotlinx.coroutines.CancellationException
 import com.orangeisland.app.viewmodel.GenerationContext
 import com.orangeisland.app.viewmodel.PermissionController
 
@@ -70,6 +71,7 @@ class ToolDispatcher(
     private val ragToolProvider = RagToolProvider(conversations)
     private val imageGenToolProvider = ImageGenToolProvider(app)
     private val deviceInfoToolProvider = com.orangeisland.app.tool.device.DeviceInfoToolProvider(app)
+    private val timeToolProvider = com.orangeisland.app.tool.device.TimeToolProvider(app)
     private val locationToolProvider = permissionController?.let {
         com.orangeisland.app.tool.device.LocationToolProvider(app, it, sensitiveToolApproval)
     }
@@ -103,7 +105,7 @@ class ToolDispatcher(
      *  practice, but the order is still deterministic. */
     val all: List<ToolProvider> = buildList {
         add(memoryToolProvider); add(webSearchToolProvider); add(ragToolProvider)
-        add(imageGenToolProvider); add(deviceInfoToolProvider); add(shellToolProvider)
+        add(imageGenToolProvider); add(deviceInfoToolProvider); add(timeToolProvider); add(shellToolProvider)
         locationToolProvider?.let { add(it) }
         calendarToolProvider?.let { add(it) }
         notificationToolProvider?.let { add(it) }
@@ -161,6 +163,8 @@ class ToolDispatcher(
                 }
             }
             "Unknown tool: $name"
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             UsageLogManager.logTool(
                 name = "$name ✗",
@@ -249,6 +253,7 @@ class ToolDispatcher(
      *  provider internally checks its own enable flag in [GenerationContext]. */
     fun deviceDefinitions(ctx: GenerationContext): List<ToolDefinition> = buildList {
         addAll(deviceInfoToolProvider.definitions(ctx))
+        addAll(timeToolProvider.definitions(ctx))
         locationToolProvider?.let { addAll(it.definitions(ctx)) }
         calendarToolProvider?.let { addAll(it.definitions(ctx)) }
         notificationToolProvider?.let { addAll(it.definitions(ctx)) }

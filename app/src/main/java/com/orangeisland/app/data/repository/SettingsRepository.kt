@@ -114,6 +114,7 @@ class SettingsRepository(
     val toastEnabled: StateFlow<Boolean> = hot(settingsManager.toastEnabled, false)
     val alarmEnabled: StateFlow<Boolean> = hot(settingsManager.alarmEnabled, false)
     val healthToolEnabled: StateFlow<Boolean> = hot(settingsManager.healthToolEnabled, false)
+    val timeToolEnabled: StateFlow<Boolean> = hot(settingsManager.timeToolEnabled, false)
     val uiAutomationEnabled: StateFlow<Boolean> = hot(settingsManager.uiAutomationEnabled, false)
     val userInteractionEnabled: StateFlow<Boolean> = hot(settingsManager.userInteractionEnabled, true)
     val amapApiKey: StateFlow<String> = hot(settingsManager.amapApiKey, "")
@@ -464,6 +465,7 @@ class SettingsRepository(
     fun setToastEnabled(enabled: Boolean) = scope.launch { settingsManager.saveToastEnabled(enabled) }
     fun setAlarmEnabled(enabled: Boolean) = scope.launch { settingsManager.saveAlarmEnabled(enabled) }
     fun setHealthToolEnabled(v: Boolean) = scope.launch { settingsManager.saveHealthToolEnabled(v) }
+    fun setTimeToolEnabled(v: Boolean) = scope.launch { settingsManager.saveTimeToolEnabled(v) }
     fun setUiAutomationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveUiAutomationEnabled(enabled) }
     fun setUserInteractionEnabled(enabled: Boolean) = scope.launch { settingsManager.saveUserInteractionEnabled(enabled) }
     fun setAmapApiKey(key: String) = scope.launch { settingsManager.saveAmapApiKey(key) }

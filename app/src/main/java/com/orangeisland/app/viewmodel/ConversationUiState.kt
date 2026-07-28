@@ -20,12 +20,27 @@ data class ConversationUiState(
             selectedChildren: Map<String?, String>
         ): List<ChatMessage> {
             val path = mutableListOf<ChatMessage>()
+            val visited = mutableSetOf<String>()
+            val allIds = allMessages.mapTo(mutableSetOf()) { it.id }
             var cursor: String? = null
 
             while (true) {
-                val siblings = allMessages.filter { it.parentId == cursor }
+                var siblings = allMessages.filter { it.id !in visited && it.parentId == cursor }
                     .sortedBy { it.timestamp }
-                if (siblings.isEmpty()) break
+
+                if (siblings.isEmpty()) {
+                    // Dead end via the normal parentId chain. Before giving up, check for
+                    // an unvisited message whose declared parentId doesn't resolve to ANY
+                    // message in this conversation at all (e.g. a data bug left it pointing
+                    // at a message from a different conversation). If found, splice the
+                    // earliest such orphan in as a continuation of the current path instead
+                    // of silently dropping it — and everything hanging off it — from view.
+                    val orphan = allMessages
+                        .filter { it.id !in visited && it.parentId != null && it.parentId !in allIds }
+                        .minByOrNull { it.timestamp }
+                    if (orphan == null) break
+                    siblings = listOf(orphan)
+                }
 
                 val selectedId = selectedChildren[cursor]
                 val visibleSiblings = siblings.filter {
@@ -45,6 +60,7 @@ data class ConversationUiState(
                 if (!isSynthetic || (streamingMsg != null && selected.id == streamingMsg.id)) {
                     path.add(selected)
                 }
+                visited.add(selected.id)
                 cursor = selected.id
             }
             // Append streaming message if not yet in path
