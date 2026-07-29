@@ -38,7 +38,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class PermissionController(private val appContext: Context) {
 
     /** The Device Access tools that need a system permission. */
-    enum class Tool { LOCATION, CALENDAR, NOTIFICATION, USAGE_STATS, ACCESSIBILITY, UI_AUTOMATION, OVERLAY }
+    enum class Tool { LOCATION, CALENDAR, NOTIFICATION, USAGE_STATS, ACCESSIBILITY, UI_AUTOMATION, OVERLAY, RECORD_AUDIO }
 
     /** True iff the tool's required permission(s) are currently granted. Safe to call from any thread. */
     fun isGranted(tool: Tool): Boolean = when (tool) {
@@ -52,6 +52,7 @@ class PermissionController(private val appContext: Context) {
         Tool.ACCESSIBILITY -> accessibilityEnabled
         Tool.UI_AUTOMATION -> uiAutomationAccessibilityEnabled
         Tool.OVERLAY -> overlayEnabled
+        Tool.RECORD_AUDIO -> hasPermission(Manifest.permission.RECORD_AUDIO)
     }
 
     /** Launches the system Settings screen the user must visit to grant [tool]'s special permission.

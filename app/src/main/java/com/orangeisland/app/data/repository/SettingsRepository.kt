@@ -207,6 +207,11 @@ class SettingsRepository(
     val ttsStyle: StateFlow<Float> = hot(settingsManager.ttsStyle, 0.0f)
     val ttsVolume: StateFlow<Float> = hot(settingsManager.ttsVolume, 1.0f)
     val ttsPitch: StateFlow<Float> = hot(settingsManager.ttsPitch, 0.0f)
+    // ── Speech-to-Text (SiliconFlow) ───────────────────────────
+    val sttEnabled: StateFlow<Boolean> = hot(settingsManager.sttEnabled, false)
+    val sttApiKey: StateFlow<String> = hot(settingsManager.sttApiKey, "")
+    val sttModel: StateFlow<String> = hot(settingsManager.sttModel, "")
+    val sttBaseUrl: StateFlow<String> = hot(settingsManager.sttBaseUrl, "")
 
     // ── Write (fire-and-forget; read current state from own StateFlows) ──
     //
@@ -652,4 +657,10 @@ class SettingsRepository(
     fun setTtsStyle(style: Float) = scope.launch { settingsManager.saveTtsStyle(style) }
     fun setTtsVolume(volume: Float) = scope.launch { settingsManager.saveTtsVolume(volume) }
     fun setTtsPitch(pitch: Float) = scope.launch { settingsManager.saveTtsPitch(pitch) }
+
+    // ── Speech-to-Text (SiliconFlow) ───────────────────────────
+    fun setSttEnabled(enabled: Boolean) = scope.launch { settingsManager.saveSttEnabled(enabled) }
+    fun setSttApiKey(key: String) = scope.launch { settingsManager.saveSttApiKey(key) }
+    fun setSttModel(model: String) = scope.launch { settingsManager.saveSttModel(model) }
+    fun setSttBaseUrl(baseUrl: String) = scope.launch { settingsManager.saveSttBaseUrl(baseUrl) }
 }

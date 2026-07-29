@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Voice Call feature: capture microphone audio for STT (SiliconFlow). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Alarm tool: lets the AI set alarms/timers via the system clock app's AlarmClock intents.
          Normal permission (auto-granted at install), no runtime prompt needed. -->
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />

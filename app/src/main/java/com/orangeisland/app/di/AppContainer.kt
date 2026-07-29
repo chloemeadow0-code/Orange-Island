@@ -210,6 +210,13 @@ class AppContainer(private val appContext: Context) {
         com.orangeisland.app.workflow.WorkflowApprovalGate()
     }
 
+    /** Shared approval gate between the AI voice-call tool (make_voice_call) and the incoming-call
+     *  UI. Constructed once here so the same instance is wired to the ToolDispatcher (tool side)
+     *  and to the full-screen incoming-call screen (render side). */
+    val voiceCallGate: com.orangeisland.app.viewmodel.VoiceCallGate by lazy {
+        com.orangeisland.app.viewmodel.VoiceCallGate()
+    }
+
     /** Approval gate for sensitive device-access tools (location, notifications, usage stats).
      *  When autoApprove is false, AI-driven calls suspend until the user confirms via dialog.
      *
@@ -286,7 +293,8 @@ class AppContainer(private val appContext: Context) {
             workflowToolProvider = workflowAiToolProvider,
             sensitiveToolApproval = sensitiveToolApprovalGate,
             chatDao = chatDao,
-            userInteractionGate = userInteractionGate
+            userInteractionGate = userInteractionGate,
+            voiceCallGate = voiceCallGate
         )
     }
 
@@ -385,10 +393,19 @@ class AppContainer(private val appContext: Context) {
             application, chatDao, settingsManager, memoryManager, appContext, sandboxManagerFactory,
             autoBackupManager, conversationRepository, settingsRepository, workflowRepository,
             workflowApprovalGate, pluginToolProvider, pluginLoader, pluginSandbox,
-            workflowAiToolProvider, userInteractionGate, appContextCollector,
+            workflowAiToolProvider, userInteractionGate, voiceCallGate, appContextCollector,
             pluginMemoryProvider
         )
 
     fun healthViewModelFactory(): com.orangeisland.app.viewmodel.HealthViewModelFactory =
         com.orangeisland.app.viewmodel.HealthViewModelFactory(application, settingsManager)
+
+    /**
+     * Factory for the Voice Call ViewModel. Takes the shared [ChatViewModel] so the call loop can
+     * reuse its model/credential resolution via [com.orangeisland.app.viewmodel.ChatViewModel.generateVoiceReply].
+     */
+    fun voiceCallViewModelFactory(
+        chatViewModel: com.orangeisland.app.viewmodel.ChatViewModel
+    ): com.orangeisland.app.viewmodel.VoiceCallViewModelFactory =
+        com.orangeisland.app.viewmodel.VoiceCallViewModelFactory(application, settingsRepository, chatViewModel)
 }

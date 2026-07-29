@@ -323,6 +323,11 @@ class SettingsManager(private val context: Context) {
         val TTS_STYLE = stringPreferencesKey("tts_style")
         val TTS_VOLUME = stringPreferencesKey("tts_volume")
         val TTS_PITCH = stringPreferencesKey("tts_pitch")
+        // ── Speech-to-Text (SiliconFlow) ───────────────────────────
+        val STT_ENABLED = booleanPreferencesKey("stt_enabled")
+        val STT_API_KEY = stringPreferencesKey("stt_api_key")
+        val STT_MODEL = stringPreferencesKey("stt_model")
+        val STT_BASE_URL = stringPreferencesKey("stt_base_url")
     }
 
     val selectedModel: Flow<String> = context.dataStore.data.map { it[SELECTED_MODEL] ?: Constants.EXAMPLE_MODEL_ID }
@@ -591,6 +596,14 @@ class SettingsManager(private val context: Context) {
     val ttsStyle: Flow<Float> = context.dataStore.data.map { pref -> pref[TTS_STYLE]?.toFloatOrNull() ?: 0.0f }
     val ttsVolume: Flow<Float> = context.dataStore.data.map { pref -> pref[TTS_VOLUME]?.toFloatOrNull() ?: 1.0f }
     val ttsPitch: Flow<Float> = context.dataStore.data.map { pref -> pref[TTS_PITCH]?.toFloatOrNull() ?: 0.0f }
+
+    // ── Speech-to-Text (SiliconFlow) ───────────────────────────
+    val sttEnabled: Flow<Boolean> = context.dataStore.data.map { it[STT_ENABLED] ?: false }
+    val sttApiKey: Flow<String> = context.dataStore.data.map { pref ->
+        com.orangeisland.app.util.SecretCrypto.decrypt(pref[STT_API_KEY] ?: "")
+    }
+    val sttModel: Flow<String> = context.dataStore.data.map { it[STT_MODEL] ?: "" }
+    val sttBaseUrl: Flow<String> = context.dataStore.data.map { it[STT_BASE_URL] ?: "" }
 
     // ── Plugin device id ──────────────────────────────────────
     // Lazily minted per-install UUID, exposed to plugins as __OI_USER_ID. No setter: it is
@@ -1230,5 +1243,19 @@ class SettingsManager(private val context: Context) {
     }
     suspend fun saveTtsPitch(pitch: Float) {
         context.dataStore.edit { it[TTS_PITCH] = pitch.coerceIn(-12f, 12f).toString() }
+    }
+
+    // ── Speech-to-Text (SiliconFlow) ───────────────────────────
+    suspend fun saveSttEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[STT_ENABLED] = enabled }
+    }
+    suspend fun saveSttApiKey(key: String) {
+        context.dataStore.edit { it[STT_API_KEY] = com.orangeisland.app.util.SecretCrypto.encrypt(key) }
+    }
+    suspend fun saveSttModel(model: String) {
+        context.dataStore.edit { it[STT_MODEL] = model }
+    }
+    suspend fun saveSttBaseUrl(baseUrl: String) {
+        context.dataStore.edit { it[STT_BASE_URL] = baseUrl }
     }
 }

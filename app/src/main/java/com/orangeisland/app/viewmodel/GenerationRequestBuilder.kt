@@ -163,6 +163,10 @@ class GenerationRequestBuilder(
             shellDevices = settings.shellDevices.value,
             sandboxEnabled = settings.sandboxEnabled.value,
             ttsEnabled = settings.ttsEnabled.value && settings.ttsApiKey.value.isNotBlank(),
+            // The make_voice_call tool only makes sense when the call loop can actually run, which
+            // needs BOTH a TTS voice and an STT (SiliconFlow) key configured.
+            voiceCallEnabled = settings.sttEnabled.value && settings.sttApiKey.value.isNotBlank() &&
+                settings.ttsEnabled.value && settings.ttsApiKey.value.isNotBlank(),
             ttsProvider = settings.ttsProvider.value,
             ttsApiKey = settings.ttsApiKey.value,
             ttsVoiceId = settings.ttsVoiceId.value,

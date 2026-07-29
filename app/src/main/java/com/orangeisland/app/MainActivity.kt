@@ -513,6 +513,7 @@ fun MainNavigation(
     var showMiniAppList by rememberSaveable { mutableStateOf(false) }
     var selectedMiniApp by remember { mutableStateOf<com.orangeisland.app.data.MiniAppEntry?>(null) }
     var showHealthPage by rememberSaveable { mutableStateOf(false) }
+    var showVoiceCall by rememberSaveable { mutableStateOf(false) }
     var fullScreenMediaUrls by remember { mutableStateOf<List<String>?>(null) }
     var fullScreenMediaIndex by remember { mutableIntStateOf(0) }
     var pdfViewerSelection by remember { mutableStateOf(setOf<Int>()) }
@@ -943,6 +944,42 @@ fun MainNavigation(
                 com.orangeisland.app.ui.health.HealthPage(
                     viewModel = healthViewModel,
                     onBack = { showHealthPage = false }
+                )
+            }
+
+            // ── AI 语音通话 (voice call) ─────────────────────────────────────────
+            // Two stacked overlays, both gate-driven (no user-facing entry button):
+            //  1. IncomingCallScreen — rings the user when the AI calls make_voice_call. Shown
+            //     whenever the VoiceCallGate has a pending request.
+            //  2. VoiceCallScreen — the actual call loop, shown only after the user answers.
+            // The gate is the single shared instance from AppContainer (same one wired to the
+            // ToolDispatcher's make_voice_call tool), pulled here from the Application.
+            val voiceCtx = LocalContext.current
+            val voiceContainer = remember {
+                (voiceCtx.applicationContext as com.orangeisland.app.OrangeIslandApplication).container
+            }
+            val voiceCallGate = voiceContainer.voiceCallGate
+            val incomingCall by voiceCallGate.pending.collectAsState()
+
+            // Incoming-call ringing screen. Renders only while there is a pending request AND the
+            // user hasn't answered into the call screen yet.
+            if (incomingCall.isNotEmpty() && !showVoiceCall) {
+                com.orangeisland.app.ui.voicecall.IncomingCallScreen(
+                    gate = voiceCallGate,
+                    onAnswer = { showVoiceCall = true }
+                )
+            }
+
+            // The call itself (after answering). Mounts only while showVoiceCall is true; the
+            // screen owns its VoiceCallViewModel via the container factory (Health-page pattern).
+            AnimatedVisibility(
+                visible = showVoiceCall,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                com.orangeisland.app.ui.voicecall.VoiceCallScreen(
+                    viewModel = viewModel,
+                    onBack = { showVoiceCall = false }
                 )
             }
 

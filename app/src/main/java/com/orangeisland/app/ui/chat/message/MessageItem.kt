@@ -196,6 +196,13 @@ fun MessageItem(
                 compactedCount = message.contextMessageCount,
                 modifier = Modifier.fillMaxWidth(0.92f)
             )
+        } else if (message.text.startsWith("📞 语音通话记录")) {
+            // Persisted voice-call transcript — rendered as a compact collapsible card instead of a
+            // bubble. Created by ChatViewModel.saveCallTranscript when a call ends.
+            VoiceCallTranscriptCard(
+                messageText = message.text,
+                modifier = Modifier.fillMaxWidth(0.92f)
+            )
         } else if (message.participant == Participant.USER) {
             UserMessageBubble(
                 message = message,

@@ -101,6 +101,10 @@ class ChatViewModel(
      *  the GenerationManager so the model can suspend on user input. Null when the UI observer
      *  is not available (e.g. unit tests). */
     val userInteractionGate: com.orangeisland.app.tool.UserInteractionGate? = null,
+    /** Shared gate between the AI voice-call tool (make_voice_call) and the incoming-call UI.
+     *  Wired through to the GenerationManager's tool dispatcher. Null when voice call is not
+     *  available (e.g. unit tests, title generation). */
+    val voiceCallGate: com.orangeisland.app.viewmodel.VoiceCallGate? = null,
     /** Collects environment changes (foreground app, model, prompt, wallpaper, theme, battery,
      *  WiFi, Bluetooth) and formats them for injection into the system prompt via {app_context}. */
     private val appContextCollector: com.orangeisland.app.data.environment.AppContextCollector? = null,
@@ -305,7 +309,8 @@ class ChatViewModel(
             pluginToolProvider = pluginToolProvider,
             permissionController = permissionController,
             workflowToolProvider = workflowToolProvider,
-            userInteractionGate = userInteractionGate
+            userInteractionGate = userInteractionGate,
+            voiceCallGate = voiceCallGate
         ).also { gm ->
             gm.onMessagePersisted = { messageId, text ->
                 if (settings.autoCacheEnabled.value && (settings.modelSearchMethod.value == Constants.SEARCH_METHOD_RAG || settings.manualSearchMethod.value == Constants.SEARCH_METHOD_RAG)) {
@@ -393,6 +398,71 @@ class ChatViewModel(
     }.stateIn(viewModelScope, SharingStarted.Eagerly, Constants.EXAMPLE_MODEL_ID)
 
     fun getProviderForModel(modelId: String): String = providerRegistry.providerForModel(modelId)
+
+    /**
+     * Generate a short voice-call reply to [userText] using the currently active model. Resolves
+     * provider/key/baseUrl the same way [probeChatCompletion] does, but collects the full streamed
+     * response (no tools) so the spoken answer is complete. Used only by the Voice Call feature —
+     * the call loop reads the transcript it accumulates, so a single non-tool turn is enough.
+     * Returns null on any failure (the caller falls back to a spoken apology).
+     */
+    suspend fun generateVoiceReply(userText: String): String? = withContext(Dispatchers.IO) {
+        callLlm(userText)
+    }
+
+    /**
+     * Generate the AI's opening line when a voice call is answered — lets the model pick something
+     * natural instead of a canned "你好，我在听". Falls back to null so the caller can use a plain
+     * greeting if the LLM is unavailable.
+     */
+    suspend fun generateVoiceGreeting(): String? = withContext(Dispatchers.IO) {
+        callLlm("（这是语音通话的开始，用户刚刚接听了你的电话。用一句简短自然的话作为开场白，比如根据当前时间打招呼、或者轻松地开启对话。不要说“我在听”或“请说”。一两句话即可。）")
+    }
+
+    /** Shared single-turn LLM call for the voice-call feature (no tools, no thinking). */
+    private suspend fun callLlm(prompt: String): String? {
+        val model = currentActiveModel.value
+        val providerName = providerRegistry.providerForModel(model)
+        val provider = runCatching { providerRegistry.getInstance(providerName) }.getOrNull()
+            ?: return null
+        val apiKey = settings.resolveActiveKey(providerName).orEmpty()
+        val storedUrl = settings.providerBaseUrls.value[providerName]
+        val baseUrl = storedUrl?.takeIf { it.isNotBlank() }
+            ?: if (providerRegistry.isBuiltIn(providerName)) null else provider.defaultBaseUrl
+        val modelId = com.orangeisland.app.model.ModelId.parse(model).modelName
+        val config = ProviderConfig(
+            apiKey = apiKey,
+            modelId = modelId,
+            systemPrompt = VOICE_CALL_SYSTEM_PROMPT,
+            baseUrl = baseUrl,
+            tools = null,
+            thinkingEnabled = false,
+            temperature = 0.7f
+        )
+        val messages = listOf(ChatMessage(
+            text = prompt,
+            participant = Participant.USER
+        ))
+        val sb = StringBuilder()
+        var firstError: String? = null
+        provider.generateResponse(messages, config).collect { event ->
+            when (event) {
+                is StreamEvent.TextChunk -> sb.append(event.text)
+                is StreamEvent.Error -> { if (firstError == null) firstError = event.message }
+                else -> {}
+            }
+        }
+        if (firstError != null) {
+            com.orangeisland.app.util.DebugLog.e("VoiceCall", "LLM error: $firstError")
+            return null
+        }
+        return sb.toString().trim().ifBlank { null }
+    }
+
+    /** System prompt for voice-call replies: short, spoken, conversational. */
+    private val VOICE_CALL_SYSTEM_PROMPT =
+        "你正在和用户进行语音通话。请用简短、口语化、自然的中文回答，每条不超过两三句话，" +
+            "不要使用 Markdown、列表或代码块，像和朋友打电话聊天一样。"
     
 
         
@@ -1392,6 +1462,49 @@ class ChatViewModel(
             "conversationId=${_currentConversationId.value}, length=${text.length}, images=${images.size}, attachments=${attachments.size}"
         )
         return generationController.sendMessage(text, images, attachments)
+    }
+
+    /**
+     * Persist a finished voice-call transcript into the current conversation as a single assistant
+     * message, parented on the conversation's current tail message so it joins the visible chat
+     * branch (not a new disconnected branch). The call's content then becomes part of the chat
+     * history (and thus the AI's memory / RAG context) for future turns. No-op when there's no
+     * open conversation or the transcript is empty.
+     */
+    suspend fun saveCallTranscript(transcript: List<Pair<String, String>>) {
+        android.util.Log.e("VoiceCallDebug", "saveCallTranscript: turns=${transcript.size} convId=${_currentConversationId.value}")
+        if (transcript.isEmpty()) return
+        val convId = _currentConversationId.value ?: run {
+            android.util.Log.e("VoiceCallDebug", "saveCallTranscript: no open conversation, skipping")
+            return
+        }
+        // Find the current tail of the visible branch so the transcript parents onto it instead of
+        // starting a new branch the user never sees. Pick the newest non-tool message by timestamp.
+        val msgs = convRepo.getMessagesForConversationSnapshot(convId)
+        val tailId = msgs
+            .filter { !it.id.startsWith("tool_") && !it.id.startsWith("result_") }
+            .maxByOrNull { it.timestamp }?.id
+        val sb = StringBuilder()
+        sb.appendLine("📞 语音通话记录：")
+        sb.appendLine("（以下是你（橘子岛）与用户通过语音通话的内容，[用户] 是对方说的话，[橘子岛] 是你说的。）")
+        for ((speaker, text) in transcript) {
+            sb.append(speaker).append("：").appendLine(text)
+        }
+        val entity = com.orangeisland.app.data.local.MessageEntity(
+            id = "voice_call_${java.util.UUID.randomUUID()}",
+            conversationId = convId,
+            parentId = tailId,
+            text = sb.toString().trim(),
+            participant = Participant.MODEL,
+            status = MessageStatus.SUCCESS,
+            timestamp = System.currentTimeMillis()
+        ).encodeLargeText(appContext)
+        convRepo.upsertMessage(entity)
+        com.orangeisland.app.data.UsageLogManager.log(
+            com.orangeisland.app.data.UsageLogManager.Type.CONVERSATION,
+            "voice_call_saved",
+            "turns=${transcript.size}"
+        )
     }
 
     /**

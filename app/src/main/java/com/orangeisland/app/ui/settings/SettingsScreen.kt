@@ -186,6 +186,7 @@ private val settingsGroups = listOf(
         SettingsCategory("device_access", R.string.device_access_title, R.string.device_access_desc, IslandIcons.DeviceAccess.res),
         SettingsCategory("workflows", R.string.settings_workflows, R.string.settings_workflows_desc, IslandIcons.Workflow.res),
         SettingsCategory("tts", R.string.settings_tts, R.string.settings_tts_desc, IslandIcons.VoiceSynthesis.res),
+        SettingsCategory("stt", R.string.settings_stt, R.string.settings_stt_desc, IslandIcons.Transcription.res),
     )),
     SettingsGroupData(titleRes = R.string.settings_group_network, items = listOf(
         SettingsCategory("proxy", R.string.settings_proxy, R.string.settings_proxy_desc, IslandIcons.Proxy.res),
@@ -284,6 +285,7 @@ fun SettingsScreen(
                     onEditInChat = onEditWorkflowInChat
                 )
                 "tts" -> SettingsTtsPage(viewModel, onBack = { selectedCategory = null })
+                "stt" -> SettingsSttPage(viewModel, onBack = { selectedCategory = null })
                 else -> {
                     CollapsingSettingsLazyScaffold(
                         title = stringResource(R.string.settings_title),

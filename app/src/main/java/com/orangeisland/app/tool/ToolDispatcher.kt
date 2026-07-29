@@ -57,7 +57,11 @@ class ToolDispatcher(
     private val chatDao: ChatDao? = null,
     /** Optional gate for interactive card-style user choices (ask_user_choice). Null when the
      *  UI observer is not available (e.g. background workers). */
-    private val userInteractionGate: UserInteractionGate? = null
+    private val userInteractionGate: UserInteractionGate? = null,
+    /** Optional gate for the AI voice-call tool (make_voice_call). Shared with the incoming-call
+     *  UI so the tool can suspend until the user answers/declines. Null when voice call is not
+     *  wired up (e.g. title generation, background workers). */
+    private val voiceCallGate: com.orangeisland.app.viewmodel.VoiceCallGate? = null
 ) {
     companion object {
         /** Shell-provider tool names that are pure file I/O (split out from command execution). */
@@ -99,6 +103,7 @@ class ToolDispatcher(
     private val chatContextToolProvider = chatDao?.let { com.orangeisland.app.tool.ChatContextToolProvider(it) }
     private val userInteractionToolProvider = UserInteractionToolProvider(userInteractionGate)
     private val ttsToolProvider = TtsToolProvider(app)
+    private val voiceCallToolProvider = VoiceCallToolProvider(voiceCallGate)
 
     /** Every active provider, in dispatch order. [handles] is queried in this order, so earlier
      *  providers win on name collisions. Names are namespaced (plugin__/mcp__) to avoid this in
@@ -121,6 +126,7 @@ class ToolDispatcher(
         pluginToolProvider?.let { add(it) }
         workflowToolProvider?.let { add(it) }
         add(ttsToolProvider)
+        add(voiceCallToolProvider)
         add(userInteractionToolProvider)
     }
 
@@ -270,6 +276,11 @@ class ToolDispatcher(
     /** Text-to-speech tools (speak). Exposed when TTS is enabled and configured. */
     fun ttsDefinitions(ctx: GenerationContext): List<ToolDefinition> =
         ttsToolProvider.definitions(ctx)
+
+    /** AI voice-call tool (make_voice_call). Exposed when both STT and TTS are configured, so the
+     *  model can proactively ring the user for a full-duplex voice conversation. */
+    fun voiceCallDefinitions(ctx: GenerationContext): List<ToolDefinition> =
+        voiceCallToolProvider.definitions(ctx)
 
     /** Drains audio file paths queued by the most recent speak tool call. Called by the LLM
      *  loop right after a speak call so the audio renders inline. */

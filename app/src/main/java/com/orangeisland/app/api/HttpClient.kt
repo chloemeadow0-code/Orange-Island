@@ -1,7 +1,9 @@
 package com.orangeisland.app.api
 
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import com.orangeisland.app.data.UsageLogManager
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -314,6 +316,43 @@ object HttpClient {
                 details = "${it.code} | ${elapsed}ms${if (!it.isSuccessful) " | failed" else ""}"
             )
             if (it.isSuccessful) it.body?.bytes() else null
+        }
+    }
+
+    /** POST multipart/form-data — one binary file part plus any number of text form fields. Used by
+     *  the SiliconFlow STT endpoint (file + model). The Content-Type header is set automatically
+     *  by [MultipartBody]; do NOT pass "Content-Type" in [headers] when calling this. Returns the
+     *  response body as a string, or null on non-2xx / failure. */
+    fun postMultipart(
+        url: String,
+        fileField: String,
+        fileName: String,
+        fileMimeType: String,
+        fileBytes: ByteArray,
+        textFields: Map<String, String> = emptyMap(),
+        headers: Map<String, String> = emptyMap()
+    ): String? {
+        val t0 = System.currentTimeMillis()
+        guardCleartextCredentials(url, headers)
+        val mediaType = fileMimeType.toMediaTypeOrNull()
+        val filePart = MultipartBody.Part.createFormData(
+            name = fileField,
+            filename = fileName,
+            body = fileBytes.toRequestBody(mediaType)
+        )
+        val builder = MultipartBody.Builder().setType(MultipartBody.FORM).addPart(filePart)
+        textFields.forEach { (k, v) -> builder.addFormDataPart(k, v) }
+        val requestBuilder = Request.Builder().url(url).post(builder.build())
+        headers.forEach { (k, v) -> requestBuilder.addHeader(k, v) }
+        val response = client.newCall(requestBuilder.build()).execute()
+        return response.use {
+            val elapsed = System.currentTimeMillis() - t0
+            UsageLogManager.log(
+                UsageLogManager.Type.REQUEST,
+                name = "POST ${url.substringBefore("?")}",
+                details = "${it.code} | ${elapsed}ms${if (!it.isSuccessful) " | failed" else ""}"
+            )
+            if (it.isSuccessful) it.body?.string() else null
         }
     }
 }

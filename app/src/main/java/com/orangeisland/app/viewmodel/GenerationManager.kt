@@ -81,6 +81,9 @@ data class GenerationContext(
     val shellDevices: List<com.orangeisland.app.data.ShellDeviceConfig> = emptyList(),
     val sandboxEnabled: Boolean = false,
     val ttsEnabled: Boolean = false,
+    /** AI voice call tool (make_voice_call). Surfaced when both STT and TTS are configured, so the
+     *  model can proactively ring the user for a full-duplex voice conversation. */
+    val voiceCallEnabled: Boolean = false,
     val ttsProvider: String = "elevenlabs",
     val ttsApiKey: String = "",
     val ttsVoiceId: String = "",
@@ -200,7 +203,11 @@ class GenerationManager(
     private val workflowToolProvider: com.orangeisland.app.workflow.WorkflowAiToolProvider? = null,
     /** Optional gate for interactive card-style user choices (ask_user_choice). Threaded into the
      *  standalone dispatcher when [toolDispatcher] is null. Ignored when [toolDispatcher] is non-null. */
-    private val userInteractionGate: com.orangeisland.app.tool.UserInteractionGate? = null
+    private val userInteractionGate: com.orangeisland.app.tool.UserInteractionGate? = null,
+    /** Optional gate for the AI voice-call tool (make_voice_call). Threaded into the standalone
+     *  dispatcher when [toolDispatcher] is null. Ignored when [toolDispatcher] is non-null — that
+     *  dispatcher carries its own gate. Null in title generation / contexts without the call UI. */
+    private val voiceCallGate: com.orangeisland.app.viewmodel.VoiceCallGate? = null
 ) {
     var onMessagePersisted: ((messageId: String, text: String) -> Unit)? = null
 
@@ -223,7 +230,8 @@ class GenerationManager(
             pluginToolProvider = pluginToolProvider,
             permissionController = permissionController,
             workflowToolProvider = workflowToolProvider,
-            userInteractionGate = userInteractionGate
+            userInteractionGate = userInteractionGate,
+            voiceCallGate = voiceCallGate
         )
 
     init {
@@ -328,6 +336,11 @@ class GenerationManager(
      *  Empty when TTS is disabled or not configured. */
     fun buildTtsTools(ctx: GenerationContext): List<ToolDefinition> =
         tools.ttsDefinitions(ctx)
+
+    /** AI voice-call tool (make_voice_call). Lets the model proactively start a voice conversation
+     *  — rings the user via a full-screen incoming-call UI. Empty when STT or TTS isn't configured. */
+    fun buildVoiceCallTools(ctx: GenerationContext): List<ToolDefinition> =
+        tools.voiceCallDefinitions(ctx)
 
     /** Semantic message search — delegates to the RAG provider via [tools], which owns the
      *  embedding-search logic. Kept here as the entry point used by ChatViewModel's
@@ -501,7 +514,8 @@ class GenerationManager(
         val workflowTools = buildWorkflowTools(ctx)
         val userInteractionTools = buildUserInteractionTools(ctx)
         val ttsTools = buildTtsTools(ctx)
-        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + alarmTools + healthTools + automationTools + workflowTools + userInteractionTools + ttsTools
+        val voiceCallTools = buildVoiceCallTools(ctx)
+        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + alarmTools + healthTools + automationTools + workflowTools + userInteractionTools + ttsTools + voiceCallTools
         val providerConfig = ProviderConfig(
             apiKey = config.apiKey,
             modelId = config.modelId,

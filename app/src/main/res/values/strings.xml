@@ -724,6 +724,43 @@
     <string name="tts_volume">Volume</string>
     <string name="tts_pitch">Pitch</string>
 
+    <!-- Settings - STT Page (SiliconFlow) -->
+    <string name="settings_stt">Speech-to-Text</string>
+    <string name="settings_stt_desc">Configure the SiliconFlow speech recognition service for voice calls</string>
+    <string name="stt_title">Speech-to-Text</string>
+    <string name="stt_enable">Enable Speech-to-Text</string>
+    <string name="stt_enable_desc">Required for the AI voice call feature (transcribes your speech to text)</string>
+    <string name="stt_api_key">API Key</string>
+    <string name="stt_api_key_hint">Your SiliconFlow API key</string>
+    <string name="stt_model">Model</string>
+    <string name="stt_model_desc">SiliconFlow ASR model id</string>
+    <string name="stt_model_hint">e.g. FunAudioLLM/SenseVoiceSmall</string>
+    <string name="stt_base_url">Base URL</string>
+    <string name="stt_base_url_desc">Leave empty to use the default SiliconFlow endpoint</string>
+    <string name="stt_base_url_hint">https://api.siliconflow.cn</string>
+
+    <!-- Voice Call -->
+    <string name="voice_call_entry">Voice call with AI</string>
+    <string name="voice_call_start">Start call</string>
+    <string name="voice_call_end">Hang up</string>
+    <string name="voice_call_close">Close</string>
+    <string name="voice_call_incoming_caller">AI</string>
+    <string name="voice_call_incoming_ringing">Incoming call…</string>
+    <string name="voice_call_accept">Answer</string>
+    <string name="voice_call_decline">Decline</string>
+    <string name="voice_call_you">You</string>
+    <string name="voice_call_ai">AI</string>
+    <string name="voice_call_state_idle">Ready</string>
+    <string name="voice_call_state_speaking">Speaking…</string>
+    <string name="voice_call_state_listening">Listening…</string>
+    <string name="voice_call_state_recording">Listening…</string>
+    <string name="voice_call_state_thinking">Thinking…</string>
+    <string name="voice_call_state_ended">Call ended</string>
+    <string name="voice_call_state_error">Call error</string>
+    <string name="voice_call_perm_denied">Microphone permission is required for voice calls. Please grant it to continue.</string>
+    <string name="voice_call_perm_retry">Grant permission</string>
+    <string name="voice_call_stt_not_configured">Speech-to-Text is not configured yet. Add your SiliconFlow API key in Settings → Speech-to-Text first.</string>
+
     <string name="prompt_content">Prompt</string>
 
     <!-- Settings - Memory Page -->

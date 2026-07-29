@@ -557,6 +557,43 @@
     <string name="tts_volume">音量</string>
     <string name="tts_pitch">音调</string>
 
+    <!-- Settings - STT Page (SiliconFlow) -->
+    <string name="settings_stt">语音识别</string>
+    <string name="settings_stt_desc">配置硅基流动语音识别服务，用于 AI 语音通话</string>
+    <string name="stt_title">语音识别</string>
+    <string name="stt_enable">启用语音识别</string>
+    <string name="stt_enable_desc">AI 语音通话功能需要此项（将你的语音转成文字）</string>
+    <string name="stt_api_key">API Key</string>
+    <string name="stt_api_key_hint">你的硅基流动 API Key</string>
+    <string name="stt_model">模型</string>
+    <string name="stt_model_desc">硅基流动语音识别模型 ID</string>
+    <string name="stt_model_hint">例如 FunAudioLLM/SenseVoiceSmall</string>
+    <string name="stt_base_url">Base URL</string>
+    <string name="stt_base_url_desc">留空则使用硅基流动默认地址</string>
+    <string name="stt_base_url_hint">https://api.siliconflow.cn</string>
+
+    <!-- Voice Call -->
+    <string name="voice_call_entry">和 AI 打电话</string>
+    <string name="voice_call_start">开始通话</string>
+    <string name="voice_call_end">挂断</string>
+    <string name="voice_call_close">关闭</string>
+    <string name="voice_call_incoming_caller">AI 助手</string>
+    <string name="voice_call_incoming_ringing">来电中…</string>
+    <string name="voice_call_accept">接听</string>
+    <string name="voice_call_decline">拒绝</string>
+    <string name="voice_call_you">我</string>
+    <string name="voice_call_ai">AI</string>
+    <string name="voice_call_state_idle">准备就绪</string>
+    <string name="voice_call_state_speaking">正在说话…</string>
+    <string name="voice_call_state_listening">聆听中…</string>
+    <string name="voice_call_state_recording">聆听中…</string>
+    <string name="voice_call_state_thinking">思考中…</string>
+    <string name="voice_call_state_ended">通话已结束</string>
+    <string name="voice_call_state_error">通话出错</string>
+    <string name="voice_call_perm_denied">语音通话需要麦克风权限，请授权后继续。</string>
+    <string name="voice_call_perm_retry">授予权限</string>
+    <string name="voice_call_stt_not_configured">语音识别尚未配置，请先在 设置 → 语音识别 中填入硅基流动 API Key。</string>
+
     <string name="prompt_content">Prompt</string>
 
     <!-- Settings - Memory Page -->
