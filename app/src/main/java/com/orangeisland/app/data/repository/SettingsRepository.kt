@@ -119,12 +119,16 @@ class SettingsRepository(
     val locationEnabled: StateFlow<Boolean> = hot(settingsManager.locationEnabled, false)
     val calendarEnabled: StateFlow<Boolean> = hot(settingsManager.calendarEnabled, false)
     val notificationEnabled: StateFlow<Boolean> = hot(settingsManager.notificationEnabled, false)
+    val mediaControlEnabled: StateFlow<Boolean> = hot(settingsManager.mediaControlEnabled, false)
     val usageStatsEnabled: StateFlow<Boolean> = hot(settingsManager.usageStatsEnabled, false)
     val navigationEnabled: StateFlow<Boolean> = hot(settingsManager.navigationEnabled, false)
     val appLockEnabled: StateFlow<Boolean> = hot(settingsManager.appLockEnabled, false)
     val appLockEntries: StateFlow<Map<String, com.orangeisland.app.data.AppLockEntry>> =
         hot(settingsManager.appLockEntries, emptyMap())
     val toastEnabled: StateFlow<Boolean> = hot(settingsManager.toastEnabled, false)
+    val petEnabled: StateFlow<Boolean> = hot(settingsManager.petEnabled, false)
+    val petPosX: StateFlow<Int> = hot(settingsManager.petPosX, Int.MIN_VALUE)
+    val petPosY: StateFlow<Int> = hot(settingsManager.petPosY, Int.MIN_VALUE)
     val alarmEnabled: StateFlow<Boolean> = hot(settingsManager.alarmEnabled, false)
     val healthToolEnabled: StateFlow<Boolean> = hot(settingsManager.healthToolEnabled, false)
     val timeToolEnabled: StateFlow<Boolean> = hot(settingsManager.timeToolEnabled, false)
@@ -503,12 +507,15 @@ class SettingsRepository(
     fun setLocationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveLocationEnabled(enabled) }
     fun setCalendarEnabled(enabled: Boolean) = scope.launch { settingsManager.saveCalendarEnabled(enabled) }
     fun setNotificationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveNotificationEnabled(enabled) }
+    fun setMediaControlEnabled(enabled: Boolean) = scope.launch { settingsManager.saveMediaControlEnabled(enabled) }
     fun setUsageStatsEnabled(enabled: Boolean) = scope.launch { settingsManager.saveUsageStatsEnabled(enabled) }
     fun setNavigationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveNavigationEnabled(enabled) }
     fun setAppLockEnabled(enabled: Boolean) = scope.launch { settingsManager.saveAppLockEnabled(enabled) }
     fun setAppLockEntries(entries: Map<String, com.orangeisland.app.data.AppLockEntry>) =
         scope.launch { settingsManager.saveAppLockEntries(entries) }
     fun setToastEnabled(enabled: Boolean) = scope.launch { settingsManager.saveToastEnabled(enabled) }
+    fun setPetEnabled(enabled: Boolean) = scope.launch { settingsManager.savePetEnabled(enabled) }
+    fun setPetPos(x: Int, y: Int) = scope.launch { settingsManager.savePetPos(x, y) }
     fun setAlarmEnabled(enabled: Boolean) = scope.launch { settingsManager.saveAlarmEnabled(enabled) }
     fun setHealthToolEnabled(v: Boolean) = scope.launch { settingsManager.saveHealthToolEnabled(v) }
     fun setTimeToolEnabled(v: Boolean) = scope.launch { settingsManager.saveTimeToolEnabled(v) }

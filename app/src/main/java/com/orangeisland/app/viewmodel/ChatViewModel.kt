@@ -117,6 +117,8 @@ class ChatViewModel(
         private const val SWITCH_OVERLAY_FADE_MS = 200L
         /** Auto-delete period tiers in hours: 7 days, 30 days, 365 days. */
         private val AUTO_DELETE_TIERS_HOURS = listOf(168, 720, 8760)
+        /** Desktop-pet speech bubble length cap (characters). */
+        private const val PET_BUBBLE_MAX = 30
     }
 
     val settings: SettingsRepository = settingsRepository
@@ -259,6 +261,40 @@ class ChatViewModel(
                     try { HealthSyncWorker.schedule(getApplication()) } catch (_: Exception) {}
                 } else {
                     try { HealthSyncWorker.cancel(getApplication()) } catch (_: Exception) {}
+                }
+            }
+        }
+        // Desktop Pet lightweight link: nudge the floating pet whenever a NEW
+        // successful assistant reply appears. We watch the id of the newest MODEL
+        // message in the visible list — a change means a fresh reply landed
+        // (regardless of whether isLoading toggled, which stream/voice paths can
+        // skip). On a new id with SUCCESS status we emit a Bubble; the pet service
+        // drops it if the pet is off, so this is harmless when disabled.
+        viewModelScope.launch {
+            var lastSeenModelId: String? = null
+            messages.collect { list ->
+                val last = list.lastOrNull { it.participant == Participant.MODEL }
+                val id = last?.id
+                // Only react to a genuinely new message id.
+                if (id == null || id == lastSeenModelId) return@collect
+                // Ignore the initial load (the first MODEL message we ever see from
+                // a freshly opened conversation): we only want replies generated
+                // during this session.
+                if (lastSeenModelId == null && last.status != MessageStatus.SUCCESS) {
+                    lastSeenModelId = id
+                    return@collect
+                }
+                lastSeenModelId = id
+                if (last.status != MessageStatus.SUCCESS) return@collect
+                val summary = petBubbleSummary(last.text)
+                DebugLog.d("ChatViewModel", "pet nudge: modelId=$id summaryLen=${summary.length}")
+                if (summary.isNotEmpty()) {
+                    com.orangeisland.app.pet.PetEventBus.emit(
+                        com.orangeisland.app.pet.PetEventBus.Event.Bubble(summary)
+                    )
+                } else {
+                    // No text to bubble (e.g. tool-only reply) — still nudge the pet.
+                    com.orangeisland.app.pet.PetEventBus.emit(com.orangeisland.app.pet.PetEventBus.Event.Wave)
                 }
             }
         }
@@ -1563,6 +1599,23 @@ class ChatViewModel(
     suspend fun fetchModelsForProvider(name: String): List<String> = providerRegistry.fetchModelsForProvider(name)
 
     fun computeProviderFingerprint(): String = providerRegistry.computeFingerprint()
+
+    /**
+     * Shrinks an assistant reply into a short line the desktop pet can show in its
+     * speech bubble. Strips markdown/code fences, collapses whitespace, and caps at
+     * [PET_BUBBLE_MAX] chars. Returns "" for empty/whitespace replies so the caller
+     * can skip emitting a bubble entirely.
+     */
+    private fun petBubbleSummary(text: String): String {
+        val cleaned = text
+            .replace(Regex("```[\\s\\S]*?```"), " ") // fenced code blocks
+            .replace(Regex("[`*_#>~]"), "")           // common markdown noise
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        if (cleaned.isEmpty()) return ""
+        return if (cleaned.length <= PET_BUBBLE_MAX) cleaned
+        else cleaned.take(PET_BUBBLE_MAX - 1) + "…"
+    }
 
     fun fetchAvailableModels() {
         viewModelScope.launch {

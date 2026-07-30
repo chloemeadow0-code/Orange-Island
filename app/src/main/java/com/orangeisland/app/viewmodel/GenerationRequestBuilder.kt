@@ -195,6 +195,7 @@ class GenerationRequestBuilder(
             amapApiKey = settings.amapApiKey.value,
             calendarEnabled = settings.calendarEnabled.value,
             notificationEnabled = settings.notificationEnabled.value,
+            mediaControlEnabled = settings.mediaControlEnabled.value,
             usageStatsEnabled = settings.usageStatsEnabled.value,
             navigationEnabled = settings.navigationEnabled.value,
             appLockEnabled = settings.appLockEnabled.value,

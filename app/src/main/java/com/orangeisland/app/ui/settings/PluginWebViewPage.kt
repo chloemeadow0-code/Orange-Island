@@ -56,6 +56,8 @@ fun PluginWebViewPage(
 ) {
     val uiFile = plugin.uiHtmlFile
     val scope = rememberCoroutineScope()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val appContext = ctx.applicationContext
     // Read host values SYNCHRONOUSLY from the eagerly-shared StateFlows. These are hot flows whose
     // `.value` is always current after DataStore has loaded (which happens early in app startup —
     // by the time the user navigates here, the values are populated). The previous async
@@ -82,7 +84,8 @@ fun PluginWebViewPage(
             plugin, sandbox, scope,
             deviceUserId = deviceId,
             pluginConfigJson = configJson,
-            memoryProvider = memoryProvider
+            memoryProvider = memoryProvider,
+            mediaInfoProvider = { pkg -> com.orangeisland.app.plugin.MediaInfoReader.read(appContext, pkg) }
         )
     }
 

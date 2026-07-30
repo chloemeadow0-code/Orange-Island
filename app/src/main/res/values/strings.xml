@@ -362,6 +362,8 @@
     <string name="device_access_calendar_desc">List, create, and delete calendar events</string>
     <string name="device_access_notification_title">Notifications</string>
     <string name="device_access_notification_desc">Read active notifications from other apps</string>
+    <string name="device_access_media_title">Media Control</string>
+    <string name="device_access_media_desc">Read and control other apps\' music (e.g. NetEase Cloud Music) via MediaSession. Requires Notification access.</string>
     <string name="device_access_usage_title">Screen Usage</string>
     <string name="device_access_usage_desc">Per-app usage time and last-opened timestamps</string>
     <string name="device_access_navigation_title">Navigation</string>
@@ -382,6 +384,12 @@
     <string name="device_access_auto_approve_desc">Let AI and workflows read location, notifications, and screen usage without a confirmation prompt. Required for unattended background workflows (which have no UI to approve with).</string>
     <string name="device_access_overlay_title">Display Over Other Apps</string>
     <string name="device_access_overlay_desc">Required on Android 10+ for background-triggered workflows to switch the screen to another app or webpage (open_app / open_url). Without it the system silently drops the launch.</string>
+    <!-- Desktop Pet (Mikan the orange) -->
+    <string name="device_access_pet_title">Desktop Pet</string>
+    <string name="device_access_pet_desc">Show Mikan, a floating companion that sits over other apps. Drag it around, double-tap to wave. Needs the \"Display over other apps\" permission above.</string>
+    <string name="pet_name">Mikan</string>
+    <string name="pet_channel_name">Desktop Pet</string>
+    <string name="pet_notification_text">Desktop pet is active</string>
     <string name="mini_app_title">Mini App</string>
     <string name="mini_app_add">Add Mini App</string>
     <string name="mini_app_empty">No Mini Apps yet. Tap + to add one.</string>

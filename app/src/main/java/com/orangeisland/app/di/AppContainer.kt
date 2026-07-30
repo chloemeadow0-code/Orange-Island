@@ -325,6 +325,20 @@ class AppContainer(private val appContext: Context) {
             .onFailure { com.orangeisland.app.util.DebugLog.e("AppContainer", "trigger host start failed", it) }
     }
 
+    // ── Desktop Pet ───────────────────────────────────────────────────────────
+    /** Reactive controller that starts/stops [com.orangeisland.app.service.DesktopPetService]
+     *  from the petEnabled setting + overlay-permission state. Mirrors the trigger-host pattern. */
+    val petController: com.orangeisland.app.pet.PetController by lazy {
+        com.orangeisland.app.pet.PetController(appContext, settingsRepository, appScope)
+    }
+
+    /** Begin observing the pet setting. Idempotent. Called from
+     *  [com.orangeisland.app.OrangeIslandApplication.onCreate]. */
+    fun startPetController() {
+        runCatching { petController.start() }
+            .onFailure { com.orangeisland.app.util.DebugLog.e("AppContainer", "pet controller start failed", it) }
+    }
+
     /** Re-enqueue every enabled graph-mode workflow's Schedule trigger into WorkManager.
      *
      *  Linear workflows are reconciled live by [com.orangeisland.app.workflow.trigger.TimeSignalSource]

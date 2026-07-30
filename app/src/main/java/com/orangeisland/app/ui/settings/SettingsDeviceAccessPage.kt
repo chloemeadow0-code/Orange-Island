@@ -13,10 +13,12 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Chat
@@ -62,6 +64,7 @@ fun SettingsDeviceAccessPage(
     val locationEnabled by settings.locationEnabled.collectAsState()
     val calendarEnabled by settings.calendarEnabled.collectAsState()
     val notificationEnabled by settings.notificationEnabled.collectAsState()
+    val mediaControlEnabled by settings.mediaControlEnabled.collectAsState()
     val usageStatsEnabled by settings.usageStatsEnabled.collectAsState()
     val navigationEnabled by settings.navigationEnabled.collectAsState()
     val appLockEnabled by settings.appLockEnabled.collectAsState()
@@ -76,6 +79,7 @@ fun SettingsDeviceAccessPage(
     val amapApiKey by settings.amapApiKey.collectAsState()
     val pc = viewModel.permissionController
     val overlayEnabled by pc.overlayEnabledFlow.collectAsState()
+    val petEnabled by settings.petEnabled.collectAsState()
     var amapKeyDraft by remember(amapApiKey) { mutableStateOf(amapApiKey) }
 
     // Health / Gadgetbridge / Sync state
@@ -93,12 +97,21 @@ fun SettingsDeviceAccessPage(
     // Re-query special-permission state whenever this page comes back to the foreground
     // (the user may have just toggled the listener / usage-access in system Settings).
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
     DisposableEffect(lifecycleOwner) {
         val obs = LifecycleEventObserver { _, e ->
             if (e == Lifecycle.Event.ON_RESUME) {
                 pc.refreshNotificationListenerState()
                 pc.refreshAccessibilityState()
                 pc.refreshOverlayState()
+                // If the user just granted the overlay permission in system Settings
+                // while the pet toggle was already on, nudge the controller to start
+                // the service now (it otherwise only re-evaluates on petEnabled change).
+                val app = context.applicationContext
+                runCatching {
+                    (app as? com.orangeisland.app.OrangeIslandApplication)
+                        ?.container?.petController?.refresh()
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(obs)
@@ -190,6 +203,21 @@ fun SettingsDeviceAccessPage(
                         permissionState = if (notificationListenerGranted)
                             PermissionState.Granted else PermissionState.SpecialNeeded(
                             onClick = { pc.openSystemSettings(PermissionController.Tool.NOTIFICATION) }
+                        )
+                    )
+                }
+                // Media control (reads/controls other apps' MediaSession; shares the
+                // notification-listener authorization, so it reuses the same grant indicator).
+                add {
+                    ToolToggleRow(
+                        title = stringResource(R.string.device_access_media_title),
+                        desc = stringResource(R.string.device_access_media_desc),
+                        icon = Icons.Default.LibraryMusic,
+                        checked = mediaControlEnabled,
+                        onCheckedChange = { settings.setMediaControlEnabled(it) },
+                        permissionState = if (notificationListenerGranted)
+                            PermissionState.Granted else PermissionState.SpecialNeeded(
+                            onClick = { pc.openSystemSettings(PermissionController.Tool.MEDIA) }
                         )
                     )
                 }
@@ -325,6 +353,30 @@ fun SettingsDeviceAccessPage(
                         icon = Icons.Default.Layers,
                         checked = overlayEnabled,
                         onCheckedChange = { pc.openSystemSettings(PermissionController.Tool.OVERLAY) },
+                        permissionState = if (overlayEnabled) PermissionState.Granted
+                            else PermissionState.SpecialNeeded(
+                                onClick = { pc.openSystemSettings(PermissionController.Tool.OVERLAY) }
+                            )
+                    )
+                }
+                // Desktop Pet (Mikan) — a floating companion that overlays other apps.
+                // Needs the same SYSTEM_ALERT_WINDOW permission as the overlay row above;
+                // if not granted, the switch opens system settings instead of toggling.
+                // The pet itself is started/stopped reactively by PetController from the
+                // petEnabled flag + this permission, so here we only flip the flag.
+                add {
+                    ToolToggleRow(
+                        title = stringResource(R.string.device_access_pet_title),
+                        desc = stringResource(R.string.device_access_pet_desc),
+                        icon = Icons.Default.Pets,
+                        checked = petEnabled,
+                        onCheckedChange = { on ->
+                            if (on && !overlayEnabled) {
+                                pc.openSystemSettings(PermissionController.Tool.OVERLAY)
+                            } else {
+                                settings.setPetEnabled(on)
+                            }
+                        },
                         permissionState = if (overlayEnabled) PermissionState.Granted
                             else PermissionState.SpecialNeeded(
                                 onClick = { pc.openSystemSettings(PermissionController.Tool.OVERLAY) }

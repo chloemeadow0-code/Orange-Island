@@ -236,12 +236,20 @@
     <string name="device_access_calendar_desc">查看、新建、删除日历日程</string>
     <string name="device_access_notification_title">通知</string>
     <string name="device_access_notification_desc">读取其他应用的活动通知</string>
+    <string name="device_access_media_title">音乐控制</string>
+    <string name="device_access_media_desc">通过 MediaSession 读取和控制其他应用的音乐（如网易云音乐），需开启通知访问权限。</string>
     <string name="device_access_usage_title">屏幕使用</string>
     <string name="device_access_usage_desc">各应用使用时长与最近打开时间</string>
     <string name="device_access_env_awareness_title">动态感知</string>
     <string name="device_access_env_awareness_desc">在系统提示词中通过 {app_context} 注入最近的环境变化（前台应用、模型、主题、电量、WiFi 等）</string>
     <string name="device_access_alarm_title">闹钟与计时器</string>
     <string name="device_access_alarm_desc">允许 AI 通过系统时钟 App 帮你设置闹钟和倒计时。</string>
+    <!-- 桌面宠物（蜜柑橘子 Mikan） -->
+    <string name="device_access_pet_title">桌面宠物</string>
+    <string name="device_access_pet_desc">在屏幕上悬浮一只蜜柑小橘子，可以拖动、双击打招呼。需要先开启上面的「显示在其他应用上层」权限。</string>
+    <string name="pet_name">蜜柑</string>
+    <string name="pet_channel_name">桌面宠物</string>
+    <string name="pet_notification_text">桌面宠物运行中</string>
     <string name="mini_app_title">Mini App</string>
     <string name="mini_app_add">添加 Mini App</string>
     <string name="mini_app_empty">暂无 Mini App，点击 + 添加</string>

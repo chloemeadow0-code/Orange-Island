@@ -54,6 +54,13 @@ class OrangeIslandWebViewBridge(
     @Volatile var pluginConfigJson: String = "{}",
     /** Provides read access to the host app's chat memories for this plugin's UI page. */
     private val memoryProvider: PluginMemoryProvider? = null,
+    /**
+     * Optional read-only media-info provider: returns the current now-playing track as a JSON
+     * string (same shape as the `get_now_playing` tool). When null, `orangeisland.getMediaInfo()`
+     * returns an error JSON instead of throwing. Wired by [PluginWebViewPage] from the host's
+     * MediaSessionManager; the bridge itself stays decoupled from Android media APIs.
+     */
+    private val mediaInfoProvider: ((packageFilter: String?) -> String)? = null,
 ) {
     companion object {
         private const val TAG = "OrangeIslandWebViewBridge"
@@ -211,6 +218,22 @@ class OrangeIslandWebViewBridge(
         }.getOrElse { "[]" }
     }
 
+    /**
+     * Read-only current now-playing info (JSON string), delegating to [mediaInfoProvider].
+     * Called via `orangeisland.getMediaInfo(package?)`. Returns an error JSON when no provider
+     * is wired or no session is active — never throws. Read-only by design: the bridge exposes no
+     * media-control surface, so a plugin page cannot pause/skip another app's playback on its own.
+     */
+    @JavascriptInterface
+    fun getMediaInfo(packageFilter: String?): String {
+        val provider = mediaInfoProvider ?: return errorJson("media_unavailable", "Media info not wired up on this host")
+        return runCatching {
+            kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                provider(packageFilter?.takeIf { it.isNotBlank() })
+            }
+        }.getOrElse { errorJson("media_error", it.message ?: "read failed") }
+    }
+
     /** Create a new conversation inside [projectId]. Returns the new conversation id or "". */
     @JavascriptInterface
     fun createConversation(projectId: String, title: String, modelId: String, systemPromptId: String): String {
@@ -309,6 +332,13 @@ class OrangeIslandWebViewBridge(
                 getProjectMemories: function(projectId) {
                     try { return JSON.parse(native.getProjectMemories(projectId || '') || '[]'); }
                     catch (e) { console.error('getProjectMemories error: ' + e); return []; }
+                },
+                // Read-only current now-playing info. Returns the parsed JSON object the
+                // get_now_playing tool produces (track/artist/album/coverUrl/…/isPlaying), or an
+                // {error} object. No control surface — pages cannot pause/skip from here.
+                getMediaInfo: function(packageFilter) {
+                    try { return JSON.parse(native.getMediaInfo(packageFilter || null) || '{}'); }
+                    catch (e) { console.error('getMediaInfo error: ' + e); return { error: 'media_error' }; }
                 },
                 createConversation: function(projectId, title, modelId, systemPromptId) {
                     try { return native.createConversation(projectId || '', title || '', modelId || '', systemPromptId || '') || ''; }

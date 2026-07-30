@@ -157,6 +157,30 @@
                 android:value="workflow_automation_listener" />
         </service>
 
+        <!-- Desktop Pet (Mikan): a foreground service that draws an animated character
+             as an overlay window over other apps. Uses SYSTEM_ALERT_WINDOW (already
+             declared for the Navigation tool). specialUse type with a descriptive subtype;
+             the pet is an interactive companion that stays visible while enabled. -->
+        <service
+            android:name=".service.DesktopPetService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="desktop_pet_companion_overlay" />
+        </service>
+
+        <!-- Desktop Pet auto-restore: starts the pet after boot/upgrade if the user
+             had it enabled. Not exported — only the system delivers these broadcasts. -->
+        <receiver
+            android:name=".pet.PetBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Override WorkManager's SystemForegroundService so workers that call
              setForeground() use the dataSync type. WorkManager 2.10.0 does not
              declare a foregroundServiceType on this service, so we add it here.

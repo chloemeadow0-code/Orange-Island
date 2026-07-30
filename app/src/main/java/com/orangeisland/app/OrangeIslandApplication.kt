@@ -53,5 +53,10 @@ class OrangeIslandApplication : Application(), ImageLoaderFactory {
         // previously-saved graph schedules would silently never fire.
         runCatching { container.rescheduleGraphWorkflows() }
             .onFailure { com.orangeisland.app.util.DebugLog.e("OrangeIslandApp", "graph reschedule failed", it) }
+        // Start observing the desktop-pet setting so the floating companion comes
+        // back (if enabled) whenever the process starts. Idempotent; mirrors the
+        // trigger-host start above.
+        runCatching { container.startPetController() }
+            .onFailure { com.orangeisland.app.util.DebugLog.e("OrangeIslandApp", "pet controller start failed", it) }
     }
 }

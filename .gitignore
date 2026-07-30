@@ -28,6 +28,7 @@ logs/
 build.log
 log.txt
 log2.txt
+ktlist.txt
 
 # Proot build artifacts
 /.build-proot/

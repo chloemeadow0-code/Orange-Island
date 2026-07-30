@@ -118,6 +118,10 @@ data class GenerationContext(
     val amapApiKey: String = "",
     val calendarEnabled: Boolean = false,
     val notificationEnabled: Boolean = false,
+    /** Media control tool — reads/controls other apps' MediaSession (e.g. NetEase Cloud Music).
+     *  Same authorization path as the notification listener: MediaSessionManager only exposes other
+     *  apps' sessions reliably while our NotificationListenerService is bound. */
+    val mediaControlEnabled: Boolean = false,
     val usageStatsEnabled: Boolean = false,
     val navigationEnabled: Boolean = false,
     val appLockEnabled: Boolean = false,

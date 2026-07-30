@@ -85,6 +85,9 @@ class ToolDispatcher(
     private val notificationToolProvider = permissionController?.let {
         com.orangeisland.app.tool.device.NotificationToolProvider(app, it, sensitiveToolApproval)
     }
+    private val mediaToolProvider = permissionController?.let {
+        com.orangeisland.app.tool.device.MediaToolProvider(app, it)
+    }
     private val usageStatsToolProvider = permissionController?.let {
         com.orangeisland.app.tool.device.UsageStatsToolProvider(app, it, sensitiveToolApproval)
     }
@@ -114,6 +117,7 @@ class ToolDispatcher(
         locationToolProvider?.let { add(it) }
         calendarToolProvider?.let { add(it) }
         notificationToolProvider?.let { add(it) }
+        mediaToolProvider?.let { add(it) }
         usageStatsToolProvider?.let { add(it) }
         add(navigationToolProvider)
         add(appLockToolProvider)
@@ -263,6 +267,7 @@ class ToolDispatcher(
         locationToolProvider?.let { addAll(it.definitions(ctx)) }
         calendarToolProvider?.let { addAll(it.definitions(ctx)) }
         notificationToolProvider?.let { addAll(it.definitions(ctx)) }
+        mediaToolProvider?.let { addAll(it.definitions(ctx)) }
         usageStatsToolProvider?.let { addAll(it.definitions(ctx)) }
     }
 

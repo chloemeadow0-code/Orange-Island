@@ -215,6 +215,13 @@ class SettingsManager(private val context: Context) {
         // AppLock state: JSON map of package_name -> {message, label}.
         val APP_LOCK_ENTRIES_JSON = stringPreferencesKey("app_lock_entries_json")
         val TOAST_ENABLED = booleanPreferencesKey("toast_enabled")
+        // ── Desktop Pet (悬浮桌宠 Mikan) ──────────────────────────
+        // Master switch. When on AND the overlay permission is granted, a foreground
+        // service draws the pet character over other apps. Position keys persist the
+        // last user-dragged location so the pet reappears where it was left.
+        val PET_ENABLED = booleanPreferencesKey("pet_enabled")
+        val PET_POS_X = intPreferencesKey("pet_pos_x")
+        val PET_POS_Y = intPreferencesKey("pet_pos_y")
         val ALARM_ENABLED = booleanPreferencesKey("alarm_enabled")
         val HEALTH_TOOL_ENABLED = booleanPreferencesKey("health_tool_enabled")
         val TIME_TOOL_ENABLED = booleanPreferencesKey("time_tool_enabled")
@@ -222,6 +229,10 @@ class SettingsManager(private val context: Context) {
         // gated behind a separate accessibility service the user must enable explicitly.
         val UI_AUTOMATION_ENABLED = booleanPreferencesKey("ui_automation_enabled")
         val USER_INTERACTION_ENABLED = booleanPreferencesKey("user_interaction_enabled")
+        // Media control (read/controllable MediaSession of other apps, e.g. NetEase Cloud Music).
+        // Same authorization path as the notification listener: a bound NotificationListenerService
+        // is what lets MediaSessionManager see other apps' sessions reliably.
+        val MEDIA_CONTROL_ENABLED = booleanPreferencesKey("media_control_enabled")
         // Amap (高德) REST API key for the location tool's reverse geocoding + nearby search.
         val AMAP_API_KEY = stringPreferencesKey("amap_api_key")
         val MCP_SERVERS_JSON = stringPreferencesKey("mcp_servers_json")
@@ -511,11 +522,15 @@ class SettingsManager(private val context: Context) {
         try { json.decodeFromString<Map<String, AppLockEntry>>(s) } catch (_: Exception) { emptyMap() }
     }
     val toastEnabled: Flow<Boolean> = context.dataStore.data.map { it[TOAST_ENABLED] ?: false }
+    val petEnabled: Flow<Boolean> = context.dataStore.data.map { it[PET_ENABLED] ?: false }
+    val petPosX: Flow<Int> = context.dataStore.data.map { it[PET_POS_X] ?: Int.MIN_VALUE }
+    val petPosY: Flow<Int> = context.dataStore.data.map { it[PET_POS_Y] ?: Int.MIN_VALUE }
     val alarmEnabled: Flow<Boolean> = context.dataStore.data.map { it[ALARM_ENABLED] ?: false }
     val healthToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[HEALTH_TOOL_ENABLED] ?: false }
     val timeToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[TIME_TOOL_ENABLED] ?: false }
     val uiAutomationEnabled: Flow<Boolean> = context.dataStore.data.map { it[UI_AUTOMATION_ENABLED] ?: false }
     val userInteractionEnabled: Flow<Boolean> = context.dataStore.data.map { it[USER_INTERACTION_ENABLED] ?: true }
+    val mediaControlEnabled: Flow<Boolean> = context.dataStore.data.map { it[MEDIA_CONTROL_ENABLED] ?: false }
     val amapApiKey: Flow<String> = context.dataStore.data.map { it[AMAP_API_KEY] ?: "" }
 
     // ── MCP servers ──────────────────────────────────────────
@@ -1086,11 +1101,16 @@ class SettingsManager(private val context: Context) {
         context.dataStore.edit { it[APP_LOCK_ENTRIES_JSON] = json.encodeToString(entries) }
     }
     suspend fun saveToastEnabled(enabled: Boolean) { context.dataStore.edit { it[TOAST_ENABLED] = enabled } }
+    suspend fun savePetEnabled(enabled: Boolean) { context.dataStore.edit { it[PET_ENABLED] = enabled } }
+    suspend fun savePetPos(x: Int, y: Int) {
+        context.dataStore.edit { it[PET_POS_X] = x; it[PET_POS_Y] = y }
+    }
     suspend fun saveAlarmEnabled(enabled: Boolean) { context.dataStore.edit { it[ALARM_ENABLED] = enabled } }
     suspend fun saveHealthToolEnabled(enabled: Boolean) { context.dataStore.edit { it[HEALTH_TOOL_ENABLED] = enabled } }
     suspend fun saveTimeToolEnabled(enabled: Boolean) { context.dataStore.edit { it[TIME_TOOL_ENABLED] = enabled } }
     suspend fun saveUiAutomationEnabled(enabled: Boolean) { context.dataStore.edit { it[UI_AUTOMATION_ENABLED] = enabled } }
     suspend fun saveUserInteractionEnabled(enabled: Boolean) { context.dataStore.edit { it[USER_INTERACTION_ENABLED] = enabled } }
+    suspend fun saveMediaControlEnabled(enabled: Boolean) { context.dataStore.edit { it[MEDIA_CONTROL_ENABLED] = enabled } }
     suspend fun saveAmapApiKey(key: String) { context.dataStore.edit { it[AMAP_API_KEY] = key } }
 
     suspend fun saveThemeMode(mode: String) {
