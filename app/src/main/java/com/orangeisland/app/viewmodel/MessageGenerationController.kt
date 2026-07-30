@@ -611,38 +611,31 @@ class MessageGenerationController(
                 settings.setConversationSettings(currentId, pendingSettings)
                 pendingConversationSettings.value = null
             }
-            // Compute the visible-path tail from the DB (including any workflow chat_message
-            // nodes that may have landed).  Timestamp-based parentId alone is unsafe when
-            // workflow messages and user turns race: the new message can become a sibling of
-            // a workflow message, and without an explicit branch selection the resolver hides
-            // the user turn (it falls back to newest-by-timestamp, which may be the model
-            // placeholder that was inserted after the user message).
+            // Walk root → tail mirroring ConversationUiState.resolvePath EXACTLY (see the
+            // matching comment in WorkflowRunner.buildChatMessageRunner). The previous version
+            // broke when a message had only tool_/result_ children, parenting the new message
+            // mid-conversation and hiding everything after it.
             val dbMessages = convRepo.getMessagesForConversationSnapshot(currentId)
-            val conv = convRepo.getConversation(currentId)
-            val dbBranches = if (conv?.selectedBranchesJson != null) {
-                try {
-                    Json.decodeFromString<Map<String, String>>(conv.selectedBranchesJson)
-                        .mapKeys { if (it.key == "null") null else it.key }
-                } catch (_: Exception) { emptyMap() }
-            } else emptyMap()
             var tail: String? = null
             var cursor: String? = null
+            val msgWalked = mutableSetOf<String>()
             while (true) {
-                val siblings = dbMessages.filter { it.parentId == cursor }
+                val siblings = dbMessages.filter { it.id !in msgWalked && it.parentId == cursor }
+                    .sortedBy { it.timestamp }
                 if (siblings.isEmpty()) break
-                val visible = siblings.filter {
+                val visibleSibs = siblings.filter {
                     !it.id.startsWith(Constants.TOOL_MSG_PREFIX) &&
                     !it.id.startsWith(Constants.RESULT_MSG_PREFIX)
                 }
-                val pool = if (visible.isNotEmpty()) visible else siblings
-                val selected = dbBranches[cursor]?.let { sel -> pool.firstOrNull { it.id == sel } }
-                    ?: pool.maxByOrNull { it.timestamp }
-                    ?: break
-                tail = selected.id
+                val selected = if (visibleSibs.isNotEmpty()) visibleSibs.last() else siblings.last()
+                msgWalked.add(selected.id)
                 cursor = selected.id
+                if (!selected.id.startsWith(Constants.TOOL_MSG_PREFIX) &&
+                    !selected.id.startsWith(Constants.RESULT_MSG_PREFIX)) {
+                    tail = selected.id
+                }
             }
             val lastMessageId = tail
-                ?: messages.value.lastOrNull()?.id
                 ?: dbMessages.filter {
                     it.participant == Participant.USER || it.participant == Participant.MODEL
                 }.maxByOrNull { it.timestamp }?.id
@@ -664,15 +657,13 @@ class MessageGenerationController(
             convRepo.getConversation(currentId)?.let { c ->
                 convRepo.upsertConversation(c.copy(lastUpdated = System.currentTimeMillis()))
             }
-            // Sync branch selection so the new user message (and its model placeholder)
-            // are on the visible path.  Workflow chat_message nodes write selectedBranchesJson
-            // directly in the DB, so memory can be stale.
-            val newSelected = dbBranches.toMutableMap()
-            if (lastMessageId != null) {
-                newSelected[lastMessageId] = userMessageId
-            }
-            newSelected[userMessageId] = modelMessageId
-            selectedChildren.value = newSelected.toMap()
+            // Append the new user→model pair to the IN-MEMORY branch map only. Do not read
+            // selectedBranchesJson from the DB — that races with the persist collector and
+            // can collapse the conversation on some devices.
+            val newChildren = selectedChildren.value.toMutableMap()
+            if (lastMessageId != null) newChildren[lastMessageId] = userMessageId
+            newChildren[userMessageId] = modelMessageId
+            selectedChildren.value = newChildren
             // Set streamingMessage BEFORE allMessages, so when the combine
             // re-evaluates on the allMessages change, streamingMessage is already
             // visible — eliminating the single-frame gap.
@@ -682,9 +673,6 @@ class MessageGenerationController(
             )
             session.streamUpdate(myUiToken, placeholder)
             allMessages.update { it.filter { m -> m.id != modelMessageId } + placeholder }
-            val newChildren = selectedChildren.value.toMutableMap()
-            newChildren[userMessageId] = modelMessageId
-            selectedChildren.value = newChildren
             onScrollToMessage(userMessageId)
 
             val titleGenerated = java.util.concurrent.atomic.AtomicBoolean(false)

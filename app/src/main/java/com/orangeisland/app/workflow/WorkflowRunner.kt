@@ -21,6 +21,7 @@ import com.orangeisland.app.model.StartNode
 import com.orangeisland.app.model.TriggerSpec
 import com.orangeisland.app.model.Workflow
 import com.orangeisland.app.tool.ToolDispatcher
+import com.orangeisland.app.util.DebugLog
 import com.orangeisland.app.viewmodel.GenerationContext
 import com.orangeisland.app.viewmodel.ProviderRegistry
 import com.orangeisland.app.workflow.linear.DeviceContextProvider
@@ -438,17 +439,47 @@ class WorkflowRunner(
                     projectId = workflow.projectId
                 ).also { dao.upsertConversation(it) }
 
-            // Attach the message to the TAIL of the conversation's currently-selected visible
-            // branch (not just the newest-by-timestamp message). The chat UI's visible path — and
-            // therefore the AI's context — is built by ConversationUiState.resolvePath walking the
-            // selectedBranchesJson map from the root. If we parent on the newest message instead,
-            // the workflow message lands off the selected branch and the AI never sees it when the
-            // user replies. Compute the same tail resolvePath would reach, parent on it, and then
-            // register ourselves in selectedBranchesJson so we become the new tail.
+            // Attach the workflow message to the tail of the newest-by-timestamp visible
+            // chain. We deliberately do NOT touch selectedBranchesJson:
+            //   - resolvePath (ConversationUiState) already falls back to the newest visible
+            //     sibling by timestamp when no explicit branch selection exists, so a message
+            //     parented on the current tail with the newest timestamp is always shown.
+            //   - Writing selectedBranchesJson from here races with ChatViewModel's
+            //     _selectedChildren persist collector and the message Flow, which on some
+            //     devices/timings corrupts the branch map and collapses the conversation.
+            // Staying out of the branch map entirely is the robust choice.
             val allMsgs = dao.getMessagesForConversation(conversation.id).first()
                 .map { it.decodeLargeText(appContext!!) }
-            val branches = parseSelectedBranches(conversation.selectedBranchesJson)
-            val parentId = visiblePathTailId(allMsgs, branches)
+
+            // Walk root → tail, mirroring ConversationUiState.resolvePath EXACTLY.
+            // The previous version broke when a message had only tool_/result_ children,
+            // stopping mid-conversation and parenting the workflow message there. resolvePath
+            // instead continues THROUGH synthetic messages (it sets cursor to the synthetic
+            // id and walks into its children). We must do the same to reach the true tail.
+            var walkCursor: String? = null
+            var tailId: String? = null
+            val walked = mutableSetOf<String>()
+            while (true) {
+                val siblings = allMsgs.filter { it.id !in walked && it.parentId == walkCursor }
+                    .sortedBy { it.timestamp }
+                if (siblings.isEmpty()) break
+                val visibleSibs = siblings.filter {
+                    !it.id.startsWith("tool_") && !it.id.startsWith("result_")
+                }
+                // Match resolvePath: prefer visible siblings, but fall through to synthetic
+                // ones when there are no visible siblings (don't break — continue walking).
+                val selected = if (visibleSibs.isNotEmpty()) visibleSibs.last() else siblings.last()
+                walked.add(selected.id)
+                walkCursor = selected.id
+                // Only track visible messages as the attachment tail.
+                if (!selected.id.startsWith("tool_") && !selected.id.startsWith("result_")) {
+                    tailId = selected.id
+                }
+            }
+            val parentId = tailId
+            DebugLog.d("WorkflowChatMsg", "conv=${conversation.id} attach: parentId=$parentId " +
+                "(visible msgs=${allMsgs.count { !it.id.startsWith("tool_") && !it.id.startsWith("result_") }}, " +
+                "total=${allMsgs.size})")
 
             val msgId = "msg_${java.util.UUID.randomUUID()}"
             val now = System.currentTimeMillis()
@@ -462,15 +493,10 @@ class WorkflowRunner(
                 timestamp = now
             ).encodeLargeText(appContext!!)
             dao.upsertMessage(entity)
-            // Make this message the selected child of its parent so resolvePath walks into it.
-            // Persist with the literal "null" key for a root-level (null-parent) entry — JSON keys
-            // can't be null, which is the same convention ChatViewModel uses when loading/saving.
-            val updatedBranches = branches.toMutableMap().apply { put(parentId, msgId) }
-            val serializable = updatedBranches.mapKeys { (k, _) -> k ?: "null" }
-            dao.upsertConversation(conversation.copy(
-                selectedBranchesJson = json.encodeToString(serializable),
-                lastUpdated = now
-            ))
+
+            // Only bump lastUpdated so the conversation sorts to the top of the list.
+            // Do NOT write selectedBranchesJson — see comment above.
+            dao.upsertConversation(conversation.copy(lastUpdated = now))
             msgId
         }
     }

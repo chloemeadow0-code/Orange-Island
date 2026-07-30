@@ -23,6 +23,12 @@ build*.ps1
 deploy.ps1
 logs/
 
+# Local debug / logcat dumps
+*.log
+build.log
+log.txt
+log2.txt
+
 # Proot build artifacts
 /.build-proot/
 app/src/main/jniLibs/arm64-v8a/

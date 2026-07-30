@@ -4,6 +4,7 @@ import com.orangeisland.app.model.ChatMessage
 import com.orangeisland.app.model.MessageStatus
 import com.orangeisland.app.model.Participant
 import com.orangeisland.app.util.Constants
+import com.orangeisland.app.util.DebugLog
 
 data class ConversationUiState(
     val path: List<ChatMessage> = emptyList(),
@@ -22,6 +23,11 @@ data class ConversationUiState(
             val path = mutableListOf<ChatMessage>()
             val visited = mutableSetOf<String>()
             val allIds = allMessages.mapTo(mutableSetOf()) { it.id }
+            // Diagnostic: detect when the visible path drops a large fraction of messages,
+            // which is the symptom of the "conversation collapses" bug.
+            val visibleTotal = allMessages.count {
+                !it.id.startsWith(Constants.TOOL_MSG_PREFIX) && !it.id.startsWith(Constants.RESULT_MSG_PREFIX)
+            }
             var cursor: String? = null
 
             while (true) {
@@ -69,6 +75,12 @@ data class ConversationUiState(
                 if (streamingMsg.parentId == lastId || (streamingMsg.parentId == null && path.isEmpty())) {
                     path.add(streamingMsg)
                 }
+            }
+            if (visibleTotal > 2 && path.size < visibleTotal / 2) {
+                DebugLog.w("ResolvePath", "COLLAPSE: path=${path.size} visibleTotal=$visibleTotal " +
+                    "allTotal=${allMessages.size} selected=${selectedChildren.size} | " +
+                    "root sel=${selectedChildren[null]?.take(20)} | " +
+                    "ids=" + allMessages.joinToString(",") { it.id.take(12) })
             }
             return path
         }
