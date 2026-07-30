@@ -256,6 +256,8 @@
     <string name="context_visualize_desc">將上下文視窗外的訊息變暗</string>
     <string name="show_usage_stats">顯示訊息用量統計</string>
     <string name="show_usage_stats_desc">在每條 AI 回覆下方顯示 token 用量、快取命中和上下文訊息數</string>
+    <string name="remember_last_conversation">記住上次視窗</string>
+    <string name="remember_last_conversation_desc">開啟後啟動 App 會直接進入上次開啟的對話，而不是新建對話</string>
     <string name="cache_hit">快取命中</string>
     <string name="context_messages">上下文 %1$d 則訊息</string>
     <string name="gen_temperature">溫度</string>

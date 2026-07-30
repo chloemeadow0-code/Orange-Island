@@ -133,6 +133,8 @@ class SettingsManager(private val context: Context) {
         val MAX_CONTEXT_WINDOW = stringPreferencesKey("max_context_window")
         val VISUALIZE_CONTEXT_ROLLOUT = booleanPreferencesKey("visualize_context_rollout")
         val SHOW_MESSAGE_USAGE_STATS = booleanPreferencesKey("show_message_usage_stats")
+        val REMEMBER_LAST_CONVERSATION = booleanPreferencesKey("remember_last_conversation")
+        val LAST_ACTIVE_CONVERSATION_ID = stringPreferencesKey("last_active_conversation_id")
         val CODE_EXECUTION_ENABLED = booleanPreferencesKey("code_execution_enabled")
         val WORKFLOW_ENABLED = booleanPreferencesKey("workflow_enabled")
         val WORKFLOW_MAX_RUN_MS = longPreferencesKey("workflow_max_run_ms")
@@ -386,6 +388,8 @@ class SettingsManager(private val context: Context) {
     val maxContextWindow: Flow<Int> = context.dataStore.data.map { it[MAX_CONTEXT_WINDOW]?.toIntOrNull() ?: 20 }
     val visualizeContextRollout: Flow<Boolean> = context.dataStore.data.map { it[VISUALIZE_CONTEXT_ROLLOUT] ?: false }
     val showMessageUsageStats: Flow<Boolean> = context.dataStore.data.map { it[SHOW_MESSAGE_USAGE_STATS] ?: false }
+    val rememberLastConversation: Flow<Boolean> = context.dataStore.data.map { it[REMEMBER_LAST_CONVERSATION] ?: false }
+    val lastActiveConversationId: Flow<String?> = context.dataStore.data.map { it[LAST_ACTIVE_CONVERSATION_ID] }
     val codeExecutionEnabled: Flow<Boolean> = context.dataStore.data.map { it[CODE_EXECUTION_ENABLED] ?: false }
     val workflowEnabled: Flow<Boolean> = context.dataStore.data.map { it[WORKFLOW_ENABLED] ?: false }
     val workflowMaxRunMs: Flow<Long> = context.dataStore.data.map { it[WORKFLOW_MAX_RUN_MS] ?: 300_000L }
@@ -787,6 +791,16 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveShowMessageUsageStats(enabled: Boolean) {
         context.dataStore.edit { it[SHOW_MESSAGE_USAGE_STATS] = enabled }
+    }
+
+    suspend fun saveRememberLastConversation(enabled: Boolean) {
+        context.dataStore.edit { it[REMEMBER_LAST_CONVERSATION] = enabled }
+    }
+
+    suspend fun saveLastActiveConversationId(id: String?) {
+        context.dataStore.edit {
+            if (id == null) it.remove(LAST_ACTIVE_CONVERSATION_ID) else it[LAST_ACTIVE_CONVERSATION_ID] = id
+        }
     }
 
     suspend fun saveCodeExecutionEnabled(enabled: Boolean) {

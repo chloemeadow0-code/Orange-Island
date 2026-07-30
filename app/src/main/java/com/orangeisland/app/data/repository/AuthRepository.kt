@@ -15,6 +15,7 @@ import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonPrimitive
@@ -65,8 +66,9 @@ class AuthRepository(
      * Logged-in flag for the MainActivity gate. Backed by the local DataStore flag,
      * which is fast and survives process restart.
      */
-    val isLoggedIn: StateFlow<Boolean> = settingsManager.loggedIn
-        .stateIn(scope, SharingStarted.Eagerly, false)
+    val isLoggedIn: StateFlow<Boolean?> = settingsManager.loggedIn
+        .map<Boolean, Boolean?> { it }
+        .stateIn(scope, SharingStarted.Eagerly, null)
 
     // ── Registration ──────────────────────────────────────────────────────────
 

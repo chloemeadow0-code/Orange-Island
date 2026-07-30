@@ -43,7 +43,7 @@ class AuthViewModel(private val auth: AuthRepository) : ViewModel() {
     private val _ui = MutableStateFlow(AuthUiState())
     val ui: StateFlow<AuthUiState> = _ui.asStateFlow()
 
-    val isLoggedIn: StateFlow<Boolean> get() = auth.isLoggedIn
+    val isLoggedIn: StateFlow<Boolean?> get() = auth.isLoggedIn
 
     fun setMode(mode: AuthMode) {
         _ui.value = _ui.value.copy(mode = mode, errorCode = null, infoCode = null)

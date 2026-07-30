@@ -59,7 +59,6 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -88,9 +87,6 @@ class MainActivity : ComponentActivity() {
     /** Holds text received from an external app via SEND intent or deep-link.
      *  Consumed by the Composable layer once the ViewModel is ready. */
     private val externalTextState = mutableStateOf<String?>(null)
-
-    @Volatile
-    private var authStateReady = false
 
     override fun attachBaseContext(newBase: Context) {
         val langCode = kotlinx.coroutines.runBlocking {
@@ -123,8 +119,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
-
-        splashScreen.setKeepOnScreenCondition { !authStateReady }
+        val authRepo = (application as OrangeIslandApplication).container.authRepository
+        splashScreen.setKeepOnScreenCondition { authRepo.isLoggedIn.value == null }
 
         com.orangeisland.app.util.DebugLog.init(this)
         OrangeIslandForegroundService.createChannel(this)
@@ -142,10 +138,6 @@ class MainActivity : ComponentActivity() {
         val settingsManager = SettingsManager(applicationContext)
         runBlocking(Dispatchers.IO) {
             settingsManager.initializeFirstInstallDefaults(locale = java.util.Locale.getDefault())
-        }
-        lifecycleScope.launch(Dispatchers.IO) {
-            settingsManager.loggedIn.first()
-            authStateReady = true
         }
 
         // Parse external intent on cold start
@@ -295,33 +287,70 @@ class MainActivity : ComponentActivity() {
                         // takes the user straight in — no restart needed.
                         val isLoggedIn by container.authRepository.isLoggedIn.collectAsState()
 
-                        if (!isLoggedIn) {
-                            val authViewModel: AuthViewModel = viewModel(
-                                key = "authViewModel",
-                                factory = viewModelFactory { initializer { AuthViewModel(container.authRepository) } }
-                            )
-                            AuthScreen(authViewModel)
-                        } else {
-                            // Onboarding flow disabled — mark it complete (so first-install
-                            // defaults don't re-run on every launch) and go straight to the app.
-                            LaunchedEffect(Unit) {
-                                if (!settingsManager.onboardingCompleted.first()) {
-                                    settingsManager.saveOnboardingCompleted(true)
-                                }
+                        // 兜底淡入动画：只在登录状态从 null（尚未从 DataStore 读出）
+                        // 变为非 null 的那一刻触发一次。正常情况下系统 splash screen
+                        // 已经把等待时间挡住了，用户几乎感知不到这段动画。
+                        var contentReady by remember { mutableStateOf(false) }
+                        LaunchedEffect(isLoggedIn) {
+                            if (isLoggedIn != null && !contentReady) {
+                                contentReady = true
                             }
+                        }
+                        val contentAlpha by animateFloatAsState(
+                            targetValue = if (contentReady) 1f else 0f,
+                            animationSpec = tween(1200),
+                            label = "contentAlpha"
+                        )
+                        val contentScale by animateFloatAsState(
+                            targetValue = if (contentReady) 1f else 0.96f,
+                            animationSpec = tween(1200),
+                            label = "contentScale"
+                        )
 
-                            MainNavigation(
-                                viewModel,
-                                settingsManager,
-                                workflowViewModel,
-                                container.pluginMemoryProvider
-                            )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .alpha(contentAlpha)
+                                .graphicsLayer {
+                                    scaleX = contentScale
+                                    scaleY = contentScale
+                                }
+                        ) {
+                            when (isLoggedIn) {
+                                null -> {
+                                    // 状态未知：理论上不会渲染到这一帧，因为系统启动画面
+                                    // 还没放行；留一个安全兜底，不要放任何业务内容。
+                                }
+                                false -> {
+                                    val authViewModel: AuthViewModel = viewModel(
+                                        key = "authViewModel",
+                                        factory = viewModelFactory { initializer { AuthViewModel(container.authRepository) } }
+                                    )
+                                    AuthScreen(authViewModel)
+                                }
+                                true -> {
+                                    // Onboarding flow disabled — mark it complete (so first-install
+                                    // defaults don't re-run on every launch) and go straight to the app.
+                                    LaunchedEffect(Unit) {
+                                        if (!settingsManager.onboardingCompleted.first()) {
+                                            settingsManager.saveOnboardingCompleted(true)
+                                        }
+                                    }
 
-                            // Process external text (from SHARE intent or deep-link) once the UI is ready.
-                            LaunchedEffect(externalTextState.value) {
-                                externalTextState.value?.let { text ->
-                                    viewModel.sendMessage(text)
-                                    externalTextState.value = null
+                                    MainNavigation(
+                                        viewModel,
+                                        settingsManager,
+                                        workflowViewModel,
+                                        container.pluginMemoryProvider
+                                    )
+
+                                    // Process external text (from SHARE intent or deep-link) once the UI is ready.
+                                    LaunchedEffect(externalTextState.value) {
+                                        externalTextState.value?.let { text ->
+                                            viewModel.sendMessage(text)
+                                            externalTextState.value = null
+                                        }
+                                    }
                                 }
                             }
                         }

@@ -289,6 +289,8 @@
     <string name="context_visualize_desc">컨텍스트 창 밖의 메시지를 흐리게 표시</string>
     <string name="show_usage_stats">Show Usage Stats</string>
     <string name="show_usage_stats_desc">Display token usage, cache hits, and context message count below each AI reply</string>
+    <string name="remember_last_conversation">Remember last conversation</string>
+    <string name="remember_last_conversation_desc">When enabled, launching the app opens your last conversation instead of starting a new one</string>
     <string name="cache_hit">Cache hit</string>
     <string name="context_messages">Context %1$d messages</string>
     <string name="gen_temperature">온도</string>

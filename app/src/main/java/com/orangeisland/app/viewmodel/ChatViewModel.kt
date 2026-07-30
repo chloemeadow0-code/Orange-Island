@@ -768,6 +768,23 @@ class ChatViewModel(
 
     init {
         startInitJobs()
+
+        // Restore the last active conversation on cold start when the setting is enabled.
+        // Must use suspend await to read the persisted value, not the eagerly-shared
+        // StateFlow default — otherwise the toggle appears to be ignored at startup.
+        viewModelScope.launch {
+            if (settings.awaitRememberLastConversation()) {
+                val lastId = settings.awaitLastActiveConversationId()
+                if (lastId != null && convRepo.getConversation(lastId) != null) {
+                    _isNewChatMode.value = false
+                    _currentConversationId.value = lastId
+                    val conversation = convRepo.getConversation(lastId)
+                    _currentActiveModel.value = conversation?.modelId
+                    _activeProjectId.value = conversation?.projectId
+                }
+            }
+        }
+
         viewModelScope.launch {
             _currentConversationId.collectLatest { id ->
                 if (id != null) {
@@ -850,6 +867,21 @@ class ChatViewModel(
             }
         }
         
+        // Remember the current conversation ID whenever it changes (excluding "new chat" mode).
+        // Use combine so turning the toggle ON while already inside a conversation also
+        // triggers a write — the old plain .collect on _currentConversationId alone missed this.
+        viewModelScope.launch {
+            kotlinx.coroutines.flow.combine(
+                _currentConversationId,
+                settings.rememberLastConversation
+            ) { id, remember -> id to remember }
+                .collect { (id, remember) ->
+                    if (id != null && remember) {
+                        settings.setLastActiveConversationId(id)
+                    }
+                }
+        }
+
         viewModelScope.launch {
             _selectedChildren.collect { childrenMap ->
                 val id = _currentConversationId.value
@@ -1310,6 +1342,9 @@ class ChatViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             stopFinalization?.join()
             convRepo.deleteConversation(id)
+            if (settings.lastActiveConversationId.value == id) {
+                settings.setLastActiveConversationId(null)
+            }
             if (_currentConversationId.value == id) createNewChat()
         }
     }

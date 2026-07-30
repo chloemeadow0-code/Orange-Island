@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.filled.DataUsage
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
@@ -38,6 +39,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val maxContextWindow by viewModel.settings.maxContextWindow.collectAsState()
     val visualizeContextRollout by viewModel.settings.visualizeContextRollout.collectAsState()
     val showUsageStats by viewModel.settings.showMessageUsageStats.collectAsState()
+    val rememberLastConversation by viewModel.settings.rememberLastConversation.collectAsState()
     val defaultTemperature by viewModel.settings.defaultTemperature.collectAsState()
     val defaultMaxTokens by viewModel.settings.defaultMaxTokens.collectAsState()
     val defaultTopP by viewModel.settings.defaultTopP.collectAsState()
@@ -136,6 +138,19 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     Switch(checked = showUsageStats, onCheckedChange = { viewModel.settings.setShowMessageUsageStats(it) })
                                 },
                                 modifier = Modifier.clickable { viewModel.settings.setShowMessageUsageStats(!showUsageStats) }
+                            )
+                        },
+                        {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.remember_last_conversation)) },
+                                supportingContent = { Text(stringResource(R.string.remember_last_conversation_desc)) },
+                                leadingContent = {
+                                    Icon(Icons.Default.History, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                },
+                                trailingContent = {
+                                    Switch(checked = rememberLastConversation, onCheckedChange = { viewModel.settings.setRememberLastConversation(it) })
+                                },
+                                modifier = Modifier.clickable { viewModel.settings.setRememberLastConversation(!rememberLastConversation) }
                             )
                         }
                     )
