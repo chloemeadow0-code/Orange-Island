@@ -17,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -59,6 +60,9 @@ class SettingsRepository(
     val showMessageUsageStats: StateFlow<Boolean> = hot(settingsManager.showMessageUsageStats, false)
     val rememberLastConversation: StateFlow<Boolean> = hot(settingsManager.rememberLastConversation, false)
     val lastActiveConversationId: StateFlow<String?> = hot(settingsManager.lastActiveConversationId, null)
+    val privacyPolicyAccepted: StateFlow<Boolean?> = settingsManager.privacyPolicyAccepted
+        .map<Boolean, Boolean?> { it }
+        .stateIn(scope, SharingStarted.Eagerly, null)
     val codeExecutionEnabled: StateFlow<Boolean> = hot(settingsManager.codeExecutionEnabled, false)
     val googleSearchEnabled: StateFlow<Boolean> = hot(settingsManager.googleSearchEnabled, false)
     val thinkingEnabled: StateFlow<Boolean> = hot(settingsManager.thinkingEnabled, true)
@@ -450,6 +454,7 @@ class SettingsRepository(
     fun setShowMessageUsageStats(enabled: Boolean) = scope.launch { settingsManager.saveShowMessageUsageStats(enabled) }
     fun setRememberLastConversation(enabled: Boolean) = scope.launch { settingsManager.saveRememberLastConversation(enabled) }
     fun setLastActiveConversationId(id: String?) = scope.launch { settingsManager.saveLastActiveConversationId(id) }
+    fun setPrivacyPolicyAccepted(accepted: Boolean) = scope.launch { settingsManager.savePrivacyPolicyAccepted(accepted) }
     fun setProviderBaseUrl(provider: String, url: String) = scope.launch { settingsManager.saveProviderBaseUrl(provider, url) }
     fun trustHttpHost(host: String) = scope.launch { settingsManager.addTrustedHttpHost(host) }
     fun untrustHttpHost(host: String) = scope.launch { settingsManager.removeTrustedHttpHost(host) }

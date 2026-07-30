@@ -120,7 +120,10 @@ class MainActivity : ComponentActivity() {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         val authRepo = (application as OrangeIslandApplication).container.authRepository
-        splashScreen.setKeepOnScreenCondition { authRepo.isLoggedIn.value == null }
+        val settingsRepo = (application as OrangeIslandApplication).container.settingsRepository
+        splashScreen.setKeepOnScreenCondition {
+            authRepo.isLoggedIn.value == null || settingsRepo.privacyPolicyAccepted.value == null
+        }
 
         com.orangeisland.app.util.DebugLog.init(this)
         OrangeIslandForegroundService.createChannel(this)
@@ -205,151 +208,142 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 } else {
-                    val privacyAccepted by settingsManager.privacyPolicyAccepted.collectAsState(initial = false)
+                    // Pull the app-lifetime container from the Application so the
+                    // Supabase session + all shared singletons survive activity recreation.
+                    val container = remember {
+                        (this@MainActivity.application as com.orangeisland.app.OrangeIslandApplication).container
+                    }
+                    val settingsRepo = container.settingsRepository
+                    val privacyAccepted: Boolean? = settingsRepo.privacyPolicyAccepted.collectAsState().value
+                    val isLoggedIn: Boolean? = container.authRepository.isLoggedIn.collectAsState().value
+                    val factory = remember { container.chatViewModelFactory() }
+                    val viewModel: ChatViewModel = viewModel(factory = factory)
+                    val workflowViewModel = remember { container.workflowViewModel() }
 
-                    if (!privacyAccepted) {
-                        // Privacy policy gate — must accept before entering the app.
-                        Dialog(
-                            onDismissRequest = { },
-                            properties = androidx.compose.ui.window.DialogProperties(
-                                dismissOnBackPress = false,
-                                dismissOnClickOutside = false,
-                                usePlatformDefaultWidth = false
-                            )
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(28.dp),
-                                color = MaterialTheme.colorScheme.surfaceContainer,
-                                tonalElevation = 6.dp,
-                                modifier = Modifier
-                                    .fillMaxWidth(0.92f)
-                                    .fillMaxHeight(0.85f)
-                        ) {
-                            Column(modifier = Modifier.padding(24.dp)) {
-                                Text(
-                                    "用户协议与隐私声明",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    "欢迎使用橘子岛。\n\n" +
-                                    "1. 本应用使用设备本地存储保存您的对话记录与记忆内容，所有数据仅在您的设备上处理。\n" +
-                                    "2. 调用第三方大模型 API 时，仅传输必要的对话内容，我们不会收集或存储您的个人信息。\n" +
-                                    "3. 位置、通知、使用统计等敏感权限仅在您主动开启相关功能时申请，您可以随时在系统设置中撤回。\n" +
-                                    "4. 本应用提供的自动化工作流、UI 操作等功能仅供个人辅助使用，因使用不当造成的任何后果由用户自行承担。\n" +
-                                    "5. 未成年人应在监护人指导下使用本应用。\n\n" +
-                                    "点击\"同意\"即表示您已阅读并同意以上内容。如不同意，请退出应用。",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .verticalScroll(rememberScrollState())
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Row(
-                                    horizontalArrangement = Arrangement.End,
-                                    modifier = Modifier.fillMaxWidth()
+                    // 兜底淡入动画：只在所有启动期状态都从 null（尚未从 DataStore 读出）
+                    // 变为非 null 的那一刻触发一次。正常情况下系统 splash screen
+                    // 已经把等待时间挡住了，用户几乎感知不到这段动画。
+                    var contentReady by remember { mutableStateOf(false) }
+                    LaunchedEffect(isLoggedIn, privacyAccepted) {
+                        if (isLoggedIn != null && privacyAccepted != null && !contentReady) {
+                            contentReady = true
+                        }
+                    }
+                    val contentAlpha by animateFloatAsState(
+                        targetValue = if (contentReady) 1f else 0f,
+                        animationSpec = tween(1200),
+                        label = "contentAlpha"
+                    )
+                    val contentScale by animateFloatAsState(
+                        targetValue = if (contentReady) 1f else 0.96f,
+                        animationSpec = tween(1200),
+                        label = "contentScale"
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .alpha(contentAlpha)
+                            .graphicsLayer {
+                                scaleX = contentScale
+                                scaleY = contentScale
+                            }
+                    ) {
+                        when {
+                            privacyAccepted == null || isLoggedIn == null -> {
+                                // 状态未知：理论上不会渲染到这一帧，因为系统启动画面
+                                // 还没放行；留一个安全兜底，不要放任何业务内容。
+                            }
+                            !privacyAccepted -> {
+                                // Privacy policy gate — must accept before entering the app.
+                                Dialog(
+                                    onDismissRequest = { },
+                                    properties = androidx.compose.ui.window.DialogProperties(
+                                        dismissOnBackPress = false,
+                                        dismissOnClickOutside = false,
+                                        usePlatformDefaultWidth = false
+                                    )
                                 ) {
-                                    TextButton(
-                                        onClick = { activity?.finish() }
+                                    Surface(
+                                        shape = RoundedCornerShape(28.dp),
+                                        color = MaterialTheme.colorScheme.surfaceContainer,
+                                        tonalElevation = 6.dp,
+                                        modifier = Modifier
+                                            .fillMaxWidth(0.92f)
+                                            .fillMaxHeight(0.85f)
                                     ) {
-                                        Text(
-                                            "不同意并退出",
-                                            color = MaterialTheme.colorScheme.error
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Button(
-                                        onClick = {
-                                            kotlinx.coroutines.runBlocking {
-                                                settingsManager.savePrivacyPolicyAccepted(true)
+                                        Column(modifier = Modifier.padding(24.dp)) {
+                                            Text(
+                                                "用户协议与隐私声明",
+                                                style = MaterialTheme.typography.headlineSmall,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Text(
+                                                "欢迎使用橘子岛。\n\n" +
+                                                "1. 本应用使用设备本地存储保存您的对话记录与记忆内容，所有数据仅在您的设备上处理。\n" +
+                                                "2. 调用第三方大模型 API 时，仅传输必要的对话内容，我们不会收集或存储您的个人信息。\n" +
+                                                "3. 位置、通知、使用统计等敏感权限仅在您主动开启相关功能时申请，您可以随时在系统设置中撤回。\n" +
+                                                "4. 本应用提供的自动化工作流、UI 操作等功能仅供个人辅助使用，因使用不当造成的任何后果由用户自行承担。\n" +
+                                                "5. 未成年人应在监护人指导下使用本应用。\n\n" +
+                                                "点击\"同意\"即表示您已阅读并同意以上内容。如不同意，请退出应用。",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .verticalScroll(rememberScrollState())
+                                            )
+                                            Spacer(modifier = Modifier.height(16.dp))
+                                            Row(
+                                                horizontalArrangement = Arrangement.End,
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                TextButton(
+                                                    onClick = { activity?.finish() }
+                                                ) {
+                                                    Text(
+                                                        "不同意并退出",
+                                                        color = MaterialTheme.colorScheme.error
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Button(
+                                                    onClick = { settingsRepo.setPrivacyPolicyAccepted(true) }
+                                                ) {
+                                                    Text("同意")
+                                                }
                                             }
                                         }
-                                    ) {
-                                        Text("同意")
                                     }
                                 }
                             }
-                        }
-                        }
-                    } else {
-                        // Pull the app-lifetime container from the Application so the
-                        // Supabase session + all shared singletons survive activity recreation.
-                        val container = remember {
-                            (this@MainActivity.application as com.orangeisland.app.OrangeIslandApplication).container
-                        }
-                        val factory = remember { container.chatViewModelFactory() }
-                        val viewModel: ChatViewModel = viewModel(factory = factory)
-                        val workflowViewModel = remember { container.workflowViewModel() }
-
-                        // Auth gate: if not logged in, show the login/register screen
-                        // instead of the main app. Once the flag flips, recomposition
-                        // takes the user straight in — no restart needed.
-                        val isLoggedIn by container.authRepository.isLoggedIn.collectAsState()
-
-                        // 兜底淡入动画：只在登录状态从 null（尚未从 DataStore 读出）
-                        // 变为非 null 的那一刻触发一次。正常情况下系统 splash screen
-                        // 已经把等待时间挡住了，用户几乎感知不到这段动画。
-                        var contentReady by remember { mutableStateOf(false) }
-                        LaunchedEffect(isLoggedIn) {
-                            if (isLoggedIn != null && !contentReady) {
-                                contentReady = true
+                            isLoggedIn == false -> {
+                                val authViewModel: AuthViewModel = viewModel(
+                                    key = "authViewModel",
+                                    factory = viewModelFactory { initializer { AuthViewModel(container.authRepository) } }
+                                )
+                                AuthScreen(authViewModel)
                             }
-                        }
-                        val contentAlpha by animateFloatAsState(
-                            targetValue = if (contentReady) 1f else 0f,
-                            animationSpec = tween(1200),
-                            label = "contentAlpha"
-                        )
-                        val contentScale by animateFloatAsState(
-                            targetValue = if (contentReady) 1f else 0.96f,
-                            animationSpec = tween(1200),
-                            label = "contentScale"
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .alpha(contentAlpha)
-                                .graphicsLayer {
-                                    scaleX = contentScale
-                                    scaleY = contentScale
-                                }
-                        ) {
-                            when (isLoggedIn) {
-                                null -> {
-                                    // 状态未知：理论上不会渲染到这一帧，因为系统启动画面
-                                    // 还没放行；留一个安全兜底，不要放任何业务内容。
-                                }
-                                false -> {
-                                    val authViewModel: AuthViewModel = viewModel(
-                                        key = "authViewModel",
-                                        factory = viewModelFactory { initializer { AuthViewModel(container.authRepository) } }
-                                    )
-                                    AuthScreen(authViewModel)
-                                }
-                                true -> {
-                                    // Onboarding flow disabled — mark it complete (so first-install
-                                    // defaults don't re-run on every launch) and go straight to the app.
-                                    LaunchedEffect(Unit) {
-                                        if (!settingsManager.onboardingCompleted.first()) {
-                                            settingsManager.saveOnboardingCompleted(true)
-                                        }
+                            isLoggedIn == true -> {
+                                // Onboarding flow disabled — mark it complete (so first-install
+                                // defaults don't re-run on every launch) and go straight to the app.
+                                LaunchedEffect(Unit) {
+                                    if (!settingsManager.onboardingCompleted.first()) {
+                                        settingsManager.saveOnboardingCompleted(true)
                                     }
+                                }
 
-                                    MainNavigation(
-                                        viewModel,
-                                        settingsManager,
-                                        workflowViewModel,
-                                        container.pluginMemoryProvider
-                                    )
+                                MainNavigation(
+                                    viewModel,
+                                    settingsManager,
+                                    workflowViewModel,
+                                    container.pluginMemoryProvider
+                                )
 
-                                    // Process external text (from SHARE intent or deep-link) once the UI is ready.
-                                    LaunchedEffect(externalTextState.value) {
-                                        externalTextState.value?.let { text ->
-                                            viewModel.sendMessage(text)
-                                            externalTextState.value = null
-                                        }
+                                // Process external text (from SHARE intent or deep-link) once the UI is ready.
+                                LaunchedEffect(externalTextState.value) {
+                                    externalTextState.value?.let { text ->
+                                        viewModel.sendMessage(text)
+                                        externalTextState.value = null
                                     }
                                 }
                             }
