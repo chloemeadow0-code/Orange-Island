@@ -64,6 +64,22 @@ fun SettingsProviderDetailPage(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    val savedUrl = providerBaseUrls[providerName]
+    val baseUrlState = remember { TextFieldState(savedUrl ?: "") }
+
+    var pendingCleartextHost by remember { mutableStateOf<String?>(null) }
+    var pendingSilenceHost by remember { mutableStateOf<String?>(null) }
+    val trustedHttpHosts by viewModel.settings.trustedHttpHosts.collectAsState()
+    val httpReminderSilencedHosts by viewModel.settings.httpReminderSilencedHosts.collectAsState()
+
+    fun isUnconfirmedCleartext(urlText: String): String? {
+        if (!urlText.startsWith("http://", ignoreCase = true)) return null
+        val host = try { java.net.URI(urlText).host ?: "" } catch (_: Exception) { "" }
+        if (host.isBlank()) return null
+        if (com.orangeisland.app.api.HttpClient.isLocalHost(host)) return null
+        return host
+    }
+
     // Dialogs
     var showKeyDialog by remember { mutableStateOf<ApiKeyEntry?>(null) }
     var showDeleteKeyConfirm by remember { mutableStateOf<ApiKeyEntry?>(null) }
@@ -132,11 +148,8 @@ fun SettingsProviderDetailPage(
             SettingsGroupColumn {
                 // Base URL (non-Local only)
                 if (!isLocal) {
-                val providerInstance = viewModel.getProviderInstance(providerName)
-                val savedUrl = providerBaseUrls[providerName]
-                // Don't key remember on savedUrl — that causes TextFieldState to be recreated
-                // every time the debounced save writes back to DataStore, overwriting user input.
-                val baseUrlState = remember { TextFieldState(savedUrl ?: "") }
+                val providerInstance = viewModel.getProviderInstanceOrNull(providerName)
+                if (providerInstance != null) {
                 // Sync external changes (e.g. import) back into the text field.
                 LaunchedEffect(savedUrl) {
                     val ext = savedUrl ?: ""
@@ -145,10 +158,20 @@ fun SettingsProviderDetailPage(
                         baseUrlState.edit { replace(0, length, ext) }
                     }
                 }
-                // Save user input with 500ms debounce.
+
                 LaunchedEffect(baseUrlState.text) {
                     delay(500)
-                    viewModel.settings.setProviderBaseUrl(providerName, baseUrlState.text.toString())
+                    val text = baseUrlState.text.toString()
+                    viewModel.settings.setProviderBaseUrl(providerName, text)
+                    val unconfirmedHost = isUnconfirmedCleartext(text)
+                    if (unconfirmedHost != null) {
+                        val hostKey = unconfirmedHost.lowercase()
+                        val trusted = hostKey in trustedHttpHosts
+                        val silenced = hostKey in httpReminderSilencedHosts
+                        if (!trusted || !silenced) {
+                            pendingCleartextHost = unconfirmedHost
+                        }
+                    }
                 }
                 SettingsGroup(
                     title = stringResource(R.string.provider_base_url),
@@ -167,6 +190,56 @@ fun SettingsProviderDetailPage(
                                             modifier = Modifier.fillMaxWidth(),
                                             textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         )
+                                    }
+                                    val currentUrlText = baseUrlState.text.toString()
+                                    val cleartextHost = isUnconfirmedCleartext(currentUrlText)
+                                    if (cleartextHost != null) {
+                                        val hostKey = cleartextHost.lowercase()
+                                        val isTrusted = hostKey in trustedHttpHosts
+                                        val isSilenced = hostKey in httpReminderSilencedHosts
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(top = 8.dp)
+                                        ) {
+                                            Text(
+                                                text = "允许使用此不安全（http）连接",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Switch(
+                                                checked = isTrusted,
+                                                onCheckedChange = { checked ->
+                                                    if (checked) {
+                                                        pendingCleartextHost = cleartextHost
+                                                    } else {
+                                                        viewModel.settings.untrustHttpHost(cleartextHost)
+                                                        com.orangeisland.app.data.UsageLogManager.log(
+                                                            com.orangeisland.app.data.UsageLogManager.Type.SECURITY,
+                                                            name = "取消信任不安全连接",
+                                                            details = "provider=$providerName, host=$cleartextHost"
+                                                        )
+                                                    }
+                                                }
+                                            )
+                                        }
+
+                                        if (isTrusted) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable { pendingSilenceHost = cleartextHost }
+                                            ) {
+                                                Checkbox(checked = isSilenced, onCheckedChange = null)
+                                                Text(
+                                                    "不再自动提醒此地址（此后打开设置页不再自动弹出说明）",
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -219,6 +292,7 @@ fun SettingsProviderDetailPage(
                         )
                     }
                 )
+                }
             }
 
             // Local models
@@ -442,6 +516,94 @@ fun SettingsProviderDetailPage(
     }
 
     // --- Dialogs ---
+
+    run {
+        val host = pendingCleartextHost
+        if (host != null) {
+            AlertDialog(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                onDismissRequest = { pendingCleartextHost = null },
+                title = { Text("不安全连接说明", fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        Text(
+                            "为什么不安全",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "你当前配置的地址「$host」使用 http:// 协议，数据传输过程未经加密。" +
+                            "这意味着你的 API 密钥、对话内容等信息，在通过公共网络（如公共 WiFi、" +
+                            "不受信任的网络环境）传输时，理论上可能被具备相应技术能力的第三方截获。" +
+                            "若密钥泄露，他人可能使用你账户下的额度调用 API，造成余额或数据损失。",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "免责声明",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "本提示仅用于告知已知风险，是否使用该连接完全由你自行决定。" +
+                            "点击下方按钮即表示你已知悉并接受上述风险，本次配置由你本人主动完成。" +
+                            "因使用未加密连接导致的任何密钥泄露、账户损失、数据泄露或其他后果，" +
+                            "均由你自行承担，与本应用开发者无关，开发者不对此类风险及其造成的" +
+                            "任何直接或间接损失承担责任。",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.settings.trustHttpHost(host)
+                        com.orangeisland.app.data.UsageLogManager.log(
+                            com.orangeisland.app.data.UsageLogManager.Type.SECURITY,
+                            name = "确认使用不安全连接",
+                            details = "provider=$providerName, host=$host"
+                        )
+                        pendingCleartextHost = null
+                    }) { Text("我已知晓风险，仍要使用") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingCleartextHost = null }) { Text("取消") }
+                }
+            )
+        }
+    }
+
+    run {
+        val host = pendingSilenceHost
+        if (host != null) {
+            val isSilenced = host.lowercase() in httpReminderSilencedHosts
+            AlertDialog(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                onDismissRequest = { pendingSilenceHost = null },
+                title = { Text(if (isSilenced) "恢复自动提醒？" else "关闭自动提醒？", fontWeight = FontWeight.Bold) },
+                text = {
+                    Text(
+                        if (isSilenced)
+                            "「$host」这条连接目前不会自动弹出不安全提醒。恢复后，每次打开这个设置页都会重新自动弹出提醒。"
+                        else
+                            "「$host」这条连接依然是未加密的 http 连接，风险没有变化。关闭自动提醒只是不再打扰你，之后请自行留意这条连接仍然不安全。"
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        if (isSilenced) viewModel.settings.unsilenceHttpReminder(host)
+                        else viewModel.settings.silenceHttpReminder(host)
+                        pendingSilenceHost = null
+                    }) { Text(if (isSilenced) "恢复提醒" else "确认关闭") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingSilenceHost = null }) { Text("取消") }
+                }
+            )
+        }
+    }
+
     if (showGgufError) {
         AlertDialog(containerColor = MaterialTheme.colorScheme.surfaceContainer, onDismissRequest = { showGgufError = false }, title = { Text(stringResource(R.string.import_invalid_gguf_title), fontWeight = FontWeight.Bold) }, text = { Text(stringResource(R.string.import_invalid_gguf_desc)) }, confirmButton = { TextButton(onClick = { showGgufError = false }) { Text(stringResource(R.string.ok)) } })
     }

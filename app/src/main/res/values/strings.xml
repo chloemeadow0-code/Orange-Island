@@ -1040,6 +1040,7 @@
     <string name="logs_type_request">REQUEST</string>
     <string name="logs_type_conversation">CONVERSATION</string>
     <string name="logs_type_sync">SYNC</string>
+    <string name="logs_type_security">SECURITY</string>
     <string name="logs_clear_confirm_title">Clear all logs?</string>
     <string name="logs_clear_confirm_message">This will permanently delete all usage logs. This action cannot be undone.</string>
 

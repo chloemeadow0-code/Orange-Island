@@ -19,7 +19,7 @@ object HttpClient {
 
     /** True for loopback / RFC-1918 / link-local hosts and bare LAN hostnames
      *  (e.g. "ollama", "nas.local"). Public FQDNs like api.openai.com return false. */
-    private fun isLocalHost(host: String): Boolean {
+    fun isLocalHost(host: String): Boolean {
         if (host.isBlank()) return false
         val h = host.lowercase().trim('[', ']')
         if (h == "localhost" || h == "::1" || h.endsWith(".local") || h.endsWith(".lan") ||
@@ -35,12 +35,25 @@ object HttpClient {
         return false
     }
 
+    /** Hosts the user has explicitly confirmed via the "I understand the risk" dialog in the
+     *  provider settings page. Kept in memory, synced from DataStore by [SettingsRepository]
+     *  at app startup and on every change — see [setTrustedHttpHosts]. */
+    @Volatile private var trustedHttpHosts: Set<String> = emptySet()
+
+    /** Called by [com.orangeisland.app.data.repository.SettingsRepository] to keep the
+     *  in-memory trusted-host set in sync with the persisted one. */
+    fun setTrustedHttpHosts(hosts: Set<String>) {
+        trustedHttpHosts = hosts
+    }
+
     /** Fail-closed guard: never transmit API credentials over cleartext HTTP to a
-     *  non-local host. LAN/loopback endpoints (Ollama, self-hosted) stay allowed. */
+     *  non-local, non-user-confirmed host. LAN/loopback endpoints (Ollama, self-hosted)
+     *  stay allowed, as do hosts the user has explicitly confirmed via the settings page. */
     private fun guardCleartextCredentials(url: String, headers: Map<String, String>) {
         if (!url.startsWith("http://", ignoreCase = true)) return
         val host = try { java.net.URI(url).host ?: "" } catch (_: Exception) { "" }
         if (isLocalHost(host)) return
+        if (host.lowercase() in trustedHttpHosts) return
         if (headers.keys.any { it.lowercase() in CREDENTIAL_HEADERS }) {
             throw IOException("Refusing to send API credentials over cleartext HTTP to \"$host\". Use an https:// endpoint.")
         }

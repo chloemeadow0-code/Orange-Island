@@ -3,8 +3,10 @@ package com.orangeisland.app.tool.device
 import android.app.Application
 import android.content.Context
 import android.location.Location
+import android.location.LocationListener
 import android.location.LocationManager
 import android.net.Uri
+import android.os.Looper
 import com.orangeisland.app.api.HttpClient
 import com.orangeisland.app.api.ToolDefinition
 import com.orangeisland.app.api.ToolFunction
@@ -15,6 +17,8 @@ import com.orangeisland.app.tool.ToolProvider
 import com.orangeisland.app.util.DebugLog
 import com.orangeisland.app.viewmodel.GenerationContext
 import com.orangeisland.app.viewmodel.PermissionController
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -22,13 +26,14 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Location tool backed by the platform [LocationManager] (no Google Play Services — keeps the
  * fdroid flavor clean) and Amap (高德) REST for reverse geocoding + nearby-POI search.
  *
  * Two tools:
- *  - [get_current_location] — last-known GPS coordinates reverse-geocoded to a Chinese address.
+ *  - [get_current_location] — real-time GPS coordinates reverse-geocoded to a Chinese address.
  *  - [explore_nearby] — points of interest around the current location within a radius
  *    (default 1000m), e.g. restaurants, ATMs, convenience stores.
  *
@@ -101,9 +106,14 @@ class LocationToolProvider(
 
     // ── Internals ─────────────────────────────────────────────
 
-    private fun currentLocation(apiKey: String): String {
-        val loc = lastKnownLocation() ?: return error("no_location",
-            "No last-known location available. Ask the user to open a maps app once to refresh it.")
+    private suspend fun currentLocation(apiKey: String): String {
+        if (!hasAnyLocationProviderEnabled()) {
+            return error("location_disabled",
+                "设备定位服务未开启，请前往系统设置打开 GPS/网络定位后重试。")
+        }
+        val loc = requestFreshLocation()
+            ?: return error("location_timeout",
+                "定位请求超时，可能是室内或信号较弱，请到空旷处重试。")
         val (lat, lng) = loc
         val addr = amapRegeo(apiKey, lat, lng)
         return if (addr != null) buildJsonObject {
@@ -120,15 +130,20 @@ class LocationToolProvider(
         }.toString()
     }
 
-    private fun exploreNearby(arguments: String, apiKey: String): String {
+    private suspend fun exploreNearby(arguments: String, apiKey: String): String {
         val parsed = json.decodeFromString<Map<String, kotlinx.serialization.json.JsonElement>>(arguments.ifBlank { "{}" })
         val keyword = (parsed["keyword"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
             ?: return error("no_keyword", "Missing 'keyword'.")
         val radius = ((parsed["radius"] as? JsonPrimitive)?.content?.toIntOrNull() ?: 1000).coerceIn(1, 3000)
         val limit = ((parsed["limit"] as? JsonPrimitive)?.content?.toIntOrNull() ?: 10).coerceIn(1, 20)
 
-        val loc = lastKnownLocation() ?: return error("no_location",
-            "No last-known location available. Ask the user to open a maps app once to refresh it.")
+        if (!hasAnyLocationProviderEnabled()) {
+            return error("location_disabled",
+                "设备定位服务未开启，请前往系统设置打开 GPS/网络定位后重试。")
+        }
+        val loc = requestFreshLocation()
+            ?: return error("location_timeout",
+                "定位请求超时，可能是室内或信号较弱，请到空旷处重试。")
         val (lat, lng) = loc
 
         val url = "https://restapi.amap.com/v3/place/around?" +
@@ -181,16 +196,68 @@ class LocationToolProvider(
         }
     }
 
-    /** Returns [lat, lng] or null if unavailable. */
-    private fun lastKnownLocation(): Pair<Double, Double>? {
+    /** Returns true if at least one of GPS or network provider is currently enabled. */
+    private fun hasAnyLocationProviderEnabled(): Boolean {
+        val lm = app.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return false
+        return listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+            .any { runCatching { lm.isProviderEnabled(it) }.getOrDefault(false) }
+    }
+
+    /**
+     * Requests a fresh real-time location from all enabled providers.
+     * Returns [lat, lng] or null when all providers are disabled, timed out (12 s),
+     * or an exception occurs.
+     */
+    private suspend fun requestFreshLocation(): Pair<Double, Double>? {
         val lm = app.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
-        val provider = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
-            .firstOrNull { runCatching { lm.isProviderEnabled(it) }.getOrDefault(false) } ?: return null
-        return try {
-            @Suppress("MissingPermission")
-            val loc: Location? = lm.getLastKnownLocation(provider)
-            loc?.let { it.latitude to it.longitude }
-        } catch (e: SecurityException) { null } catch (e: Exception) { null }
+        val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+            .filter { runCatching { lm.isProviderEnabled(it) }.getOrDefault(false) }
+        if (providers.isEmpty()) return null
+
+        return withTimeoutOrNull(12_000L) {
+            suspendCancellableCoroutine { cont ->
+                val resumed = AtomicBoolean(false)
+
+                val listener = object : LocationListener {
+                    override fun onLocationChanged(location: Location) {
+                        if (resumed.compareAndSet(false, true)) {
+                            runCatching { providers.forEach { p -> lm.removeUpdates(this) } }
+                            cont.resume(location.latitude to location.longitude) { _, _, _ -> }
+                        }
+                    }
+
+                    @Deprecated("Deprecated in Java")
+                    @Suppress("DEPRECATION")
+                    override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) {}
+
+                    override fun onProviderEnabled(provider: String) {}
+
+                    override fun onProviderDisabled(provider: String) {}
+                }
+
+                cont.invokeOnCancellation {
+                    if (resumed.compareAndSet(false, true)) {
+                        runCatching { providers.forEach { p -> lm.removeUpdates(listener) } }
+                    }
+                }
+
+                try {
+                    providers.forEach { provider ->
+                        lm.requestLocationUpdates(provider, 0L, 0f, listener, Looper.getMainLooper())
+                    }
+                } catch (e: SecurityException) {
+                    DebugLog.e("LocationTool", "SecurityException requesting fresh location", e)
+                    if (resumed.compareAndSet(false, true)) {
+                        cont.resume(null) { _, _, _ -> }
+                    }
+                } catch (e: Exception) {
+                    DebugLog.e("LocationTool", "Exception requesting fresh location", e)
+                    if (resumed.compareAndSet(false, true)) {
+                        cont.resume(null) { _, _, _ -> }
+                    }
+                }
+            }
+        }
     }
 
     private data class AmapAddr(val formatted: String, val province: String, val city: String, val district: String)

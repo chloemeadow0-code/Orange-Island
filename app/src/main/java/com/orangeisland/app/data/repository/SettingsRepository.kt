@@ -59,6 +59,8 @@ class SettingsRepository(
     val thinkingBudgetEnabled: StateFlow<Boolean> = hot(settingsManager.thinkingBudgetEnabled, false)
     val thinkingBudgetTokens: StateFlow<Int> = hot(settingsManager.thinkingBudgetTokens, 4096)
     val providerBaseUrls: StateFlow<Map<String, String>> = hot(settingsManager.providerBaseUrls, emptyMap())
+    val trustedHttpHosts: StateFlow<Set<String>> = hot(settingsManager.trustedHttpHosts, emptySet())
+    val httpReminderSilencedHosts: StateFlow<Set<String>> = hot(settingsManager.httpReminderSilencedHosts, emptySet())
     val titleGenerationEnabled: StateFlow<Boolean> = hot(settingsManager.titleGenerationEnabled, true)
     val titleGenerationModel: StateFlow<String?> = hot(settingsManager.titleGenerationModel, null)
     val titleGenerationPrompt: StateFlow<String> = hot(settingsManager.titleGenerationPrompt, BuiltInPrompts.TITLE_GENERATION_SYSTEM)
@@ -212,6 +214,18 @@ class SettingsRepository(
     val sttApiKey: StateFlow<String> = hot(settingsManager.sttApiKey, "")
     val sttModel: StateFlow<String> = hot(settingsManager.sttModel, "")
     val sttBaseUrl: StateFlow<String> = hot(settingsManager.sttBaseUrl, "")
+
+    init {
+        // Keep HttpClient's in-memory trusted-host set in sync with what's persisted —
+        // it can't read DataStore itself (guardCleartextCredentials is a synchronous call
+        // on the hot request path), so this repository pushes updates to it instead,
+        // same pattern as would be used for the network proxy config.
+        scope.launch {
+            trustedHttpHosts.collect { hosts ->
+                com.orangeisland.app.api.HttpClient.setTrustedHttpHosts(hosts)
+            }
+        }
+    }
 
     // ── Write (fire-and-forget; read current state from own StateFlows) ──
     //
@@ -419,6 +433,10 @@ class SettingsRepository(
     fun setVisualizeContextRollout(enabled: Boolean) = scope.launch { settingsManager.saveVisualizeContextRollout(enabled) }
     fun setShowMessageUsageStats(enabled: Boolean) = scope.launch { settingsManager.saveShowMessageUsageStats(enabled) }
     fun setProviderBaseUrl(provider: String, url: String) = scope.launch { settingsManager.saveProviderBaseUrl(provider, url) }
+    fun trustHttpHost(host: String) = scope.launch { settingsManager.addTrustedHttpHost(host) }
+    fun untrustHttpHost(host: String) = scope.launch { settingsManager.removeTrustedHttpHost(host) }
+    fun silenceHttpReminder(host: String) = scope.launch { settingsManager.setHttpReminderSilenced(host, true) }
+    fun unsilenceHttpReminder(host: String) = scope.launch { settingsManager.setHttpReminderSilenced(host, false) }
     fun setTitleGenerationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveTitleGenerationEnabled(enabled) }
     fun setTitleGenerationModel(model: String?) = scope.launch { settingsManager.saveTitleGenerationModel(model) }
     fun setTitleGenerationPrompt(prompt: String) = scope.launch { settingsManager.saveTitleGenerationPrompt(prompt) }

@@ -701,8 +701,19 @@ internal fun AssistantMessageContent(
                         }
                     }
                 }
-                if (message.participant == Participant.MODEL && message.images.isNotEmpty()) {
-                    val genImages = message.images
+                // Paths already claimed by a tool-call segment (speak / generate_image) render
+                // inline in the timeline card at their actual position; only render here the
+                // paths that AREN'T claimed by any segment — that's the legacy path for messages
+                // generated before segments carried audioPath/imagePath.
+                val claimedImagePaths = remember(message.segments) {
+                    message.segments?.mapNotNull { it.imagePath }?.toSet() ?: emptySet()
+                }
+                val claimedAudioPaths = remember(message.segments) {
+                    message.segments?.mapNotNull { it.audioPath }?.toSet() ?: emptySet()
+                }
+                val unclaimedImages = message.images.filter { it !in claimedImagePaths }
+                val unclaimedAudio = message.audio.filter { it !in claimedAudioPaths }
+                if (message.participant == Participant.MODEL && unclaimedImages.isNotEmpty()) {
                     // Generated images are primary output, not input references:
                     // render as a full-width square card, image cropped to fill
                     // with rounded corners, tap to view fullscreen.
@@ -710,7 +721,7 @@ internal fun AssistantMessageContent(
                         modifier = Modifier.padding(top = if (debouncedText.isNotEmpty()) 8.dp else 0.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        genImages.forEachIndexed { idx, path ->
+                        unclaimedImages.forEachIndexed { idx, path ->
                             coil.compose.AsyncImage(
                                 model = path,
                                 contentDescription = null,
@@ -720,19 +731,19 @@ internal fun AssistantMessageContent(
                                     .aspectRatio(1f)
                                     .clip(RoundedCornerShape(12.dp))
                                     .combinedClickable(
-                                        onClick = { onMediaClick(genImages, idx) },
+                                        onClick = { onMediaClick(unclaimedImages, idx) },
                                         onLongClick = { haptics.longPress() }
                                     )
                             )
                         }
                     }
                 }
-                if (message.participant == Participant.MODEL && message.audio.isNotEmpty()) {
+                if (message.participant == Participant.MODEL && unclaimedAudio.isNotEmpty()) {
                     Column(
-                        modifier = Modifier.padding(top = if (debouncedText.isNotEmpty() || message.images.isNotEmpty()) 8.dp else 0.dp),
+                        modifier = Modifier.padding(top = if (debouncedText.isNotEmpty() || unclaimedImages.isNotEmpty()) 8.dp else 0.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        message.audio.forEach { path ->
+                        unclaimedAudio.forEach { path ->
                             AudioMessageBar(path = path)
                         }
                     }

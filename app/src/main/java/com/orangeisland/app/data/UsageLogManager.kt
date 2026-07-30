@@ -32,7 +32,7 @@ object UsageLogManager {
     const val MAX_SIZE = 500
 
     @Serializable
-    enum class Type { MODEL, TOOL, REQUEST, CONVERSATION, SYNC }
+    enum class Type { MODEL, TOOL, REQUEST, CONVERSATION, SYNC, SECURITY }
 
     @Serializable
     data class Entry(

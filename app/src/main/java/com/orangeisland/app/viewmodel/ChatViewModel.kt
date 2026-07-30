@@ -375,6 +375,11 @@ class ChatViewModel(
     fun getProviderInstance(name: String): LlmProvider =
         providerRegistry.getInstance(name) ?: error("Provider '$name' is not registered")
 
+    /** Same as [getProviderInstance] but returns null instead of throwing when the provider
+     *  isn't registered — for callers on a Composable recomposition path (e.g. settings pages)
+     *  where the provider may have just been deleted and the page hasn't navigated away yet. */
+    fun getProviderInstanceOrNull(name: String): LlmProvider? = providerRegistry.getInstance(name)
+
 
 
     private val _scrollToMessage = MutableSharedFlow<String?>(replay = 0)

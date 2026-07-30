@@ -447,6 +447,21 @@ private fun CompactSegmentBlock(
                                     style = ChatType.metaNormal,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                 )
+                                seg.audioPath?.let { path ->
+                                    AudioMessageBar(path = path, modifier = Modifier.padding(top = 6.dp))
+                                }
+                                seg.imagePath?.let { path ->
+                                    coil.compose.AsyncImage(
+                                        model = path,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .padding(top = 6.dp)
+                                            .fillMaxWidth()
+                                            .aspectRatio(1f)
+                                            .clip(RoundedCornerShape(12.dp))
+                                    )
+                                }
                             }
                         }
                         if (idx < segs.lastIndex) {
@@ -683,6 +698,7 @@ private fun TimelineInfoSegmentCard(
                         .background(reasoningBaseColor.copy(alpha = reasoningPanelAlpha))
                 )
             }
+            Column {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp)
@@ -734,6 +750,26 @@ private fun TimelineInfoSegmentCard(
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
+        }
+        if (seg.type == "tool" && (seg.audioPath != null || seg.imagePath != null)) {
+            Column(modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp)) {
+                seg.audioPath?.let { path ->
+                    AudioMessageBar(path = path, modifier = Modifier.padding(top = 2.dp))
+                }
+                seg.imagePath?.let { path ->
+                    coil.compose.AsyncImage(
+                        model = path,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .padding(top = 2.dp)
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                }
+            }
+        }
         }
         }
     }

@@ -22,7 +22,9 @@ data class MessageSegment(
     val toolResult: String? = null,
     val toolCallId: String? = null,
     val signature: String? = null,
-    val durationMs: Long? = null
+    val durationMs: Long? = null,
+    val audioPath: String? = null,
+    val imagePath: String? = null
 )
 
 object ToolCallDisplayModes {

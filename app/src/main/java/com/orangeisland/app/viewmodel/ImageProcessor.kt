@@ -69,9 +69,13 @@ class ImageProcessor(
                             val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
                             android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
 
+                            val targetLongEdge = 1024
+                            val longEdge = maxOf(options.outWidth, options.outHeight)
                             var scale = 1
-                            while (options.outWidth / scale / 2 >= 1024 && options.outHeight / scale / 2 >= 1024) {
-                                scale *= 2
+                            if (longEdge > targetLongEdge) {
+                                while (longEdge / (scale * 2) >= targetLongEdge) {
+                                    scale *= 2
+                                }
                             }
 
                             val decodeOptions = android.graphics.BitmapFactory.Options().apply { inSampleSize = scale }

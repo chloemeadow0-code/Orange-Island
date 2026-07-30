@@ -375,12 +375,12 @@ object GadgetbridgeReader {
                     DebugLog.e(TAG, "华为 daily 静息心率查询失败 date=$date", e); null
                 }
 
-                // 血氧日均：AVG(SPO2)，过滤 SPO2 > 0
+                // 血氧日均：AVG(SPO)，过滤 SPO > 0（华为活动表血氧列名是 SPO，不是 SPO2）
                 val spo2Avg = try {
                     db.query(
                         "HUAWEI_ACTIVITY_SAMPLE",
-                        arrayOf("AVG(SPO2)"),
-                        "$realRowFilter AND SPO2 > 0 AND TIMESTAMP >= ? AND TIMESTAMP < ?",
+                        arrayOf("AVG(SPO)"),
+                        "$realRowFilter AND SPO > 0 AND TIMESTAMP >= ? AND TIMESTAMP < ?",
                         arrayOf(dayStartSec.toString(), dayEndSec.toString()),
                         null, null, null
                     ).use { c -> if (c.moveToFirst() && !c.isNull(0)) c.getDouble(0).toInt() else null }
@@ -427,7 +427,7 @@ object GadgetbridgeReader {
         val realRowFilter = "TIMESTAMP <= OTHER_TIMESTAMP"
         val cursor = db.query(
             "HUAWEI_ACTIVITY_SAMPLE",
-            arrayOf("TIMESTAMP", "HEART_RATE", "STEPS", "STRESS", "SPO2", "RAW_INTENSITY"),
+            arrayOf("TIMESTAMP", "HEART_RATE", "STEPS", "SPO", "RAW_INTENSITY"),
             "$realRowFilter AND HEART_RATE > 0",
             null, null, null,
             "TIMESTAMP DESC", "1"
@@ -435,13 +435,14 @@ object GadgetbridgeReader {
         cursor.use {
             return if (it.moveToFirst()) {
                 // HUAWEI_ACTIVITY_SAMPLE 时间戳单位为秒，对外统一转为毫秒
+                // 华为活动表没有 STRESS 列，压力只能从 HUAWEI_STRESS_SAMPLE 单独查询
                 ActivitySample(
                     timestamp = it.getLong(0) * 1000,
                     heartRate = getIntOrNull(it, 1),
                     steps = getIntOrNull(it, 2),
-                    stress = getIntOrNull(it, 3),
-                    spo2 = getIntOrNull(it, 4),
-                    rawIntensity = getIntOrNull(it, 5)
+                    stress = null,
+                    spo2 = getIntOrNull(it, 3),
+                    rawIntensity = getIntOrNull(it, 4)
                 )
             } else null
         }
@@ -486,25 +487,34 @@ object GadgetbridgeReader {
         var spo2: Int? = null
         var stress: Int? = null
 
-        // SPO2 从活动表取（时间戳单位为秒）
-        val c1 = db.query(
-            "HUAWEI_ACTIVITY_SAMPLE",
-            arrayOf("SPO2"),
-            "$realRowFilter AND SPO2 > 0",
-            null, null, null,
-            "TIMESTAMP DESC", "1"
-        )
-        c1.use { if (it.moveToFirst()) spo2 = getIntOrNull(it, 0) }
+        // SPO 从活动表取（时间戳单位为秒；华为活动表血氧列名是 SPO，不是 SPO2）。
+        // 单独包 try/catch：这条查询失败不能连累下面的压力查询。
+        try {
+            val c1 = db.query(
+                "HUAWEI_ACTIVITY_SAMPLE",
+                arrayOf("SPO"),
+                "$realRowFilter AND SPO > 0",
+                null, null, null,
+                "TIMESTAMP DESC", "1"
+            )
+            c1.use { if (it.moveToFirst()) spo2 = getIntOrNull(it, 0) }
+        } catch (e: Exception) {
+            DebugLog.e(TAG, "华为 latest 血氧查询失败", e)
+        }
 
-        // STRESS 从独立压力表取（时间戳单位为毫秒）
-        val c2 = db.query(
-            "HUAWEI_STRESS_SAMPLE",
-            arrayOf("STRESS"),
-            "STRESS > 0",
-            null, null, null,
-            "TIMESTAMP DESC", "1"
-        )
-        c2.use { if (it.moveToFirst()) stress = getIntOrNull(it, 0) }
+        // STRESS 从独立压力表取（时间戳单位为毫秒）。同样单独包 try/catch。
+        try {
+            val c2 = db.query(
+                "HUAWEI_STRESS_SAMPLE",
+                arrayOf("STRESS"),
+                "STRESS > 0",
+                null, null, null,
+                "TIMESTAMP DESC", "1"
+            )
+            c2.use { if (it.moveToFirst()) stress = getIntOrNull(it, 0) }
+        } catch (e: Exception) {
+            DebugLog.e(TAG, "华为 latest 压力查询失败", e)
+        }
 
         return Pair(spo2, stress)
     }

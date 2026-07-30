@@ -144,6 +144,8 @@ class SettingsManager(private val context: Context) {
         val THINKING_BUDGET_ENABLED = booleanPreferencesKey("thinking_budget_enabled")
         val THINKING_BUDGET_TOKENS = intPreferencesKey("thinking_budget_tokens")
         val PROVIDER_BASE_URLS = stringPreferencesKey("provider_base_urls")
+        val TRUSTED_HTTP_HOSTS = stringSetPreferencesKey("trusted_http_hosts")
+        val HTTP_REMINDER_SILENCED_HOSTS = stringSetPreferencesKey("http_reminder_silenced_hosts")
         val TITLE_GENERATION_ENABLED = booleanPreferencesKey("title_generation_enabled")
         val TITLE_GENERATION_MODEL = stringPreferencesKey("title_generation_model")
         val TITLE_GENERATION_PROMPT = stringPreferencesKey("title_generation_prompt")
@@ -336,6 +338,15 @@ class SettingsManager(private val context: Context) {
         val jsonStr = pref[PROVIDER_BASE_URLS] ?: "{}"
         try { json.decodeFromString<Map<String, String>>(jsonStr) } catch (e: Exception) { DebugLog.e("SettingsManager", "Failed to decode providerBaseUrls", e); emptyMap() }
     }
+
+    /** Hosts the user has explicitly confirmed are OK to reach over cleartext HTTP,
+     *  despite carrying API credentials. See [com.orangeisland.app.api.HttpClient.guardCleartextCredentials]. */
+    val trustedHttpHosts: Flow<Set<String>> = context.dataStore.data.map { it[TRUSTED_HTTP_HOSTS] ?: emptySet() }
+
+    /** Hosts for which the user has opted out of repeated cleartext HTTP reminder dialogs.
+     *  Independent from [trustedHttpHosts] — a host can be trusted without silencing reminders,
+     *  and vice-versa, but in practice silence is usually set together with trust. */
+    val httpReminderSilencedHosts: Flow<Set<String>> = context.dataStore.data.map { it[HTTP_REMINDER_SILENCED_HOSTS] ?: emptySet() }
 
     val availableModels: Flow<Map<String, List<String>>> = context.dataStore.data.map { pref ->
         val jsonStr = pref[AVAILABLE_MODELS_JSON] ?: "{}"
@@ -626,6 +637,27 @@ class SettingsManager(private val context: Context) {
             val map = try { json.decodeFromString<MutableMap<String, String>>(current) } catch (e: Exception) { mutableMapOf() }
             map[provider] = url
             prefs[PROVIDER_BASE_URLS] = json.encodeToString(map)
+        }
+    }
+
+    suspend fun addTrustedHttpHost(host: String) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[TRUSTED_HTTP_HOSTS] ?: emptySet()
+            prefs[TRUSTED_HTTP_HOSTS] = current + host.lowercase()
+        }
+    }
+
+    suspend fun removeTrustedHttpHost(host: String) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[TRUSTED_HTTP_HOSTS] ?: emptySet()
+            prefs[TRUSTED_HTTP_HOSTS] = current - host.lowercase()
+        }
+    }
+
+    suspend fun setHttpReminderSilenced(host: String, silenced: Boolean) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[HTTP_REMINDER_SILENCED_HOSTS] ?: emptySet()
+            prefs[HTTP_REMINDER_SILENCED_HOSTS] = if (silenced) current + host.lowercase() else current - host.lowercase()
         }
     }
 

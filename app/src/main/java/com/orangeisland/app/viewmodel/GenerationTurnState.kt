@@ -28,9 +28,29 @@ class GenerationTurnState(
     private val drainGeneratedImages: () -> List<String>,
     private val drainAudio: () -> List<String>,
 ) {
-    var totalText: String = ""
-    var totalThoughts: String = ""
+    private val totalTextBuilder = StringBuilder()
+    var totalText: String
+        get() = totalTextBuilder.toString()
+        set(value) {
+            totalTextBuilder.setLength(0)
+            totalTextBuilder.append(value)
+        }
+
+    private val totalThoughtsBuilder = StringBuilder()
+    private var thoughtPlaceholderActive = false
     private val thinkingPlaceholder = context.getString(R.string.thinking_ellipsis)
+    var totalThoughts: String
+        get() = when {
+            totalThoughtsBuilder.isNotEmpty() -> totalThoughtsBuilder.toString()
+            thoughtPlaceholderActive -> thinkingPlaceholder
+            else -> ""
+        }
+        set(value) {
+            totalThoughtsBuilder.setLength(0)
+            totalThoughtsBuilder.append(value)
+            thoughtPlaceholderActive = false
+        }
+
     var totalThoughtTitle: String? = null
     var totalTokenCount: Int = 0
     var totalCachedTokenCount: Int = 0
@@ -87,7 +107,7 @@ class GenerationTurnState(
 
     private fun mergeDurationMs(first: Long?, second: Long?): Long? {
         val merged = (first ?: 0L) + (second ?: 0L)
-        return merged.takeIf { it > 0L }
+        return merged.takeIf { it > 0 }
     }
 
     private fun buildLiveSegments(thoughtDurationMs: Long?): List<MessageSegment>? {
@@ -167,7 +187,7 @@ class GenerationTurnState(
                 if (currentStatus == MessageStatus.THINKING) {
                     flushThoughtSegment()
                 }
-                totalText += answerText
+                totalTextBuilder.append(answerText)
                 currentAnswerBuf.append(answerText)
                 if (answerText.isNotBlank()) {
                     currentStatus = MessageStatus.SENDING
@@ -181,11 +201,13 @@ class GenerationTurnState(
                 if (currentThoughtStartMs == null) {
                     currentThoughtStartMs = System.currentTimeMillis()
                 }
-                if (totalThoughts.isEmpty()) totalThoughts = thinkingPlaceholder
+                if (totalThoughtsBuilder.isEmpty() && !thoughtPlaceholderActive) {
+                    thoughtPlaceholderActive = true
+                }
                 if (event.thought.isNotEmpty()) {
                     currentThoughtBuf.append(event.thought)
-                    if (totalThoughts == thinkingPlaceholder) totalThoughts = event.thought
-                    else totalThoughts += event.thought
+                    totalThoughtsBuilder.append(event.thought)
+                    thoughtPlaceholderActive = false
                 }
                 if (event.title != null) totalThoughtTitle = event.title
                 if (event.signature != null) currentThoughtSignature = event.signature
@@ -193,12 +215,14 @@ class GenerationTurnState(
             is StreamEvent.UsageUpdate -> {
                 if (event.tokenCount > 0) totalTokenCount = event.tokenCount
                 if (event.cachedTokenCount > 0) totalCachedTokenCount = event.cachedTokenCount
-                if (totalText.isEmpty() && event.thoughtsTokenCount > 0) {
+                if (totalTextBuilder.isEmpty() && event.thoughtsTokenCount > 0) {
                     currentStatus = MessageStatus.THINKING
                     if (currentThoughtStartMs == null) {
                         currentThoughtStartMs = System.currentTimeMillis()
                     }
-                    if (totalThoughts.isEmpty()) totalThoughts = thinkingPlaceholder
+                    if (totalThoughtsBuilder.isEmpty() && !thoughtPlaceholderActive) {
+                        thoughtPlaceholderActive = true
+                    }
                 }
             }
             is StreamEvent.Retrying -> {
@@ -222,12 +246,18 @@ class GenerationTurnState(
                 emitCurrent()
                 lastEmitMs = System.currentTimeMillis()
                 val result = executeTool(event.name, event.arguments)
-                generatedImages.addAll(drainGeneratedImages())
-                generatedAudio.addAll(drainAudio())
+                val drainedImages = drainGeneratedImages()
+                val drainedAudio = drainAudio()
+                generatedImages.addAll(drainedImages)
+                generatedAudio.addAll(drainedAudio)
                 val clipped = result.take(Constants.MAX_TOOL_RESULT_LENGTH)
                 val idx = segments.indexOfLast { it.toolCallId == event.id }
                 if (idx >= 0) {
-                    segments[idx] = segments[idx].copy(toolResult = clipped)
+                    segments[idx] = segments[idx].copy(
+                        toolResult = clipped,
+                        audioPath = drainedAudio.firstOrNull(),
+                        imagePath = drainedImages.firstOrNull()
+                    )
                     roundToolSegments.add(segments[idx])
                 }
                 val tcd = ToolCallData(event.name, event.arguments, clipped, event.signature, event.id)
@@ -246,12 +276,18 @@ class GenerationTurnState(
                 lastEmitMs = System.currentTimeMillis()
                 val tcds = event.calls.map { call ->
                     val result = executeTool(call.name, call.arguments)
-                    generatedImages.addAll(drainGeneratedImages())
-                    generatedAudio.addAll(drainAudio())
+                    val drainedImages = drainGeneratedImages()
+                    val drainedAudio = drainAudio()
+                    generatedImages.addAll(drainedImages)
+                    generatedAudio.addAll(drainedAudio)
                     val clipped = result.take(Constants.MAX_TOOL_RESULT_LENGTH)
                     val idx = segments.indexOfLast { it.toolCallId == call.id }
                     if (idx >= 0) {
-                        segments[idx] = segments[idx].copy(toolResult = clipped)
+                        segments[idx] = segments[idx].copy(
+                            toolResult = clipped,
+                            audioPath = drainedAudio.firstOrNull(),
+                            imagePath = drainedImages.firstOrNull()
+                        )
                         roundToolSegments.add(segments[idx])
                     }
                     ToolCallData(call.name, call.arguments, clipped, call.signature, call.id)
@@ -264,7 +300,9 @@ class GenerationTurnState(
 
         if (!titleTriggerFired && onTitleTriggerReady != null) {
             val elapsed = System.currentTimeMillis() - streamStartMs
-            val totalContentLength = totalText.length + totalThoughts.length
+            val totalThoughtsLength = if (totalThoughtsBuilder.isNotEmpty()) totalThoughtsBuilder.length
+                else if (thoughtPlaceholderActive) thinkingPlaceholder.length else 0
+            val totalContentLength = totalTextBuilder.length + totalThoughtsLength
             if (totalContentLength >= 100 || elapsed >= 6000) {
                 titleTriggerFired = true
                 onTitleTriggerReady.invoke(totalText, totalThoughts)
@@ -273,7 +311,7 @@ class GenerationTurnState(
 
         val now = System.currentTimeMillis()
         val isSignificant = event is StreamEvent.Error
-        if (now - lastEmitMs >= 500 || isSignificant) {
+        if (now - lastEmitMs >= 300 || isSignificant) {
             emitCurrent()
             lastEmitMs = now
         }

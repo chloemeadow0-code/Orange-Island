@@ -132,6 +132,7 @@ private fun LogItemCard(entry: UsageLogManager.Entry) {
         UsageLogManager.Type.REQUEST -> Icons.Default.Cloud
         UsageLogManager.Type.CONVERSATION -> Icons.Default.Message
         UsageLogManager.Type.SYNC -> Icons.Default.Sync
+        UsageLogManager.Type.SECURITY -> Icons.Default.Security
     }
     val color = when (entry.type) {
         UsageLogManager.Type.MODEL -> MaterialTheme.colorScheme.primary
@@ -139,6 +140,7 @@ private fun LogItemCard(entry: UsageLogManager.Entry) {
         UsageLogManager.Type.REQUEST -> MaterialTheme.colorScheme.tertiary
         UsageLogManager.Type.CONVERSATION -> Color(0xFFFF9800)
         UsageLogManager.Type.SYNC -> Color(0xFF009688)
+        UsageLogManager.Type.SECURITY -> MaterialTheme.colorScheme.error
     }
     val containerColor = when (entry.type) {
         UsageLogManager.Type.MODEL -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
@@ -146,6 +148,7 @@ private fun LogItemCard(entry: UsageLogManager.Entry) {
         UsageLogManager.Type.REQUEST -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f)
         UsageLogManager.Type.CONVERSATION -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         UsageLogManager.Type.SYNC -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        UsageLogManager.Type.SECURITY -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
     }
     val labelRes = when (entry.type) {
         UsageLogManager.Type.MODEL -> R.string.logs_type_model
@@ -153,6 +156,7 @@ private fun LogItemCard(entry: UsageLogManager.Entry) {
         UsageLogManager.Type.REQUEST -> R.string.logs_type_request
         UsageLogManager.Type.CONVERSATION -> R.string.logs_type_conversation
         UsageLogManager.Type.SYNC -> R.string.logs_type_sync
+        UsageLogManager.Type.SECURITY -> R.string.logs_type_security
     }
 
     Surface(
