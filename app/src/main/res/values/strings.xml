@@ -409,6 +409,9 @@
     <string name="models_rename">Rename Model</string>
     <string name="models_rename_current">Current ID: %1$s</string>
     <string name="models_alias_hint">Alias</string>
+    <string name="model_edit_config">Edit Model Config</string>
+    <string name="model_context_window_label">Context Window</string>
+    <string name="model_context_window_hint">Leave blank to use default (100000)</string>
     <string name="models_select_default">Select Default Model</string>
     <string name="models_available_desc">Browse by provider, search precisely after entering</string>
     <string name="models_multimodal_desc">Image transcription, image generation, and embedding models</string>
@@ -673,8 +676,9 @@
 
     <!-- Settings - Auto-Compress Page -->
     <string name="auto_compress_auto">Auto-Compress Conversation</string>
-    <string name="auto_compress_auto_desc">Summarize older messages to keep long chats within the context window</string>
+    <string name="auto_compress_auto_desc">Summarizes older messages to keep long conversations within the context window. Trigger threshold follows the global "Context Window" setting in Generation — currently set to retain the most recent %1$d turns</string>
     <string name="auto_compress_model">Compression Model</string>
+    <string name="auto_compress_threshold_source">Trigger Threshold Setting</string>
     <string name="auto_compress_current_model">Use Current Model</string>
     <string name="auto_compress_select_model">Select Compression Model</string>
     <string name="auto_compress_prompt">Compression Prompt</string>
@@ -834,6 +838,7 @@
     <string name="illustration_pick_image">Choose image</string>
     <string name="illustration_clear">Clear</string>
     <string name="illustration_bubble_corner_radius">Bubble corner radius</string>
+    <string name="topbar_capsule_scale">Top bar capsule size</string>
     <string name="transparency_topbar">Top bar</string>
     <string name="transparency_message_bubble">Message bubble</string>
     <string name="transparency_user_bubble_mask">User bubble mask opacity</string>

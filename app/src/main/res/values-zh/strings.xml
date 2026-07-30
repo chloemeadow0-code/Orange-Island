@@ -263,6 +263,9 @@
     <string name="models_rename">重命名模型</string>
     <string name="models_rename_current">当前 ID：%1$s</string>
     <string name="models_alias_hint">别名</string>
+    <string name="model_edit_config">编辑模型配置</string>
+    <string name="model_context_window_label">上下文窗口</string>
+    <string name="model_context_window_hint">留空则使用默认值（100000）</string>
     <string name="models_select_default">选择默认模型</string>
     <string name="models_available_desc">按供应商浏览，进入后精准搜索</string>
     <string name="models_multimodal_desc">图片转述、图像生成、嵌入向量模型</string>
@@ -506,8 +509,9 @@
 
     <!-- Settings - Auto-Compress Page -->
     <string name="auto_compress_auto">自动压缩对话</string>
-    <string name="auto_compress_auto_desc">总结较早的消息，让长对话保持在上下文窗口内</string>
+    <string name="auto_compress_auto_desc">总结较早的消息，让长对话保持在上下文窗口内。触发阈值使用"生成"设置里的全局上下文窗口：当前为保留最近 %1$d 轮对话</string>
     <string name="auto_compress_model">压缩模型</string>
+    <string name="auto_compress_threshold_source">触发阈值设置</string>
     <string name="auto_compress_current_model">使用当前模型</string>
     <string name="auto_compress_select_model">选择压缩模型</string>
     <string name="auto_compress_prompt">压缩 Prompt</string>
@@ -667,6 +671,7 @@
     <string name="illustration_pick_image">选择图片</string>
     <string name="illustration_clear">清除</string>
     <string name="illustration_bubble_corner_radius">气泡圆角</string>
+    <string name="topbar_capsule_scale">顶部胶囊大小</string>
     <string name="transparency_topbar">顶部栏</string>
     <string name="transparency_message_bubble">消息气泡</string>
     <string name="transparency_user_bubble_mask">用户气泡遮罩透明度</string>

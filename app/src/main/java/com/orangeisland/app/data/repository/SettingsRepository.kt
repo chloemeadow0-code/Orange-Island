@@ -36,6 +36,10 @@ class SettingsRepository(
     private val settingsManager: SettingsManager,
     private val scope: CoroutineScope
 ) {
+    companion object {
+        const val DEFAULT_MODEL_CONTEXT_LIMIT = 100_000
+    }
+
     private fun <T> hot(flow: kotlinx.coroutines.flow.Flow<T>, initial: T): StateFlow<T> =
         flow.stateIn(scope, SharingStarted.Eagerly, initial)
 
@@ -45,6 +49,7 @@ class SettingsRepository(
     val availableModels: StateFlow<Map<String, List<String>>> = hot(settingsManager.availableModels, emptyMap())
     val enabledModels: StateFlow<Set<String>> = hot(settingsManager.enabledModels, emptySet())
     val modelAliases: StateFlow<Map<String, String>> = hot(settingsManager.modelAliases, emptyMap())
+    val modelContextLimits: StateFlow<Map<String, Int>> = hot(settingsManager.modelContextLimits, emptyMap())
     val apiKeys: StateFlow<List<ApiKeyEntry>> = hot(settingsManager.apiKeys, emptyList())
     val activeApiKeyIds: StateFlow<Map<String, String>> = hot(settingsManager.activeApiKeyIds, emptyMap())
     val systemPrompts: StateFlow<List<SystemPromptEntry>> = hot(settingsManager.systemPrompts, emptyList())
@@ -150,6 +155,7 @@ class SettingsRepository(
     val illustrationTopBarBackgroundPath: StateFlow<String> = hot(settingsManager.illustrationTopBarBackgroundPath, "")
     val illustrationReasoningBackgroundPath: StateFlow<String> = hot(settingsManager.illustrationReasoningBackgroundPath, "")
     val transparencyTopBar: StateFlow<Float> = hot(settingsManager.transparencyTopBar, 1f)
+    val topBarCapsuleScale: StateFlow<Float> = hot(settingsManager.topBarCapsuleScale, 1f)
     val transparencyMessageBubble: StateFlow<Float> = hot(settingsManager.transparencyMessageBubble, 1f)
     val transparencyUserBubbleMask: StateFlow<Float> = hot(settingsManager.transparencyUserBubbleMask, 0.55f)
     val transparencyReasoningPanel: StateFlow<Float> = hot(settingsManager.transparencyReasoningPanel, 1f)
@@ -252,6 +258,14 @@ class SettingsRepository(
             val updated = modelAliases.value.toMutableMap()
             if (alias.isBlank()) updated.remove(model) else updated[model] = alias
             settingsManager.saveModelAliases(updated)
+        }
+    }
+
+    fun updateModelContextLimit(model: String, limit: Int?) {
+        scope.launch {
+            val updated = modelContextLimits.value.toMutableMap()
+            if (limit == null || limit <= 0) updated.remove(model) else updated[model] = limit
+            settingsManager.saveModelContextLimits(updated)
         }
     }
 
@@ -551,6 +565,7 @@ class SettingsRepository(
     fun setIllustrationTopBarBackgroundPath(path: String) = scope.launch { settingsManager.saveIllustrationTopBarBackgroundPath(path) }
     fun setIllustrationReasoningBackgroundPath(path: String) = scope.launch { settingsManager.saveIllustrationReasoningBackgroundPath(path) }
     fun setTransparencyTopBar(v: Float) = scope.launch { settingsManager.saveTransparencyTopBar(v) }
+    fun setTopBarCapsuleScale(v: Float) = scope.launch { settingsManager.saveTopBarCapsuleScale(v) }
     fun setTransparencyMessageBubble(v: Float) = scope.launch { settingsManager.saveTransparencyMessageBubble(v) }
     fun setTransparencyUserBubbleMask(v: Float) = scope.launch { settingsManager.saveTransparencyUserBubbleMask(v) }
     fun setTransparencyReasoningPanel(v: Float) = scope.launch { settingsManager.saveTransparencyReasoningPanel(v) }

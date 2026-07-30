@@ -59,6 +59,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -87,6 +88,9 @@ class MainActivity : ComponentActivity() {
     /** Holds text received from an external app via SEND intent or deep-link.
      *  Consumed by the Composable layer once the ViewModel is ready. */
     private val externalTextState = mutableStateOf<String?>(null)
+
+    @Volatile
+    private var authStateReady = false
 
     override fun attachBaseContext(newBase: Context) {
         val langCode = kotlinx.coroutines.runBlocking {
@@ -117,8 +121,10 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        splashScreen.setKeepOnScreenCondition { !authStateReady }
 
         com.orangeisland.app.util.DebugLog.init(this)
         OrangeIslandForegroundService.createChannel(this)
@@ -136,6 +142,10 @@ class MainActivity : ComponentActivity() {
         val settingsManager = SettingsManager(applicationContext)
         runBlocking(Dispatchers.IO) {
             settingsManager.initializeFirstInstallDefaults(locale = java.util.Locale.getDefault())
+        }
+        lifecycleScope.launch(Dispatchers.IO) {
+            settingsManager.loggedIn.first()
+            authStateReady = true
         }
 
         // Parse external intent on cold start

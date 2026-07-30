@@ -271,7 +271,11 @@ fun SettingsScreen(
                 "proxy" -> SettingsProxyPage(viewModel, onBack = { selectedCategory = null })
                 "language" -> SettingsLanguagePage(viewModel, onBack = { selectedCategory = null })
                 "titlegen" -> SettingsTitleGenPage(viewModel, onBack = { selectedCategory = null })
-                "autocompress" -> SettingsAutoCompressPage(viewModel, onBack = { selectedCategory = null })
+                "autocompress" -> SettingsAutoCompressPage(
+                    viewModel,
+                    onBack = { selectedCategory = null },
+                    onNavigateToGeneration = { selectedCategory = "generation" }
+                )
                 "memory" -> SettingsMemoryPage(viewModel, onBack = { selectedCategory = null })
                 "datacontrol" -> SettingsDataControlPage(viewModel, onBack = { selectedCategory = null })
                 "appearance" -> SettingsAppearancePage(viewModel, onBack = { selectedCategory = null })

@@ -43,6 +43,7 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val topBarPath by s.illustrationTopBarBackgroundPath.collectAsState()
     val reasoningPath by s.illustrationReasoningBackgroundPath.collectAsState()
     val bubbleRadius by s.illustrationUserBubbleCornerRadius.collectAsState()
+    val topBarScale by s.topBarCapsuleScale.collectAsState()
 
     var pendingSlot by remember { mutableStateOf<IllustrationSlot?>(null) }
 
@@ -186,6 +187,22 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         modifier = Modifier.fillMaxWidth(1f).padding(end = 8.dp),
                                     )
                                     Text("${bubbleRadius.toInt()}dp")
+                                }
+                            }
+                        )
+                    },
+                    {
+                        SettingsItem(
+                            headlineContent = { Text(stringResource(R.string.topbar_capsule_scale)) },
+                            supportingContent = {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Slider(
+                                        value = topBarScale,
+                                        onValueChange = { s.setTopBarCapsuleScale(it) },
+                                        valueRange = 0.75f..1.5f,
+                                        modifier = Modifier.fillMaxWidth(1f).padding(end = 8.dp),
+                                    )
+                                    Text("${(topBarScale * 100).toInt()}%")
                                 }
                             }
                         )

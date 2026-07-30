@@ -242,6 +242,9 @@
     <string name="models_rename">重新命名模型</string>
     <string name="models_rename_current">目前 ID：%1$s</string>
     <string name="models_alias_hint">別名</string>
+    <string name="model_edit_config">Edit Model Config</string>
+    <string name="model_context_window_label">Context Window</string>
+    <string name="model_context_window_hint">Leave blank to use default (100000)</string>
     <string name="models_select_default">選擇預設模型</string>
 
     <!-- Settings - Generation Page -->
@@ -552,6 +555,7 @@
     <string name="custom_color_chat_background">聊天背景色</string>
     <string name="custom_color_accent">主色調</string>
     <string name="custom_color_input_field">輸入框顏色</string>
+    <string name="topbar_capsule_scale">頂部膠囊大小</string>
     <string name="transparency_message_bubble">訊息氣泡</string>
     <string name="transparency_reasoning_panel">推理面板</string>
     <string name="illustration_reasoning_background">推理面板背景圖</string>

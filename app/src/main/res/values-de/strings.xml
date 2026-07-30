@@ -275,6 +275,9 @@
     <string name="models_rename">Modell umbenennen</string>
     <string name="models_rename_current">Aktuelle ID: %1$s</string>
     <string name="models_alias_hint">Alias</string>
+    <string name="model_edit_config">Edit Model Config</string>
+    <string name="model_context_window_label">Context Window</string>
+    <string name="model_context_window_hint">Leave blank to use default (100000)</string>
     <string name="models_select_default">Standardmodell auswählen</string>
 
     <!-- Settings - Generation Page -->

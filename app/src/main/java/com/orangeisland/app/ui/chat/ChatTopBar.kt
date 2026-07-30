@@ -45,6 +45,7 @@ internal fun ChatTopBar(
     onNewChat: () -> Unit,
     topBarBackgroundImagePath: String = "",
     topBarAlpha: Float = 1f,
+    topBarCapsuleScale: Float = 1f,
 ) {
     Column(
         modifier = Modifier
@@ -63,7 +64,7 @@ internal fun ChatTopBar(
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
-                    .height(52.dp),
+                    .height((52 * topBarCapsuleScale).dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Resolve the active conversation's title; null in new-chat mode OR
@@ -80,7 +81,7 @@ internal fun ChatTopBar(
                     color = if (topBarBackgroundImagePath.isNotBlank()) Color.Transparent else MaterialTheme.colorScheme.surface.copy(alpha = topBarAlpha),
                     tonalElevation = 4.dp,
                     shadowElevation = 4.dp,
-                    modifier = Modifier.fillMaxHeight().widthIn(max = 260.dp)
+                    modifier = Modifier.fillMaxHeight().widthIn(max = (260 * topBarCapsuleScale).dp)
                 ) {
                     Box {
                         if (topBarBackgroundImagePath.isNotBlank()) {
@@ -101,48 +102,54 @@ internal fun ChatTopBar(
                             modifier = Modifier.fillMaxHeight(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Spacer(modifier = Modifier.width(5.dp))
+                            Spacer(modifier = Modifier.width((5 * topBarCapsuleScale).dp))
                             IconButton(
                                 onClick = onOpenDrawer,
-                                modifier = Modifier.size(44.dp)
+                                modifier = Modifier.size((44 * topBarCapsuleScale).dp)
                             ) {
-                                Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu), modifier = Modifier.size(26.dp))
+                                Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu), modifier = Modifier.size((26 * topBarCapsuleScale).dp))
                             }
-                            Spacer(modifier = Modifier.width(5.dp))
+                            Spacer(modifier = Modifier.width((5 * topBarCapsuleScale).dp))
                             if (showBrandTitle) {
                                 Text(
                                     text = stringResource(R.string.app_name),
-                                    style = ChatType.brandTitle,
+                                    style = ChatType.brandTitle.let {
+                                        it.copy(fontSize = it.fontSize * topBarCapsuleScale, lineHeight = it.lineHeight * topBarCapsuleScale)
+                                    },
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.widthIn(max = 180.dp)
+                                    modifier = Modifier.widthIn(max = (180 * topBarCapsuleScale).dp)
                                 )
                             } else {
-                                Column(modifier = Modifier.widthIn(max = 180.dp)) {
+                                Column(modifier = Modifier.widthIn(max = (180 * topBarCapsuleScale).dp)) {
                                     Text(
                                         text = resolvedTitle,
                                         // Single-line (no token subtitle) uses a slightly-smaller-than-brand
                                         // solo size; with the token subtitle stacked below, the compact size.
-                                        style = if (totalTokens > 0) ChatType.conversationTitle else ChatType.conversationTitleSolo,
+                                        style = (if (totalTokens > 0) ChatType.conversationTitle else ChatType.conversationTitleSolo).let {
+                                            it.copy(fontSize = it.fontSize * topBarCapsuleScale, lineHeight = it.lineHeight * topBarCapsuleScale)
+                                        },
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     if (totalTokens > 0) {
                                         Text(
                                             text = stringResource(R.string.total_tokens, totalTokens),
-                                            style = ChatType.micro,
+                                            style = ChatType.micro.let {
+                                                it.copy(fontSize = it.fontSize * topBarCapsuleScale, lineHeight = it.lineHeight * topBarCapsuleScale)
+                                            },
                                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                             maxLines = 1
                                         )
                                     }
                                 }
                                 if (isNewChatMode && activeProjectName != null) {
-                                    IconButton(onClick = onExitProject, modifier = Modifier.size(32.dp)) {
-                                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.project_exit), modifier = Modifier.size(16.dp))
+                                    IconButton(onClick = onExitProject, modifier = Modifier.size((32 * topBarCapsuleScale).dp)) {
+                                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.project_exit), modifier = Modifier.size((16 * topBarCapsuleScale).dp))
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.width(20.dp))
+                            Spacer(modifier = Modifier.width((20 * topBarCapsuleScale).dp))
                         }
                     }
                 }
@@ -176,14 +183,14 @@ internal fun ChatTopBar(
                             modifier = Modifier.fillMaxHeight(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Spacer(modifier = Modifier.width(5.dp))
-                            IconButton(onClick = onSystemPromptClick, modifier = Modifier.size(44.dp)) {
-                                Icon(Icons.Default.Psychology, contentDescription = stringResource(R.string.system_prompt), modifier = Modifier.size(26.dp))
+                            Spacer(modifier = Modifier.width((5 * topBarCapsuleScale).dp))
+                            IconButton(onClick = onSystemPromptClick, modifier = Modifier.size((44 * topBarCapsuleScale).dp)) {
+                                Icon(Icons.Default.Psychology, contentDescription = stringResource(R.string.system_prompt), modifier = Modifier.size((26 * topBarCapsuleScale).dp))
                             }
-                            IconButton(onClick = onNewChat, modifier = Modifier.size(44.dp)) {
-                                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_chat), modifier = Modifier.size(26.dp))
+                            IconButton(onClick = onNewChat, modifier = Modifier.size((44 * topBarCapsuleScale).dp)) {
+                                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_chat), modifier = Modifier.size((26 * topBarCapsuleScale).dp))
                             }
-                            Spacer(modifier = Modifier.width(5.dp))
+                            Spacer(modifier = Modifier.width((5 * topBarCapsuleScale).dp))
                         }
                     }
                 }

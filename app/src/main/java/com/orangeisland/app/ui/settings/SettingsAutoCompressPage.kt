@@ -6,7 +6,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Compress
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -19,12 +21,13 @@ import com.orangeisland.app.viewmodel.ChatViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsAutoCompressPage(viewModel: ChatViewModel, onBack: () -> Unit) {
+fun SettingsAutoCompressPage(viewModel: ChatViewModel, onBack: () -> Unit, onNavigateToGeneration: () -> Unit = {}) {
     val autoCompressEnabled by viewModel.settings.autoCompressEnabled.collectAsState()
     val autoCompressModel by viewModel.settings.autoCompressModel.collectAsState()
     val autoCompressPrompt by viewModel.settings.autoCompressPrompt.collectAsState()
     val modelAliases by viewModel.settings.modelAliases.collectAsState()
     val enabledModels by viewModel.settings.enabledModels.collectAsState()
+    val maxContextWindow by viewModel.settings.maxContextWindow.collectAsState()
     var showModelDialog by remember { mutableStateOf(false) }
     var showPromptDialog by remember { mutableStateOf(false) }
     val showDocFab by viewModel.settings.showDocumentationFab.collectAsState()
@@ -41,12 +44,23 @@ fun SettingsAutoCompressPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         add {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.auto_compress_auto)) },
-                                supportingContent = { Text(stringResource(R.string.auto_compress_auto_desc)) },
+                                supportingContent = { Text(stringResource(R.string.auto_compress_auto_desc, maxContextWindow)) },
                                 leadingContent = { Icon(Icons.Default.Compress, null, tint = MaterialTheme.colorScheme.primary) },
                                 trailingContent = {
                                     Switch(checked = autoCompressEnabled, onCheckedChange = { viewModel.settings.setAutoCompressEnabled(it) })
                                 },
                                 modifier = Modifier.clickable { viewModel.settings.setAutoCompressEnabled(!autoCompressEnabled) }
+                            )
+                        }
+                        add {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.auto_compress_threshold_source)) },
+                                supportingContent = { Text(stringResource(R.string.context_retain, maxContextWindow)) },
+                                leadingContent = { Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                trailingContent = {
+                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                                },
+                                modifier = Modifier.clickable { onNavigateToGeneration() }
                             )
                         }
                         if (autoCompressEnabled) {

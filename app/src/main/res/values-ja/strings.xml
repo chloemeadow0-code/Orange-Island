@@ -275,6 +275,9 @@
     <string name="models_rename">モデルの名前を変更</string>
     <string name="models_rename_current">現在の ID: %1$s</string>
     <string name="models_alias_hint">エイリアス</string>
+    <string name="model_edit_config">Edit Model Config</string>
+    <string name="model_context_window_label">Context Window</string>
+    <string name="model_context_window_hint">Leave blank to use default (100000)</string>
     <string name="models_select_default">デフォルトモデルを選択</string>
 
     <!-- Settings - Generation Page -->

@@ -129,6 +129,7 @@ class SettingsManager(private val context: Context) {
         val SYSTEM_PROMPTS_JSON = stringPreferencesKey("system_prompts_json")
         val ACTIVE_SYSTEM_PROMPT_ID = stringPreferencesKey("active_system_prompt_id")
         val MODEL_ALIASES_JSON = stringPreferencesKey("model_aliases_json")
+        val MODEL_CONTEXT_LIMITS_JSON = stringPreferencesKey("model_context_limits_json")
         val MAX_CONTEXT_WINDOW = stringPreferencesKey("max_context_window")
         val VISUALIZE_CONTEXT_ROLLOUT = booleanPreferencesKey("visualize_context_rollout")
         val SHOW_MESSAGE_USAGE_STATS = booleanPreferencesKey("show_message_usage_stats")
@@ -252,6 +253,7 @@ class SettingsManager(private val context: Context) {
         val ILLUSTRATION_TOPBAR_BACKGROUND_PATH = stringPreferencesKey("illustration_topbar_background_path")
         val ILLUSTRATION_REASONING_BACKGROUND_PATH = stringPreferencesKey("illustration_reasoning_background_path")
         val TRANSPARENCY_TOPBAR = stringPreferencesKey("transparency_topbar")
+        val TOPBAR_CAPSULE_SCALE = stringPreferencesKey("topbar_capsule_scale")
         // ── Transparency (0f..1f) ──────────────────────────────────
         val TRANSPARENCY_MESSAGE_BUBBLE = stringPreferencesKey("transparency_message_bubble")
         val TRANSPARENCY_USER_BUBBLE_MASK = stringPreferencesKey("transparency_user_bubble_mask")
@@ -358,6 +360,10 @@ class SettingsManager(private val context: Context) {
     val modelAliases: Flow<Map<String, String>> = context.dataStore.data.map { pref ->
         val jsonStr = pref[MODEL_ALIASES_JSON] ?: "{}"
         try { json.decodeFromString<Map<String, String>>(jsonStr) } catch (e: Exception) { emptyMap() }
+    }
+    val modelContextLimits: Flow<Map<String, Int>> = context.dataStore.data.map { pref ->
+        val jsonStr = pref[MODEL_CONTEXT_LIMITS_JSON] ?: "{}"
+        try { json.decodeFromString<Map<String, Int>>(jsonStr) } catch (e: Exception) { emptyMap() }
     }
 
     val apiKeys: Flow<List<ApiKeyEntry>> = context.dataStore.data.map { pref ->
@@ -543,6 +549,7 @@ class SettingsManager(private val context: Context) {
     val illustrationTopBarBackgroundPath: Flow<String> = context.dataStore.data.map { it[ILLUSTRATION_TOPBAR_BACKGROUND_PATH] ?: "" }
     val illustrationReasoningBackgroundPath: Flow<String> = context.dataStore.data.map { it[ILLUSTRATION_REASONING_BACKGROUND_PATH] ?: "" }
     val transparencyTopBar: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_TOPBAR]?.toFloatOrNull() ?: 1f }
+    val topBarCapsuleScale: Flow<Float> = context.dataStore.data.map { it[TOPBAR_CAPSULE_SCALE]?.toFloatOrNull() ?: 1f }
     val transparencyMessageBubble: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_MESSAGE_BUBBLE]?.toFloatOrNull() ?: 1f }
     val transparencyUserBubbleMask: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_USER_BUBBLE_MASK]?.toFloatOrNull() ?: 0.55f }
     val transparencyReasoningPanel: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_REASONING_PANEL]?.toFloatOrNull() ?: 1f }
@@ -680,6 +687,9 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveModelAliases(aliases: Map<String, String>) {
         context.dataStore.edit { it[MODEL_ALIASES_JSON] = json.encodeToString(aliases) }
+    }
+    suspend fun saveModelContextLimits(limits: Map<String, Int>) {
+        context.dataStore.edit { it[MODEL_CONTEXT_LIMITS_JSON] = json.encodeToString(limits) }
     }
 
     suspend fun saveApiKeys(keys: List<ApiKeyEntry>) {
@@ -1107,6 +1117,7 @@ class SettingsManager(private val context: Context) {
     suspend fun saveIllustrationTopBarBackgroundPath(path: String) = context.dataStore.edit { it[ILLUSTRATION_TOPBAR_BACKGROUND_PATH] = path }
     suspend fun saveIllustrationReasoningBackgroundPath(path: String) = context.dataStore.edit { it[ILLUSTRATION_REASONING_BACKGROUND_PATH] = path }
     suspend fun saveTransparencyTopBar(value: Float) = context.dataStore.edit { it[TRANSPARENCY_TOPBAR] = value.coerceIn(0f, 1f).toString() }
+    suspend fun saveTopBarCapsuleScale(value: Float) = context.dataStore.edit { it[TOPBAR_CAPSULE_SCALE] = value.coerceIn(0.75f, 1.5f).toString() }
 
     suspend fun saveTransparencyMessageBubble(value: Float) = context.dataStore.edit { it[TRANSPARENCY_MESSAGE_BUBBLE] = value.coerceIn(0f, 1f).toString() }
     suspend fun saveTransparencyUserBubbleMask(value: Float) = context.dataStore.edit { it[TRANSPARENCY_USER_BUBBLE_MASK] = value.coerceIn(0f, 1f).toString() }

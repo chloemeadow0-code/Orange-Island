@@ -164,6 +164,7 @@ fun ChatApp(
     val topBarBackgroundImagePath by viewModel.settings.illustrationTopBarBackgroundPath.collectAsState()
     val reasoningBackgroundImagePath by viewModel.settings.illustrationReasoningBackgroundPath.collectAsState()
     val topBarAlpha by viewModel.settings.transparencyTopBar.collectAsState()
+    val topBarCapsuleScale by viewModel.settings.topBarCapsuleScale.collectAsState()
     val customInputFieldColor by viewModel.settings.customColorInputField.collectAsState()
     val customUserBubbleColor by viewModel.settings.customColorUserBubble.collectAsState()
     val userBubbleBackgroundImagePath by viewModel.settings.illustrationUserBubbleBackgroundPath.collectAsState()
@@ -269,7 +270,6 @@ fun ChatApp(
     LaunchedEffect(Unit) {
         delay(50)
         showLaunchContent = true
-        inputFocusRequester.requestFocus()
     }
 
 
@@ -572,6 +572,7 @@ fun ChatApp(
                         },
                         topBarBackgroundImagePath = topBarBackgroundImagePath,
                         topBarAlpha = topBarAlpha,
+                        topBarCapsuleScale = topBarCapsuleScale,
                     )
                 }
             ) { padding ->

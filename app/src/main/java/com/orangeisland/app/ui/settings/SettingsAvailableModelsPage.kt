@@ -49,6 +49,7 @@ fun SettingsAvailableModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val availableModels by viewModel.settings.availableModels.collectAsState()
     val manualModels by viewModel.settings.manualModels.collectAsState()
     val modelAliases by viewModel.settings.modelAliases.collectAsState()
+    val contextLimits by viewModel.settings.modelContextLimits.collectAsState()
     val lastFingerprint by viewModel.settings.lastModelsFetchFingerprint.collectAsState()
 
     var selectedProvider by rememberSaveable { mutableStateOf<String?>(null) }
@@ -264,15 +265,18 @@ fun SettingsAvailableModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                 }
             }
 
-            // ── Model Alias Dialog ──
+            // ── Model Config Dialog ──
             showModelAliasDialog?.let { model ->
                 val aliasState = rememberTextFieldState(modelAliases[model] ?: "")
+                val contextLimitState = rememberTextFieldState(
+                    contextLimits[model]?.toString() ?: ""
+                )
 
                 AlertDialog(
                     modifier = Modifier.clearFocusOnTap(),
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                     onDismissRequest = { showModelAliasDialog = null },
-                    title = { Text(stringResource(R.string.models_rename), fontWeight = FontWeight.Bold) },
+                    title = { Text(stringResource(R.string.model_edit_config), fontWeight = FontWeight.Bold) },
                     text = {
                         val parsed = ModelId.parse(model)
                         Column(Modifier.fillMaxWidth()) {
@@ -291,11 +295,25 @@ fun SettingsAvailableModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     placeholder = { Text(parsed.apiModelName) }
                                 )
                             }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Box(modifier = Modifier.noOpBringIntoView()) {
+                                OutlinedTextField(
+                                    state = contextLimitState,
+                                    label = { Text(stringResource(R.string.model_context_window_label)) },
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    placeholder = { Text(stringResource(R.string.model_context_window_hint)) },
+                                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                                )
+                            }
                         }
                     },
                     confirmButton = {
                         TextButton(onClick = {
                             viewModel.settings.updateModelAlias(model, aliasState.text.toString())
+                            val limitText = contextLimitState.text.toString().trim()
+                            val limitValue = limitText.toIntOrNull()
+                            viewModel.settings.updateModelContextLimit(model, limitValue)
                             showModelAliasDialog = null
                         }) { Text(stringResource(R.string.provider_save)) }
                     },
