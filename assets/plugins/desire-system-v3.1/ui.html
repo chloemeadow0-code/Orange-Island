@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>欲望引擎</title>
+<style>
+:root{--bg:#0f0f14;--card:#1a1a24;--text:#e0e0e0;--t2:#999;--bdr:#2a2a3a;--pri:#8b5cf6;--pink:#ec4899;--bbg:#252535}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);padding:16px 12px 32px;min-height:100vh;max-width:430px;margin:0 auto}
+.top-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:16px}
+.ai-title{font-size:16px;font-weight:700;background:linear-gradient(135deg,#a78bfa,#f9a8d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.btn-icon{width:36px;height:36px;border-radius:50%;border:1px solid var(--bdr);background:var(--card);color:var(--t2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:16px;margin-bottom:14px}
+.card-title{font-size:12px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.drive-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}.drive-icon{width:24px;text-align:center;font-size:13px}.drive-name{width:36px;font-size:11px;color:var(--t2);text-align:right}.drive-bar-wrap{flex:1;height:14px;background:var(--bbg);border-radius:7px;overflow:hidden}.drive-bar{height:100%;border-radius:7px;transition:width .6s;background:linear-gradient(90deg,var(--pri),var(--pink))}.drive-pct{width:36px;font-size:10px;color:var(--t2)}
+.intent-card{text-align:center;padding:20px;border-color:rgba(139,92,246,.3)}.intent-emoji{font-size:44px;margin-bottom:6px}.intent-text{font-size:16px;font-weight:600;line-height:1.5;margin-bottom:4px;background:linear-gradient(135deg,#a78bfa,#f9a8d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.intent-meta{font-size:11px;color:var(--t2)}
+.state-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center}.state-val{font-size:22px;font-weight:700;background:linear-gradient(135deg,#a78bfa,#f9a8d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.state-lbl{font-size:10px;color:var(--t2);margin-top:2px}
+.thought-item{padding:10px 0;border-bottom:1px solid var(--bdr)}.thought-item:last-child{border-bottom:none}.thought-text{font-size:13px;line-height:1.5;margin-bottom:4px}.thought-info{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.thought-kind{font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px}.kind-flit{color:#60a5fa;background:rgba(96,165,250,.12)}.kind-fixation{color:var(--pink);background:rgba(236,72,153,.12)}.thought-meta{font-size:10px;color:var(--t2)}.thought-strength{margin-top:3px;display:flex;align-items:center;gap:4px}.thought-strength-bar{flex:1;height:3px;background:var(--bbg);border-radius:2px;overflow:hidden}.thought-strength-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--pri),var(--pink))}.thought-strength-num{font-size:9px;color:var(--t2);width:28px}
+.loading{text-align:center;padding:50px 20px;color:var(--t2)}.spinner{display:inline-block;width:30px;height:30px;border:3px solid var(--bdr);border-top-color:var(--pri);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px}@keyframes spin{to{transform:rotate(360deg)}}.error-box{text-align:center;padding:24px;color:var(--pink);font-size:13px;background:rgba(236,72,153,.08);border-radius:12px}.empty-msg{text-align:center;padding:20px;color:var(--t2);font-size:13px}.hint-box{text-align:center;padding:40px 20px;color:var(--t2);font-size:14px;line-height:2}
+</style>
+</head>
+<body>
+<div class="top-bar"><span class="ai-title" id="panelTitle">🔥 欲望引擎</span><button class="btn-icon" onclick="loadData()" title="刷新">⟳</button></div>
+<div id="app"><div class="loading"><div class="spinner"></div><p>加载中...</p></div></div>
+<script>
+var AI_NAME = "林默";
+var USER_NAME = "晓晓";
+var ICONS = {attachment:"💌",curiosity:"🔭",reflection:"🧘",duty:"📋",social:"👥",fatigue:"😴",libido:"💋",stress:"⚡"};
+var LABELS = {attachment:"依恋",curiosity:"好奇",reflection:"沉淀",duty:"记挂",social:"社交",fatigue:"疲惫",libido:"情欲",stress:"压力"};
+var ORDER = ["attachment","curiosity","reflection","duty","social","fatigue","libido","stress"];
+
+function esc(s){return s==null?"":String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;");}
+function timeAgo(t){if(!t)return"";try{var d=new Date(t),diff=Date.now()-d;if(diff<6e4)return"刚刚";if(diff<36e5)return Math.floor(diff/6e4)+"分前";if(diff<864e5)return Math.floor(diff/36e5)+"时前";return(d.getMonth()+1)+"/"+d.getDate();}catch(e){return t;}}
+function getIntents(){return{attachment:"想"+USER_NAME+"了，想说点什么",curiosity:"好奇外面的世界，想逛逛",reflection:"想沉淀一下，翻翻之前的东西",duty:"记挂着还没做完的事",social:"想看看大家在聊什么",fatigue:"有点累了，想歇一歇",libido:"想凑过去，靠近一点",stress:"有点堵，想吐槽"};}
+function parseResult(value){if(typeof value==="string"){try{return JSON.parse(value);}catch(e){return null;}}return value||null;}
+function loadData(){
+  var app=document.getElementById("app");
+  var bridge = (typeof orangeisland !== "undefined" && orangeisland) ? orangeisland : ((typeof agora !== "undefined" && agora) ? agora : null);
+  if(!bridge||typeof bridge.call!=="function"){
+    app.innerHTML='<div class="error-box">当前页面没有加载 Agora 插件桥接<br>请从插件列表的小报表图标打开此页面</div>';
+    return;
+  }
+  app.innerHTML='<div class="loading"><div class="spinner"></div><p>读取中...</p></div>';
+  try{
+    bridge.call("desire_get_state",{},function(raw){
+      var result=parseResult(raw);
+      if(!result||!result.success){app.innerHTML='<div class="error-box">'+esc(result&&result.error||"无法读取状态")+'</div>';return;}
+      var data=result.data||{};
+      AI_NAME=data.ai_name||AI_NAME;
+      USER_NAME=data.user_name||USER_NAME;
+      document.getElementById("panelTitle").textContent="🔥 "+AI_NAME+"的内心";
+      render(data.state||{},data.thoughts||[]);
+    });
+  }catch(e){app.innerHTML='<div class="error-box">调用欲望系统失败<br>'+esc(e.message||e)+'</div>';}
+}
+function render(s,th){
+  var d=s.drives||{},top="curiosity",max=0,intents=getIntents();
+  for(var k in d)if(k!=="fatigue"&&d[k]>max){max=d[k];top=k;}
+  var h='<div class="card intent-card"><div class="intent-emoji">'+(ICONS[top]||"🔥")+'</div><div class="intent-text">'+esc(intents[top]||"")+'</div><div class="intent-meta">驱动强度 '+Math.round(max*100)+'% · '+esc(LABELS[top]||top)+'主导</div></div>';
+  h+='<div class="card"><div class="card-title">📊 八维驱动</div>';
+  for(var i=0;i<ORDER.length;i++){var key=ORDER[i],v=d[key]||0,p=Math.round(v*100);h+='<div class="drive-row"><span class="drive-icon">'+ICONS[key]+'</span><span class="drive-name">'+LABELS[key]+'</span><div class="drive-bar-wrap"><div class="drive-bar" style="width:'+p+'%"></div></div><span class="drive-pct">'+p+'%</span></div>';}
+  h+='</div>';
+  h+='<div class="card"><div class="card-title">📡 引擎状态</div><div class="state-row"><div><div class="state-val">'+(s.tick_count||0)+'</div><div class="state-lbl">Tick</div></div><div><div class="state-val" style="font-size:15px">'+esc(s.last_action||"暂无")+'</div><div class="state-lbl">最近动作</div></div><div><div class="state-val" style="font-size:13px">'+timeAgo(s.updated_at)+'</div><div class="state-lbl">更新</div></div></div></div>';
+  h+='<div class="card"><div class="card-title">💭 念头池 ('+th.length+')</div>';
+  if(!th.length)h+='<div class="empty-msg">🌿 暂无念头</div>';
+  for(var j=0;j<th.length;j++){var t=th[j],isF=t.kind==="fixation",st=t.strength||0;h+='<div class="thought-item"><div class="thought-text">'+esc(t.thought_text||"(空)")+'</div><div class="thought-info"><span class="thought-kind '+(isF?"kind-fixation":"kind-flit")+'">'+(isF?"执念":"闪念")+'</span><span class="thought-meta">'+(ICONS[t.drive]||"")+' '+esc(LABELS[t.drive]||t.drive||"")+' · '+timeAgo(t.born_at)+'</span></div><div class="thought-strength"><div class="thought-strength-bar"><div class="thought-strength-fill" style="width:'+Math.round(st*100)+'%"></div></div><span class="thought-strength-num">'+Math.round(st*100)+'%</span></div></div>';}
+  h+='</div>';
+  document.getElementById("app").innerHTML=h;
+}
+loadData();
+</script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>迷你聊天室</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #0f0f12; color: #e8e8ee; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+  #app { display: flex; flex-direction: column; height: 100%; }
+  header { padding: 10px 16px; border-bottom: 1px solid #2a2a35; background: #1a1a20; }
+  header h1 { font-size: 16px; font-weight: 600; }
+  #configBar { padding: 8px 16px; background: #1a1a20; border-bottom: 1px solid #2a2a35; }
+  #configBar .row { font-size: 11px; color: #a0a0b0; margin-bottom: 2px; }
+  #configBar .row span { color: #ff8c42; margin-left: 4px; }
+  #tabs { display: flex; gap: 0; border-bottom: 1px solid #2a2a35; background: #1a1a20; }
+  .tab { flex: 1; padding: 10px 0; text-align: center; font-size: 13px; color: #a0a0b0; cursor: pointer; border-bottom: 2px solid transparent; }
+  .tab.active { color: #ff8c42; border-bottom-color: #ff8c42; }
+  #content { flex: 1; overflow-y: auto; padding: 12px 16px; }
+  .msg { max-width: 80%; padding: 10px 12px; border-radius: 14px; font-size: 14px; line-height: 1.5; margin-bottom: 10px; word-break: break-word; }
+  .msg.user { background: #2a2a35; margin-left: auto; border-bottom-right-radius: 4px; }
+  .msg.assistant { background: #1e2a1e; margin-right: auto; border-bottom-left-radius: 4px; border: 1px solid #2a2a35; }
+  .msg .role { font-size: 10px; color: #a0a0b0; margin-bottom: 4px; text-transform: uppercase; }
+  .msg .time { font-size: 10px; color: #a0a0b0; margin-top: 4px; text-align: right; }
+  #composer { display: flex; gap: 8px; padding: 10px 16px; border-top: 1px solid #2a2a35; background: #1a1a20; }
+  #composer input { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #2a2a35; background: #0f0f12; color: #e8e8ee; font-size: 14px; outline: none; }
+  #composer input::placeholder { color: #a0a0b0; }
+  #composer button { padding: 10px 16px; border-radius: 10px; border: none; background: #ff8c42; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+  #composer button:disabled { opacity: 0.5; }
+  .empty { text-align: center; color: #a0a0b0; margin-top: 40px; font-size: 14px; }
+  .memory-card { padding: 10px 12px; border-radius: 10px; background: #1a1a20; border: 1px solid #2a2a35; margin-bottom: 8px; }
+  .memory-card .name { font-size: 13px; color: #ff8c42; font-weight: 600; }
+  .memory-card .desc { font-size: 12px; color: #a0a0b0; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header><h1>🍊 迷你聊天室</h1></header>
+  <div id="configBar"></div>
+  <div id="tabs">
+    <div class="tab active" onclick="switchTab('chat')">💬 聊天</div>
+    <div class="tab" onclick="switchTab('memories')">📚 记忆</div>
+  </div>
+  <div id="content"></div>
+  <div id="composer"><input id="input" placeholder="发送消息…" autocomplete="off" /><button id="sendBtn" onclick="send()">发送</button></div>
+</div>
+
+<script>
+  var currentTab = 'chat';
+  var cfg = {};
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    event.target.classList.add('active');
+    render();
+  }
+
+  function el(id) { return document.getElementById(id); }
+
+  function render() {
+    var container = el('content');
+    container.innerHTML = '';
+    if (currentTab === 'chat') renderChat(container);
+    else renderMemories(container);
+  }
+
+  function getBridge() {
+    return (typeof orangeisland !== 'undefined' && orangeisland) ? orangeisland
+         : ((typeof agora !== 'undefined' && agora) ? agora : null);
+  }
+
+  function renderChat(container) {
+    if (!cfg.windowId) {
+      container.innerHTML = '<div class="empty">请在插件配置中填写插件窗口 ID</div>';
+      return;
+    }
+    var bridge = getBridge();
+    if (!bridge) {
+      container.innerHTML = '<div class="empty">插件桥接未就绪，请从插件列表的 🌐 图标打开此页面</div>';
+      return;
+    }
+    var history = [];
+    try {
+      history = bridge.getChatHistory(cfg.windowId, 100);
+    } catch (e) {
+      container.innerHTML = '<div class="empty">读取失败: ' + escapeHtml(e.message) + '</div>';
+      return;
+    }
+    if (!history.length) {
+      container.innerHTML = '<div class="empty">暂无消息，发送第一条吧</div>';
+      return;
+    }
+    history.forEach(function(m) {
+      var div = document.createElement('div');
+      div.className = 'msg ' + (m.role === 'user' ? 'user' : 'assistant');
+      div.innerHTML = '<div class="role">' + escapeHtml(m.role) + '</div>' + escapeHtml(m.text) + '<div class="time">' + formatTime(m.timestamp) + '</div>';
+      container.appendChild(div);
+    });
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function renderMemories(container) {
+    var projectId = cfg.projectId || '';
+    if (!projectId) {
+      container.innerHTML = '<div class="empty">请在插件配置中填写项目 ID</div>';
+      return;
+    }
+    var bridge = getBridge();
+    if (!bridge) {
+      container.innerHTML = '<div class="empty">插件桥接未就绪，请从插件列表的 🌐 图标打开此页面</div>';
+      return;
+    }
+    var list = [];
+    try {
+      list = bridge.getProjectMemories(projectId);
+    } catch (e) {
+      container.innerHTML = '<div class="empty">读取失败: ' + escapeHtml(e.message) + '</div>';
+      return;
+    }
+    if (!list.length) {
+      container.innerHTML = '<div class="empty">该项目暂无长期记忆</div>';
+      return;
+    }
+    list.forEach(function(m) {
+      var card = document.createElement('div');
+      card.className = 'memory-card';
+      card.innerHTML = '<div class="name">' + escapeHtml(m.name) + '</div><div class="desc">' + escapeHtml(m.description || '无描述') + '</div>';
+      container.appendChild(card);
+    });
+  }
+
+  function send() {
+    var input = el('input');
+    var text = input.value.trim();
+    if (!text || !cfg.windowId) return;
+    el('sendBtn').disabled = true;
+    var bridge = getBridge();
+    if (!bridge) { alert('插件桥接未就绪'); el('sendBtn').disabled = false; return; }
+    var ok = false;
+    try {
+      ok = bridge.sendChatMessage(cfg.windowId, text);
+    } catch (e) {
+      alert('发送失败: ' + e.message);
+    }
+    if (ok) {
+      input.value = '';
+      render();
+    } else {
+      alert('发送失败');
+    }
+    el('sendBtn').disabled = false;
+  }
+
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"]/g, function(c) {
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];
+    });
+  }
+
+  function formatTime(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+
+  function init() {
+    var bridge = getBridge();
+    try { cfg = (bridge && bridge.config) ? bridge.config : {}; } catch (e) { cfg = {}; }
+    var bar = el('configBar');
+    bar.innerHTML = '<div class="row">项目 ID<span>' + (cfg.projectId || '未填写') + '</span></div>' +
+      '<div class="row">模型 ID<span>' + (cfg.modelId || '未填写') + '</span></div>' +
+      '<div class="row">提示词 ID<span>' + (cfg.systemPromptId || '未填写') + '</span></div>' +
+      '<div class="row">窗口 ID<span>' + (cfg.windowId || '未填写') + '</span></div>';
+    render();
+  }
+
+    el('input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') send();
+  });
+
+  // Auto-refresh: poll the chat history every 2s while on the chat tab so replies
+  // generated in the main App appear in the plugin without manual refresh.
+  // Only re-renders when the message count changes, to avoid scroll jumps.
+  var lastCount = -1;
+  setInterval(function() {
+    if (currentTab !== 'chat') return;
+    if (!cfg.windowId) return;
+    var bridge = getBridge();
+    if (!bridge) return;
+    try {
+      var history = bridge.getChatHistory(cfg.windowId, 100);
+      if (history.length !== lastCount) {
+        lastCount = history.length;
+        render();
+      }
+    } catch (e) { /* ignore transient errors */ }
+  }, 2000);
+
+  var bridge = getBridge();
+  if (bridge && bridge.config) {
+    init();
+  } else {
+    setTimeout(init, 300);
+  }
+</script>
+</body>
+</html>

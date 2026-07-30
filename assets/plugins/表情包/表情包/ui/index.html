@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🎨 表情包管理</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', sans-serif;
+      background: #f6f4f0;
+      color: #2d2a24;
+      padding: 16px;
+      padding-bottom: 30px;
+      min-height: 100vh;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #d9d0c8;
+    }
+    .header h1 { font-size: 22px; font-weight: 600; }
+    .header .count { font-size: 13px; color: #8a847e; }
+    .upload-area {
+      background: #fffdfa;
+      border: 2px dashed #d9d0c8;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
+    .upload-area:active { background: #f3f0eb; }
+    .upload-area .icon { font-size: 32px; display: block; margin-bottom: 4px; }
+    .upload-area .label { font-size: 14px; color: #8a847e; }
+    .form-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .form-row input, .form-row select {
+      flex: 1;
+      min-width: 80px;
+      padding: 8px 10px;
+      border: 1px solid #d9d0c8;
+      border-radius: 8px;
+      background: #fffdfa;
+      font-size: 13px;
+    }
+    .form-row button {
+      padding: 8px 16px;
+      background: #2d2a24;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .form-row button:active { opacity: 0.7; }
+    .sticker-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .sticker-card {
+      background: #fffdfa;
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px solid #ede9e4;
+      text-align: center;
+      position: relative;
+    }
+    .sticker-card img {
+      width: 100%;
+      aspect-ratio: 1/1;
+      object-fit: contain;
+      border-radius: 6px;
+      background: #faf8f5;
+    }
+    .sticker-card .name { font-size: 12px; margin-top: 4px; color: #4a4540; }
+    .sticker-card .tags { font-size: 10px; color: #8a847e; }
+    .sticker-card .del {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sticker-card .del:active { opacity: 0.7; }
+    .empty {
+      text-align: center;
+      padding: 40px 0;
+      color: #8a847e;
+      font-size: 14px;
+    }
+    .loading { text-align: center; padding: 40px 0; color: #8a847e; }
+    .toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(30,28,24,0.88); color: white;
+      padding: 8px 20px; border-radius: 30px; font-size: 14px;
+      z-index: 999; display: none; max-width: 90%; text-align: center;
+    }
+    .toast.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="toast" id="toast"></div>
+
+  <div class="header">
+    <h1>🎨 表情包</h1>
+    <span class="count" id="countLabel">0 个</span>
+  </div>
+
+  <div class="upload-area" id="uploadArea">
+    <span class="icon">📤</span>
+    <div class="label">点击上传表情包</div>
+    <input type="file" id="fileInput" accept="image/*" style="display:none" multiple>
+    <div class="form-row">
+      <input type="text" id="stickerName" placeholder="名称（比如 猫猫）">
+      <input type="text" id="stickerTags" placeholder="标签（逗号分隔）">
+      <select id="stickerCategory">
+        <option value="通用">通用</option>
+        <option value="开心">开心</option>
+        <option value="难过">难过</option>
+        <option value="生气">生气</option>
+        <option value="猫猫">猫猫</option>
+        <option value="狗狗">狗狗</option>
+        <option value="日常">日常</option>
+      </select>
+      <button id="uploadBtn">上传</button>
+    </div>
+  </div>
+
+  <div id="stickerList"><div class="loading">加载中...</div></div>
+
+  <script>
+    var CFG = null;
+    var pendingFiles = [];
+
+    function getBridge() {
+      if (typeof Bridge !== 'undefined') return Bridge;
+      if (window.Bridge) return window.Bridge;
+      if (window.parent && window.parent.Bridge) return window.parent.Bridge;
+      return null;
+    }
+
+    function showToast(msg) {
+      var el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(el._timer);
+      el._timer = setTimeout(function() { el.classList.remove('show'); }, 2500);
+    }
+
+    function supabaseFetch(path, options) {
+      var method = (options && options.method) || 'GET';
+      var body = (options && options.body) || null;
+      var url = CFG.supabase_url.replace(/\/+$/, '') + '/rest/v1/' + path;
+      var headers = {
+        'apikey': CFG.supabase_key,
+        'Authorization': 'Bearer ' + CFG.supabase_key,
+        'Content-Type': 'application/json'
+      };
+      var fetchOptions = { method: method, headers: headers };
+      if (body) fetchOptions.body = JSON.stringify(body);
+      return fetch(url, fetchOptions).then(function(resp) {
+        if (!resp.ok) {
+          return resp.text().then(function(err) {
+            throw new Error('HTTP ' + resp.status + ': ' + err);
+          });
+        }
+        return resp.text().then(function(text) {
+          return text ? JSON.parse(text) : [];
+        });
+      });
+    }
+
+    function storageUpload(path, file) {
+      var url = CFG.supabase_url.replace(/\/+$/, '') + '/storage/v1/object/stickers/' + path;
+      return fetch(url, {
+        method: 'POST',
+        headers: {
+          'apikey': CFG.supabase_key,
+          'Authorization': 'Bearer ' + CFG.supabase_key,
+          'Content-Type': file.type
+        },
+        body: file
+      }).then(function(resp) {
+        if (!resp.ok) {
+          return resp.text().then(function(err) {
+            throw new Error('Storage 上传失败: ' + err);
+          });
+        }
+        var publicUrl = CFG.supabase_url.replace(/\/+$/, '') + '/storage/v1/object/public/stickers/' + path;
+        return publicUrl;
+      });
+    }
+
+    function loadStickers() {
+      return supabaseFetch('stickers?order=created_at.desc');
+    }
+
+    function render(stickers) {
+      var container = document.getElementById('stickerList');
+      var countLabel = document.getElementById('countLabel');
+      if (!stickers || stickers.length === 0) {
+        container.innerHTML = '<div class="empty">还没有表情包，上传一个吧</div>';
+        countLabel.textContent = '0 个';
+        return;
+      }
+      countLabel.textContent = stickers.length + ' 个';
+      var html = '<div class="sticker-grid">';
+      for (var i = 0; i < stickers.length; i++) {
+        var s = stickers[i];
+        var tags = (s.tags || []).join('、');
+        html += '<div class="sticker-card">';
+        html += '<button class="del" data-id="' + s.id + '">✕</button>';
+        html += '<img src="' + s.url + '" loading="lazy">';
+        html += '<div class="name">' + s.name + '</div>';
+        html += '<div class="tags">' + tags + '</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+
+      document.querySelectorAll('.del').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var id = parseInt(this.dataset.id);
+          if (confirm('确认删除这个表情包吗？')) {
+            deleteSticker(id);
+          }
+        });
+      });
+    }
+
+    function refresh() {
+      loadStickers().then(function(data) {
+        render(data);
+      }).catch(function(err) {
+        document.getElementById('stickerList').innerHTML = '<div class="empty">加载失败: ' + err.message + '</div>';
+      });
+    }
+
+    function deleteSticker(id) {
+      supabaseFetch('stickers?id=eq.' + id, { method: 'DELETE' }).then(function() {
+        showToast('✅ 已删除');
+        refresh();
+      }).catch(function(err) {
+        showToast('❌ 删除失败: ' + err.message);
+      });
+    }
+
+    function handleUpload() {
+      var name = document.getElementById('stickerName').value.trim();
+      var tagsRaw = document.getElementById('stickerTags').value.trim();
+      var category = document.getElementById('stickerCategory').value;
+      var fileInput = document.getElementById('fileInput');
+
+      if (!name) { showToast('请输入表情包名称'); return; }
+      if (!fileInput.files || fileInput.files.length === 0) { showToast('请选择图片'); return; }
+
+      var file = fileInput.files[0];
+      var ext = file.name.split('.').pop();
+      var path = Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+
+      var tags = tagsRaw ? tagsRaw.split(',').map(function(t) { return t.trim(); }).filter(Boolean) : [];
+
+      showToast('⏳ 上传中...');
+      storageUpload(path, file).then(function(url) {
+        return supabaseFetch('stickers', {
+          method: 'POST',
+          body: {
+            name: name,
+            url: url,
+            tags: tags,
+            category: category
+          }
+        });
+      }).then(function() {
+        showToast('✅ 上传成功');
+        document.getElementById('stickerName').value = '';
+        document.getElementById('stickerTags').value = '';
+        document.getElementById('fileInput').value = '';
+        refresh();
+      }).catch(function(err) {
+        showToast('❌ 上传失败: ' + err.message);
+      });
+    }
+
+    function init() {
+      var bridge = getBridge();
+      if (!bridge) {
+        document.getElementById('stickerList').innerHTML = '<div class="empty">Bridge 未就绪</div>';
+        return;
+      }
+      bridge.getPluginConfig().then(function(raw) {
+        CFG = typeof raw === 'string' ? JSON.parse(raw) : (raw || {});
+        if (!CFG.supabase_url || !CFG.supabase_key) {
+          document.getElementById('stickerList').innerHTML = '<div class="empty">请先在插件设置里填写 Supabase URL 和 Key</div>';
+          return;
+        }
+        refresh();
+      }).catch(function(err) {
+        document.getElementById('stickerList').innerHTML = '<div class="empty">配置读取失败: ' + err.message + '</div>';
+      });
+    }
+
+    var attempts = 0;
+    function waitForBridge() {
+      attempts++;
+      if (typeof Bridge !== 'undefined' && Bridge.getPluginConfig) {
+        init();
+      } else if (attempts < 80) {
+        setTimeout(waitForBridge, 50);
+      } else {
+        document.getElementById('stickerList').innerHTML = '<div class="empty">Bridge 未就绪，请重新打开</div>';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('uploadArea').addEventListener('click', function(e) {
+        if (e.target.closest('.form-row')) return;
+        document.getElementById('fileInput').click();
+      });
+      document.getElementById('fileInput').addEventListener('change', function() {
+        if (this.files && this.files.length > 0) {
+          showToast('已选 ' + this.files.length + ' 张图片');
+        }
+      });
+      document.getElementById('uploadBtn').addEventListener('click', handleUpload);
+      waitForBridge();
+    });
+  </script>
+</body>
+</html>

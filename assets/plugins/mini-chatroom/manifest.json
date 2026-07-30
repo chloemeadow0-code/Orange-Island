@@ -1,0 +1,41 @@
+{
+  "id": "com.example.mini_chatroom",
+  "name": "迷你聊天室",
+  "version": "1.0.0",
+  "description": "读取项目记忆、收发消息的轻量插件。配置中填写项目ID、模型ID、提示词ID、插件窗口ID即可。",
+  "author": "Orange Island Community",
+  "ui": "ui.html",
+  "tools": [
+    {
+      "name": "fetch_project_memories",
+      "description": "List long-term memories for the configured projectId.",
+      "parameters": []
+    }
+  ],
+  "config": [
+    {
+      "name": "projectId",
+      "type": "string",
+      "description": "项目 ID（从项目编辑详情页复制）",
+      "required": true
+    },
+    {
+      "name": "modelId",
+      "type": "string",
+      "description": "模型 ID（从项目编辑详情页复制）",
+      "required": false
+    },
+    {
+      "name": "systemPromptId",
+      "type": "string",
+      "description": "提示词 ID（从项目编辑详情页复制）",
+      "required": false
+    },
+    {
+      "name": "windowId",
+      "type": "string",
+      "description": "插件窗口 ID（从项目编辑详情页复制）",
+      "required": true
+    }
+  ]
+}

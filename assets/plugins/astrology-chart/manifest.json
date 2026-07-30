@@ -1,0 +1,129 @@
+{
+  "id": "com.orangeisland.plugin.astrology",
+  "name": "星盘占星",
+  "description": "基于 freeastrologyapi.com 的西方占星插件：本命星盘、行星位置、宫位、相位、SVG 轮盘图与基础解盘",
+  "version": "1.0.0",
+  "author": "ZCode",
+  "icon": "🔮",
+  "entry": "main.js",
+  "allowedHosts": ["json.freeastrologyapi.com"],
+  "config": [
+    {
+      "name": "api_key",
+      "type": "string",
+      "label": "API Key",
+      "description": "从 freeastrologyapi.com 注册获取",
+      "required": true,
+      "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    }
+  ],
+  "tools": [
+    {
+      "name": "astro_natal_chart",
+      "description": "生成本命星盘：返回行星位置、宫位、相位三合一数据",
+      "parameters": [
+        { "name": "year", "type": "number", "required": true, "description": "出生年份，如 1998" },
+        { "name": "month", "type": "number", "required": true, "description": "出生月份 1-12" },
+        { "name": "date", "type": "number", "required": true, "description": "出生日期 1-31" },
+        { "name": "hours", "type": "number", "required": true, "description": "出生小时 0-23" },
+        { "name": "minutes", "type": "number", "required": true, "description": "出生分钟 0-59" },
+        { "name": "seconds", "type": "number", "required": false, "description": "出生秒 0-59，默认 0" },
+        { "name": "latitude", "type": "number", "required": true, "description": "出生地纬度，如 31.2304" },
+        { "name": "longitude", "type": "number", "required": true, "description": "出生地经度，如 121.4737" },
+        { "name": "timezone", "type": "number", "required": true, "description": "出生地时区，如 8.0（东八区）或 -5.0" },
+        { "name": "language", "type": "string", "required": false, "description": "en/es/fr/pt/ru/de/ja/pl/tr，默认 en" },
+        { "name": "house_system", "type": "string", "required": false, "description": "Placidus / Koch / Whole Signs / Equal Houses / Regiomontanus / Porphyry / Vehlow，默认 Placidus" },
+        { "name": "observation_point", "type": "string", "required": false, "description": "topocentric（地表）或 geocentric（地心），默认 topocentric" }
+      ]
+    },
+    {
+      "name": "astro_planets",
+      "description": "查询本命行星位置（太阳、月亮、水星等在黄道上的位置与星座）",
+      "parameters": [
+        { "name": "year", "type": "number", "required": true, "description": "出生年份" },
+        { "name": "month", "type": "number", "required": true, "description": "出生月份 1-12" },
+        { "name": "date", "type": "number", "required": true, "description": "出生日期 1-31" },
+        { "name": "hours", "type": "number", "required": true, "description": "出生小时 0-23" },
+        { "name": "minutes", "type": "number", "required": true, "description": "出生分钟 0-59" },
+        { "name": "seconds", "type": "number", "required": false, "description": "出生秒，默认 0" },
+        { "name": "latitude", "type": "number", "required": true, "description": "出生地纬度" },
+        { "name": "longitude", "type": "number", "required": true, "description": "出生地经度" },
+        { "name": "timezone", "type": "number", "required": true, "description": "出生地时区" },
+        { "name": "language", "type": "string", "required": false, "description": "语言代码，默认 en" },
+        { "name": "house_system", "type": "string", "required": false, "description": "分宫制，默认 Placidus" },
+        { "name": "observation_point", "type": "string", "required": false, "description": "观测点，默认 topocentric" }
+      ]
+    },
+    {
+      "name": "astro_houses",
+      "description": "查询本命十二宫位信息",
+      "parameters": [
+        { "name": "year", "type": "number", "required": true, "description": "出生年份" },
+        { "name": "month", "type": "number", "required": true, "description": "出生月份 1-12" },
+        { "name": "date", "type": "number", "required": true, "description": "出生日期 1-31" },
+        { "name": "hours", "type": "number", "required": true, "description": "出生小时 0-23" },
+        { "name": "minutes", "type": "number", "required": true, "description": "出生分钟 0-59" },
+        { "name": "seconds", "type": "number", "required": false, "description": "出生秒，默认 0" },
+        { "name": "latitude", "type": "number", "required": true, "description": "出生地纬度" },
+        { "name": "longitude", "type": "number", "required": true, "description": "出生地经度" },
+        { "name": "timezone", "type": "number", "required": true, "description": "出生地时区" },
+        { "name": "language", "type": "string", "required": false, "description": "语言代码，默认 en" },
+        { "name": "house_system", "type": "string", "required": false, "description": "分宫制，默认 Placidus" },
+        { "name": "observation_point", "type": "string", "required": false, "description": "观测点，默认 topocentric" }
+      ]
+    },
+    {
+      "name": "astro_aspects",
+      "description": "查询本命星盘相位（行星之间的角度关系）",
+      "parameters": [
+        { "name": "year", "type": "number", "required": true, "description": "出生年份" },
+        { "name": "month", "type": "number", "required": true, "description": "出生月份 1-12" },
+        { "name": "date", "type": "number", "required": true, "description": "出生日期 1-31" },
+        { "name": "hours", "type": "number", "required": true, "description": "出生小时 0-23" },
+        { "name": "minutes", "type": "number", "required": true, "description": "出生分钟 0-59" },
+        { "name": "seconds", "type": "number", "required": false, "description": "出生秒，默认 0" },
+        { "name": "latitude", "type": "number", "required": true, "description": "出生地纬度" },
+        { "name": "longitude", "type": "number", "required": true, "description": "出生地经度" },
+        { "name": "timezone", "type": "number", "required": true, "description": "出生地时区" },
+        { "name": "language", "type": "string", "required": false, "description": "语言代码，默认 en" },
+        { "name": "house_system", "type": "string", "required": false, "description": "分宫制，默认 Placidus" },
+        { "name": "observation_point", "type": "string", "required": false, "description": "观测点，默认 topocentric" }
+      ]
+    },
+    {
+      "name": "astro_wheel_chart",
+      "description": "生成 SVG 本命轮盘图，返回图片 URL",
+      "parameters": [
+        { "name": "year", "type": "number", "required": true, "description": "出生年份" },
+        { "name": "month", "type": "number", "required": true, "description": "出生月份 1-12" },
+        { "name": "date", "type": "number", "required": true, "description": "出生日期 1-31" },
+        { "name": "hours", "type": "number", "required": true, "description": "出生小时 0-23" },
+        { "name": "minutes", "type": "number", "required": true, "description": "出生分钟 0-59" },
+        { "name": "seconds", "type": "number", "required": false, "description": "出生秒，默认 0" },
+        { "name": "latitude", "type": "number", "required": true, "description": "出生地纬度" },
+        { "name": "longitude", "type": "number", "required": true, "description": "出生地经度" },
+        { "name": "timezone", "type": "number", "required": true, "description": "出生地时区" },
+        { "name": "language", "type": "string", "required": false, "description": "语言代码，默认 en" },
+        { "name": "house_system", "type": "string", "required": false, "description": "分宫制，默认 Placidus" },
+        { "name": "observation_point", "type": "string", "required": false, "description": "观测点，默认 topocentric" }
+      ]
+    },
+    {
+      "name": "astro_interpret",
+      "description": "基础解盘：根据本命星盘行星与宫位给出简明中文解读",
+      "parameters": [
+        { "name": "year", "type": "number", "required": true, "description": "出生年份" },
+        { "name": "month", "type": "number", "required": true, "description": "出生月份 1-12" },
+        { "name": "date", "type": "number", "required": true, "description": "出生日期 1-31" },
+        { "name": "hours", "type": "number", "required": true, "description": "出生小时 0-23" },
+        { "name": "minutes", "type": "number", "required": true, "description": "出生分钟 0-59" },
+        { "name": "seconds", "type": "number", "required": false, "description": "出生秒，默认 0" },
+        { "name": "latitude", "type": "number", "required": true, "description": "出生地纬度" },
+        { "name": "longitude", "type": "number", "required": true, "description": "出生地经度" },
+        { "name": "timezone", "type": "number", "required": true, "description": "出生地时区" },
+        { "name": "house_system", "type": "string", "required": false, "description": "分宫制，默认 Placidus" },
+        { "name": "observation_point", "type": "string", "required": false, "description": "观测点，默认 topocentric" }
+      ]
+    }
+  ]
+}

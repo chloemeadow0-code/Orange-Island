@@ -1,0 +1,48 @@
+{
+  "id": "com.orangechat.plugin.sticker",
+  "name": "表情包",
+  "description": "自己上传、删除表情包，AI 根据语境自动发送",
+  "version": "1.0.0",
+  "author": "夏夏",
+  "icon": "🎨",
+  "entry": "main.js",
+  "allowedHosts": ["supabase.co"],
+  "customPageWebView": {
+    "entry": "ui/index.html"
+  },
+  "config": [
+    {
+      "name": "supabase_url",
+      "type": "string",
+      "label": "Supabase URL",
+      "required": true,
+      "placeholder": "https://xxxx.supabase.co"
+    },
+    {
+      "name": "supabase_key",
+      "type": "password",
+      "label": "Supabase API Key",
+      "required": true,
+      "placeholder": "eyJhbGciOiJIUzI1NiIs..."
+    }
+  ],
+  "tools": [
+    {
+      "name": "list_stickers",
+      "description": "列出所有可用表情包，按分类分组，可用于展示或让用户选择",
+      "parameters": []
+    },
+    {
+      "name": "send_sticker",
+      "description": "根据对话语境发送最匹配的表情包。传入 emotion 或 keyword，系统自动匹配标签。如果用户明确说表情包名字，就用名字匹配。",
+      "parameters": [
+        {
+          "name": "keyword",
+          "type": "string",
+          "required": false,
+          "description": "表情包关键词或名字，比如 '开心' '猫猫'"
+        }
+      ]
+    }
+  ]
+}
