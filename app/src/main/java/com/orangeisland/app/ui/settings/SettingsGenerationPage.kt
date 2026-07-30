@@ -25,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
 import com.orangeisland.app.ui.common.ThinkingControlPanel
@@ -62,12 +64,25 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     title = stringResource(R.string.context_window_default),
                     items = listOf(
                         {
-                            val persistedContextWindow = maxContextWindow.toFloat()
-                            var contextWindowDraft by remember { mutableFloatStateOf(persistedContextWindow) }
-                            LaunchedEffect(persistedContextWindow) {
-                                contextWindowDraft = persistedContextWindow
+                            var contextWindowDraft by remember { mutableIntStateOf(maxContextWindow) }
+                            var sliderDraft by remember { mutableFloatStateOf(maxContextWindow.coerceIn(1, 500).toFloat()) }
+                            var isUnlimited by remember { mutableStateOf(maxContextWindow == Int.MAX_VALUE) }
+                            var lastFiniteValue by remember { mutableIntStateOf(if (maxContextWindow == Int.MAX_VALUE) 20 else maxContextWindow) }
+                            LaunchedEffect(maxContextWindow) {
+                                if (maxContextWindow == Int.MAX_VALUE) {
+                                    isUnlimited = true
+                                } else {
+                                    isUnlimited = false
+                                    lastFiniteValue = maxContextWindow
+                                    contextWindowDraft = maxContextWindow
+                                    sliderDraft = maxContextWindow.coerceIn(1, 500).toFloat()
+                                }
                             }
-                            val contextWindowValue = contextWindowDraft.toInt().coerceIn(5, 100)
+                            val displayText = if (isUnlimited) {
+                                stringResource(R.string.context_retain_unlimited)
+                            } else {
+                                stringResource(R.string.context_retain, contextWindowDraft.coerceAtLeast(1))
+                            }
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -91,25 +106,69 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            text = stringResource(R.string.context_retain, contextWindowValue),
+                                            text = displayText,
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(top = 4.dp)
                                         )
                                         Slider(
-                                            value = contextWindowDraft,
-                                            onValueChange = { contextWindowDraft = it },
+                                            value = sliderDraft,
+                                            onValueChange = { sliderDraft = it },
                                             onValueChangeFinished = {
-                                                val committed = contextWindowDraft.toInt().coerceIn(5, 100)
-                                                contextWindowDraft = committed.toFloat()
-                                                if (committed != maxContextWindow) {
-                                                    viewModel.settings.setMaxContextWindow(committed)
+                                                if (!isUnlimited) {
+                                                    val committed = sliderDraft.toInt().coerceIn(1, 500)
+                                                    contextWindowDraft = committed
+                                                    sliderDraft = committed.toFloat()
+                                                    if (committed != maxContextWindow) {
+                                                        viewModel.settings.setMaxContextWindow(committed)
+                                                    }
                                                 }
                                             },
-                                            valueRange = 5f..100f,
+                                            enabled = !isUnlimited,
+                                            valueRange = 1f..500f,
                                             modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                                         )
-                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            OutlinedTextField(
+                                                value = if (isUnlimited) "" else contextWindowDraft.toString(),
+                                                onValueChange = { raw ->
+                                                    val digits = raw.filter { it.isDigit() }
+                                                    val parsed = digits.toIntOrNull()?.coerceAtLeast(1) ?: 1
+                                                    contextWindowDraft = parsed
+                                                    sliderDraft = parsed.coerceIn(1, 500).toFloat()
+                                                    if (parsed != maxContextWindow) {
+                                                        viewModel.settings.setMaxContextWindow(parsed)
+                                                    }
+                                                },
+                                                enabled = !isUnlimited,
+                                                placeholder = { Text(stringResource(R.string.unlimited)) },
+                                                singleLine = true,
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                modifier = Modifier.weight(1f),
+                                                label = { Text(stringResource(R.string.context_window)) }
+                                            )
+                                            FilterChip(
+                                                selected = isUnlimited,
+                                                onClick = {
+                                                    if (isUnlimited) {
+                                                        isUnlimited = false
+                                                        contextWindowDraft = lastFiniteValue
+                                                        sliderDraft = lastFiniteValue.coerceIn(1, 500).toFloat()
+                                                        viewModel.settings.setMaxContextWindow(lastFiniteValue)
+                                                    } else {
+                                                        lastFiniteValue = contextWindowDraft.coerceAtLeast(1)
+                                                        isUnlimited = true
+                                                        viewModel.settings.setMaxContextWindow(Int.MAX_VALUE)
+                                                    }
+                                                },
+                                                label = { Text(stringResource(R.string.unlimited)) }
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
                                     }
                                 }
                             }

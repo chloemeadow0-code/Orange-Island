@@ -42,9 +42,14 @@ fun SettingsAutoCompressPage(viewModel: ChatViewModel, onBack: () -> Unit, onNav
                     title = stringResource(R.string.settings_auto_compress),
                     items = buildList {
                         add {
+                            val autoCompressDesc = if (maxContextWindow == Int.MAX_VALUE) {
+                                stringResource(R.string.auto_compress_auto_desc_unlimited)
+                            } else {
+                                stringResource(R.string.auto_compress_auto_desc, maxContextWindow)
+                            }
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.auto_compress_auto)) },
-                                supportingContent = { Text(stringResource(R.string.auto_compress_auto_desc, maxContextWindow)) },
+                                supportingContent = { Text(autoCompressDesc) },
                                 leadingContent = { Icon(Icons.Default.Compress, null, tint = MaterialTheme.colorScheme.primary) },
                                 trailingContent = {
                                     Switch(checked = autoCompressEnabled, onCheckedChange = { viewModel.settings.setAutoCompressEnabled(it) })
@@ -53,9 +58,14 @@ fun SettingsAutoCompressPage(viewModel: ChatViewModel, onBack: () -> Unit, onNav
                             )
                         }
                         add {
+                            val thresholdDesc = if (maxContextWindow == Int.MAX_VALUE) {
+                                stringResource(R.string.context_retain_unlimited)
+                            } else {
+                                stringResource(R.string.context_retain, maxContextWindow)
+                            }
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.auto_compress_threshold_source)) },
-                                supportingContent = { Text(stringResource(R.string.context_retain, maxContextWindow)) },
+                                supportingContent = { Text(thresholdDesc) },
                                 leadingContent = { Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                                 trailingContent = {
                                     Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))

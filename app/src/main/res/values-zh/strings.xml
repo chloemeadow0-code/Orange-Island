@@ -277,6 +277,8 @@
     <string name="context_window">上下文窗口</string>
     <string name="context_window_default">默认上下文窗口</string>
     <string name="context_retain">保留最近 %1$d 条消息</string>
+    <string name="context_retain_unlimited">保留全部对话历史</string>
+    <string name="unlimited">无限</string>
     <string name="context_visualize">可视化上下文滚动</string>
     <string name="context_visualize_desc">将上下文窗口外的消息变暗</string>
     <string name="show_usage_stats">显示消息用量统计</string>
@@ -512,6 +514,7 @@
     <!-- Settings - Auto-Compress Page -->
     <string name="auto_compress_auto">自动压缩对话</string>
     <string name="auto_compress_auto_desc">总结较早的消息，让长对话保持在上下文窗口内。触发阈值使用"生成"设置里的全局上下文窗口：当前为保留最近 %1$d 轮对话</string>
+    <string name="auto_compress_auto_desc_unlimited">总结较早的消息，让长对话保持在上下文窗口内。触发阈值使用"生成"设置里的全局上下文窗口：当前为保留全部对话历史（无限制）</string>
     <string name="auto_compress_model">压缩模型</string>
     <string name="auto_compress_threshold_source">触发阈值设置</string>
     <string name="auto_compress_current_model">使用当前模型</string>

@@ -285,6 +285,8 @@
     <string name="context_window">Fenêtre de contexte</string>
     <string name="context_window_default">Fenêtre de contexte par défaut</string>
     <string name="context_retain">Conserver %1$d messages récents</string>
+    <string name="context_retain_unlimited">Conserver l\'historique complet des conversations</string>
+    <string name="unlimited">Illimité</string>
     <string name="context_visualize">Visualiser le déroulement du contexte</string>
     <string name="context_visualize_desc">Atténuer les messages hors de la fenêtre de contexte</string>
     <string name="show_usage_stats">Show Usage Stats</string>

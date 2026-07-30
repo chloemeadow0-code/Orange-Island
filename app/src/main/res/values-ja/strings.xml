@@ -285,6 +285,8 @@
     <string name="context_window">コンテキストウィンドウ</string>
     <string name="context_window_default">デフォルトのコンテキストウィンドウ</string>
     <string name="context_retain">直近 %1$d 件のメッセージを保持</string>
+    <string name="context_retain_unlimited">全ての会話履歴を保持</string>
+    <string name="unlimited">無制限</string>
     <string name="context_visualize">コンテキストの展開を可視化</string>
     <string name="context_visualize_desc">コンテキストウィンドウ外のメッセージを暗くする</string>
     <string name="show_usage_stats">Show Usage Stats</string>

@@ -285,6 +285,8 @@
     <string name="context_window">Kontextfenster</string>
     <string name="context_window_default">Standard-Kontextfenster</string>
     <string name="context_retain">%1$d aktuelle Nachrichten behalten</string>
+    <string name="context_retain_unlimited">Gesamte Gesprächshistorie behalten</string>
+    <string name="unlimited">Unbegrenzt</string>
     <string name="context_visualize">Kontext-Roll-out visualisieren</string>
     <string name="context_visualize_desc">Nachrichten außerhalb des Kontextfensters abdunkeln</string>
     <string name="show_usage_stats">Show Usage Stats</string>
