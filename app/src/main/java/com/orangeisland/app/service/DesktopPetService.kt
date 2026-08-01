@@ -61,8 +61,17 @@ class DesktopPetService : Service(), PetView.Host {
 
     override fun onCreate() {
         super.onCreate()
+        // Channel MUST exist before we build the notification, and startForeground MUST succeed
+        // before onCreate returns — otherwise the system throws
+        // ForegroundServiceDidNotStartInTimeException and kills the whole process (which on a
+        // debug build takes the plugin page down with it). If promoting to foreground fails for
+        // any reason we stop ourselves immediately so the system sees a clean stop, not a timeout.
         createChannel(this)
-        startForegroundCompat()
+        if (!startForegroundCompat()) {
+            DebugLog.w(TAG, "startForeground failed; stopping service to avoid ANR/crash")
+            stopSelf()
+            return
+        }
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         if (!hasOverlayPermission()) {
             DebugLog.w(TAG, "Overlay permission not granted; pet will stay invisible")
@@ -234,18 +243,29 @@ class DesktopPetService : Service(), PetView.Host {
             @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
 
     // ── Foreground notification (mirrors WorkflowKeepAliveService) ──
-    private fun startForegroundCompat() {
-        val notification = buildNotification()
-        try {
+    /** Promotes the service to foreground. Returns true on success, false on failure — callers
+     *  must [stopSelf] on false so the system sees a clean stop instead of waiting for the
+     *  foreground-start timeout and then killing the process. */
+    private fun startForegroundCompat(): Boolean {
+        val notification = try {
+            buildNotification()
+        } catch (e: Exception) {
+            CrashReporter.note("DesktopPetService.buildNotification threw ${e.javaClass.simpleName}")
+            DebugLog.w(TAG, "buildNotification failed", e)
+            return false
+        }
+        return try {
             ServiceCompat.startForeground(
                 this,
                 NOTIFICATION_ID,
                 notification,
                 foregroundServiceType()
             )
+            true
         } catch (e: Exception) {
             CrashReporter.note("DesktopPetService.startForeground threw ${e.javaClass.simpleName}")
             DebugLog.w(TAG, "startForeground failed", e)
+            false
         }
     }
 

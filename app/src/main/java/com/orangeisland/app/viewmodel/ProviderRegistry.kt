@@ -210,7 +210,9 @@ class ProviderRegistry(
 
                     if (changed) {
                         val allAvailable = settings.getAvailableModels().values.flatten().toSet()
-                        val newEnabled = settings.enabledModels.value.intersect(allAvailable)
+                        // Manual models are stored separately; keep them enabled (see ChatViewModel.fetchAvailableModels).
+                        val allKnownModels = allAvailable + settings.manualModels.value.values.flatten()
+                        val newEnabled = settings.enabledModels.value.intersect(allKnownModels)
                         if (newEnabled != settings.enabledModels.value) {
                             settings.setEnabledModels(newEnabled)
                         }

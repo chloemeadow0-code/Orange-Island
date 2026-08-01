@@ -52,6 +52,13 @@ class OrangeIslandWebViewBridge(
      *  Updated by the Compose host (PluginWebViewPage) as DataStore resolves them. */
     @Volatile var deviceUserId: String = "",
     @Volatile var pluginConfigJson: String = "{}",
+    /**
+     * The host's currently-active conversation id (the one the user has open in the chat), or ""
+     * if none is active. Exposed read-only to the page via `orangeisland.getCurrentConversationId()`
+     * / mirrored as `__OI_CONVERSATION_ID`, so a plugin UI page (opened from Settings, with no LLM
+     * tool-call context) can still send messages / invitations to the conversation the user means.
+     */
+    @Volatile var currentConversationId: String = "",
     /** Provides read access to the host app's chat memories for this plugin's UI page. */
     private val memoryProvider: PluginMemoryProvider? = null,
     /**
@@ -131,6 +138,15 @@ class OrangeIslandWebViewBridge(
     @JavascriptInterface
     fun getDeviceId(): String = deviceUserId
 
+    /** Synchronous read of the host's currently-active conversation id. Called via
+     *  `orangeisland.getCurrentConversationId()`. Returns "" when no conversation is active —
+     *  a plugin UI page opened from Settings has no LLM tool-call context of its own, so this is
+     *  the only way it can learn which conversation to send messages/invitations to.
+     *  Named differently from the [currentConversationId] property to avoid a JVM signature clash
+     *  (a Kotlin val autogenerates a getter of the same name). */
+    @JavascriptInterface
+    fun fetchCurrentConversationId(): String = currentConversationId
+
     /** Read recent messages for [conversationId] (JSON array). Limit defaults to 50. */
     @JavascriptInterface
     fun getChatHistory(conversationId: String, limit: Int): String {
@@ -165,10 +181,21 @@ class OrangeIslandWebViewBridge(
     }
 
     /** Send a user message into [conversationId]. Returns `"true"` or `"false"`.
-     *  When the plugin config contains a `projectId`, the conversation is bound to that project on creation. */
+     *  When the plugin config contains a `projectId`, the conversation is bound to that project on creation.
+     *  If [conversationId] is blank, falls back to the host's currently-active conversation so a
+     *  plugin UI page (launched from Settings) can still send to the chat the user has open. */
     @JavascriptInterface
     fun sendChatMessage(conversationId: String, text: String): String {
-        val provider = memoryProvider ?: return "false"
+        val provider = memoryProvider ?: run {
+            bridgeLog("sendChatMessage no_provider convId=$conversationId text=${text.take(80)}")
+            return "false"
+        }
+        // Fallback: when the plugin didn't pass a conversation id (common for UI pages opened from
+        // Settings), use the host's current conversation. This is what makes "send to current chat"
+        // work without requiring the user to fill a windowId in plugin config.
+        val resolvedId = conversationId.ifBlank { currentConversationId }
+        bridgeLog("sendChatMessage convId=$conversationId resolved=$resolvedId curConv=$currentConversationId text=${text.take(80)}")
+        if (resolvedId.isBlank()) return "false"
         val projectId = runCatching {
             kotlinx.serialization.json.Json.parseToJsonElement(pluginConfigJson)
                 .jsonObject["projectId"]
@@ -178,9 +205,9 @@ class OrangeIslandWebViewBridge(
         }.getOrNull()
         return runCatching {
             kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
-                provider.sendChatMessage(conversationId, text, projectId).toString()
+                provider.sendChatMessage(resolvedId, text, projectId).toString()
             }
-        }.getOrElse { "false" }
+        }.getOrElse { bridgeLog("sendChatMessage threw ${it.javaClass.simpleName}: ${it.message}"); "false" }
     }
 
     /** Resolve the project id that owns [conversationId]. */
@@ -251,7 +278,14 @@ class OrangeIslandWebViewBridge(
     }
 
     private suspend fun handle(call: Call) {
+        // Propagate the host's current conversation id into the sandbox before the tool call, so
+        // tools invoked from the plugin UI page (opened from Settings, outside any LLM generation)
+        // still see a real __OI_CONVERSATION_ID. Without this, get_plugin_context returns "" and
+        // features like "send invitation to current chat" break. The LLM-tool-call path sets the
+        // same field in PluginToolProvider.execute; here we do the equivalent for UI-initiated calls.
+        sandbox.currentConversationId = currentConversationId.ifBlank { null }
         val result = sandbox.callTool(plugin, call.tool, call.args)
+        sandbox.currentConversationId = null
         deliver(call.callbackId, result)
     }
 
@@ -297,6 +331,7 @@ class OrangeIslandWebViewBridge(
                 // Snapshot getters: read live from the host each time they're accessed.
                 get config() { return readConfig(); },
                 get deviceId() { return native.getDeviceId() || ''; },
+                get currentConversationId() { return native.fetchCurrentConversationId() || ''; },
                 call: function(tool, args, cb) {
                     var id = '__cb_' + (nextId++);
                     if (typeof cb === 'function') callbacks[id] = cb;
@@ -357,11 +392,25 @@ class OrangeIslandWebViewBridge(
             try {
                 Object.defineProperty(globalThis, '__OI_PLUGIN_CONFIG', { get: function() { return readConfig(); }, configurable: true });
                 Object.defineProperty(globalThis, '__OI_USER_ID', { get: function() { return native.getDeviceId() || ''; }, configurable: true });
+                Object.defineProperty(globalThis, '__OI_CONVERSATION_ID', { get: function() { return native.fetchCurrentConversationId() || ''; }, configurable: true });
             } catch (e) { /* defineProperty may throw on some engines — page still has orangeisland.config */ }
         })();
     """.trimIndent()
 
     private fun jsonEncodeJsString(s: String): String = JsonPrimitive(s).toString()
+
+    /** Diagnostic logger mirroring PluginSandbox.fetchLog: appends to the app-private oi_fetch.log
+     *  so we can pull the bridge call trace via `adb run-as ... cat files/oi_fetch.log`. Swallows
+     *  all IO errors so it can never break a bridge call. */
+    private fun bridgeLog(line: String) {
+        runCatching {
+            val ts = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
+                .format(java.util.Date())
+            val dir = java.io.File("/data/data/com.orangeisland.app/files")
+            if (!dir.exists()) dir.mkdirs()
+            java.io.File(dir, "oi_fetch.log").appendText("$ts [BRIDGE] $line\n")
+        }
+    }
 
     private fun errorJson(type: String, message: String): String = buildJsonObject {
         put("error", type)

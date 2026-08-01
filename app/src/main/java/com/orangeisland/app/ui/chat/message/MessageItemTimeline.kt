@@ -542,16 +542,27 @@ internal fun TimelineSegmentsContent(
                                             )
                                     ) {
                                         SelectionContainer(modifier = Modifier.noOpBringIntoView()) {
-                                            // Always use the full GFM markdown renderer here, not just when the segment
-                                            // contains an image link. The previous condition only handled the image case
-                                            // and fell back to a lightweight inline-only renderer (bold/italic/code spans)
-                                            // for everything else — which silently failed to render tables, headings,
-                                            // lists, blockquotes, and any other block-level Markdown construct in any
-                                            // reply that has a thought/tool-call timeline before the answer.
-                                            MarkdownTextContent(
-                                                text = content,
-                                                renderContext = renderContext
-                                            )
+                                            // Fall back to the full markdown renderer when a segment
+                                            // carries any block-level construct (image, code block,
+                                            // table, <details> HTML, …); the lightweight inline
+                                            // renderer can't represent those and would drop or mangle
+                                            // them (e.g. show <details> as raw text).
+                                            if (com.orangeisland.app.util.needsFullMarkdownRenderer(content)) {
+                                                MarkdownTextContent(
+                                                    text = content,
+                                                    renderContext = renderContext
+                                                )
+                                            } else {
+                                                Text(
+                                                    text = com.orangeisland.app.util.buildInlineMarkdownAnnotatedString(
+                                                        text = content,
+                                                        codeBackground = MaterialTheme.colorScheme.surfaceVariant,
+                                                        codeColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    ),
+                                                    style = ChatType.body,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
                                         }
                                         if (isStreaming && index == segments.lastIndex &&
                                             bubbleIndex == bubbleContents.lastIndex

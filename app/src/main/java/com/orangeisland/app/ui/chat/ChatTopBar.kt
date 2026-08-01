@@ -1,6 +1,7 @@
 package com.orangeisland.app.ui.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,13 +19,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.ExperimentalFoundationApi
 import com.orangeisland.app.R
 import com.orangeisland.app.model.ChatConversation
 import com.orangeisland.app.ui.theme.ChatType
+import android.widget.Toast
 import coil.compose.AsyncImage
 
 /**
@@ -32,6 +36,7 @@ import coil.compose.AsyncImage
  * title with optional token subtitle) and an actions capsule (system prompt +
  * new chat). Extracted from [ChatApp]; all behavior is routed through callbacks.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun ChatTopBar(
     isNewChatMode: Boolean,
@@ -75,13 +80,30 @@ internal fun ChatTopBar(
                     else conversations.find { it.id == currentConversationId }?.title?.takeIf { it.isNotBlank() }
                 val showBrandTitle = resolvedTitle == null
 
-                // Title capsule: menu + title
+                // Title capsule: menu + title. Long-press copies the current conversation id so the
+                // user can paste it into a plugin config (e.g. the music plugin's windowId field).
+                val copyContext = LocalContext.current
                 Surface(
                     shape = RoundedCornerShape(50),
                     color = if (topBarBackgroundImagePath.isNotBlank()) Color.Transparent else MaterialTheme.colorScheme.surface.copy(alpha = topBarAlpha),
                     tonalElevation = 4.dp,
                     shadowElevation = 4.dp,
                     modifier = Modifier.fillMaxHeight().widthIn(max = (260 * topBarCapsuleScale).dp)
+                        .combinedClickable(
+                            onClick = {},
+                            onLongClick = {
+                                val cid = currentConversationId
+                                if (!cid.isNullOrBlank()) {
+                                    val clipboard = androidx.core.content.ContextCompat.getSystemService(
+                                        copyContext, android.content.ClipboardManager::class.java
+                                    )
+                                    clipboard?.setPrimaryClip(
+                                        android.content.ClipData.newPlainText("conversation_id", cid)
+                                    )
+                                    Toast.makeText(copyContext, "已复制对话ID：$cid", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        )
                 ) {
                     Box {
                         if (topBarBackgroundImagePath.isNotBlank()) {

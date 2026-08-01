@@ -540,6 +540,21 @@ internal fun AssistantMessageContent(
                                                 style = ChatType.metaNormal,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                             )
+                                            seg.audioPath?.let { path ->
+                                                AudioMessageBar(path = path, modifier = Modifier.padding(top = 6.dp))
+                                            }
+                                            seg.imagePath?.let { path ->
+                                                coil.compose.AsyncImage(
+                                                    model = path,
+                                                    contentDescription = null,
+                                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                                    modifier = Modifier
+                                                        .padding(top = 6.dp)
+                                                        .fillMaxWidth()
+                                                        .aspectRatio(1f)
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                )
+                                            }
                                         }
                                     }
                                     if (idx < segs.lastIndex) {
@@ -610,10 +625,10 @@ internal fun AssistantMessageContent(
                                             ?: MaterialTheme.colorScheme.surfaceContainerHigh
                                         // A segment carrying a markdown image (or any block-level
                                         // construct the lightweight inline renderer can't handle) falls
-                                        // back to the full markdown renderer so the image actually
-                                        // loads; plain one-liners keep the cheap AnnotatedString path
+                                        // back to the full markdown renderer so the image/block actually
+                                        // renders; plain one-liners keep the cheap AnnotatedString path
                                         // that wraps to content width.
-                                        val needsFullMarkdown = segment.contains("![")
+                                        val needsFullMarkdown = com.orangeisland.app.util.needsFullMarkdownRenderer(segment)
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(20.dp))

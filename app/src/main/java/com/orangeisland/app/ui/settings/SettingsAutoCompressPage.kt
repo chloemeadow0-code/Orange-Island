@@ -57,37 +57,37 @@ fun SettingsAutoCompressPage(viewModel: ChatViewModel, onBack: () -> Unit, onNav
                                 modifier = Modifier.clickable { viewModel.settings.setAutoCompressEnabled(!autoCompressEnabled) }
                             )
                         }
-                        add {
-                            val thresholdDesc = if (maxContextWindow == Int.MAX_VALUE) {
-                                stringResource(R.string.context_retain_unlimited)
-                            } else {
-                                stringResource(R.string.context_retain, maxContextWindow)
-                            }
-                            SettingsItem(
-                                headlineContent = { Text(stringResource(R.string.auto_compress_threshold_source)) },
-                                supportingContent = { Text(thresholdDesc) },
-                                leadingContent = { Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                trailingContent = {
-                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
-                                },
-                                modifier = Modifier.clickable { onNavigateToGeneration() }
-                            )
-                        }
                         if (autoCompressEnabled) {
                             add {
+                                val thresholdDesc = if (maxContextWindow == Int.MAX_VALUE) {
+                                    stringResource(R.string.context_retain_unlimited)
+                                } else {
+                                    stringResource(R.string.context_retain, maxContextWindow)
+                                }
                                 SettingsItem(
-                                    headlineContent = { Text(stringResource(R.string.auto_compress_model)) },
-                                    supportingContent = {
-                                        val displayName = if (autoCompressModel == null) stringResource(R.string.auto_compress_current_model) else {
-                                            val alias = modelAliases[autoCompressModel!!]
-                                            alias ?: com.orangeisland.app.model.ModelId.parse(autoCompressModel!!).apiModelName
-                                        }
-                                        Text(displayName)
+                                    headlineContent = { Text(stringResource(R.string.auto_compress_threshold_source)) },
+                                    supportingContent = { Text(thresholdDesc) },
+                                    leadingContent = { Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                    trailingContent = {
+                                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                                     },
-                                    leadingContent = { Icon(Icons.AutoMirrored.Filled.Chat, null, tint = MaterialTheme.colorScheme.primary) },
-                                    modifier = Modifier.clickable { showModelDialog = true }
+                                    modifier = Modifier.clickable { onNavigateToGeneration() }
                                 )
                             }
+                        }
+                        add {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.auto_compress_model)) },
+                                supportingContent = {
+                                    val displayName = if (autoCompressModel == null) stringResource(R.string.auto_compress_current_model) else {
+                                        val alias = modelAliases[autoCompressModel!!]
+                                        alias ?: com.orangeisland.app.model.ModelId.parse(autoCompressModel!!).apiModelName
+                                    }
+                                    Text(displayName)
+                                },
+                                leadingContent = { Icon(Icons.AutoMirrored.Filled.Chat, null, tint = MaterialTheme.colorScheme.primary) },
+                                modifier = Modifier.clickable { showModelDialog = true }
+                            )
                         }
                     }
                 )

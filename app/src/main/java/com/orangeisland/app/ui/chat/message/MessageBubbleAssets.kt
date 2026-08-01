@@ -31,6 +31,8 @@ import com.mikepenz.markdown.compose.components.markdownComponents
 import com.mikepenz.markdown.compose.elements.MarkdownTable
 import com.mikepenz.markdown.compose.elements.MarkdownTableHeader
 import com.mikepenz.markdown.compose.elements.MarkdownTableRow
+import com.mikepenz.markdown.utils.getUnescapedTextInNode
+import org.intellij.markdown.MarkdownElementTypes
 import org.intellij.markdown.flavours.MarkdownFlavourDescriptor
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 
@@ -151,6 +153,29 @@ internal fun rememberChatMarkdownAssets(textColor: Color, codeBlockWrapEnabled: 
                     )
                 } else {
                     defaultComponents.codeFence(model)
+                }
+            },
+            // GFM parses <details>…</details> as a single HTML_BLOCK whose raw text
+            // is the verbatim tag source. Render it as a collapsible card; for any
+            // other HTML/unknown block, replay the dispatcher's default recursion
+            // (its children) so legacy raw-HTML display is unchanged.
+            custom = { type, model ->
+                if (type == MarkdownElementTypes.HTML_BLOCK &&
+                    model.node.getUnescapedTextInNode(model.content).contains("<details", ignoreCase = true)
+                ) {
+                    MarkdownDetailsBlock(
+                        content = model.content,
+                        node = model.node,
+                    )
+                } else {
+                    model.node.children.forEach { child ->
+                        com.mikepenz.markdown.compose.MarkdownElement(
+                            node = child,
+                            components = defaultComponents,
+                            content = model.content,
+                            includeSpacer = false,
+                        )
+                    }
                 }
             }
         )

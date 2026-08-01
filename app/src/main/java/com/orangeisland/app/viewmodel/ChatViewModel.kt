@@ -1650,7 +1650,12 @@ class ChatViewModel(
                 }
 
                 val allFetchedModels = settings.getAvailableModels().values.flatten().toSet()
-                val newEnabled = settings.enabledModels.value.intersect(allFetchedModels)
+                // Manual models live in a separate store from fetched/available models.
+                // They must NOT be dropped from enabledModels here, or their checkmark
+                // silently disappears the next time the available-models page runs a sync
+                // (which is why manually-added models lost their check on re-entry).
+                val allKnownModels = allFetchedModels + settings.manualModels.value.values.flatten()
+                val newEnabled = settings.enabledModels.value.intersect(allKnownModels)
                 settings.setEnabledModels(newEnabled)
 
                 // Save fingerprint on any successful fetch so we don't re-fetch on next visit

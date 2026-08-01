@@ -19,6 +19,24 @@ private val BOLD_REGEX = Regex("\\*\\*(.+?)\\*\\*")
 private val ITALIC_REGEX = Regex("(?<!\\*)\\*(?!\\*)(.+?)(?<!\\*)\\*(?!\\*)")
 private val CODE_REGEX = Regex("`([^`]+?)`")
 
+/**
+ * True when [text] contains block-level markdown that the lightweight inline
+ * renderer ([buildInlineMarkdownAnnotatedString]) cannot represent, so the caller
+ * should fall back to the full markdown pipeline instead. Covers images,
+ * fenced code blocks (``` or ~~~), indented code blocks, tables (| ... |),
+ * GFM alerts ("> ![note]"), and block HTML tags (e.g. `<details>`).
+ *
+ * Intentionally match-anywhere (no `^`/MULTILINE): a block can land in any
+ * split-bubble segment, and we'd rather over-trigger the full renderer than
+ * silently mangle a block as inline text.
+ */
+private val BLOCK_MARKDOWN_REGEX = Regex(
+    """!\[|```|~~~|^\s{4,}\S|\|[ \t]-+|[ \t]\|[ \t]|^>\s*!\[|<[a-zA-Z][^>]*>""",
+    RegexOption.MULTILINE
+)
+
+fun needsFullMarkdownRenderer(text: String): Boolean = BLOCK_MARKDOWN_REGEX.containsMatchIn(text)
+
 fun buildInlineMarkdownAnnotatedString(
     text: String,
     codeBackground: Color,

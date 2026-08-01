@@ -53,6 +53,10 @@ fun PluginWebViewPage(
     sandbox: PluginSandbox,
     onBack: () -> Unit,
     memoryProvider: PluginMemoryProvider? = null,
+    /** The host's currently-active conversation id, so the plugin UI can send messages/
+     *  invitations to the conversation the user has open even though the page itself is launched
+     *  from Settings (outside any LLM tool-call context). May be "" if no conversation is active. */
+    currentConversationId: String = "",
 ) {
     val uiFile = plugin.uiHtmlFile
     val scope = rememberCoroutineScope()
@@ -84,6 +88,7 @@ fun PluginWebViewPage(
             plugin, sandbox, scope,
             deviceUserId = deviceId,
             pluginConfigJson = configJson,
+            currentConversationId = currentConversationId,
             memoryProvider = memoryProvider,
             mediaInfoProvider = { pkg -> com.orangeisland.app.plugin.MediaInfoReader.read(appContext, pkg) }
         )

@@ -252,6 +252,14 @@ fun ChatApp(
     val textFieldState = rememberSaveable(saver = androidx.compose.foundation.text.input.TextFieldState.Saver) { androidx.compose.foundation.text.input.TextFieldState() }
     val inputFocusRequester = remember { FocusRequester() }
 
+    val isNearBottom by remember {
+        derivedStateOf {
+            val info = listState.layoutInfo
+            val total = info.totalItemsCount
+            total > 0 && info.visibleItemsInfo.lastOrNull()?.let { it.index >= total - 2 } == true
+        }
+    }
+
     // Consume a one-shot prefilled input (set by an outside caller like the workflow detail page's
     // "Edit in chat" button) into the chat input field. Clears the pending value afterwards.
     val pendingPrefill by viewModel.pendingPrefillInput.collectAsState()
@@ -290,28 +298,41 @@ fun ChatApp(
 
         with(density) {
             val targetTopPx = 140.dp.toPx()
-            val topPaddingPx = 140.dp.toPx()
 
             var totalHeightBeforePx = 0
-            var hasAnyHeight = false
+            var allMeasured = true
             for (i in 0 until targetIndex) {
                 val h = messageHeights[messages[i].id]
-                if (h != null) { totalHeightBeforePx += h; hasAnyHeight = true }
+                if (h != null) {
+                    totalHeightBeforePx += h
+                } else {
+                    // A message before the target has no measured height yet. Using the
+                    // partial sum would make the target scroll position land too far up
+                    // (the missing height reads as 0), which is the intermittent
+                    // "scrolled ~2 messages too high" after send. Fall back to Compose's
+                    // layout-driven scroll, which is immune to this measurement race.
+                    allMeasured = false
+                    break
+                }
             }
 
-            if (!hasAnyHeight && targetIndex > 0) {
-                listState.scrollToItem(targetIndex, 0)
+            if (!allMeasured && targetIndex > 0) {
+                // Layout knows true sizes; just bring the target to the top.
+                if (animate) listState.animateScrollToItem(targetIndex, 0)
+                else listState.scrollToItem(targetIndex, 0)
             } else {
-                val targetScrollPx = (topPaddingPx + totalHeightBeforePx - targetTopPx).coerceAtLeast(0f)
+                val targetScrollPx = (totalHeightBeforePx - targetTopPx).coerceAtLeast(0f)
 
                 if (animate) {
                     var currentOffsetPx = listState.firstVisibleItemScrollOffset.toFloat()
-                    for (i in 0 until listState.firstVisibleItemIndex) {
+                    var i = 0
+                    while (i < listState.firstVisibleItemIndex) {
                         if (i < messages.size) {
-                            currentOffsetPx += (messageHeights[messages[i].id] ?: 0)
+                            val h = messageHeights[messages[i].id]
+                            if (h != null) currentOffsetPx += h else break
                         }
+                        i++
                     }
-
                     val diff = targetScrollPx - currentOffsetPx
                     if (kotlin.math.abs(diff) > 2) {
                         listState.animateScrollBy(diff, tween(600, easing = easing))
@@ -906,7 +927,16 @@ fun ChatApp(
                         showMcpEntry = mcpServers.any { it.enabled },
                         mcpConversationActive = convOverride?.mcpServerIds != null &&
                             convOverride.mcpServerIds.isNotEmpty(),
-                        onMcpClick = { haptics.action(); showMcpSheet = true }
+                        onMcpClick = { haptics.action(); showMcpSheet = true },
+                        onInputFocusChanged = { focused ->
+                            if (focused && isNearBottom && !isNewChatMode) {
+                                scope.launch {
+                                    if (messages.isNotEmpty()) {
+                                        listState.animateScrollToItem(messages.lastIndex, 0)
+                                    }
+                                }
+                            }
+                        }
                     )
                 }
             }

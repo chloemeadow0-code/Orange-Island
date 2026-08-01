@@ -16,7 +16,10 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import okhttp3.ConnectionSpec
+import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.TlsVersion
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
@@ -86,6 +89,34 @@ class PluginSandbox(
         private const val TAG = "PluginSandbox"
         private const val TOOL_TIMEOUT_MS = 30_000L
         private const val MAX_RESPONSE_BYTES = 512 * 1024L
+
+        /**
+         * Dedicated OkHttpClient for plugin `fetch()`. Separate from the host [com.orangeisland.app
+         * .api.HttpClient.client] (used for LLM traffic) so changes here can't destabilize model
+         * generation, and so plugin requests get a more browser-like TLS configuration.
+         *
+         * Some third-party sites (notably NetEase Cloud Music) reject connections whose TLS
+         * handshake doesn't look like a mainstream browser — OkHttp's default modern spec still
+         * differs enough that the server resets the connection, which surfaces to plugins as a
+         * generic `IOException` → `{ ok:false, status:0 }`. Restricting the spec to explicit
+         * TLS_1_2/TLS_1_3 with the conventional cipher set makes the handshake fingerprint much
+         * closer to a browser's, which is enough for those services to respond normally.
+         */
+        private val pluginHttpClient: OkHttpClient by lazy {
+            OkHttpClient.Builder()
+                .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(5, java.util.concurrent.TimeUnit.MINUTES)
+                .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .connectionSpecs(
+                    listOf(
+                        ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
+                            .tlsVersions(TlsVersion.TLS_1_3, TlsVersion.TLS_1_2)
+                            .build(),
+                        ConnectionSpec.CLEARTEXT
+                    )
+                )
+                .build()
+        }
     }
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
@@ -325,14 +356,67 @@ class PluginSandbox(
      * The HTTP call runs inside [runBlocking] on [Dispatchers.IO] so it does not starve
      * the shared pool, and each plugin already has its own dedicated thread.
      */
-    private fun QuickJs.injectFetch(pluginId: String, allowedHosts: List<String>) {
-        function("fetch") { args ->
+    private suspend fun QuickJs.injectFetch(pluginId: String, allowedHosts: List<String>) {
+        // Register a native `__oiNativeFetch` that returns a JSON *string*, then wrap it in JS so
+        // the page-facing `fetch()` returns a plain OBJECT (parsed). This is what every plugin
+        // expects — code like `var r = fetch(url); r.ok; r.body;` must work without an extra
+        // JSON.parse. Returning the string directly from the native binding made `r.ok` undefined,
+        // silently turning every successful fetch into a "network failed" error in plugins.
+        function("__oiNativeFetch") { args ->
             val url = args.getOrNull(0)?.toString().orEmpty()
             val optsRaw = args.getOrNull(1)
             val opts = parseOpts(optsRaw)
-            runBlocking(kotlinx.coroutines.Dispatchers.IO) {
-                doFetch(pluginId, allowedHosts, url, opts)
+            fetchLog("[CALL] plugin=$pluginId url=$url method=${opts.method} optsRaw=${optsRaw ?: "null"}")
+            val result: String = runCatching {
+                runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                    doFetch(pluginId, allowedHosts, url, opts)
+                }
+            }.getOrElse { e ->
+                fetchLog("[INNER_THROW] ${e.javaClass.name}: ${e.message}")
+                buildJsonObject {
+                    put("ok", false)
+                    put("status", 0)
+                    put("error", "FETCH_INNER_ERROR: ${e.javaClass.simpleName}: ${e.message ?: "no detail"}")
+                    put("diagnostic", "fetch() wrapper caught ${e.javaClass.name}; the OkHttp call never returned a response. url=$url")
+                }.toString()
             }
+            fetchLog("[RETURN] url=$url result=${result.take(800)}")
+            result
+        }
+        // Wrap the native string-returning fetch into one that yields an object the plugin can use
+        // directly (r.ok, r.status, r.body). If parsing fails we still return an object-shaped
+        // error so plugins never see a raw string they can't introspect.
+        try {
+            evaluate<Any?>(
+                """
+                globalThis.fetch = function(url, opts) {
+                  var s = __oiNativeFetch(url, opts);
+                  try { return JSON.parse(s); } catch (e) { return { ok:false, status:0, error:'INVALID_FETCH_RESULT:'+e, __raw:s }; }
+                };
+                """.trimIndent(),
+                asModule = false,
+            )
+        } catch (e: Exception) {
+            DebugLog.w(TAG, "failed to install fetch() JS wrapper for $pluginId: ${e.message}")
+        }
+    }
+
+    /**
+     * Appends one diagnostic line to the app's private files dir (oi_fetch.log) so we can
+     * `adb run-as` the full fetch trace on devices whose logcat swallows third-party app logs
+     * (e.g. honor firmware). Writes to app-private storage so it never triggers scoped-storage
+     * permission crashes. Best-effort: any IO failure is swallowed (must never break the fetch).
+     */
+    private fun fetchLog(line: String) {
+        runCatching {
+            val ts = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
+                .format(java.util.Date())
+            // App-private files dir — no permissions needed, never crashes. Pull via:
+            //   adb exec-out run-as com.orangeisland.app cat files/oi_fetch.log
+            val dir = java.io.File("/data/data/com.orangeisland.app/files")
+            if (!dir.exists()) dir.mkdirs()
+            val file = java.io.File(dir, "oi_fetch.log")
+            file.appendText("$ts $line\n")
         }
     }
 
@@ -356,18 +440,35 @@ class PluginSandbox(
         url: String,
         opts: FetchOpts,
     ): String {
+        // End-to-end trace written to /sdcard/oi_fetch.log via fetchLog() (survives logcat
+        // suppression on some OEM firmware). Each step is logged so we can see exactly where a
+        // request dies without relying on logcat or the plugin's own error display.
+        fetchLog("[DOFETCH] start plugin=$pluginId url=$url method=${opts.method} allowedHosts=$allowedHosts")
         val parsed = try { java.net.URI(url) } catch (e: Exception) {
+            fetchLog("[DOFETCH] fail invalid_url url=$url err=${e.message}")
             return errorResponse(0, "Invalid URL: ${e.message}")
         }
-        val host = parsed.host?.lowercase() ?: return errorResponse(0, "URL has no host")
-        val scheme = parsed.scheme?.lowercase() ?: return errorResponse(0, "URL has no scheme")
+        val host = parsed.host?.lowercase() ?: run {
+            fetchLog("[DOFETCH] fail no_host url=$url")
+            return errorResponse(0, "URL has no host")
+        }
+        val scheme = parsed.scheme?.lowercase() ?: run {
+            fetchLog("[DOFETCH] fail no_scheme url=$url")
+            return errorResponse(0, "URL has no scheme")
+        }
+        fetchLog("[DOFETCH] step2 parsed scheme=$scheme host=$host")
         if (scheme !in setOf("http", "https")) {
+            fetchLog("[DOFETCH] fail bad_scheme scheme=$scheme")
             return errorResponse(0, "Only http/https URLs allowed")
         }
         if (scheme == "http" && !isLocalHost(host)) {
+            fetchLog("[DOFETCH] fail cleartext_blocked host=$host")
             return errorResponse(0, "Cleartext HTTP to public host '$host' not allowed (use https)")
         }
-        if (!hostAllowed(host, allowedHosts)) {
+        val allowed = hostAllowed(host, allowedHosts)
+        fetchLog("[DOFETCH] step3 whitelist host=$host allowed=$allowed")
+        if (!allowed) {
+            fetchLog("[DOFETCH] fail not_whitelisted host=$host")
             DebugLog.w(TAG, "plugin/$pluginId fetch blocked (host not whitelisted): $host")
             return errorResponse(0, "Host '$host' not in plugin's allowedHosts list")
         }
@@ -375,6 +476,15 @@ class PluginSandbox(
             try {
                 val builder = Request.Builder().url(url)
                 opts.headers.forEach { (k, v) -> builder.header(k, v) }
+                // Default a browser-like User-Agent when the plugin didn't set one. Many third-party
+                // hosts (e.g. NetEase) 4xx/reset requests whose UA looks like a default HTTP client.
+                if (opts.headers.keys.none { it.equals("User-Agent", ignoreCase = true) }) {
+                    builder.header(
+                        "User-Agent",
+                        "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) " +
+                            "Chrome/120.0.0.0 Mobile Safari/537.36"
+                    )
+                }
                 when (opts.method) {
                     "GET" -> builder.get()
                     "HEAD" -> builder.head()
@@ -385,14 +495,22 @@ class PluginSandbox(
                     }
                     else -> builder.get()
                 }
-                val call = com.orangeisland.app.api.HttpClient.client.newCall(builder.build())
+                val request = builder.build()
+                fetchLog("[DOFETCH] step4 built_request url=$url headers=${request.headers}")
+                val call = pluginHttpClient.newCall(request)
+                fetchLog("[DOFETCH] step5 executing url=$url timeout=${opts.timeoutMs}")
                 // OkHttp's execute() is a blocking call; running it on Dispatchers.IO is correct.
                 val response = withTimeoutOrNull(opts.timeoutMs) { call.execute() }
-                    ?: return@withContext errorResponse(0, "Request timed out after ${opts.timeoutMs}ms")
+                if (response == null) {
+                    fetchLog("[DOFETCH] fail timeout url=$url timeout=${opts.timeoutMs}")
+                    return@withContext errorResponse(0, "Request timed out after ${opts.timeoutMs}ms")
+                }
+                fetchLog("[DOFETCH] step6 got_response url=$url code=${response.code} msg=${response.message}")
                 response.use {
                     val raw = it.body?.bytes() ?: ByteArray(0)
                     val truncated = raw.size.toLong() > MAX_RESPONSE_BYTES
                     val text = String(raw.copyOf(minOf(raw.size, MAX_RESPONSE_BYTES.toInt())), Charsets.UTF_8)
+                    fetchLog("[DOFETCH] step7 body_bytes=${raw.size} truncated=$truncated preview=${text.take(200)}")
                     buildJsonObject {
                         put("ok", it.isSuccessful)
                         put("status", it.code)
@@ -401,9 +519,15 @@ class PluginSandbox(
                     }.toString()
                 }
             } catch (e: IOException) {
-                errorResponse(0, "Network error: ${e.message}")
+                fetchLog("[DOFETCH] FAIL IOException ${e.javaClass.name}: ${e.message} stack=${e.stackTraceToString().take(500)}")
+                DebugLog.w(TAG, "plugin fetch to '$url' failed: ${e.javaClass.simpleName}: ${e.message}")
+                errorResponseWithDetail(0, "Network error: ${e.javaClass.simpleName}: ${e.message ?: "no detail"}",
+                    "IOException of type ${e.javaClass.name} thrown by OkHttp execute(). url=$url")
             } catch (e: Exception) {
-                errorResponse(0, "Request failed: ${e.message}")
+                fetchLog("[DOFETCH] FAIL Exception ${e.javaClass.name}: ${e.message} stack=${e.stackTraceToString().take(500)}")
+                DebugLog.w(TAG, "plugin fetch to '$url' failed: ${e.javaClass.simpleName}: ${e.message}")
+                errorResponseWithDetail(0, "Request failed: ${e.javaClass.simpleName}: ${e.message ?: "no detail"}",
+                    "${e.javaClass.name} thrown during fetch. url=$url")
             }
         }
     }
@@ -435,6 +559,16 @@ class PluginSandbox(
         put("ok", false)
         put("status", status)
         put("error", message)
+    }.toString()
+
+    /** Like [errorResponse] but also carries a [detail] diagnostic string so the real failure
+     *  reason survives into the plugin/tool return value even on devices whose logcat swallows
+     *  app logs (e.g. honor firmware). Plugins read [detail] under the `diagnostic` key. */
+    private fun errorResponseWithDetail(status: Int, message: String, detail: String): String = buildJsonObject {
+        put("ok", false)
+        put("status", status)
+        put("error", message)
+        put("diagnostic", detail)
     }.toString()
 
     private fun errorJson(type: String, message: String): String = buildJsonObject {

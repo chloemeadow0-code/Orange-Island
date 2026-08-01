@@ -106,6 +106,7 @@ fun SettingsPluginPage(
             sandbox = sandbox,
             onBack = { openUiFor = null },
             memoryProvider = memoryProvider,
+            currentConversationId = viewModel.currentConversationId.value ?: "",
         )
         return
     }
