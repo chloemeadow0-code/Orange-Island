@@ -129,6 +129,15 @@ internal data class AnthropicUsage(
     @SerialName("cache_creation_input_tokens") val cacheCreationInputTokens: Int? = null
 )
 
+// Some third-party Claude relay/proxy services occasionally leak the raw JSON shape
+// of an empty text content block (right before switching to a tool_use block) instead
+// of just its text field. This matches that specific empty/whitespace-only shape in
+// either key order, tolerant of extra whitespace, and is scoped ONLY to this provider —
+// it must never be applied anywhere else (other providers are unaffected by this bug).
+private val leakedEmptyTextBlockRegex = Regex(
+    """\{\s*"text"\s*:\s*"\s*"\s*,\s*"type"\s*:\s*"text"\s*\}|\{\s*"type"\s*:\s*"text"\s*,\s*"text"\s*:\s*"\s*"\s*\}"""
+)
+
 class AnthropicProvider : LlmProvider {
     override val name: String = Constants.PROVIDER_ANTHROPIC
     override val defaultBaseUrl: String = "https://api.anthropic.com/v1"
@@ -317,7 +326,10 @@ class AnthropicProvider : LlmProvider {
                                                     delta.partialJson?.let { toolUseArgs.append(it) }
                                                 }
                                                 else -> {
-                                                    delta.text?.let { emit(StreamEvent.TextChunk(it)) }
+                                                    delta.text?.let { text ->
+                                                        val cleaned = leakedEmptyTextBlockRegex.replace(text, "")
+                                                        if (cleaned.isNotEmpty()) emit(StreamEvent.TextChunk(cleaned))
+                                                    }
                                                     delta.thinking?.let {
                                                         if (delta.signature != null) thinkingSignature = delta.signature
                                                         emit(StreamEvent.ThoughtChunk(it, null, thinkingSignature))

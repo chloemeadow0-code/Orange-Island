@@ -144,12 +144,12 @@ fun PdfPageSelectDialog(
                                             Box(
                                                 modifier = Modifier.align(Alignment.BottomEnd)
                                                     .padding(2.dp)
-                                                    .background(Color.Black.copy(alpha = 0.70f), RoundedCornerShape(3.dp))
+                                                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.70f), RoundedCornerShape(3.dp))
                                                     .padding(horizontal = 4.dp, vertical = 1.dp)
                                             ) {
                                                 Text(
                                                 "$page",
-                                                color = Color.White,
+                                                color = MaterialTheme.colorScheme.inverseOnSurface,
                                                 style = MaterialTheme.typography.labelSmall
                                             )
                                             }
@@ -169,7 +169,7 @@ fun PdfPageSelectDialog(
                                                 .align(Alignment.TopStart)
                                                 .padding(4.dp)
                                                 .clip(RoundedCornerShape(3.dp))
-                                                .background(Color.Black.copy(alpha = 0.70f))
+                                                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.70f))
                                                 .clickable { onTogglePage?.invoke(pageIdx) }
                                                 .padding(2.dp)
                                         ) {

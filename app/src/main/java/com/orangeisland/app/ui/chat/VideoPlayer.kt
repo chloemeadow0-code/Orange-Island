@@ -192,12 +192,12 @@ fun VideoPlayer(
                     },
                     modifier = Modifier
                         .size(72.dp)
-                        .background(Color.Black.copy(alpha = 0.4f), CircleShape)
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f), CircleShape)
                 ) {
                     Icon(
                         if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(40.dp)
                     )
                 }
@@ -215,13 +215,13 @@ fun VideoPlayer(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))))
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f))))
                     .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp)
             ) {
                 // Time label
                 Text(
                     "${formatTime(currentPositionMs)} / ${formatTime(durationMs)}",
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                     fontSize = 12.sp,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -236,9 +236,9 @@ fun VideoPlayer(
                     onValueChangeFinished = { scheduleAutoHide() },
                     modifier = Modifier.fillMaxWidth(),
                     colors = SliderDefaults.colors(
-                        thumbColor = Color.White,
-                        activeTrackColor = Color.White,
-                        inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                        thumbColor = MaterialTheme.colorScheme.onSurface,
+                        activeTrackColor = MaterialTheme.colorScheme.onSurface,
+                        inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                     )
                 )
             }

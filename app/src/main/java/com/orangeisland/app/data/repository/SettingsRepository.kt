@@ -145,7 +145,7 @@ class SettingsRepository(
     val conversationSettings: StateFlow<Map<String, ConversationSettings>> = hot(settingsManager.conversationSettings, emptyMap())
     val themeMode: StateFlow<String> = hot(settingsManager.themeMode, "FOLLOW_DEVICE")
     val colorScheme: StateFlow<String> = hot(settingsManager.colorScheme, "DEFAULT")
-    val dynamicColor: StateFlow<Boolean> = hot(settingsManager.dynamicColor, true)
+    val dynamicColor: StateFlow<Boolean> = hot(settingsManager.dynamicColor, false)
     val blurEffectsEnabled: StateFlow<Boolean> = hot(settingsManager.blurEffectsEnabled, true)
     val codeBlockWrapEnabled: StateFlow<Boolean> = hot(settingsManager.codeBlockWrapEnabled, false)
     val splitAssistantBubbleByLine: StateFlow<Boolean> = hot(settingsManager.splitAssistantBubbleByLine, false)

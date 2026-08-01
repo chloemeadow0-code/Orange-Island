@@ -815,6 +815,8 @@
     <string name="snackbar_compressing">Compressing history…</string>
     <string name="snackbar_compressed">Compressed %1$d messages.</string>
     <string name="snackbar_compress_error">Error encountered when compressing history.</string>
+    <string name="snackbar_compress_already_running">Already compressing this conversation</string>
+    <string name="snackbar_compress_nothing_to_compress">Nothing new to compress</string>
 
     <!-- Appearance -->
     <string name="settings_appearance">Appearance</string>

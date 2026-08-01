@@ -77,10 +77,10 @@ fun FileThumbnail(
         Box(
             modifier = modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFFE53935).copy(alpha = 0.15f)),
+                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
-            Text("PDF", style = MaterialTheme.typography.labelMedium, color = Color(0xFFE53935), fontWeight = FontWeight.SemiBold)
+            Text("PDF", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
         }
     } else {
         val ext = (fileName ?: "").substringAfterLast('.', "").uppercase().take(4).ifEmpty { "TXT" }
@@ -156,11 +156,11 @@ fun AttachmentThumbnailItem(
                 Icon(
                     Icons.Default.PlayArrow,
                     contentDescription = "Play",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
                         .align(Alignment.Center)
                         .size(28.dp)
-                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f), CircleShape)
                         .padding(4.dp)
                 )
             }

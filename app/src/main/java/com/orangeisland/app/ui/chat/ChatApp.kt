@@ -850,10 +850,11 @@ fun ChatApp(
                             viewModel.sendMessage(text, attachments = attachments).also { sent ->
                                 if (sent) {
                                     haptics.action()
-                                    scope.launch {
-                                        delay(200)
-                                        scrollToLastUserMessage(animate = true)
-                                    }
+                                    // Scrolling is handled by the viewModel.scrollToMessage flow collector
+                                    // above (triggered internally by sendMessage() via onScrollToMessage),
+                                    // which waits for the target message to actually render before
+                                    // animating. A second manual scroll call here used to race against it
+                                    // and cause a visible double-jump.
                                 }
                             }
                         },

@@ -131,6 +131,7 @@ private fun WorkflowCanvas(
         return Offset(x, y)
     }
 
+    val outlineColor = MaterialTheme.colorScheme.outline
     Box(modifier = modifier.background(MaterialTheme.colorScheme.background)) {
         // ── Edges (drawn first, behind nodes) ─────────────────
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -152,7 +153,7 @@ private fun WorkflowCanvas(
                     is EdgeGuard.OnFailure -> Color(0xFFE91E63)
                     is EdgeGuard.Bool -> if (edge.guard.expected) Color(0xFF2196F3) else Color(0xFFFF9800)
                     is EdgeGuard.Regex -> Color(0xFF9C27B0)
-                    null -> Color.Gray.copy(alpha = 0.6f)
+                    null -> outlineColor.copy(alpha = 0.6f)
                 }
 
                 drawPath(
@@ -228,7 +229,7 @@ private fun NodeCard(
         is NodeState.Running -> Color(0xFF2196F3).copy(alpha = 0.5f)
         is NodeState.Done -> Color(0xFF4CAF50).copy(alpha = 0.4f)
         is NodeState.Errored -> Color(0xFFE91E63).copy(alpha = 0.5f)
-        is NodeState.Skipped -> Color.Gray.copy(alpha = 0.3f)
+        is NodeState.Skipped -> MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
         else -> Color.Transparent
     }
 
@@ -236,7 +237,7 @@ private fun NodeCard(
         is NodeState.Running -> Color(0xFF2196F3)
         is NodeState.Done -> Color(0xFF4CAF50)
         is NodeState.Errored -> Color(0xFFE91E63)
-        is NodeState.Skipped -> Color.Gray
+        is NodeState.Skipped -> MaterialTheme.colorScheme.outline
         else -> Color.Transparent
     }
 

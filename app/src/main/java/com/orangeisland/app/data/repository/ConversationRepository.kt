@@ -118,6 +118,12 @@ class ConversationRepository(
     suspend fun getMessagesForConversationSnapshot(conversationId: String): List<MessageEntity> =
         chatDao.getMessagesForConversation(conversationId).first().map { it.decodeLargeText(appContext) }
 
+    /** Lightweight stuck-message lookup for the switch-conversation path. Does NOT call
+     *  decodeLargeText — the status field is the only thing read or rewritten here, so
+     *  there's no need to pay the overflow-file read cost for text/thoughts. */
+    suspend fun getStuckMessagesForConversation(conversationId: String): List<MessageEntity> =
+        chatDao.getStuckMessagesForConversation(conversationId)
+
     suspend fun upsertMessage(entity: MessageEntity) {
         val encoded = entity.encodeLargeText(appContext)
         chatDao.upsertMessage(encoded)

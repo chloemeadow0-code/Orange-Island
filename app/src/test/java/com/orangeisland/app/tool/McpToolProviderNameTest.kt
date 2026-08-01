@@ -1,5 +1,6 @@
 package com.orangeisland.app.tool
 
+import com.orangeisland.app.data.McpServerConfig
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -7,16 +8,18 @@ import org.junit.Test
  * Unit tests for [McpToolProvider]'s name-mangling logic. These exercise the pure companion
  * helpers directly (no MCP SDK / network needed) — they are the regression guard for the
  * "400 Invalid tool use format" bug caused by MCP tool names that violate the
- * `^[a-zA-Z0-9_-]{1,64}$` regex enforced by OpenAI-compatible providers.
+ * `^[a-zA-Z0-9_-]{1,64} regex enforced by OpenAI-compatible providers.
  */
 class McpToolProviderNameTest {
 
     private val nameRegex = Regex("^[a-zA-Z0-9_-]{1,64}$")
 
+    private fun stubConfig(name: String) = McpServerConfig(name = name, url = "http://test")
+
     private fun allocateAll(vararg pairs: Pair<String, String>): List<String> {
         val used = mutableSetOf<String>()
         return pairs.map { (server, tool) ->
-            McpToolProvider.allocateApiName(server, tool, used)
+            McpToolProvider.allocateApiName(stubConfig(server), tool, used)
         }
     }
 
@@ -50,7 +53,7 @@ class McpToolProviderNameTest {
 
     @Test
     fun allocateApiName_respects64CharCap() {
-        val name = McpToolProvider.allocateApiName("server", "x".repeat(200), mutableSetOf())
+        val name = McpToolProvider.allocateApiName(stubConfig("server"), "x".repeat(200), mutableSetOf())
         assertTrue("length=${name.length} must be <= 64", name.length <= 64)
         assertTrue(nameRegex.matches(name))
     }
@@ -58,7 +61,7 @@ class McpToolProviderNameTest {
     @Test
     fun allocateApiName_cappedEvenWithLongServerName() {
         // A huge server name must not push the total past 64.
-        val name = McpToolProvider.allocateApiName("s".repeat(300), "tool", mutableSetOf())
+        val name = McpToolProvider.allocateApiName(stubConfig("s".repeat(300)), "tool", mutableSetOf())
         assertTrue("length=${name.length} must be <= 64", name.length <= 64)
         assertTrue(nameRegex.matches(name))
     }
@@ -77,7 +80,7 @@ class McpToolProviderNameTest {
     @Test
     fun allocateApiName_separatorStaysUnambiguous() {
         // The "__" separator must be the ONLY "__" in the name so parsePrefixedName is sound.
-        val name = McpToolProvider.allocateApiName("my..server", "a..b", mutableSetOf())
+        val name = McpToolProvider.allocateApiName(stubConfig("my..server"), "a..b", mutableSetOf())
         val rest = name.removePrefix(McpToolProvider.PREFIX)
         val sepIdx = rest.indexOf("__")
         assertTrue("separator must exist", sepIdx > 0)

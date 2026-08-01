@@ -136,11 +136,11 @@ internal fun AttachmentPreviewRow(
                             Icon(
                                 Icons.Default.PlayArrow,
                                 contentDescription = stringResource(R.string.play),
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier
                                     .align(Alignment.Center)
                                     .size(24.dp)
-                                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f), CircleShape)
                                     .padding(4.dp)
                             )
                         }
@@ -180,14 +180,14 @@ internal fun AttachmentPreviewRow(
                             modifier = Modifier
                                 .matchParentSize()
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color.Black.copy(alpha = 0.4f)),
+                                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f)),
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator(
                                 progress = { progress },
                                 modifier = Modifier.size(24.dp),
                                 strokeWidth = 2.dp,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -197,7 +197,7 @@ internal fun AttachmentPreviewRow(
                             .align(Alignment.TopEnd)
                             .offset(x = 5.dp, y = (-5).dp)
                         .size(18.dp)
-                        .background(Color.Black.copy(alpha = 0.8f), CircleShape)
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.8f), CircleShape)
                         .clip(RoundedCornerShape(18.dp))
                         .clickable {
                             composer.removeAttachmentAt(index)
@@ -207,7 +207,7 @@ internal fun AttachmentPreviewRow(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = stringResource(R.string.remove),
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(10.dp)
                     )
                 }

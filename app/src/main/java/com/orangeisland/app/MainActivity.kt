@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -155,7 +156,7 @@ class MainActivity : ComponentActivity() {
             val themeMode by settingsManager.themeMode.collectAsState(initial = "FOLLOW_DEVICE")
             val colorSchemeName by settingsManager.colorScheme.collectAsState(initial = "DEFAULT")
             val schemeStyleName by settingsManager.schemeStyle.collectAsState(initial = "TONAL_SPOT")
-            val dynamicColor by settingsManager.dynamicColor.collectAsState(initial = true)
+            val dynamicColor by settingsManager.dynamicColor.collectAsState(initial = false)
             val fontPreference by settingsManager.fontPreference.collectAsState(initial = "app_default")
             val customFontPath by settingsManager.customFontPath.collectAsState(initial = "")
             val fontSizeTier by settingsManager.fontSizeTier.collectAsState(initial = FontSizeTiers.DEFAULT)
@@ -968,6 +969,9 @@ fun MainNavigation(
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
+                BackHandler(enabled = showHealthPage) {
+                    showHealthPage = false
+                }
                 val ctx = LocalContext.current
                 val container = remember {
                     (ctx.applicationContext as com.orangeisland.app.OrangeIslandApplication).container

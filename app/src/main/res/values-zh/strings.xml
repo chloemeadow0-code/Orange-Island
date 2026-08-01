@@ -648,6 +648,8 @@
     <string name="snackbar_compressing">正在压缩历史…</string>
     <string name="snackbar_compressed">已压缩 %1$d 条消息。</string>
     <string name="snackbar_compress_error">压缩历史时遇到错误。</string>
+    <string name="snackbar_compress_already_running">这个会话正在压缩中</string>
+    <string name="snackbar_compress_nothing_to_compress">没有新的内容需要压缩</string>
 
     <!-- Appearance -->
     <string name="settings_appearance">外观</string>

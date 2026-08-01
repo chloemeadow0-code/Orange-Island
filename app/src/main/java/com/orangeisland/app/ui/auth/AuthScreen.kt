@@ -80,6 +80,7 @@ fun AuthScreen(viewModel: AuthViewModel) {
 private fun ErrorInfoDialog(message: String, isError: Boolean, onDismiss: () -> Unit) {
     if (message.isBlank()) return
     AlertDialog(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         onDismissRequest = onDismiss,
         title = {
             Text(

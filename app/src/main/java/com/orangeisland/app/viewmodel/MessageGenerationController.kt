@@ -952,8 +952,13 @@ class MessageGenerationController(
         }
     }
 
-    fun compressHistory(conversationId: String) {
+    fun compressHistory(conversationId: String, isManual: Boolean = false) {
         if (!compressingConversationIds.add(conversationId)) {
+            if (isManual) {
+                viewModelScope.launch {
+                    onSnackbarSuspend(appContext.getString(R.string.snackbar_compress_already_running))
+                }
+            }
             return  // already compressing
         }
         viewModelScope.launch {
@@ -985,7 +990,14 @@ class MessageGenerationController(
                     it.participant == Participant.USER || it.participant == Participant.MODEL
                 }
                 val userMsgs = visibleMsgs.filter { it.participant == Participant.USER }
-                val maxContext = settings.maxContextWindow.value
+                // Use the SAME resolution path as the actual generation request
+                // (GenerationRequestBuilder.buildEffectiveConversationSettings): a per-conversation
+                // override takes priority over the global default. Previously this read the global
+                // default directly, ignoring any per-conversation context-window override set via
+                // the chat's Advanced Settings dialog — meaning the compression trigger and the
+                // actual context sent to the model could silently disagree.
+                val maxContext = requestBuilder.buildEffectiveConversationSettings(conversationId).contextWindow
+                    ?: settings.maxContextWindow.value
                 val userCountExceeded = userMsgs.size > maxContext
 
                 val currentModelIdWithPrefix = conversation.modelId ?: settings.selectedModel.value
@@ -994,8 +1006,10 @@ class MessageGenerationController(
                 val currentTokenUsage = visibleMsgs.sumOf { it.tokenCount }
                 val tokenExceeded = currentTokenUsage >= tokenThreshold
 
-                if (!userCountExceeded && !tokenExceeded) {
-                    return@launch  // 两条都没触发，不压缩
+                // 手动"现在压缩"必须绕过这个门槛——用户已经主动点了压缩，不该再被自动触发
+                // 用的阈值挡住；自动压缩（isManual = false）继续保留门槛，避免每轮回复都触发。
+                if (!isManual && !userCountExceeded && !tokenExceeded) {
+                    return@launch
                 }
 
                 val retainBoundaryMsg = visibleMsgs.last()
@@ -1008,6 +1022,9 @@ class MessageGenerationController(
                     // Skip anything already folded into the previous summary.
                     .filter { it.timestamp > watermark }
                 if (toCompressAll.isEmpty()) {
+                    if (isManual) {
+                        onSnackbarSuspend(appContext.getString(R.string.snackbar_compress_nothing_to_compress))
+                    }
                     return@launch
                 }
 

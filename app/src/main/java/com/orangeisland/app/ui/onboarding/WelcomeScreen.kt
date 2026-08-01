@@ -481,7 +481,7 @@ private fun FirstVideoScrim(isDarkTheme: Boolean) {
     var visible by remember { mutableStateOf(true) }
     val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(500))
     LaunchedEffect(Unit) { kotlinx.coroutines.delay(200); visible = false }
-    val scrimColor = if (isDarkTheme) Color.Black else Color.White
+    val scrimColor = MaterialTheme.colorScheme.scrim
     Box(Modifier.fillMaxSize().background(scrimColor.copy(alpha = alpha)))
 }
 

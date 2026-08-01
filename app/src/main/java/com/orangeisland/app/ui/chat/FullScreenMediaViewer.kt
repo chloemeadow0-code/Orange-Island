@@ -143,7 +143,7 @@ private fun PdfPager(
     }
     BackHandler { onClose() }
     Box(
-        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.9f))
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.9f))
     ) {
         HorizontalPager(
             state = pagerState,
@@ -247,7 +247,7 @@ private fun MediaPager(
     LaunchedEffect(closing) { if (closing) { kotlinx.coroutines.delay(400); onClose() } }
     BackHandler { closing = true }
     Box(
-        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.9f))
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.9f))
     ) {
         HorizontalPager(
             state = pagerState,
@@ -327,7 +327,7 @@ private fun SingleImage(
     var showOverlay by remember { mutableStateOf(true) }
     var showActions by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.9f))) {
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.9f))) {
         ZoomableImageItem(
             url = url,
             onTap = { showOverlay = !showOverlay },

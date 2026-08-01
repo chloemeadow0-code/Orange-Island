@@ -82,7 +82,7 @@ fun OrangeIslandTheme(
     themeMode: ThemeMode = ThemeMode.FOLLOW_DEVICE,
     colorSchemePreset: ColorSchemePreset = ColorSchemePreset.ORANGE_ISLAND,
     schemeStyle: SchemeStyle = SchemeStyle.TONAL_SPOT,
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     fontPreference: String = "app_default",
     customFontPath: String = "",
     fontScale: Float = 1.0f,

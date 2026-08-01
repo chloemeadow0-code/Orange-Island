@@ -54,3 +54,27 @@ for lang in ['values-zh', 'values-zh-Hant', 'values-ar', 'values-de',
 ```
 
 > 若发现缺失/孤儿 key，必须在本轮改动内全部修复，禁止留到下一轮。
+
+## UI 主题色规则（强制）
+
+本项目使用 Jetpack Compose + Material3，所有页面颜色必须通过
+`MaterialTheme.colorScheme.*` 取值（primary / onSurface / surfaceContainer 等），
+禁止在 Composable 里硬编码颜色值，包括但不限于：
+- `Color.Gray` / `Color.White` / `Color.Black` / `Color.LightGray` 等预定义颜色常量
+- `Color(0xFF......)` 这类写死的十六进制颜色
+- 任何不经过 `MaterialTheme.colorScheme` 的颜色来源
+
+### 允许的例外（必须在代码注释里写明原因）
+- 品牌资产本身固有的颜色（如某个 provider 的 logo 原色，见
+  `ui/components/ProviderIcons.kt` 这类场景）
+- 纯装饰性、不随主题变化的插画/贴图（如 `island_deco_*` 系列背景装饰图）
+- 系统级 UI（状态栏、系统权限弹窗等安卓原生渲染的部分），这些不受 Compose
+  主题控制，不算违规
+
+### 新增页面 / 组件时的自查清单
+- [ ] 是否所有背景色、文字色、边框色都来自 `MaterialTheme.colorScheme`？
+- [ ] 是否测试过切换"配色预设"（设置 → 外观 → 配色方案）后这个页面颜色会跟着变？
+- [ ] 是否测试过深色模式下颜色依然正确（不是写死的浅色值）？
+- [ ] 如果用了硬编码颜色，是否属于上面"允许的例外"，并已在代码里注释说明原因？
+
+> 每次新增 UI 页面或组件，提交前必须过一遍这份自查清单，禁止留到下一轮再补。

@@ -656,6 +656,20 @@ internal fun AssistantMessageContent(
                             LaunchedEffect(isStreaming) {
                                 if (isStreaming) {
                                     keepBlockRenderer = true
+                                } else if (keepBlockRenderer) {
+                                    // Streaming just ended. Previously keepBlockRenderer stayed true forever
+                                    // once set, permanently pinning this message to the custom incremental
+                                    // block-splitting renderer — which has been shown (via
+                                    // MarkdownTableParsingTest) to diverge from the underlying library's own
+                                    // one-shot parse for multi-line constructs like GFM tables. A short delay
+                                    // lets the just-finished stream visually settle before handing off to the
+                                    // fully-parsed, non-streaming renderer (MarkdownTextContent), which IS the
+                                    // path proven correct by the unit test. This preserves the original intent
+                                    // of avoiding a jarring flicker right at generation end, while ensuring
+                                    // every message eventually renders through the correct path instead of
+                                    // being stuck on the streaming one forever.
+                                    kotlinx.coroutines.delay(300)
+                                    keepBlockRenderer = false
                                 }
                             }
 

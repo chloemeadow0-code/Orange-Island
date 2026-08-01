@@ -1022,4 +1022,6 @@ THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMP
     <string name="font_size_large">Grand</string>
     <string name="font_size_xlarge">Très grand</string>
     <string name="font_size_xxlarge">Énorme</string>
+    <string name="snackbar_compress_already_running">Cette conversation est déjà en cours de compression</string>
+    <string name="snackbar_compress_nothing_to_compress">Rien de nouveau à compresser</string>
 </resources>

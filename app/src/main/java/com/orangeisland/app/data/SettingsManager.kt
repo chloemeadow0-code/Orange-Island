@@ -548,7 +548,7 @@ class SettingsManager(private val context: Context) {
 
     val themeMode: Flow<String> = context.dataStore.data.map { it[THEME_MODE] ?: "FOLLOW_DEVICE" }
     val colorScheme: Flow<String> = context.dataStore.data.map { it[COLOR_SCHEME] ?: "DEFAULT" }
-    val dynamicColor: Flow<Boolean> = context.dataStore.data.map { it[DYNAMIC_COLOR] ?: true }
+    val dynamicColor: Flow<Boolean> = context.dataStore.data.map { it[DYNAMIC_COLOR] ?: false }
     val blurEffectsEnabled: Flow<Boolean> = context.dataStore.data.map { it[BLUR_EFFECTS_ENABLED] ?: true }
     val codeBlockWrapEnabled: Flow<Boolean> = context.dataStore.data.map { it[CODE_BLOCK_WRAP_ENABLED] ?: false }
     val splitAssistantBubbleByLine: Flow<Boolean> = context.dataStore.data.map { it[SPLIT_ASSISTANT_BUBBLE_BY_LINE] ?: false }

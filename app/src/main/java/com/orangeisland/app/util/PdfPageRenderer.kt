@@ -2,6 +2,7 @@ package com.orangeisland.app.util
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.Build
@@ -41,6 +42,7 @@ object PdfPageRenderer {
                     scaledWidth, scaledHeight,
                     Bitmap.Config.ARGB_8888
                 )
+                Canvas(bitmap).drawColor(android.graphics.Color.WHITE)
                 page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                 page.close()
 
@@ -82,6 +84,7 @@ object PdfPageRenderer {
                 val scaledWidth = (page.width * scale).toInt().coerceAtLeast(1)
                 val scaledHeight = (page.height * scale).toInt().coerceAtLeast(1)
                 val bitmap = Bitmap.createBitmap(scaledWidth, scaledHeight, Bitmap.Config.ARGB_8888)
+                Canvas(bitmap).drawColor(android.graphics.Color.WHITE)
                 page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                 page.close()
 

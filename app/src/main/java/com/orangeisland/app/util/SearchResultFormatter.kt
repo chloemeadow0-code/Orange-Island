@@ -10,10 +10,18 @@ import kotlinx.serialization.json.jsonObject
 
 object SearchResultFormatter {
 
-    fun isRawSearchResult(text: String): Boolean = try {
-        val type = Json.parseToJsonElement(text).jsonObject["type"]?.let { (it as? JsonPrimitive)?.content }
-        type == "web_search" || type == "search_conversations" || type == "execute_shell_command" || type == "list_shells" || type == "list_memory_files" || type == "list_conversations" || type == "read_conversation"
-    } catch (_: Exception) { false }
+    fun isRawSearchResult(text: String): Boolean {
+        // Cheap pre-check: every raw search-result payload this function recognizes is a
+        // JSON object, so anything not starting with '{' can never match. Skips the costly
+        // parse-then-catch path for ordinary chat text, which is the overwhelming majority
+        // of messages and was previously throwing+catching a JSON parse exception on every
+        // single one.
+        if (text.trimStart().firstOrNull() != '{') return false
+        return try {
+            val type = Json.parseToJsonElement(text).jsonObject["type"]?.let { (it as? JsonPrimitive)?.content }
+            type == "web_search" || type == "search_conversations" || type == "execute_shell_command" || type == "list_shells" || type == "list_memory_files" || type == "list_conversations" || type == "read_conversation"
+        } catch (_: Exception) { false }
+    }
 
     fun format(text: String, context: Context): String {
         if (!isRawSearchResult(text)) return text

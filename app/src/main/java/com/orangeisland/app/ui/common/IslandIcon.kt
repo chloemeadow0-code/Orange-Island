@@ -42,7 +42,7 @@ fun IslandIcon(
         modifier = modifier.size(size),
         shape = CircleShape,
         color = Color.Transparent,
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x66FFFFFF)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)),
         shadowElevation = 2.dp,
         tonalElevation = 0.dp,
     ) {

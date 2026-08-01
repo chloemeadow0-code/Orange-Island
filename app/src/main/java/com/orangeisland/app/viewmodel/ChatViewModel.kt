@@ -826,9 +826,7 @@ class ChatViewModel(
                 if (id != null) {
                     // Fix stuck sending states when loading conversation 鈥?skip if currently generating
                     if (!_isLoading.value) {
-                        val stuckMessages = convRepo.getMessagesForConversation(id).first()
-                            .filter { it.status == MessageStatus.SENDING || it.status == MessageStatus.THINKING || it.status == MessageStatus.TOOL_CALLING || it.status == MessageStatus.TRANSCRIBING }
-
+                        val stuckMessages = convRepo.getStuckMessagesForConversation(id)
                         stuckMessages.forEach { msg ->
                             convRepo.upsertMessage(msg.copy(status = MessageStatus.STOPPED))
                         }
@@ -887,9 +885,10 @@ class ChatViewModel(
                         // Backfill toolCall for old result_ messages persisted without toolCallJson.
                         // They inherit the parent tool_ message's ToolCallData so the provider can
                         // format them as proper "tool" role messages with matching tool_call_id.
+                        val mappedById = mapped.associateBy { it.id }
                         _allMessages.value = mapped.map { msg ->
                             if (msg.id.startsWith(Constants.RESULT_MSG_PREFIX) && msg.toolCall == null) {
-                                val parentTool = mapped.find { it.id == msg.parentId }
+                                val parentTool = msg.parentId?.let { mappedById[it] }
                                 if (parentTool != null && parentTool.toolCall != null) {
                                     msg.copy(toolCall = parentTool.toolCall)
                                 } else msg
@@ -1324,7 +1323,7 @@ class ChatViewModel(
     /** Manually compress a conversation's older history into a summary card, retaining the most
      *  recent `maxContextWindow` user turns. Same path as auto-compress, just triggered on demand
      *  from the conversation's long-press menu. */
-    fun compressHistory(conversationId: String) = generationController.compressHistory(conversationId)
+    fun compressHistory(conversationId: String) = generationController.compressHistory(conversationId, isManual = true)
 
     fun setConversationSystemPrompt(id: String, promptId: String?) {
         viewModelScope.launch {

@@ -282,7 +282,7 @@ internal fun ZoomableImageItem(
             contentScale = ContentScale.Fit
         )
         if (imageSize == Size.Zero) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color.White, strokeWidth = 2.dp)
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurface, strokeWidth = 2.dp)
         }
     }
 }

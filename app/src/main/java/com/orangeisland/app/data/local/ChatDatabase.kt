@@ -164,6 +164,11 @@ interface ChatDao {
     @Query("SELECT * FROM messages WHERE conversationId = :conversationId ORDER BY timestamp ASC")
     fun getMessagesForConversation(conversationId: String): Flow<List<MessageEntity>>
 
+    /** Lightweight stuck-status lookup: filters at the SQL level instead of fetching +
+     *  decoding the entire conversation just to find a handful of stuck messages. */
+    @Query("SELECT * FROM messages WHERE conversationId = :conversationId AND status IN ('SENDING','THINKING','TOOL_CALLING','TRANSCRIBING')")
+    suspend fun getStuckMessagesForConversation(conversationId: String): List<MessageEntity>
+
     @Upsert
     suspend fun upsertConversation(conversation: ChatEntity)
 
@@ -652,14 +657,24 @@ abstract class ChatDatabase : RoomDatabase() {
             }
         }
 
-        fun build(context: Context): ChatDatabase {
-            return Room.databaseBuilder(
-                context.applicationContext,
-                ChatDatabase::class.java,
-                DB_NAME
-            ).addMigrations(*buildMigrations(context.applicationContext).toTypedArray())
-                .fallbackToDestructiveMigration(false)
-                .build()
-        }
+    fun build(context: Context): ChatDatabase {
+        return Room.databaseBuilder(
+            context.applicationContext,
+            ChatDatabase::class.java,
+            DB_NAME
+        ).addMigrations(*buildMigrations(context.applicationContext).toTypedArray())
+            .fallbackToDestructiveMigration(false)
+            // Multiple ChatDatabase instances can exist simultaneously pointing at the same
+            // file — the main app's AppContainer-owned instance, plus a fresh one built by
+            // every background Worker (WorkflowWorker, HealthSyncWorker, AutoBackupWorker,
+            // etc., which intentionally rebuild their own instance since a Worker may run in
+            // a process without the app's AppContainer). Without this flag, a write through
+            // one instance never notifies the other instances' Flow observers, so a workflow
+            // firing while the app is open silently writes the message but the UI never
+            // refreshes until the app is force-restarted (a fresh instance re-queries from
+            // scratch). This flag makes all instances on the same file notify each other.
+            .enableMultiInstanceInvalidation()
+            .build()
+    }
     }
 }
