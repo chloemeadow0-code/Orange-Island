@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
 import com.orangeisland.app.model.ModelId
 import com.orangeisland.app.model.apiModelName
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.ui.components.providerIcon
 import com.orangeisland.app.util.Constants
 import com.orangeisland.app.util.noOpBringIntoView
@@ -106,7 +108,7 @@ fun SettingsImageGenPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     SettingsItem(
                         headlineContent = { Text(stringResource(R.string.image_gen_enable)) },
                         supportingContent = { Text(stringResource(R.string.image_gen_enable_desc)) },
-                        leadingContent = { Icon(Icons.Default.AddPhotoAlternate, null, tint = MaterialTheme.colorScheme.primary) },
+                        leadingContent = { IslandIcon(IslandIcons.ImageGeneration, size = 38.dp) },
                         trailingContent = {
                             Switch(checked = enabled, onCheckedChange = { viewModel.settings.setImageGenEnabled(it) })
                         },

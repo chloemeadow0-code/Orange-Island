@@ -21,6 +21,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.util.noOpBringIntoView
 import com.orangeisland.app.viewmodel.ChatViewModel
 
@@ -51,7 +53,7 @@ fun SettingsProxyPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         SettingsItem(
                             headlineContent = { Text(stringResource(R.string.proxy_enable)) },
                             supportingContent = { Text(stringResource(R.string.proxy_enable_desc)) },
-                            leadingContent = { Icon(Icons.Default.Lan, null, tint = MaterialTheme.colorScheme.primary) },
+                            leadingContent = { IslandIcon(IslandIcons.Proxy, size = 38.dp) },
                             trailingContent = {
                                 Switch(checked = enabled, onCheckedChange = { viewModel.settings.setProxyEnabled(it) })
                             },

@@ -1,5 +1,6 @@
 package com.orangeisland.app.ui.settings
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -12,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -300,11 +302,10 @@ private fun McpToolsTab(
             )
             tools.forEach { tool ->
                 Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
-                    Icon(
-                        Icons.Default.Extension,
+                    Image(
+                        painterResource(R.drawable.island_mcp_tool),
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp).padding(top = 2.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        modifier = Modifier.size(18.dp).padding(top = 2.dp)
                     )
                     Spacer(Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {

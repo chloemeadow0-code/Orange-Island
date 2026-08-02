@@ -29,6 +29,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.ui.common.ThinkingControlPanel
 import com.orangeisland.app.ui.common.thinkingControlShortLabel
 import com.orangeisland.app.viewmodel.ChatViewModel
@@ -177,9 +179,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.context_visualize)) },
                                 supportingContent = { Text(stringResource(R.string.context_visualize_desc)) },
-                                leadingContent = {
-                                    Icon(Icons.Default.Visibility, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                },
+                                leadingContent = { IslandIcon(IslandIcons.ContextVisualization, size = 38.dp) },
                                 trailingContent = {
                                     Switch(checked = visualizeContextRollout, onCheckedChange = { viewModel.settings.setVisualizeContextRollout(it) })
                                 },
@@ -190,9 +190,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.show_usage_stats)) },
                                 supportingContent = { Text(stringResource(R.string.show_usage_stats_desc)) },
-                                leadingContent = {
-                                    Icon(Icons.Default.DataUsage, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                },
+                                leadingContent = { IslandIcon(IslandIcons.UsageStatistics, size = 38.dp) },
                                 trailingContent = {
                                     Switch(checked = showUsageStats, onCheckedChange = { viewModel.settings.setShowMessageUsageStats(it) })
                                 },
@@ -225,9 +223,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 supportingContent = {
                                     Text(thinkingControlShortLabel(thinkingEnabled, thinkingLevel, thinkingBudgetEnabled, thinkingBudgetTokens))
                                 },
-                                leadingContent = {
-                                    Icon(painterResource(id = R.drawable.neurology_24), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                },
+                                leadingContent = { IslandIcon(IslandIcons.Thinking, size = 38.dp) },
                                 trailingContent = {
                                     Switch(checked = thinkingEnabled, onCheckedChange = { viewModel.settings.setThinkingEnabled(it) })
                                 },

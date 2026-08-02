@@ -13,6 +13,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.ui.components.ColorMath
 import com.orangeisland.app.ui.components.ColorSwatchPickerDialog
 import com.orangeisland.app.viewmodel.ChatViewModel
@@ -101,6 +103,7 @@ fun SettingsCustomColorsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         SettingsItem(
                             headlineContent = { Text(stringResource(R.string.split_assistant_bubble_by_line)) },
                             supportingContent = { Text(stringResource(R.string.split_assistant_bubble_by_line_desc)) },
+                            leadingContent = { IslandIcon(IslandIcons.SplitAssistantBubble, size = 38.dp) },
                             trailingContent = {
                                 Switch(
                                     checked = splitByLine,

@@ -25,6 +25,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
 import com.orangeisland.app.api.ProviderDefaults
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.ui.components.clearFocusOnTap
 import com.orangeisland.app.util.Constants
 import com.orangeisland.app.viewmodel.ChatViewModel
@@ -98,7 +100,7 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.memory_access_past)) },
                                 supportingContent = { Text(stringResource(R.string.memory_access_past_desc)) },
-                                leadingContent = { Icon(Icons.Default.Chat, null, tint = MaterialTheme.colorScheme.primary) },
+                                leadingContent = { IslandIcon(IslandIcons.ConversationSearch, size = 38.dp) },
                                 trailingContent = {
                                     Switch(checked = accessPastConversations, onCheckedChange = { viewModel.settings.setAccessPastConversations(it) })
                                 },
@@ -115,7 +117,7 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         SettingsItem(
                             headlineContent = { Text(stringResource(R.string.auto_cache)) },
                             supportingContent = { Text(stringResource(R.string.auto_cache_desc)) },
-                            leadingContent = { Icon(Icons.Default.Cached, null, tint = MaterialTheme.colorScheme.primary) },
+                            leadingContent = { IslandIcon(IslandIcons.AutoCache, size = 38.dp) },
                             trailingContent = {
                                 Switch(checked = autoCacheEnabled, onCheckedChange = { viewModel.settings.setAutoCacheEnabled(it) })
                             },
@@ -133,7 +135,7 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         SettingsItem(
                             headlineContent = { Text(stringResource(R.string.model_search_method)) },
                             supportingContent = { Text(stringResource(R.string.model_search_method_desc)) },
-                            leadingContent = { Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary) },
+                            leadingContent = { IslandIcon(IslandIcons.SettingsSearch, size = 38.dp) },
                             trailingContent = {
                                 Box {
                                     Text(
@@ -178,7 +180,7 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         SettingsItem(
                             headlineContent = { Text(stringResource(R.string.manual_search_method)) },
                             supportingContent = { Text(stringResource(R.string.manual_search_method_desc)) },
-                            leadingContent = { Icon(Icons.Default.ManageSearch, null, tint = MaterialTheme.colorScheme.primary) },
+                            leadingContent = { IslandIcon(IslandIcons.ConversationSearch, size = 38.dp) },
                             trailingContent = {
                                 Box {
                                     Text(

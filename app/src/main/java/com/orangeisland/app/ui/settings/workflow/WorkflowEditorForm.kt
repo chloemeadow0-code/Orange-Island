@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,12 +18,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
 import com.orangeisland.app.model.*
 import com.orangeisland.app.model.LLMNode
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.ui.settings.CollapsingSettingsScaffold
 import com.orangeisland.app.ui.settings.SettingsItem
 import java.util.UUID
@@ -61,7 +65,7 @@ fun WorkflowEditorForm(
         actions = {
             if (onOpenCanvas != null) {
                 IconButton(onClick = onOpenCanvas) {
-                    Icon(Icons.Default.AccountBox, contentDescription = stringResource(R.string.workflow_canvas))
+                    IslandIcon(IslandIcons.WorkflowCanvas, size = 28.dp, contentDescription = stringResource(R.string.workflow_canvas))
                 }
             }
             IconButton(onClick = {
@@ -335,20 +339,18 @@ private fun NodeEditorCard(
                         )
                     },
                     leadingContent = {
-                        Icon(
+                        IslandIcon(
                             when (node) {
-                                is StartNode -> Icons.Default.PlayArrow
-                                is ActionNode -> Icons.Default.AutoAwesome
-                                is BranchNode -> Icons.Default.CallSplit
-                                is MergeNode -> Icons.Default.MergeType
-                                is TransformNode -> Icons.Default.Transform
-                                is LLMNode -> Icons.Default.Psychology
-                                is NotifyNode -> Icons.Default.Notifications
-                                is ChatMessageNode -> Icons.Default.ChatBubble
+                                is StartNode -> IslandIcons.WorkflowNodeStart
+                                is ActionNode -> IslandIcons.WorkflowNodeAction
+                                is BranchNode -> IslandIcons.WorkflowNodeBranch
+                                is MergeNode -> IslandIcons.WorkflowNodeMerge
+                                is TransformNode -> IslandIcons.WorkflowNodeTransform
+                                is LLMNode -> IslandIcons.Model
+                                is NotifyNode -> IslandIcons.WorkflowNodeNotification
+                                is ChatMessageNode -> IslandIcons.WorkflowNodeChatMessage
                             },
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
+                            size = 38.dp
                         )
                     },
                 trailingContent = {
@@ -1289,14 +1291,14 @@ private fun AddNodeRow(
 
     AnimatedVisibility(visible = expanded) {
         Column {
-            DropdownMenuItem(text = { Text("开始") }, leadingIcon = { Icon(Icons.Default.PlayArrow, null) }, onClick = { expanded = false; onAddStart() })
-            DropdownMenuItem(text = { Text("动作") }, leadingIcon = { Icon(Icons.Default.AutoAwesome, null) }, onClick = { expanded = false; onAddAction() })
-            DropdownMenuItem(text = { Text("分支") }, leadingIcon = { Icon(Icons.Default.CallSplit, null) }, onClick = { expanded = false; onAddBranch() })
-            DropdownMenuItem(text = { Text("合并") }, leadingIcon = { Icon(Icons.Default.MergeType, null) }, onClick = { expanded = false; onAddMerge() })
-            DropdownMenuItem(text = { Text("转换") }, leadingIcon = { Icon(Icons.Default.Transform, null) }, onClick = { expanded = false; onAddTransform() })
-            DropdownMenuItem(text = { Text("思考") }, leadingIcon = { Icon(Icons.Default.Psychology, null) }, onClick = { expanded = false; onAddLLM() })
-            DropdownMenuItem(text = { Text("通知") }, leadingIcon = { Icon(Icons.Default.Notifications, null) }, onClick = { expanded = false; onAddNotify() })
-            DropdownMenuItem(text = { Text("发消息") }, leadingIcon = { Icon(Icons.Default.ChatBubble, null) }, onClick = { expanded = false; onAddChatMessage() })
+            DropdownMenuItem(text = { Text("开始") }, leadingIcon = { Image(painterResource(IslandIcons.WorkflowNodeStart.res), null, modifier = Modifier.size(20.dp)) }, onClick = { expanded = false; onAddStart() })
+            DropdownMenuItem(text = { Text("动作") }, leadingIcon = { Image(painterResource(IslandIcons.WorkflowNodeAction.res), null, modifier = Modifier.size(20.dp)) }, onClick = { expanded = false; onAddAction() })
+            DropdownMenuItem(text = { Text("分支") }, leadingIcon = { Image(painterResource(IslandIcons.WorkflowNodeBranch.res), null, modifier = Modifier.size(20.dp)) }, onClick = { expanded = false; onAddBranch() })
+            DropdownMenuItem(text = { Text("合并") }, leadingIcon = { Image(painterResource(IslandIcons.WorkflowNodeMerge.res), null, modifier = Modifier.size(20.dp)) }, onClick = { expanded = false; onAddMerge() })
+            DropdownMenuItem(text = { Text("转换") }, leadingIcon = { Image(painterResource(IslandIcons.WorkflowNodeTransform.res), null, modifier = Modifier.size(20.dp)) }, onClick = { expanded = false; onAddTransform() })
+            DropdownMenuItem(text = { Text("思考") }, leadingIcon = { Image(painterResource(IslandIcons.Model.res), null, modifier = Modifier.size(20.dp)) }, onClick = { expanded = false; onAddLLM() })
+            DropdownMenuItem(text = { Text("通知") }, leadingIcon = { Image(painterResource(IslandIcons.WorkflowNodeNotification.res), null, modifier = Modifier.size(20.dp)) }, onClick = { expanded = false; onAddNotify() })
+            DropdownMenuItem(text = { Text("发消息") }, leadingIcon = { Image(painterResource(IslandIcons.WorkflowNodeChatMessage.res), null, modifier = Modifier.size(20.dp)) }, onClick = { expanded = false; onAddChatMessage() })
         }
     }
 }

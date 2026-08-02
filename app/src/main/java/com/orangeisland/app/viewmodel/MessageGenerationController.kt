@@ -277,6 +277,9 @@ class MessageGenerationController(
                         isError = true
                     )
                 }
+                if (settings.autoCompressEnabled.value) {
+                    compressHistory(currentId)
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -440,6 +443,9 @@ class MessageGenerationController(
                     details = "生成失败: 消息状态为 ERROR",
                     isError = true
                 )
+            }
+            if (settings.autoCompressEnabled.value) {
+                compressHistory(currentId)
             }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -705,10 +711,14 @@ class MessageGenerationController(
             if (wasNewChat && settings.titleGenerationEnabled.value && !titleGenerated.get() && lastMsg?.status != MessageStatus.ERROR) {
                 generateTitle(currentId)
             }
-            // Auto-compress: fire-and-forget after a successful reply. compressHistory()
-            // itself re-checks the path length against maxContextWindow and no-ops if the
-            // conversation is still within the window, so this is safe to call every turn.
-            if (settings.autoCompressEnabled.value && lastMsg?.status != MessageStatus.ERROR) {
+            // Auto-compress: fire-and-forget after EVERY turn, success or failure.
+            // compressHistory() itself re-checks the path length/token usage against the
+            // configured limits and no-ops if still within them, so this is safe to call
+            // unconditionally. Previously this was gated on lastMsg?.status != ERROR,
+            // which meant a turn that failed BECAUSE the context was too long would never
+            // trigger the compression that could have fixed it for the next turn —
+            // exactly the death spiral we're closing here.
+            if (settings.autoCompressEnabled.value) {
                 compressHistory(currentId)
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -1137,17 +1147,59 @@ class MessageGenerationController(
                         ))
                     }
 
-                    // Delete every message in this batch plus their tool_/result_ children.
-                    val idsToDelete = entities
-                        .filter { it.timestamp > currentWatermark && it.timestamp <= lastBatchMsg.timestamp }
-                        .map { it.id }
+                    // Refresh the live message set from DB before computing this batch's
+                    // deletion/reparenting — a prior batch in this same loop may have deleted
+                    // and reparented rows, and the original `entities` snapshot (taken once
+                    // before the loop started) goes stale after batch 1. Working off a stale
+                    // snapshot here was bug #1: batch 2+ would compute orphans against
+                    // parentId values that no longer existed in the DB.
+                    val liveEntities = convRepo.getMessagesForConversationSnapshot(conversationId)
+
+                    // Precisely identify what this batch is allowed to touch: the batch's own
+                    // path messages, plus ONLY their tool_/result_ children (walked via actual
+                    // parentId edges). This replaces the old timestamp-window deletion, which
+                    // was bug #2 — it deleted ANY message whose timestamp fell in the batch's
+                    // time range regardless of which branch it was on, silently destroying
+                    // regenerate/edit alternate branches that were never summarized.
+                    val batchIds = batch.map { it.id }.toHashSet()
+                    val toolResultIds = mutableSetOf<String>()
+                    run {
+                        val frontier = ArrayDeque(batchIds)
+                        val seeds = batchIds.toHashSet()
+                        while (frontier.isNotEmpty()) {
+                            val parentId = frontier.removeFirst()
+                            liveEntities
+                                .filter { it.parentId == parentId &&
+                                    (it.id.startsWith(Constants.TOOL_MSG_PREFIX) || it.id.startsWith(Constants.RESULT_MSG_PREFIX)) &&
+                                    it.id !in toolResultIds }
+                                .forEach {
+                                    toolResultIds.add(it.id)
+                                    frontier.addLast(it.id)
+                                    seeds.add(it.id)
+                                }
+                        }
+                    }
+                    val idsToDelete = batchIds + toolResultIds
 
                     if (idsToDelete.isNotEmpty()) {
-                        convRepo.deleteMessagesByIds(idsToDelete)
-                        val deletedSet = idsToDelete.toHashSet()
-                        val orphaned = entities.filter { it.id !in deletedSet && it.parentId in deletedSet }
+                        convRepo.deleteMessagesByIds(idsToDelete.toList())
+                        val deletedSet = idsToDelete
+                        // Real orphans: surviving messages whose parent was just deleted. Since
+                        // idsToDelete now only ever contains this batch's own path messages plus
+                        // their tool_/result_ children, the only things that can show up here are
+                        // alternate branches (regenerate/edit siblings) hanging off a compressed
+                        // path message. Bug #3 was reparenting these to parentId = null, which
+                        // silently created a second conversation root — resolvePath()/sendMessage()
+                        // both walk from a single assumed root and pick the newest-timestamp
+                        // candidate at each level, so a stray null-parent branch with a later
+                        // timestamp than the real continuation could hijack the walk and make
+                        // every subsequent real message invisible. Reparenting onto
+                        // retainBoundaryMsg (the exact point the live conversation continues
+                        // from) keeps a single root and makes these old branches reachable via
+                        // normal branch-switching at that point instead of floating disconnected.
+                        val orphaned = liveEntities.filter { it.id !in deletedSet && it.parentId in deletedSet }
                         orphaned.forEach { msg ->
-                            convRepo.upsertMessage(msg.copy(parentId = null))
+                            convRepo.upsertMessage(msg.copy(parentId = retainBoundaryMsg.id))
                         }
                         totalDeletedCount += idsToDelete.size
                     }

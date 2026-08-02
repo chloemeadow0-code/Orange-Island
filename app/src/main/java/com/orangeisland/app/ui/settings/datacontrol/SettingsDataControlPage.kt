@@ -167,7 +167,7 @@ fun SettingsDataControlPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             headlineContent = { Text(stringResource(R.string.data_import_title)) },
                             supportingContent = { Text(stringResource(R.string.data_import_subtitle)) },
                             leadingContent = {
-                                Icon(Icons.Default.Download, null, tint = MaterialTheme.colorScheme.primary)
+                                IslandIcon(IslandIcons.DataImportOrangeIsland, size = 38.dp)
                             },
                             modifier = Modifier.clickable { importLauncher.launch(arrayOf("application/zip", "*/*")) }
                         )
@@ -177,7 +177,7 @@ fun SettingsDataControlPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             headlineContent = { Text(stringResource(R.string.data_export_title)) },
                             supportingContent = { Text(stringResource(R.string.data_export_subtitle)) },
                             leadingContent = {
-                                Icon(Icons.Default.Upload, null, tint = MaterialTheme.colorScheme.primary)
+                                IslandIcon(IslandIcons.DataExportOrangeIsland, size = 38.dp)
                             },
                             modifier = Modifier.clickable { showExportDialog = true }
                         )
@@ -191,7 +191,7 @@ fun SettingsDataControlPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             headlineContent = { Text(stringResource(R.string.gpt_import_title)) },
                             supportingContent = { Text(stringResource(R.string.gpt_import_subtitle)) },
                             leadingContent = {
-                                Icon(Icons.Default.Download, null, tint = MaterialTheme.colorScheme.primary)
+                                IslandIcon(IslandIcons.DataImportChatgpt, size = 38.dp)
                             },
                             modifier = Modifier.clickable { gptChatLauncher.launch(arrayOf("application/zip", "*/*")) }
                         )

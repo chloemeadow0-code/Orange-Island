@@ -27,6 +27,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.viewmodel.ChatViewModel
 import java.io.File
 
@@ -107,6 +109,7 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     {
                         IllustrationRow(
                             labelRes = R.string.illustration_chat_background,
+                            icon = IslandIcons.IllustrationChatBackground,
                             path = chatPath,
                             onPick = { launchPick(IllustrationSlot.CHAT) },
                             onClear = {
@@ -118,6 +121,7 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     {
                         IllustrationRow(
                             labelRes = R.string.illustration_input_background,
+                            icon = IslandIcons.IllustrationInputBackground,
                             path = inputPath,
                             onPick = { launchPick(IllustrationSlot.INPUT) },
                             onClear = {
@@ -129,6 +133,7 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     {
                         IllustrationRow(
                             labelRes = R.string.illustration_drawer_background,
+                            icon = IslandIcons.IllustrationDrawerBackground,
                             path = drawerPath,
                             onPick = { launchPick(IllustrationSlot.DRAWER) },
                             onClear = {
@@ -140,6 +145,7 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     {
                         IllustrationRow(
                             labelRes = R.string.illustration_user_bubble_background,
+                            icon = IslandIcons.IllustrationUserBubble,
                             path = userBubblePath,
                             onPick = { launchPick(IllustrationSlot.USER_BUBBLE) },
                             onClear = {
@@ -151,6 +157,7 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     {
                         IllustrationRow(
                             labelRes = R.string.illustration_topbar_background,
+                            icon = IslandIcons.IllustrationTopbar,
                             path = topBarPath,
                             onPick = { launchPick(IllustrationSlot.TOPBAR) },
                             onClear = {
@@ -162,6 +169,7 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     {
                         IllustrationRow(
                             labelRes = R.string.illustration_reasoning_background,
+                            icon = IslandIcons.IllustrationReasoningPanel,
                             path = reasoningPath,
                             onPick = { launchPick(IllustrationSlot.REASONING) },
                             onClear = {
@@ -216,12 +224,14 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
 @Composable
 private fun IllustrationRow(
     labelRes: Int,
+    icon: IslandIcons,
     path: String,
     onPick: () -> Unit,
     onClear: () -> Unit,
 ) {
     SettingsItem(
         headlineContent = { Text(stringResource(labelRes)) },
+        leadingContent = { IslandIcon(icon, size = 38.dp) },
         supportingContent = {
             if (path.isNotBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {

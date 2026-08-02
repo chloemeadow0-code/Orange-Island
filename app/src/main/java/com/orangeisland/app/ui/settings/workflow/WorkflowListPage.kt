@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import android.os.Build
 import com.orangeisland.app.R
 import com.orangeisland.app.model.RunStatus
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.model.LinearWorkflow
 import com.orangeisland.app.model.Workflow
 import com.orangeisland.app.model.FlowNode
@@ -257,11 +259,15 @@ private fun KeepAliveCard(
             .padding(horizontal = 16.dp, vertical = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                stringResource(R.string.oi_keepalive_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IslandIcon(IslandIcons.WorkflowKeepalive, size = 38.dp)
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    stringResource(R.string.oi_keepalive_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 stringResource(R.string.oi_keepalive_desc),
@@ -324,7 +330,7 @@ private data class GraphWorkflowTemplate(
     val id: String,
     val name: String,
     val description: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val icon: IslandIcons,
     val nodes: List<FlowNode>,
     val edges: List<FlowEdge>
 )
@@ -360,7 +366,7 @@ private fun graphWorkflowTemplates(): List<GraphWorkflowTemplate> {
             id = "sequential",
             name = "顺序执行",
             description = "依次执行多个动作：先搜索，再通知。",
-            icon = Icons.Default.PlayArrow,
+            icon = IslandIcons.WorkflowNodeStart,
             nodes = listOf(nStart, nSearch, nNotify),
             edges = listOf(
                 FlowEdge(id = "e1", from = nStart.id, to = nSearch.id),
@@ -371,7 +377,7 @@ private fun graphWorkflowTemplates(): List<GraphWorkflowTemplate> {
             id = "branch",
             name = "条件分支",
             description = "判断条件为真/假，分别执行不同的动作。",
-            icon = Icons.Default.CallSplit,
+            icon = IslandIcons.WorkflowNodeBranch,
             nodes = listOf(nStart, nBranch, nYes, nNo),
             edges = listOf(
                 FlowEdge(id = "e1", from = nStart.id, to = nBranch.id),
@@ -383,7 +389,7 @@ private fun graphWorkflowTemplates(): List<GraphWorkflowTemplate> {
             id = "extract",
             name = "提取数据",
             description = "用正则表达式提取数据，再传给下游动作使用。",
-            icon = Icons.Default.Transform,
+            icon = IslandIcons.WorkflowNodeTransform,
             nodes = listOf(nStart, nTx, nUse),
             edges = listOf(
                 FlowEdge(id = "e1", from = nStart.id, to = nTx.id),
@@ -394,7 +400,7 @@ private fun graphWorkflowTemplates(): List<GraphWorkflowTemplate> {
             id = "blank",
             name = "空白",
             description = "从零开始，自己搭建整个工作流。",
-            icon = Icons.Default.Add,
+            icon = IslandIcons.Workflow,
             nodes = emptyList(),
             edges = emptyList()
         )
@@ -457,13 +463,7 @@ private fun GraphWorkflowTemplateDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                             ) {
-                                Icon(
-                                    t.icon,
-                                    contentDescription = null,
-                                    tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(24.dp)
-                                )
+                                IslandIcon(t.icon, size = 38.dp)
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
@@ -617,13 +617,7 @@ private fun LinearWorkflowCard(
                 }
             },
             leadingContent = {
-                Icon(
-                    Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    tint = if (workflow.enabled) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    modifier = Modifier.size(24.dp)
-                )
+                IslandIcon(IslandIcons.Workflow, size = 38.dp)
             },
             trailingContent = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -762,13 +756,7 @@ private fun GraphWorkflowCard(
                 )
             },
             leadingContent = {
-                Icon(
-                    Icons.Default.AccountTree,
-                    contentDescription = null,
-                    tint = if (workflow.enabled) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    modifier = Modifier.size(24.dp)
-                )
+                IslandIcon(IslandIcons.Workflow, size = 38.dp)
             },
             trailingContent = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -817,7 +805,7 @@ private fun GraphWorkflowCard(
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.workflow_logs)) },
-                                leadingIcon = { Icon(Icons.Default.History, null) },
+                                leadingIcon = { IslandIcon(IslandIcons.WorkflowLog, size = 24.dp) },
                                 onClick = { showMenu = false; onLogs() }
                             )
                             DropdownMenuItem(

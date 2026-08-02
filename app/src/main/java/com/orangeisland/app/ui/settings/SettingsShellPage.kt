@@ -89,7 +89,7 @@ fun SettingsShellPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         SettingsItem(
                             headlineContent = { Text(stringResource(R.string.shell_confirm_setting)) },
                             supportingContent = { Text(stringResource(R.string.shell_confirm_setting_desc)) },
-                            leadingContent = { Icon(Icons.Default.Shield, null, tint = MaterialTheme.colorScheme.primary) },
+                            leadingContent = { IslandIcon(IslandIcons.RemoteActionConfirmation, size = 38.dp) },
                             trailingContent = { Switch(checked = shellConfirmEnabled, onCheckedChange = { viewModel.setShellConfirmEnabled(it) }) },
                             modifier = Modifier.clickable { viewModel.setShellConfirmEnabled(!shellConfirmEnabled) }
                         )
@@ -111,7 +111,7 @@ fun SettingsShellPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         add {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.shell_no_devices), color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                leadingContent = { Icon(Icons.Default.Devices, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
+                                leadingContent = { IslandIcon(IslandIcons.Terminal, size = 38.dp) },
                                 modifier = Modifier.heightIn(min = 64.dp)
                             )
                         }
@@ -181,7 +181,7 @@ private fun SandboxSection(viewModel: ChatViewModel, sandboxEnabled: Boolean, on
                 SettingsItem(
                     headlineContent = { Text(stringResource(R.string.sandbox_manage)) },
                     supportingContent = { Text(stringResource(R.string.sandbox_manage_desc)) },
-                    leadingContent = { Icon(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.primary) },
+                            leadingContent = { IslandIcon(IslandIcons.Sandbox, size = 38.dp) },
                     trailingContent = {
                         Icon(Icons.Default.ChevronRight, stringResource(R.string.edit), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     },
@@ -278,7 +278,7 @@ private fun DeviceEditor(
                 if (device.description.isNotBlank()) Text(device.description)
                 else if (typeInput == "ssh" && sshHostInput.isNotBlank()) Text("$sshUserInput@$sshHostInput:$sshPortInput")
             },
-            leadingContent = { Icon(Icons.Default.Devices, null, tint = MaterialTheme.colorScheme.primary) },
+            leadingContent = { IslandIcon(IslandIcons.Terminal, size = 38.dp) },
             trailingContent = {
                 IconButton(onClick = { expanded = !expanded }) {
                     Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, stringResource(R.string.edit))

@@ -43,6 +43,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.sandbox.openSandboxHome
 import com.orangeisland.app.sandbox.SandboxManager
 import kotlinx.coroutines.launch
@@ -260,13 +262,7 @@ fun SettingsSandboxPage(sandboxManager: SandboxManager, onBack: () -> Unit, show
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     },
-                                    leadingContent = {
-                                        Icon(
-                                            Icons.Default.Folder,
-                                            null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    },
+                                    leadingContent = { IslandIcon(IslandIcons.SandboxFileBrowser, size = 38.dp) },
                                     modifier = Modifier.clickable {
                                         val homeDir = sandboxManager.getSandboxHomeDir()
                                         if (homeDir != null) {

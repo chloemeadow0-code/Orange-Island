@@ -29,6 +29,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.viewmodel.ChatViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,7 +66,7 @@ fun SettingsAboutPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                 SettingsItem(
                     headlineContent = { Text(stringResource(R.string.about_version)) },
                     supportingContent = { Text("v$versionName ($versionCode)") },
-                    leadingContent = { Icon(Icons.Default.Info, contentDescription = null) }
+                    leadingContent = { IslandIcon(IslandIcons.About, size = 38.dp) }
                 )
             }, {
                 SettingsItem(
@@ -75,7 +77,7 @@ fun SettingsAboutPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             Text(stringResource(R.string.about_developer_name_line2))
                         }
                     },
-                    leadingContent = { Icon(Icons.Default.Person, contentDescription = null) }
+                    leadingContent = { IslandIcon(IslandIcons.AboutDeveloper, size = 38.dp) }
                 )
             }))
 
@@ -84,7 +86,7 @@ fun SettingsAboutPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     modifier = Modifier.clickable { showOssNotice = true },
                     headlineContent = { Text(stringResource(R.string.about_oss_notice_title)) },
                     supportingContent = { Text(stringResource(R.string.about_oss_notice_body)) },
-                    leadingContent = { Icon(Icons.Default.Balance, contentDescription = null) },
+                    leadingContent = { IslandIcon(IslandIcons.Documentation, size = 38.dp) },
                     trailingContent = {
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -98,7 +100,7 @@ fun SettingsAboutPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     modifier = Modifier.clickable { showOssLicenses = true },
                     headlineContent = { Text(stringResource(R.string.about_third_party_licenses)) },
                     supportingContent = { Text(stringResource(R.string.about_third_party_licenses_desc)) },
-                    leadingContent = { Icon(Icons.Default.Code, contentDescription = null) },
+                    leadingContent = { IslandIcon(IslandIcons.Documentation, size = 38.dp) },
                     trailingContent = {
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -114,7 +116,7 @@ fun SettingsAboutPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     modifier = Modifier.clickable { showLogs = true },
                     headlineContent = { Text(stringResource(R.string.settings_logs)) },
                     supportingContent = { Text(stringResource(R.string.settings_logs_desc)) },
-                    leadingContent = { Icon(Icons.Default.History, contentDescription = null) },
+                    leadingContent = { IslandIcon(IslandIcons.Logs, size = 38.dp) },
                     trailingContent = {
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowRight,
