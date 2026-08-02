@@ -230,42 +230,49 @@ fun MessageItem(
                 bubbleCornerRadiusOverride = userBubbleCornerRadiusOverride,
             )
         } else {
-            AssistantMessageContent(
-                message = message,
-                customAssistantBubbleColor = customAssistantBubbleColor,
-                customReasoningPanelColor = customReasoningPanelColor,
-                reasoningPanelAlpha = reasoningPanelAlpha,
-                reasoningBackgroundImagePath = reasoningBackgroundImagePath,
-                messageBubbleAlpha = messageBubbleAlpha,
-                contextAlpha = contextAlpha,
-                isStreaming = isStreaming,
-                isLoading = isLoading,
-                isEditingAllowed = isEditingAllowed,
-                isEditing = isEditing,
-                onStartEdit = onStartEdit,
-                onCancelEdit = onCancelEdit,
-                onEditAssistantMessage = onEditAssistantMessage,
-                showUsageStats = showUsageStats,
-                splitBubbleByLine = splitBubbleByLine,
-                toolCallDisplayMode = toolCallDisplayMode,
-                thoughtExpandedStates = thoughtExpandedStates,
-                isThoughtExpanded = isThoughtExpanded,
-                renderContext = markdownRenderContext,
-                markdownFlavour = markdownFlavour,
-                branchIndex = branchIndex,
-                totalBranches = totalBranches,
-                onSwitchBranch = onSwitchBranch,
-                onRegenerate = onRegenerate,
-                onMediaClick = onMediaClick,
-                onShowInfo = { showInfoDialog = true },
-                onShowDelete = { showDeleteConfirm = true },
-                onSegmentSelected = { indices ->
-                    selectedSegmentIndices = indices
-                    selectedSegmentIndex = indices.firstOrNull() ?: -1
-                    showSegmentDetail = true
-                },
-                setThoughtBlockHeight = { currentThoughtBlockHeight = it },
-            )
+            // Provide the streaming flag to the markdown subtree so custom blocks
+            // (e.g. <details>) can opt out of their fancy form while streaming — see
+            // LocalMarkdownStreaming. Without this, a <details> block re-parses from
+            // plain text → HTML_BLOCK when its closing tag arrives mid-stream, rebuilding
+            // the block list and making the stick-to-bottom scroll jump.
+            CompositionLocalProvider(LocalMarkdownStreaming provides isStreaming) {
+                AssistantMessageContent(
+                    message = message,
+                    customAssistantBubbleColor = customAssistantBubbleColor,
+                    customReasoningPanelColor = customReasoningPanelColor,
+                    reasoningPanelAlpha = reasoningPanelAlpha,
+                    reasoningBackgroundImagePath = reasoningBackgroundImagePath,
+                    messageBubbleAlpha = messageBubbleAlpha,
+                    contextAlpha = contextAlpha,
+                    isStreaming = isStreaming,
+                    isLoading = isLoading,
+                    isEditingAllowed = isEditingAllowed,
+                    isEditing = isEditing,
+                    onStartEdit = onStartEdit,
+                    onCancelEdit = onCancelEdit,
+                    onEditAssistantMessage = onEditAssistantMessage,
+                    showUsageStats = showUsageStats,
+                    splitBubbleByLine = splitBubbleByLine,
+                    toolCallDisplayMode = toolCallDisplayMode,
+                    thoughtExpandedStates = thoughtExpandedStates,
+                    isThoughtExpanded = isThoughtExpanded,
+                    renderContext = markdownRenderContext,
+                    markdownFlavour = markdownFlavour,
+                    branchIndex = branchIndex,
+                    totalBranches = totalBranches,
+                    onSwitchBranch = onSwitchBranch,
+                    onRegenerate = onRegenerate,
+                    onMediaClick = onMediaClick,
+                    onShowInfo = { showInfoDialog = true },
+                    onShowDelete = { showDeleteConfirm = true },
+                    onSegmentSelected = { indices ->
+                        selectedSegmentIndices = indices
+                        selectedSegmentIndex = indices.firstOrNull() ?: -1
+                        showSegmentDetail = true
+                    },
+                    setThoughtBlockHeight = { currentThoughtBlockHeight = it },
+                )
+            }
         }
     }
 

@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,6 +40,18 @@ import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 private val PREVIEWABLE_LANGUAGES = setOf("html", "svg")
 
 private val COMPLETE_FENCE_REGEX = Regex("""^`{3,}\s*([\w./+-]*)\s*\n([\s\S]*?)\n`{3,}\s*$""")
+
+/**
+ * True while the owning message is still streaming (status SENDING/THINKING/…).
+ *
+ * Consumed by custom markdown components (e.g. the <details> card) to decide whether to
+ * render their fancy form. A <details> block re-parses from plain-text → HTML_BLOCK the
+ * instant its closing tag streams in, which rebuilds the whole block list and makes the
+ * stick-to-bottom scroll jump. While streaming we therefore render such blocks as plain
+ * text (stable height, grows linearly like any other reply); the collapsible card form
+ * is only adopted once generation finishes.
+ */
+internal val LocalMarkdownStreaming = compositionLocalOf { false }
 
 @Stable
 internal class ChatMarkdownAssets(
@@ -159,10 +172,17 @@ internal fun rememberChatMarkdownAssets(textColor: Color, codeBlockWrapEnabled: 
             // is the verbatim tag source. Render it as a collapsible card; for any
             // other HTML/unknown block, replay the dispatcher's default recursion
             // (its children) so legacy raw-HTML display is unchanged.
+            //
+            // WHILE STREAMING we deliberately skip the card form: a <details> block is
+            // re-parsed from plain text → HTML_BLOCK the moment its closing tag arrives,
+            // which rebuilds the surrounding block list and makes the stick-to-bottom
+            // scroll visibly jump ("keeps jumping back to the <details> render"). Falling
+            // back to plain-text children while streaming keeps the height linear and
+            // stable; the card is adopted only once generation completes.
             custom = { type, model ->
-                if (type == MarkdownElementTypes.HTML_BLOCK &&
+                val isDetailsBlock = type == MarkdownElementTypes.HTML_BLOCK &&
                     model.node.getUnescapedTextInNode(model.content).contains("<details", ignoreCase = true)
-                ) {
+                if (isDetailsBlock && !LocalMarkdownStreaming.current) {
                     MarkdownDetailsBlock(
                         content = model.content,
                         node = model.node,

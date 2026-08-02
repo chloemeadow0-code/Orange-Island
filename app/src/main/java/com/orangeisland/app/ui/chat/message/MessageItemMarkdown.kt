@@ -636,7 +636,42 @@ private fun String.toRenderableMarkdownText(): String {
             else span.content
         }
     }
-    return markdown.escapeForMarkdown()
+    return markdown.trimUnclosedDetailsHtml().escapeForMarkdown()
+}
+
+/**
+ * While streaming, an incomplete `<details>…</details>` block reaches us tag-by-tag:
+ * `<det`, `<details>`, `<details><summary>…`, and only once `</details>` lands does GFM
+ * recognize it as an HTML_BLOCK and render it as a compact collapsible card. Before that
+ * moment the same text is parsed as plain paragraphs and shown at full height — so the
+ * instant the closing tag arrives the block's height collapses dramatically, which makes
+ * the stick-to-bottom scroll "jump back to the <details> render".
+ *
+ * Fix: if a `<details ...>` opening tag has no matching `</details>`, drop everything from
+ * that opening tag onward. The half-written block simply isn't shown until it closes, at
+ * which point it appears in one step at its final (compact) height — no height collapse,
+ * no scroll jump. This only affects streaming mid-text; fully-closed blocks are untouched.
+ */
+private fun String.trimUnclosedDetailsHtml(): String {
+    // Case-insensitive scan for <details …> … </details> pairs; truncate at the first
+    // opening tag that has no subsequent closing tag. We match the tag from its very
+    // start ("<details") even before the closing ">" has streamed in, so a half-written
+    // "<details" (no '>' yet) is also treated as an open tag and truncated — otherwise
+    // that fragment would render as plain text at full height and then collapse when the
+    // block finally closes, causing the scroll jump.
+    val openStart = Regex("""(?is)<details\b""")
+    val close = Regex("""(?is)</details\s*>""")
+    var searchFrom = 0
+    while (true) {
+        val openMatch = openStart.find(this, searchFrom) ?: return this
+        val afterOpen = openMatch.range.last + 1
+        val closeMatch = close.find(this, afterOpen)
+        if (closeMatch == null) {
+            // Opening tag (complete or not) with no closing tag → truncate here.
+            return substring(0, openMatch.range.first)
+        }
+        searchFrom = closeMatch.range.last + 1
+    }
 }
 
 internal fun String.escapeForMarkdown(): String =
