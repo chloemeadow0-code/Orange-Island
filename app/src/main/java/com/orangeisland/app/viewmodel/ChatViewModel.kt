@@ -271,30 +271,45 @@ class ChatViewModel(
         // skip). On a new id with SUCCESS status we emit a Bubble; the pet service
         // drops it if the pet is off, so this is harmless when disabled.
         viewModelScope.launch {
-            var lastSeenModelId: String? = null
-            messages.collect { list ->
-                val last = list.lastOrNull { it.participant == Participant.MODEL }
-                val id = last?.id
-                // Only react to a genuinely new message id.
-                if (id == null || id == lastSeenModelId) return@collect
-                // Ignore the initial load (the first MODEL message we ever see from
-                // a freshly opened conversation): we only want replies generated
-                // during this session.
-                if (lastSeenModelId == null && last.status != MessageStatus.SUCCESS) {
-                    lastSeenModelId = id
-                    return@collect
-                }
-                lastSeenModelId = id
-                if (last.status != MessageStatus.SUCCESS) return@collect
-                val summary = petBubbleSummary(last.text)
-                DebugLog.d("ChatViewModel", "pet nudge: modelId=$id summaryLen=${summary.length}")
-                if (summary.isNotEmpty()) {
-                    com.orangeisland.app.pet.PetEventBus.emit(
-                        com.orangeisland.app.pet.PetEventBus.Event.Bubble(summary)
-                    )
-                } else {
-                    // No text to bubble (e.g. tool-only reply) — still nudge the pet.
-                    com.orangeisland.app.pet.PetEventBus.emit(com.orangeisland.app.pet.PetEventBus.Event.Wave)
+            // Only nudge the pet for replies generated during an ACTIVE generation
+            // pass (_isLoading == true). Every previous attempt to distinguish
+            // "loaded history" from "new reply" by remembering the last MODEL id
+            // (per-conversation baseline, first-emission seeding, …) was fragile:
+            // history loads in multiple batches, branch switches, compaction and
+            // re-queries all surface "new" ids that are actually old messages, and
+            // each gap case fired a stray pet Toast. isLoading is the one signal
+            // that is unambiguously true only while the user is actually generating
+            // — loading a conversation never sets it — so gate on it directly.
+            var nudgeForGeneration: String? = null
+            // Track the conversation id of the in-flight generation so a switch
+            // mid-generation can't deliver a stray nudge to the wrong conversation.
+            combine(messages, _isLoading, _generatingInConversationId) { list, loading, genConvId ->
+                Triple(list, loading, genConvId)
+            }.collect { (list, loading, genConvId) ->
+                if (loading && genConvId == _currentConversationId.value) {
+                    // Mark that we owe a nudge for THIS generation. Capture the newest
+                    // MODEL id seen so far so we only react to the reply belonging to
+                    // this generation, not an earlier one still in the list.
+                    val last = list.lastOrNull { it.participant == Participant.MODEL }
+                    if (last != null) nudgeForGeneration = last.id
+                } else if (!loading && nudgeForGeneration != null) {
+                    // Generation just finished (isLoading went false). Find the reply we
+                    // were tracking and, if it landed successfully, fire ONE nudge.
+                    val target = nudgeForGeneration
+                    nudgeForGeneration = null
+                    val msg = list.find { it.id == target }
+                    if (msg != null && msg.status == MessageStatus.SUCCESS) {
+                        val summary = petBubbleSummary(msg.text)
+                        DebugLog.d("ChatViewModel", "pet nudge: modelId=$target summaryLen=${summary.length}")
+                        if (summary.isNotEmpty()) {
+                            com.orangeisland.app.pet.PetEventBus.emit(
+                                com.orangeisland.app.pet.PetEventBus.Event.Bubble(summary)
+                            )
+                        } else {
+                            // No text to bubble (e.g. tool-only reply) — still nudge the pet.
+                            com.orangeisland.app.pet.PetEventBus.emit(com.orangeisland.app.pet.PetEventBus.Event.Wave)
+                        }
+                    }
                 }
             }
         }
@@ -1304,6 +1319,27 @@ class ChatViewModel(
             // so the top-bar "+" continues to file new chats under the same project.
             _activeProjectId.value = conversation?.projectId
             triggerScrollToMessage()
+            // Hold the switching overlay until BOTH conditions hold: the conversation's
+            // messages have actually loaded (so we don't drop the overlay onto a
+            // half-rendered list — the "freeze for a beat" on chat open) AND a minimum
+            // visible duration has elapsed (so the spinner is actually seen for cached
+            // conversations that load in a few ms — without this it flashed too briefly
+            // for the AnimatedVisibility fadeIn to even render).
+            val minShowMs = 280L
+            val startMs = System.currentTimeMillis()
+            try {
+                withTimeout(SWITCH_OVERLAY_FADE_MS * 10) { // 2s cap
+                    messages.first { it.isNotEmpty() }
+                }
+            } catch (_: Exception) {
+                // Timeout (empty or slow conversation) — proceed anyway.
+            }
+            val elapsed = System.currentTimeMillis() - startMs
+            if (elapsed < minShowMs) {
+                kotlinx.coroutines.delay(minShowMs - elapsed)
+            }
+            // A short grace period so the LazyColumn has a frame to lay out before
+            // the overlay fades, avoiding a single-frame flash of unpositioned items.
             kotlinx.coroutines.delay(SWITCH_OVERLAY_FADE_MS)
             _isSwitching.value = false
         }

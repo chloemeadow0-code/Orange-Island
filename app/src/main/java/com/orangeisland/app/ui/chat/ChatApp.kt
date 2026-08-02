@@ -64,6 +64,9 @@ import com.orangeisland.app.viewmodel.ChatViewModel
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -252,12 +255,49 @@ fun ChatApp(
     val textFieldState = rememberSaveable(saver = androidx.compose.foundation.text.input.TextFieldState.Saver) { androidx.compose.foundation.text.input.TextFieldState() }
     val inputFocusRequester = remember { FocusRequester() }
 
-    val isNearBottom by remember {
+    // -- Scroll state (ChatGPT-style stick-to-bottom) --
+    // The list auto-follows new content ONLY while the user is parked at the
+    // bottom. The moment they scroll up to read history, follow is suspended so
+    // programmatic scrolls don't fight their fingers; it resumes on send or when
+    // they tap the "scroll to bottom" FAB.
+    //
+    // IMPORTANT: we must NOT key the "user scrolled" signal on isScrollInProgress,
+    // because our OWN programmatic scrollToItem/animateScrollToItem also flips
+    // isScrollInProgress true -- doing so created a feedback loop (scroll ->
+    // "user scrolled" -> unpin -> stop following -> content overflows -> scroll
+    // again -> ...) that produced the visible up/down jitter. Instead we watch the
+    // FINAL settled scroll position via firstVisibleItemIndex: if the viewport
+    // ends up more than a couple items above the bottom after a scroll session,
+    // only then treat it as the user having intentionally scrolled up.
+    val isAtBottom by remember {
         derivedStateOf {
             val info = listState.layoutInfo
             val total = info.totalItemsCount
-            total > 0 && info.visibleItemsInfo.lastOrNull()?.let { it.index >= total - 2 } == true
+            if (total == 0) return@derivedStateOf true
+            val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: -1
+            lastVisible >= total - 2
         }
+    }
+
+    // Pinned = auto-follow is active. Mutated only by (a) the settle detector
+    // below, (b) explicit re-pins from send / FAB / open-conversation. NEVER by
+    // the streaming-follower itself, so there's no self-triggered toggling.
+    val stickToBottom = remember { mutableStateOf(true) }
+    // Guards the settle detector so it ignores scroll sessions WE started.
+    val programmaticScroll = remember { mutableStateOf(false) }
+
+    // When a scroll session ends and we did NOT start it, look at where it landed:
+    // off-bottom -> the user scrolled up -> suspend follow. This is the only place
+    // that ever clears the pin, and it can't react to our own scrolls.
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }
+            .distinctUntilChanged()
+            .filter { !it }                                   // scroll just came to rest
+            .collect {
+                if (!programmaticScroll.value && !isAtBottom) {
+                    stickToBottom.value = false
+                }
+            }
     }
 
     // Consume a one-shot prefilled input (set by an outside caller like the workflow detail page's
@@ -281,67 +321,64 @@ fun ChatApp(
     }
 
 
-    suspend fun scrollToLastUserMessage(animate: Boolean = true, targetMessageId: String? = null, easing: Easing = FastOutSlowInEasing) {
-        if (messages.isEmpty() || viewportHeightPx == 0) return
+    // ©¤©¤ Programmatic scroll helpers ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // All of these rely on LazyListState's own layout-driven positioning
+    // (animateScrollToItem / scrollToItem) instead of summing per-message pixel
+    // heights. The old approach manually accumulated messageHeights to compute an
+    // absolute offset, which raced against layout (unmeasured items read as 0 and
+    // made the target land too high) and produced the "I scroll down, it jumps
+    // back up" jerks. LazyListState already knows the true positions once laid
+    // out, so we defer to it.
 
-        val targetIndex = if (targetMessageId != null) {
-            val msg = messages.find { it.id == targetMessageId }
-            if (msg?.participant == Participant.MODEL && msg.parentId != null) {
-                messages.indexOfFirst { it.id == msg.parentId }
-            } else {
-                messages.indexOfFirst { it.id == targetMessageId }
+    /** Scroll to the bottom of the conversation. ChatGPT-style "stick to bottom":
+     *  we land on the last item and expose its BOTTOM so a streaming reply that
+     *  keeps growing stays anchored at the lower edge of the viewport. Wraps the
+     *  actual scroll in the programmaticScroll guard so the settle detector above
+     *  knows this scroll came from us and doesn't mistake it for the user scrolling
+     *  (which would wrongly suspend follow). */
+    suspend fun scrollToBottom(animate: Boolean = true) {
+        if (messages.isEmpty()) return
+        // scrollToItem(index, offset) aligns the item's TOP to the contentPadding.top line,
+        // then scrolls DOWN by `offset` px. A huge offset (Int.MAX_VALUE) was pushing the
+        // last message UP and out of the viewport, leaving the tail spacer as a blank
+        // screen ¡ª that's the "blank screen, scroll up to see messages" bug. offset 0 just
+        // parks the last message at the top padding line, which for any conversation taller
+        // than the viewport is exactly the bottom; for short ones the list can't scroll past
+        // its content anyway, so it lands at max scroll (messages visible, no blank).
+        val lastIndex = messages.lastIndex
+        try {
+            withTimeout(2000) {
+                snapshotFlow { listState.layoutInfo.totalItemsCount }
+                    .filter { it > lastIndex }
+                    .first()
             }
+        } catch (e: Exception) {
+            // Layout never caught up in time; fall through and try anyway.
+        }
+        programmaticScroll.value = true
+        try {
+            if (animate) listState.animateScrollToItem(lastIndex, 0)
+            else listState.scrollToItem(lastIndex, 0)
+        } finally {
+            programmaticScroll.value = false
+        }
+    }
+
+    /** Bring a specific message to the top of the viewport. Used by the
+     *  edit / regenerate / branch-switch flows where we want to keep a chosen
+     *  message in view rather than jumping to the very bottom. For a MODEL reply
+     *  we target its parent USER message, matching the previous behaviour. */
+    suspend fun scrollToMessage(targetMessageId: String, animate: Boolean = true) {
+        val msg = messages.find { it.id == targetMessageId } ?: return
+        val targetIndex = if (msg.participant == Participant.MODEL && msg.parentId != null) {
+            val parentIndex = messages.indexOfFirst { it.id == msg.parentId }
+            if (parentIndex != -1) parentIndex else messages.indexOfFirst { it.id == targetMessageId }
         } else {
-            messages.indexOfLast { it.participant == Participant.USER }
+            messages.indexOfFirst { it.id == targetMessageId }
         }
         if (targetIndex == -1) return
-
-        with(density) {
-            val targetTopPx = 140.dp.toPx()
-
-            var totalHeightBeforePx = 0
-            var allMeasured = true
-            for (i in 0 until targetIndex) {
-                val h = messageHeights[messages[i].id]
-                if (h != null) {
-                    totalHeightBeforePx += h
-                } else {
-                    // A message before the target has no measured height yet. Using the
-                    // partial sum would make the target scroll position land too far up
-                    // (the missing height reads as 0), which is the intermittent
-                    // "scrolled ~2 messages too high" after send. Fall back to Compose's
-                    // layout-driven scroll, which is immune to this measurement race.
-                    allMeasured = false
-                    break
-                }
-            }
-
-            if (!allMeasured && targetIndex > 0) {
-                // Layout knows true sizes; just bring the target to the top.
-                if (animate) listState.animateScrollToItem(targetIndex, 0)
-                else listState.scrollToItem(targetIndex, 0)
-            } else {
-                val targetScrollPx = (totalHeightBeforePx - targetTopPx).coerceAtLeast(0f)
-
-                if (animate) {
-                    var currentOffsetPx = listState.firstVisibleItemScrollOffset.toFloat()
-                    var i = 0
-                    while (i < listState.firstVisibleItemIndex) {
-                        if (i < messages.size) {
-                            val h = messageHeights[messages[i].id]
-                            if (h != null) currentOffsetPx += h else break
-                        }
-                        i++
-                    }
-                    val diff = targetScrollPx - currentOffsetPx
-                    if (kotlin.math.abs(diff) > 2) {
-                        listState.animateScrollBy(diff, tween(600, easing = easing))
-                    }
-                } else {
-                    listState.scrollToItem(0, targetScrollPx.toInt())
-                }
-            }
-        }
+        if (animate) listState.animateScrollToItem(targetIndex, 0)
+        else listState.scrollToItem(targetIndex, 0)
     }
 
     val branchSwitchTrigger by viewModel.branchSwitchTrigger.collectAsState()
@@ -388,62 +425,78 @@ fun ChatApp(
             return@LaunchedEffect
         }
         if (currentConversationId != null) {
-            snapshotFlow { messages }.filter { it.isNotEmpty() }.first()
-            val targetIndex = messages.indexOfLast { it.participant == Participant.USER }
+            // IMPORTANT timing: while the switching overlay is up, MessageList is fed an
+            // EMPTY list (see the switchingToExisting guard at the MessageList call site),
+            // so the LazyColumn hasn't laid out any real items yet. We must NOT scroll
+            // before the overlay drops ¡ª scrolling against an empty/just-inflating list is
+            // exactly the "freezes for a beat, then jumps to the last message" symptom.
+            // So: wait for the overlay to clear (isSwitching == false), which means the real
+            // message list has been switched in, THEN give the LazyColumn a frame to measure,
+            // THEN jump to the bottom. scrollToBottom also waits for totalItemsCount itself.
+            try {
+                withTimeout(4000) {
+                    snapshotFlow { isSwitching }.filter { !it }.first()
+                }
+            } catch (e: Exception) {
+                // Timeout
+            }
+            // One frame of grace so the LazyColumn measures the real items before we jump.
+            kotlinx.coroutines.delay(16)
+            try {
+                scrollToBottom(animate = false)
+            } catch (_: Exception) {
+                // best-effort
+            }
+        }
+    }
 
-            if (targetIndex != -1) {
-                try {
-                    withTimeout(4000) {
-                        snapshotFlow {
-                            val sum = messageHeights.values.sum()
-                            Triple(messages, sum, viewportHeightPx)
-                        }.collectLatest { data ->
-                            val currentMsgs = data.component1()
-                            val vHeight = data.component3()
-
-                            val currentTargetIndex = currentMsgs.indexOfLast { it.participant == Participant.USER }
-
-                            if (currentTargetIndex != -1 && vHeight > 0) {
-                                with(density) {
-                                    var totalHeightBeforePx = 0
-                                    for (i in 0 until currentTargetIndex) {
-                                        totalHeightBeforePx += messageHeights[currentMsgs[i].id] ?: 0
-                                    }
-                                    listState.scrollToItem(currentTargetIndex, 0)
-                                }
-                            }
-
-                            delay(500)
-                            this@withTimeout.cancel()
-                        }
+    // -- Streaming auto-follow (ChatGPT-style) --
+    // While pinned, keep the newest content visible as a streaming reply grows.
+    //  - Trigger = message content fingerprint (id + text length + status). NEVER
+    //    layoutInfo: reading the visible-items state creates a feedback loop with
+    //    our own scrolls. NEVER stickToBottom inside the snapshot either: that
+    //    would re-fire on every pin flip. We read it plain (outside snapshotFlow)
+    //    in the collector instead, so a pin change can't itself trigger a scroll.
+    //  - The actual scrollToItem is wrapped in the programmaticScroll guard so the
+    //    settle detector treats it as ours, not the user's.
+    //  - conflate() caps work to one scroll per frame; per-token micro-jumps are
+    //    smoothed out instead of queueing into visible jitter.
+    LaunchedEffect(currentConversationId) {
+        snapshotFlow {
+            val last = messages.lastOrNull()
+            last?.let { "${it.id}|${it.text.length}|${it.thoughts?.length ?: 0}|${it.status}" }
+        }.filter { messages.isNotEmpty() }
+            .conflate()
+            .collect {
+                if (stickToBottom.value && messages.isNotEmpty()) {
+                    programmaticScroll.value = true
+                    try {
+                        // offset 0 parks the last message at the top padding line (= the
+                        // bottom of a tall list). See scrollToBottom for why Int.MAX_VALUE
+                        // was wrong (blank screen).
+                        listState.scrollToItem(messages.lastIndex, 0)
+                    } finally {
+                        programmaticScroll.value = false
                     }
-                } catch (e: Exception) {
-                    // Timeout or intended cancellation
                 }
             }
-            viewModel.setSwitching(false)
-        } else {
-            viewModel.setSwitching(false)
-        }
     }
 
     LaunchedEffect(Unit) {
         viewModel.scrollToMessage.collect { messageId ->
-            if (messageId != null) {
-                try {
-                    withTimeout(2000) {
-                        snapshotFlow { messages.indexOfFirst { it.id == messageId } }
-                            .filter { it != -1 }
-                            .first()
-                    }
-                } catch (e: Exception) {
-                    // Timeout
-                }
-                delay(50)
-                scrollToLastUserMessage(animate = true, targetMessageId = messageId)
-            } else {
-                scrollToLastUserMessage(animate = true)
-            }
+            // The only producer of this flow today is MessageGenerationController,
+            // which fires onScrollToMessage(userMessageId) right after a send. The
+            // old behaviour scrolled TO that user message, leaving the just-created
+            // assistant reply below the fold ¡ª i.e. "it jumps to my message". For
+            // ChatGPT-style we want the send to pin to the BOTTOM (the live reply),
+            // so both null and non-null ids route through scrollToBottom here.
+            // scrollToMessage(targetId) is kept for explicit "bring this message to
+            // the top" callers (branch switch via branchSwitchTrigger, etc.).
+            stickToBottom.value = true
+            // Wait a tick for the new MODEL placeholder to be inserted + measured
+            // before we jump, otherwise scrollToItem lands on the pre-send layout.
+            delay(50)
+            scrollToBottom(animate = true)
         }
     }
 
@@ -632,9 +685,18 @@ fun ChatApp(
                             } else {
                                 Modifier.fillMaxSize()
                             }
+                            // While the switching overlay is up, hand MessageList an EMPTY list.
+                            // The visible "freeze with no spinner" on chat open was because the
+                            // heavy LazyColumn first-pass layout (lots of items + per-message
+                            // height/branch bookkeeping) ran on the SAME frame as the spinner's
+                            // fadeIn ¡ª so the main thread was blocked and the spinner never got
+                            // drawn, exactly when we needed it. Emptying the list during the
+                            // switch makes that first frame cheap (only the spinner paints);
+                            // the real list renders on the frame after isSwitching flips false.
+                            val switchingToExisting = isSwitching && !isTransitioningToNewChat
                             MessageList(
-                                messages = messages,
-                                allMessages = allMessages,
+                                messages = if (switchingToExisting) emptyList() else messages,
+                                allMessages = if (switchingToExisting) emptyList() else allMessages,
                                 modifier = messageListModifier,
                                 state = listState,
                                 // Global generation gate: while ANY generation is in
@@ -668,8 +730,10 @@ fun ChatApp(
                                     viewModel.editMessage(id, text)
                                     scope.launch {
                                         if (!isFirstMessage) {
+                                            // An edit kicks off a fresh reply ¡ª follow it to the bottom.
+                                            stickToBottom.value = true
                                             delay(50)
-                                            scrollToLastUserMessage(animate = true)
+                                            scrollToBottom(animate = true)
                                         }
                                     }
                                 },
@@ -682,8 +746,11 @@ fun ChatApp(
                                     haptics.action()
                                     viewModel.regenerate(id)
                                     scope.launch {
+                                        // Regeneration replaces the trailing reply; pin to bottom so the
+                                        // new streaming reply stays in view.
+                                        stickToBottom.value = true
                                         delay(50)
-                                        scrollToLastUserMessage(animate = true)
+                                        scrollToBottom(animate = true)
                                     }
                                 },
                                 onDelete = { id -> viewModel.deleteMessage(id) },
@@ -693,6 +760,7 @@ fun ChatApp(
                                 thoughtExpandedStates = thoughtExpandedStates,
                                 codeBlockWrapEnabled = codeBlockWrapEnabled,
                                 splitBubbleByLine = splitBubbleByLine,
+                                stickToBottomEnabled = true,
                                 contentPadding = PaddingValues(
                                     start = 8.dp,
                                     end = 8.dp,
@@ -763,7 +831,7 @@ fun ChatApp(
                         modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomBarHeight + 8.dp)
                     ) {
                         Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                            FloatingActionButton(onClick = { scope.launch { scrollToLastUserMessage(animate = true, easing = SCROLL_EASING) } }, containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp), contentColor = MaterialTheme.colorScheme.onSurface, shape = CircleShape, elevation = FloatingActionButtonDefaults.elevation(fabElevation), modifier = Modifier.size(40.dp)) {
+                            FloatingActionButton(onClick = { scope.launch { stickToBottom.value = true; scrollToBottom(animate = true) } }, containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp), contentColor = MaterialTheme.colorScheme.onSurface, shape = CircleShape, elevation = FloatingActionButtonDefaults.elevation(fabElevation), modifier = Modifier.size(40.dp)) {
                                 Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.scroll_to_bottom), modifier = Modifier.size(24.dp))
                             }
                         }
@@ -771,7 +839,11 @@ fun ChatApp(
 
                     AnimatedVisibility(
                         visible = isSwitching && !isTransitioningToNewChat,
-                        enter = fadeIn(animationSpec = tween(200)),
+                        // Snappy enter (60ms) so the spinner is visible immediately when a
+                        // conversation is tapped ¡ª the previous 200ms fadeIn was longer than
+                        // the whole switching window for already-cached conversations, so the
+                        // spinner never actually appeared. Exit stays gentle.
+                        enter = fadeIn(animationSpec = tween(60)),
                         exit = fadeOut(animationSpec = tween(200))
                     ) {
                         Box(
@@ -929,7 +1001,7 @@ fun ChatApp(
                             convOverride.mcpServerIds.isNotEmpty(),
                         onMcpClick = { haptics.action(); showMcpSheet = true },
                         onInputFocusChanged = { focused ->
-                            if (focused && isNearBottom && !isNewChatMode) {
+                            if (focused && isAtBottom && !isNewChatMode) {
                                 scope.launch {
                                     if (messages.isNotEmpty()) {
                                         listState.animateScrollToItem(messages.lastIndex, 0)

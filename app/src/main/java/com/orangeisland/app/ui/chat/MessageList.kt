@@ -67,6 +67,12 @@ fun MessageList(
     thoughtExpandedStates: SnapshotStateMap<String, Boolean> = remember { mutableStateMapOf() },
     codeBlockWrapEnabled: Boolean = false,
     splitBubbleByLine: Boolean = false,
+    // When the host is driving ChatGPT-style stick-to-bottom scrolling, the dynamic
+    // spacer below the messages MUST stay at zero. That spacer resizes on every
+    // streaming token (it depends on live messageHeights) and fights the programmatic
+    // scrollToItem, producing the "jumps around while generating" jitter. With this
+    // on, messages stack naturally and the scroll logic owns vertical positioning.
+    stickToBottomEnabled: Boolean = false,
 ) {
     var editingMessageId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(isLoading) { if (isLoading) editingMessageId = null }
@@ -91,6 +97,12 @@ fun MessageList(
     }
 
     val extraPadding = if (lastUserMessageIndex == -1 || viewportHeight == 0) {
+        0.dp
+    } else if (stickToBottomEnabled) {
+        // In stick-to-bottom mode the host drives vertical position entirely via
+        // scrollToItem(lastIndex, 0); the list must NOT add a tail spacer that resizes
+        // mid-stream (jitter) NOR a giant fixed spacer (which, combined with the scroll
+        // target, produced the "blank screen, scroll up to see messages" bug). Zero it.
         0.dp
     } else {
         val rangeIds = (lastUserMessageIndex until messages.size).map { messages[it].id }
