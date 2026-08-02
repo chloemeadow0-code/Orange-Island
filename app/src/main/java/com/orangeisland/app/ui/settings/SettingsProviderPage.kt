@@ -3,6 +3,7 @@ package com.orangeisland.app.ui.settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +22,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.ui.components.clearFocusOnTap
 import com.orangeisland.app.ui.components.providerIcon
 import com.orangeisland.app.util.Constants
@@ -104,7 +107,7 @@ fun SettingsProviderPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     add {
                                         SettingsItem(
                                             headlineContent = { Text(stringResource(R.string.custom_provider_empty), color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                            leadingContent = { Icon(Icons.Default.Cloud, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), modifier = Modifier.size(24.dp)) },
+                                            leadingContent = { IslandIcon(IslandIcons.Provider, size = 38.dp) },
                                             modifier = Modifier.heightIn(min = 64.dp)
                                         )
                                     }
@@ -115,7 +118,18 @@ fun SettingsProviderPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         SettingsItem(
                                             headlineContent = { Text(config.name) },
                                             supportingContent = { Text(providerBaseUrls[config.name]?.takeIf { it.isNotBlank() } ?: stringResource(R.string.not_configured)) },
-                                            leadingContent = { Icon(Icons.Default.Cloud, null, tint = if (configured) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), modifier = Modifier.size(24.dp)) },
+                                            leadingContent = {
+                                                val iconRes = providerIcon(config.name)
+                                                if (iconRes != 0) {
+                                                    Image(
+                                                        painterResource(iconRes),
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                } else {
+                                                    IslandIcon(IslandIcons.Provider, size = 38.dp)
+                                                }
+                                            },
                                             trailingContent = {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.primaryContainer) { Text(stringResource(R.string.custom_provider_badge), modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer) }
@@ -143,7 +157,7 @@ fun SettingsProviderPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 SettingsItem(
                                     headlineContent = { Text(stringResource(R.string.local_title)) },
                                     supportingContent = { Text(if (localConfigured) stringResource(R.string.provider_local_models_summary, localChatModels.size) else stringResource(R.string.not_configured)) },
-                                    leadingContent = { Icon(Icons.Default.AutoAwesome, null, tint = if (localConfigured) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
+                                    leadingContent = { IslandIcon(IslandIcons.Model, size = 38.dp) },
                                     trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                                     modifier = Modifier.clickable { selectedProvider = Constants.PROVIDER_LOCAL }
                                 )

@@ -24,6 +24,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
 import com.orangeisland.app.data.InstalledPlugin
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.plugin.PluginMemoryProvider
 import com.orangeisland.app.viewmodel.ChatViewModel
 import kotlinx.coroutines.Dispatchers
@@ -122,7 +124,7 @@ fun SettingsPluginPage(
                     add {
                         SettingsItem(
                             headlineContent = { Text(stringResource(R.string.plugin_no_plugins), color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                            leadingContent = { Icon(Icons.Default.Extension, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
+                            leadingContent = { IslandIcon(IslandIcons.Plugin, size = 38.dp) },
                             modifier = Modifier.heightIn(min = 64.dp)
                         )
                     }
@@ -130,7 +132,7 @@ fun SettingsPluginPage(
                     add {
                         SettingsItem(
                             headlineContent = { Text(stringResource(R.string.plugin_no_plugins), color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                            leadingContent = { Icon(Icons.Default.Extension, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
+                            leadingContent = { IslandIcon(IslandIcons.Plugin, size = 38.dp) },
                             modifier = Modifier.heightIn(min = 64.dp)
                         )
                     }
@@ -244,12 +246,7 @@ private fun PluginRow(
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.Top) {
-            Icon(
-                Icons.Default.Extension,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 2.dp)
-            )
+            IslandIcon(IslandIcons.Plugin, size = 38.dp)
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(

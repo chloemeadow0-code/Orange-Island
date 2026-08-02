@@ -97,7 +97,7 @@ internal fun AutoBackupSection(viewModel: ChatViewModel) {
                     headlineContent = { Text(stringResource(R.string.auto_delete_title)) },
                     supportingContent = { Text(stringResource(R.string.auto_delete_subtitle)) },
                     leadingContent = {
-                        Icon(Icons.Default.AutoDelete, null, tint = MaterialTheme.colorScheme.primary)
+                        IslandIcon(IslandIcons.BackupAutoDelete, size = 38.dp)
                     },
                     trailingContent = {
                         Switch(checked = autoDeleteEnabled, onCheckedChange = { viewModel.setAutoDeleteEnabled(it) })
@@ -135,7 +135,7 @@ private fun AutoBackupPeriodDropdown(currentHours: Int, onSelect: (Int) -> Unit)
             headlineContent = { Text(stringResource(R.string.auto_backup_period_label)) },
             supportingContent = { Text(stringResource(currentLabel), color = MaterialTheme.colorScheme.onSurfaceVariant) },
             leadingContent = {
-                Icon(Icons.Default.Timer, null, tint = MaterialTheme.colorScheme.primary)
+                IslandIcon(IslandIcons.BackupInterval, size = 38.dp)
             },
             modifier = Modifier.clickable { expanded = true }
         )
@@ -170,7 +170,7 @@ private fun AutoDeletePeriodDropdown(currentHours: Int, backupHours: Int, onSele
             headlineContent = { Text(stringResource(R.string.auto_delete_period_label)) },
             supportingContent = { Text(stringResource(currentLabel), color = MaterialTheme.colorScheme.onSurfaceVariant) },
             leadingContent = {
-                Icon(Icons.Default.DeleteSweep, null, tint = MaterialTheme.colorScheme.primary)
+                IslandIcon(IslandIcons.BackupInterval, size = 38.dp)
             },
             modifier = Modifier.clickable { expanded = true }
         )
@@ -214,7 +214,7 @@ private fun AutoBackupDirectoryItem(viewModel: ChatViewModel) {
             Text(displayPath, color = MaterialTheme.colorScheme.onSurfaceVariant)
         },
         leadingContent = {
-            Icon(Icons.Default.Folder, null, tint = MaterialTheme.colorScheme.primary)
+            IslandIcon(IslandIcons.BackupDirectory, size = 38.dp)
         },
         trailingContent = {
             Icon(Icons.Default.FolderOpen, stringResource(R.string.edit), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
@@ -239,7 +239,7 @@ private fun AutoBackupCategoriesItem(viewModel: ChatViewModel) {
         headlineContent = { Text(stringResource(R.string.auto_backup_categories_label)) },
         supportingContent = { Text(displaySummary, color = MaterialTheme.colorScheme.onSurfaceVariant) },
         leadingContent = {
-            Icon(Icons.Default.Topic, null, tint = MaterialTheme.colorScheme.primary)
+            IslandIcon(IslandIcons.BackupCategories, size = 38.dp)
         },
         trailingContent = {
             Icon(Icons.Default.ChevronRight, stringResource(R.string.edit), tint = MaterialTheme.colorScheme.onSurfaceVariant)

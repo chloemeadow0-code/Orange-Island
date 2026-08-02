@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.orangeisland.app.R
 import com.orangeisland.app.model.ToolCallDisplayModes
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.ui.theme.ColorSchemePreset
 import com.orangeisland.app.ui.theme.FontSizeTiers
 import com.orangeisland.app.ui.theme.SchemeStyle
@@ -132,11 +134,6 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             "DARK" -> stringResource(R.string.theme_mode_dark)
                             else -> stringResource(R.string.theme_mode_follow_device)
                         }
-                        val selectedIcon = when (themeMode) {
-                            "LIGHT" -> Icons.Default.LightMode
-                            "DARK" -> Icons.Default.DarkMode
-                            else -> Icons.Default.SettingsBrightness
-                        }
                         val options = listOf(
                             "LIGHT" to Pair(stringResource(R.string.theme_mode_light), Icons.Default.LightMode),
                             "DARK" to Pair(stringResource(R.string.theme_mode_dark), Icons.Default.DarkMode),
@@ -146,7 +143,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             headlineContent = { Text(stringResource(R.string.theme_mode)) },
                             supportingContent = { Text(selectedLabel) },
                             leadingContent = {
-                                Icon(selectedIcon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                IslandIcon(IslandIcons.Appearance, size = 38.dp)
                             },
                             trailingContent = {
                                 Box {
@@ -199,6 +196,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 SettingsItem(
                                     headlineContent = { Text(stringResource(R.string.dynamic_color)) },
                                     supportingContent = { Text(stringResource(R.string.dynamic_color_desc)) },
+                                    leadingContent = { IslandIcon(IslandIcons.CustomColors, size = 38.dp) },
                                     trailingContent = {
                                         Switch(
                                             checked = dynamicColor,
@@ -213,6 +211,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.blur_effects)) },
                                 supportingContent = { Text(stringResource(R.string.blur_effects_desc)) },
+                                leadingContent = { IslandIcon(IslandIcons.AppearanceBlur, size = 38.dp) },
                                 trailingContent = {
                                     Switch(
                                         checked = blurEffectsEnabled,
@@ -226,6 +225,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.code_block_wrap)) },
                                 supportingContent = { Text(stringResource(R.string.code_block_wrap_desc)) },
+                                leadingContent = { IslandIcon(IslandIcons.AppearanceCodeWrap, size = 38.dp) },
                                 trailingContent = {
                                     Switch(
                                         checked = codeBlockWrapEnabled,
@@ -256,6 +256,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.tool_call_display_mode)) },
                                 supportingContent = { Text(selectedDescription) },
+                                leadingContent = { IslandIcon(IslandIcons.AppearanceToolDisplay, size = 38.dp) },
                                 trailingContent = {
                                     Box {
                                         Text(
@@ -298,6 +299,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.haptic_feedback)) },
                                 supportingContent = { Text(stringResource(R.string.haptic_feedback_desc)) },
+                                leadingContent = { IslandIcon(IslandIcons.AppearanceHaptics, size = 38.dp) },
                                 trailingContent = {
                                     Switch(
                                         checked = hapticsEnabled,
@@ -376,6 +378,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.scheme_style)) },
                                 supportingContent = { Text(currentLabel) },
+                                leadingContent = { IslandIcon(IslandIcons.CustomColors, size = 38.dp) },
                                 trailingContent = {
                                     Box {
                                         Text(
@@ -431,6 +434,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.font_title)) },
                                 supportingContent = { Text(selectedLabel) },
+                                leadingContent = { IslandIcon(IslandIcons.AppearanceFont, size = 38.dp) },
                                 trailingContent = {
                                     Box {
                                         Text(

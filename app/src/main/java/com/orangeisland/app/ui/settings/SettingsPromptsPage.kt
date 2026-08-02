@@ -30,6 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.data.DefaultSystemPrompt
 import com.orangeisland.app.data.PromptTemplateItem
 import com.orangeisland.app.data.SystemPromptEntry
@@ -129,9 +131,7 @@ fun SettingsPromptsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
             SettingsItem(
                 headlineContent = { Text(stringResource(R.string.prompts_template_default), fontWeight = FontWeight.Medium) },
                 supportingContent = { Text(stringResource(R.string.prompts_template_default_desc), color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                leadingContent = {
-                    Icon(Icons.Default.Psychology, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                },
+                leadingContent = { IslandIcon(IslandIcons.SystemPrompt, size = 38.dp) },
                 modifier = Modifier.fillMaxWidth().clickable {
                     pickTemplate(DefaultSystemPrompt.create(java.util.Locale.getDefault()))
                 }
@@ -195,7 +195,7 @@ private fun PromptList(
                         SettingsItem(
                             headlineContent = { Text(stringResource(R.string.prompts_empty_title), color = MaterialTheme.colorScheme.onSurfaceVariant) },
                             supportingContent = { Text(stringResource(R.string.prompts_empty_desc), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
-                            leadingContent = { Icon(Icons.Default.Psychology, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
+                            leadingContent = { IslandIcon(IslandIcons.SystemPrompt, size = 38.dp) },
                             modifier = Modifier.heightIn(min = 64.dp)
                         )
                     }

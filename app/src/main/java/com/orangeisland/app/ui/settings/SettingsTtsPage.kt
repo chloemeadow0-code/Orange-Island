@@ -21,6 +21,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.viewmodel.ChatViewModel
 import kotlinx.coroutines.delay
 
@@ -63,7 +65,7 @@ fun SettingsTtsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     SettingsItem(
                         headlineContent = { Text(stringResource(R.string.tts_enable)) },
                         supportingContent = { Text(stringResource(R.string.tts_enable_desc)) },
-                        leadingContent = { Icon(Icons.Filled.VolumeUp, null, tint = MaterialTheme.colorScheme.primary) },
+                        leadingContent = { IslandIcon(IslandIcons.VoiceSynthesis, size = 38.dp) },
                         trailingContent = {
                             Switch(checked = enabled, onCheckedChange = { viewModel.settings.setTtsEnabled(it) })
                         },
@@ -81,7 +83,7 @@ fun SettingsTtsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.tts_provider)) },
                                 supportingContent = { Text(stringResource(R.string.tts_provider_desc)) },
-                                leadingContent = { Icon(Icons.Default.RecordVoiceOver, null, tint = MaterialTheme.colorScheme.primary) },
+                                leadingContent = { IslandIcon(IslandIcons.Provider, size = 38.dp) },
                                 trailingContent = {
                                     Box {
                                         Text(

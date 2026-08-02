@@ -18,6 +18,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.model.apiModelName
 import com.orangeisland.app.viewmodel.ChatViewModel
 
@@ -46,7 +48,7 @@ fun SettingsTitleGenPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.title_gen_auto)) },
                                 supportingContent = { Text(stringResource(R.string.title_gen_auto_desc)) },
-                                leadingContent = { Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary) },
+                                leadingContent = { IslandIcon(IslandIcons.TitleGeneration, size = 38.dp) },
                                 trailingContent = {
                                     Switch(checked = titleGenEnabled, onCheckedChange = { viewModel.settings.setTitleGenerationEnabled(it) })
                                 },
@@ -64,7 +66,7 @@ fun SettingsTitleGenPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         }
                                         Text(displayName)
                                     },
-                                    leadingContent = { Icon(Icons.Default.Chat, null, tint = MaterialTheme.colorScheme.primary) },
+                                    leadingContent = { IslandIcon(IslandIcons.Model, size = 38.dp) },
                                     modifier = Modifier.clickable { showTitleModelDialog = true }
                                 )
                             }

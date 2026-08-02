@@ -23,6 +23,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.util.noOpBringIntoView
 import com.orangeisland.app.viewmodel.ChatViewModel
 import kotlinx.coroutines.delay
@@ -53,7 +55,7 @@ fun SettingsWebSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         SettingsItem(
                             headlineContent = { Text(stringResource(R.string.web_search_enable)) },
                             supportingContent = { Text(stringResource(R.string.web_search_enable_desc)) },
-                            leadingContent = { Icon(Icons.Default.Language, null, tint = MaterialTheme.colorScheme.primary) },
+                            leadingContent = { IslandIcon(IslandIcons.WebSearch, size = 38.dp) },
                             trailingContent = {
                                 Switch(checked = webSearchEnabled, onCheckedChange = { viewModel.settings.setWebSearchEnabled(it) })
                             },
@@ -76,7 +78,7 @@ fun SettingsWebSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         }
                                     )
                                 },
-                                leadingContent = { Icon(Icons.Default.Cloud, null, tint = MaterialTheme.colorScheme.primary) },
+                                leadingContent = { IslandIcon(IslandIcons.Provider, size = 38.dp) },
                                 modifier = Modifier.clickable { showProviderDialog = true }
                             )
                         }

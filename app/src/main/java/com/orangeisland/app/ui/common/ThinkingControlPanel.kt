@@ -80,12 +80,7 @@ fun ThinkingControlPanel(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.neurology_24),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
+                IslandIcon(IslandIcons.Thinking, size = 38.dp)
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -110,12 +105,7 @@ fun ThinkingControlPanel(
             modifier = Modifier.fillMaxWidth().alpha(if (sliderEnabled) 1f else 0.38f),
             verticalAlignment = Alignment.Top
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.neurology_24),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 2.dp)
-            )
+            IslandIcon(IslandIcons.Thinking, size = 38.dp)
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -188,12 +178,7 @@ fun ThinkingControlPanel(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.neurology_24),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
+                    IslandIcon(IslandIcons.Thinking, size = 38.dp)
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -238,12 +223,7 @@ fun ThinkingControlPanel(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.Top
                         ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.neurology_24),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 2.dp)
-                            )
+                            IslandIcon(IslandIcons.Thinking, size = 38.dp)
                             Spacer(modifier = Modifier.width(16.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {

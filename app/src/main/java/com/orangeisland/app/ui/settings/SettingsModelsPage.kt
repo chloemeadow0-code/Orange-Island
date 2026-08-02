@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
 import com.orangeisland.app.model.ModelId
 import com.orangeisland.app.model.apiModelName
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.ui.components.providerIcon
 import com.orangeisland.app.util.Constants
 import com.orangeisland.app.viewmodel.ChatViewModel
@@ -118,14 +120,7 @@ fun SettingsModelsPage(
                                 SettingsItem(
                                     headlineContent = { Text(stringResource(R.string.models_available)) },
                                     supportingContent = { Text(stringResource(R.string.models_available_desc)) },
-                                    leadingContent = {
-                                        Icon(
-                                            Icons.Default.Search,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    },
+                                    leadingContent = { IslandIcon(IslandIcons.SettingsSearch, size = 38.dp) },
                                     trailingContent = {
                                         Surface(
                                             shape = RoundedCornerShape(8.dp),
@@ -146,14 +141,7 @@ fun SettingsModelsPage(
                                 SettingsItem(
                                     headlineContent = { Text(stringResource(R.string.models_multimodal)) },
                                     supportingContent = { Text(stringResource(R.string.models_multimodal_desc)) },
-                                    leadingContent = {
-                                        Icon(
-                                            Icons.Default.AutoAwesome,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    },
+                                    leadingContent = { IslandIcon(IslandIcons.MultimodalModels, size = 38.dp) },
                                     modifier = Modifier.clickable { subScreen = "multimodal" }
                                 )
                             }

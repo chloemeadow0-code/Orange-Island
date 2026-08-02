@@ -26,6 +26,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.ui.components.clearFocusOnTap
 import com.orangeisland.app.viewmodel.ChatViewModel
 
@@ -64,7 +66,7 @@ fun SettingsMemoryPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.memory_access_saved)) },
                                 supportingContent = { Text(stringResource(R.string.memory_access_saved_desc)) },
-                                leadingContent = { Icon(Icons.Default.Description, null, tint = MaterialTheme.colorScheme.primary) },
+                                leadingContent = { IslandIcon(IslandIcons.SavedMemoryAccess, size = 38.dp) },
                                 trailingContent = {
                                     Switch(checked = accessSavedMemories, onCheckedChange = { viewModel.settings.setAccessSavedMemories(it) })
                                 },
@@ -75,7 +77,7 @@ fun SettingsMemoryPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.memory_access_active)) },
                                 supportingContent = { Text(stringResource(R.string.memory_access_active_desc)) },
-                                leadingContent = { Icon(Icons.Default.Memory, null, tint = MaterialTheme.colorScheme.primary) },
+                                leadingContent = { IslandIcon(IslandIcons.ActiveMemoryAccess, size = 38.dp) },
                                 trailingContent = {
                                     Switch(checked = accessActiveMemory, onCheckedChange = { viewModel.settings.setAccessActiveMemory(it) })
                                 },
@@ -97,7 +99,7 @@ fun SettingsMemoryPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         else activeMemoryContent.take(100) + if (activeMemoryContent.length > 100) "..." else ""
                                     )
                                 },
-                                leadingContent = { Icon(Icons.Default.Memory, null, tint = MaterialTheme.colorScheme.primary) },
+                                leadingContent = { IslandIcon(IslandIcons.ActiveMemoryContext, size = 38.dp) },
                                 modifier = Modifier.clickable {
                                     showFileEditor = "ACTIVE_MEMORY"
                                     fileEditorContent = activeMemoryContent
@@ -127,7 +129,7 @@ fun SettingsMemoryPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 SettingsItem(
                                     headlineContent = { Text(displayName, fontWeight = FontWeight.Medium) },
                                     supportingContent = if (file.description.isNotBlank()) {{ Text(file.description) }} else null,
-                                    leadingContent = { Icon(Icons.Default.Description, null, tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)) },
+                                leadingContent = { IslandIcon(IslandIcons.SavedMemoryFiles, size = 38.dp) },
                                     trailingContent = {
                                         Box {
                                             IconButton(onClick = { showFileMenu = true }) {

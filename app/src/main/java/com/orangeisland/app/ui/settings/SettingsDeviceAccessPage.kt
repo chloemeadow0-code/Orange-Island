@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.viewmodel.ChatViewModel
 import com.orangeisland.app.viewmodel.PermissionController
 
@@ -156,7 +158,7 @@ fun SettingsDeviceAccessPage(
                     ToolToggleRow(
                         title = stringResource(R.string.device_access_device_info_title),
                         desc = stringResource(R.string.device_access_device_info_desc),
-                        icon = Icons.Default.BatteryFull,
+                        icon = IslandIcons.DeviceAccess,
                         checked = deviceInfoEnabled,
                         onCheckedChange = { settings.setDeviceInfoEnabled(it) },
                         permissionState = PermissionState.NotRequired
@@ -167,7 +169,7 @@ fun SettingsDeviceAccessPage(
                     ToolToggleRow(
                         title = stringResource(R.string.device_access_location_title),
                         desc = stringResource(R.string.device_access_location_desc),
-                        icon = Icons.Default.LocationOn,
+                        icon = IslandIcons.DeviceLocation,
                         checked = locationEnabled,
                         onCheckedChange = { on ->
                             settings.setLocationEnabled(on)
@@ -182,7 +184,7 @@ fun SettingsDeviceAccessPage(
                     ToolToggleRow(
                         title = stringResource(R.string.device_access_calendar_title),
                         desc = stringResource(R.string.device_access_calendar_desc),
-                        icon = Icons.Default.CalendarMonth,
+                        icon = IslandIcons.DeviceCalendar,
                         checked = calendarEnabled,
                         onCheckedChange = { on ->
                             settings.setCalendarEnabled(on)
@@ -197,7 +199,7 @@ fun SettingsDeviceAccessPage(
                     ToolToggleRow(
                         title = stringResource(R.string.device_access_notification_title),
                         desc = stringResource(R.string.device_access_notification_desc),
-                        icon = Icons.Default.Notifications,
+                        icon = IslandIcons.DeviceNotifications,
                         checked = notificationEnabled,
                         onCheckedChange = { settings.setNotificationEnabled(it) },
                         permissionState = if (notificationListenerGranted)
@@ -226,7 +228,7 @@ fun SettingsDeviceAccessPage(
                     ToolToggleRow(
                         title = stringResource(R.string.device_access_usage_title),
                         desc = stringResource(R.string.device_access_usage_desc),
-                        icon = Icons.Default.Timeline,
+                        icon = IslandIcons.DeviceScreenUsage,
                         checked = usageStatsEnabled,
                         onCheckedChange = { settings.setUsageStatsEnabled(it) },
                         permissionState = if (pc.isGranted(PermissionController.Tool.USAGE_STATS))
@@ -240,7 +242,7 @@ fun SettingsDeviceAccessPage(
                     ToolToggleRow(
                         title = stringResource(R.string.device_access_navigation_title),
                         desc = stringResource(R.string.device_access_navigation_desc),
-                        icon = Icons.Default.OpenInNew,
+                        icon = IslandIcons.DeviceNavigation,
                         checked = navigationEnabled,
                         onCheckedChange = { settings.setNavigationEnabled(it) },
                         permissionState = PermissionState.NotRequired
@@ -251,7 +253,7 @@ fun SettingsDeviceAccessPage(
                     ToolToggleRow(
                         title = stringResource(R.string.device_access_app_lock_title),
                         desc = stringResource(R.string.device_access_app_lock_desc),
-                        icon = Icons.Default.Lock,
+                        icon = IslandIcons.DeviceAppLock,
                         checked = appLockEnabled,
                         onCheckedChange = { settings.setAppLockEnabled(it) },
                         permissionState = if (accessibilityGranted)
@@ -265,7 +267,7 @@ fun SettingsDeviceAccessPage(
                     ToolToggleRow(
                         title = stringResource(R.string.device_access_toast_title),
                         desc = stringResource(R.string.device_access_toast_desc),
-                        icon = Icons.Outlined.NotificationsActive,
+                        icon = IslandIcons.DeviceToast,
                         checked = toastEnabled,
                         onCheckedChange = { settings.setToastEnabled(it) },
                         permissionState = PermissionState.NotRequired
@@ -276,7 +278,7 @@ fun SettingsDeviceAccessPage(
                     ToolToggleRow(
                         title = stringResource(R.string.device_access_alarm_title),
                         desc = stringResource(R.string.device_access_alarm_desc),
-                        icon = Icons.Default.Alarm,
+                        icon = IslandIcons.DeviceAlarmTimer,
                         checked = alarmEnabled,
                         onCheckedChange = { settings.setAlarmEnabled(it) },
                         permissionState = PermissionState.NotRequired
@@ -298,7 +300,7 @@ fun SettingsDeviceAccessPage(
                     ToolToggleRow(
                         title = stringResource(R.string.device_access_user_interaction_title),
                         desc = stringResource(R.string.device_access_user_interaction_desc),
-                        icon = Icons.Default.Chat,
+                        icon = IslandIcons.DeviceCardQuery,
                         checked = userInteractionEnabled,
                         onCheckedChange = { settings.setUserInteractionEnabled(it) },
                         permissionState = PermissionState.NotRequired
@@ -309,7 +311,7 @@ fun SettingsDeviceAccessPage(
                     ToolToggleRow(
                         title = stringResource(R.string.device_access_ui_automation_title),
                         desc = stringResource(R.string.device_access_ui_automation_desc),
-                        icon = Icons.Default.TouchApp,
+                        icon = IslandIcons.DeviceUiAutomation,
                         checked = uiAutomationEnabled,
                         onCheckedChange = { settings.setUiAutomationEnabled(it) },
                         permissionState = if (uiAutomationAccessibilityGranted)
@@ -323,7 +325,7 @@ fun SettingsDeviceAccessPage(
                     ToolToggleRow(
                         title = stringResource(R.string.device_access_env_awareness_title),
                         desc = stringResource(R.string.device_access_env_awareness_desc),
-                        icon = Icons.Default.Smartphone,
+                        icon = IslandIcons.DeviceDynamicAwareness,
                         checked = environmentAwarenessEnabled,
                         onCheckedChange = { settings.setEnvironmentAwarenessEnabled(it) },
                         permissionState = PermissionState.NotRequired
@@ -336,7 +338,7 @@ fun SettingsDeviceAccessPage(
                     ToolToggleRow(
                         title = stringResource(R.string.device_access_auto_approve_title),
                         desc = stringResource(R.string.device_access_auto_approve_desc),
-                        icon = Icons.Default.VerifiedUser,
+                        icon = IslandIcons.DeviceSensitiveReadApproval,
                         checked = autoApproveSensitiveTools,
                         onCheckedChange = { settings.setAutoApproveSensitiveTools(it) },
                         permissionState = PermissionState.NotRequired
@@ -350,7 +352,7 @@ fun SettingsDeviceAccessPage(
                     ToolToggleRow(
                         title = stringResource(R.string.device_access_overlay_title),
                         desc = stringResource(R.string.device_access_overlay_desc),
-                        icon = Icons.Default.Layers,
+                        icon = IslandIcons.DeviceOverlay,
                         checked = overlayEnabled,
                         onCheckedChange = { pc.openSystemSettings(PermissionController.Tool.OVERLAY) },
                         permissionState = if (overlayEnabled) PermissionState.Granted
@@ -622,6 +624,32 @@ private sealed class PermissionState {
     data class SpecialNeeded(val onClick: () -> Unit) : PermissionState()
 }
 
+@Composable
+private fun ToolToggleRow(
+    title: String,
+    desc: String,
+    icon: IslandIcons,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    permissionState: PermissionState,
+) {
+    SettingsItem(
+        headlineContent = { Text(title, fontWeight = FontWeight.Medium) },
+        supportingContent = {
+            Column {
+                Text(desc, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(6.dp))
+                PermissionChip(permissionState)
+            }
+        },
+        leadingContent = { IslandIcon(icon, size = 38.dp) },
+        trailingContent = { Switch(checked = checked, onCheckedChange = onCheckedChange) },
+        modifier = Modifier.clickable { onCheckedChange(!checked) }
+    )
+}
+
+/** ImageVector overload — kept for the three tools that intentionally stay on Material icons
+ *  (media control, get_current_time, desktop pet) because they have no watercolor counterpart. */
 @Composable
 private fun ToolToggleRow(
     title: String,

@@ -118,7 +118,7 @@ fun SettingsMultimodalModelsPage(
                                         headlineContent = { Text(stringResource(R.string.models_embedding_vector)) },
                                         supportingContent = { Text(supporting) },
                                         leadingContent = {
-                                            IslandIcon(IslandIcons.SettingsSearch, size = 38.dp)
+                                            IslandIcon(IslandIcons.Embedding, size = 38.dp)
                                         },
                                         modifier = Modifier.clickable { detailScreen = "search" }
                                     )

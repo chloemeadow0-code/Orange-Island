@@ -16,6 +16,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
+import com.orangeisland.app.ui.common.IslandIcon
+import com.orangeisland.app.ui.common.IslandIcons
 import com.orangeisland.app.model.apiModelName
 import com.orangeisland.app.viewmodel.ChatViewModel
 
@@ -50,7 +52,7 @@ fun SettingsAutoCompressPage(viewModel: ChatViewModel, onBack: () -> Unit, onNav
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.auto_compress_auto)) },
                                 supportingContent = { Text(autoCompressDesc) },
-                                leadingContent = { Icon(Icons.Default.Compress, null, tint = MaterialTheme.colorScheme.primary) },
+                                leadingContent = { IslandIcon(IslandIcons.AutoCompress, size = 38.dp) },
                                 trailingContent = {
                                     Switch(checked = autoCompressEnabled, onCheckedChange = { viewModel.settings.setAutoCompressEnabled(it) })
                                 },
