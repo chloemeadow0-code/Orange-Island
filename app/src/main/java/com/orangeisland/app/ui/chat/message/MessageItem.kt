@@ -63,13 +63,22 @@ fun MessageItem(
     onMediaClick: (List<String>, Int) -> Unit = { _, _ -> },
     onFileContentClick: ((fileName: String, content: String) -> Unit)? = null,
     onPdfPagesClick: ((pages: List<String>, startIndex: Int) -> Unit)? = null,
-    onHeightChanged: (Int) -> Unit = {},
+    onHeightChanged: ((Int) -> Unit)? = null,
     thoughtExpandedStates: SnapshotStateMap<String, Boolean> = remember { mutableStateMapOf() },
     codeBlockWrapEnabled: Boolean = false,
     splitBubbleByLine: Boolean = false,
 ) {
     var isFirstComposition by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) { isFirstComposition = false }
+
+    var lastReportedHeight by remember { mutableIntStateOf(0) }
+    fun reportHeight(height: Int) {
+        val callback = onHeightChanged ?: return
+        if (height != lastReportedHeight && height > 0) {
+            lastReportedHeight = height
+            callback(height)
+        }
+    }
 
     val isThoughtExpanded by remember(message.id) {
         derivedStateOf { thoughtExpandedStates[message.id] ?: false }
@@ -129,7 +138,7 @@ fun MessageItem(
 
     LaunchedEffect(message.text, message.status, isEditing, isThoughtExpanded) {
         kotlinx.coroutines.delay(50)
-        onHeightChanged(calculateReportedHeight(currentTotalHeight, currentThoughtBlockHeight))
+        reportHeight(calculateReportedHeight(currentTotalHeight, currentThoughtBlockHeight))
     }
 
     val alignment = when (message.participant) {
@@ -181,7 +190,7 @@ fun MessageItem(
             .fillMaxWidth()
             .onSizeChanged {
                 currentTotalHeight = it.height
-                onHeightChanged(calculateReportedHeight(it.height, currentThoughtBlockHeight))
+                reportHeight(calculateReportedHeight(it.height, currentThoughtBlockHeight))
             }
             .padding(vertical = 8.dp),
         horizontalAlignment = alignment

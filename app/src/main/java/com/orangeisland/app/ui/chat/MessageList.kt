@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.model.ChatMessage
@@ -26,6 +27,7 @@ import com.orangeisland.app.model.Participant
 import com.orangeisland.app.model.ToolCallDisplayModes
 import com.orangeisland.app.ui.chat.message.MessageItem
 import com.orangeisland.app.util.Constants
+import kotlinx.coroutines.flow.filter
 
 @Composable
 fun MessageList(
@@ -64,6 +66,7 @@ fun MessageList(
     onMediaClick: (List<String>, Int) -> Unit = { _, _ -> },
     onFileContentClick: ((fileName: String, content: String) -> Unit)? = null,
     onPdfPagesClick: ((pages: List<String>, startIndex: Int) -> Unit)? = null,
+    onLoadOlderMessages: () -> Unit = {},
     thoughtExpandedStates: SnapshotStateMap<String, Boolean> = remember { mutableStateMapOf() },
     codeBlockWrapEnabled: Boolean = false,
     splitBubbleByLine: Boolean = false,
@@ -99,10 +102,9 @@ fun MessageList(
     val extraPadding = if (lastUserMessageIndex == -1 || viewportHeight == 0) {
         0.dp
     } else if (stickToBottomEnabled) {
-        // In stick-to-bottom mode the host drives vertical position entirely via
-        // scrollToItem(lastIndex, 0); the list must NOT add a tail spacer that resizes
-        // mid-stream (jitter) NOR a giant fixed spacer (which, combined with the scroll
-        // target, produced the "blank screen, scroll up to see messages" bug). Zero it.
+        // In stick-to-bottom mode the host drives vertical position via scrollToItem(lastIndex).
+        // The dynamic padding that depends on per-message height measurements is unnecessary and
+        // would only cause recomposition churn while streaming tokens resize the last message.
         0.dp
     } else {
         val rangeIds = (lastUserMessageIndex until messages.size).map { messages[it].id }
@@ -124,6 +126,13 @@ fun MessageList(
                 computed
             }
         }
+    }
+
+    // Auto-load older messages when the user scrolls near the top of the windowed list.
+    LaunchedEffect(state, messages) {
+        snapshotFlow { state.firstVisibleItemIndex }
+            .filter { it <= 1 && messages.isNotEmpty() }
+            .collect { onLoadOlderMessages() }
     }
 
     Box(modifier = modifier) {
@@ -188,7 +197,7 @@ fun MessageList(
                     onMediaClick = onMediaClick,
                     onFileContentClick = onFileContentClick,
                     onPdfPagesClick = onPdfPagesClick,
-                    onHeightChanged = { height -> messageHeights[message.id] = height },
+                    onHeightChanged = if (stickToBottomEnabled) null else { height -> messageHeights[message.id] = height },
                     thoughtExpandedStates = thoughtExpandedStates,
                     codeBlockWrapEnabled = codeBlockWrapEnabled,
                 )

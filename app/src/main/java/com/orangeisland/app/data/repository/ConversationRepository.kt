@@ -1,6 +1,7 @@
 package com.orangeisland.app.data.repository
 
 import android.content.Context
+import android.util.LruCache
 import com.orangeisland.app.data.local.ChatDao
 import com.orangeisland.app.data.local.ChatEntity
 import com.orangeisland.app.data.local.EmbeddingEntity
@@ -22,6 +23,35 @@ class ConversationRepository(
     private val chatDao: ChatDao,
     private val appContext: Context
 ) {
+    /**
+     * Cache for decoded large-text fields. Room emits the full list on every
+     * streaming upsert, so decoding the same unchanged messages from disk over
+     * and over is a major hot-path cost. The key covers the fields that affect
+     * the decoded output.
+     */
+    private val decodedMessageCache = LruCache<String, MessageEntity>(200)
+
+    private fun MessageEntity.decodedCacheKey(): String = buildString {
+        append(id)
+        append('|')
+        append(status.name)
+        append('|')
+        append(text.hashCode())
+        append('|')
+        append(thoughts.hashCode())
+        append('|')
+        append(toolCallJson.hashCode())
+        append('|')
+        append(attachmentMeta.hashCode())
+    }
+
+    private fun MessageEntity.decodeLargeTextCached(context: Context): MessageEntity {
+        val key = decodedCacheKey()
+        return decodedMessageCache.get(key) ?: decodeLargeText(context).also {
+            decodedMessageCache.put(key, it)
+        }
+    }
+
     // ── Conversations ─────────────────────────────────────────
 
     fun getAllConversations(): Flow<List<ChatConversation>> =
@@ -112,11 +142,11 @@ class ConversationRepository(
 
     fun getMessagesForConversation(conversationId: String): Flow<List<MessageEntity>> =
         chatDao.getMessagesForConversation(conversationId).map { list ->
-            list.map { it.decodeLargeText(appContext) }
+            list.map { it.decodeLargeTextCached(appContext) }
         }
 
     suspend fun getMessagesForConversationSnapshot(conversationId: String): List<MessageEntity> =
-        chatDao.getMessagesForConversation(conversationId).first().map { it.decodeLargeText(appContext) }
+        chatDao.getMessagesForConversation(conversationId).first().map { it.decodeLargeTextCached(appContext) }
 
     /** Lightweight stuck-message lookup for the switch-conversation path. Does NOT call
      *  decodeLargeText — the status field is the only thing read or rewritten here, so
@@ -136,12 +166,12 @@ class ConversationRepository(
     }
 
     suspend fun getMessagesByIds(ids: List<String>): List<MessageEntity> =
-        chatDao.getMessagesByIds(ids).map { it.decodeLargeText(appContext) }
+        chatDao.getMessagesByIds(ids).map { it.decodeLargeTextCached(appContext) }
 
     /** Recent messages across every conversation in [projectId], newest first.
      *  Used by the workflow engine to inject project chat history into LLMNode context. */
     suspend fun getRecentMessagesForProject(projectId: String, limit: Int = 20): List<MessageEntity> =
-        chatDao.getRecentMessagesForProject(projectId, limit).map { it.decodeLargeText(appContext) }
+        chatDao.getRecentMessagesForProject(projectId, limit).map { it.decodeLargeTextCached(appContext) }
 
     /** MessageId → projectId mapping for RAG scope filtering. See [ChatDao.getProjectIdsForMessages]. */
     suspend fun getProjectIdsForMessages(ids: List<String>): Map<String, String?> =
@@ -222,7 +252,7 @@ class ConversationRepository(
     // ── Search ────────────────────────────────────────────────
 
     suspend fun searchMessages(query: String, limit: Int = 10): List<MessageEntity> =
-        chatDao.searchMessages(query, limit).map { it.decodeLargeText(appContext) }
+        chatDao.searchMessages(query, limit).map { it.decodeLargeTextCached(appContext) }
 
     /**
      * Scope-aware search. [projectId] = null searches only ungrouped conversations (the
@@ -231,8 +261,8 @@ class ConversationRepository(
      * outside the project" for both the drawer search and the AI's RAG retrieval.
      */
     suspend fun searchMessagesScoped(query: String, projectId: String?, limit: Int = 10): List<MessageEntity> =
-        if (projectId == null) chatDao.searchMessagesGlobal(query, limit).map { it.decodeLargeText(appContext) }
-        else chatDao.searchMessagesInProject(query, projectId, limit).map { it.decodeLargeText(appContext) }
+        if (projectId == null) chatDao.searchMessagesGlobal(query, limit).map { it.decodeLargeTextCached(appContext) }
+        else chatDao.searchMessagesInProject(query, projectId, limit).map { it.decodeLargeTextCached(appContext) }
 
     suspend fun getAllConversationsList(): List<ChatEntity> =
         chatDao.getAllConversationsList()
@@ -243,10 +273,10 @@ class ConversationRepository(
         else chatDao.getConversationsInProject(projectId)
 
     suspend fun getAllMessagesList(): List<MessageEntity> =
-        chatDao.getAllMessagesList().map { it.decodeLargeText(appContext) }
+        chatDao.getAllMessagesList().map { it.decodeLargeTextCached(appContext) }
 
     suspend fun getAllMessagesForIndexing(): List<MessageEntity> =
-        chatDao.getAllMessagesForIndexing().map { it.decodeLargeText(appContext) }
+        chatDao.getAllMessagesForIndexing().map { it.decodeLargeTextCached(appContext) }
 
     /** Deletes all on-disk attachment files referenced by [messages]. Safe to call with
      *  an empty list. Errors per-file are swallowed so one bad path never aborts a delete. */

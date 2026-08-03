@@ -48,3 +48,15 @@ AGENTS.md
 orangeisland-debug.apk
 /usb_dist/
 moments-test-v3.apk
+
+# Stray build outputs / local logs
+oi_apk/
+nul)
+*.bak
+compile_log.txt
+compile_log2.txt
+extract_missing_output.txt
+verify_output.txt
+height_scan_results.txt
+compare_output.txt
+temp_lines.txt

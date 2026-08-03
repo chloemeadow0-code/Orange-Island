@@ -107,78 +107,9 @@ fun ChatApp(
         }
     )
 
-    val conversations by viewModel.conversations.collectAsState()
-    val messages by viewModel.messages.collectAsState()
-    val allMessages by viewModel.allMessages.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val currentConversationId by viewModel.currentConversationId.collectAsState()
-    val generatingInConversationId by viewModel.generatingInConversationId.collectAsState()
-    val projects by viewModel.projects.collectAsState()
-    val activeProjectId by viewModel.activeProjectId.collectAsState()
-    val activeProjectName = remember(activeProjectId, projects) {
-        activeProjectId?.let { id -> projects.find { it.id == id }?.name }
-    }
-    val selectedModel by viewModel.currentActiveModel.collectAsState()
-    val enabledModels by viewModel.settings.enabledModels.collectAsState()
-    val modelAliases by viewModel.settings.modelAliases.collectAsState()
-    val thoughtExpandedStates = remember(currentConversationId) { mutableStateMapOf<String, Boolean>() }
-    val isNewChatMode by viewModel.isNewChatMode.collectAsState()
-    val isSwitching by viewModel.isSwitching.collectAsState()
-    val isTransitioningToNewChat by viewModel.isTransitioningToNewChat.collectAsState()
-    val totalTokens by viewModel.totalTokens.collectAsState()
-    val visualizeContextRollout by viewModel.settings.visualizeContextRollout.collectAsState()
-    val showUsageStats by viewModel.settings.showMessageUsageStats.collectAsState()
-    val maxContextWindow by viewModel.settings.maxContextWindow.collectAsState()
-    val globalCodeExecution by viewModel.settings.codeExecutionEnabled.collectAsState()
-    val globalGoogleSearch by viewModel.settings.googleSearchEnabled.collectAsState()
-    val globalThinkingEnabled by viewModel.settings.thinkingEnabled.collectAsState()
-    val globalThinkingLevel by viewModel.settings.thinkingLevel.collectAsState()
-    val globalThinkingBudgetEnabled by viewModel.settings.thinkingBudgetEnabled.collectAsState()
-    val globalThinkingBudgetTokens by viewModel.settings.thinkingBudgetTokens.collectAsState()
-    val globalWebSearch by viewModel.settings.webSearchEnabled.collectAsState()
-    val webSearchApiKeys by viewModel.settings.webSearchApiKeys.collectAsState()
-    val globalShell by viewModel.settings.shellEnabled.collectAsState()
-    val shellDevices by viewModel.settings.shellDevices.collectAsState()
-    val mcpServers by viewModel.settings.mcpServers.collectAsState()
-    val toolCallDisplayMode by viewModel.settings.toolCallDisplayMode.collectAsState()
-    val conversationSettings by viewModel.settings.conversationSettings.collectAsState()
-    val pendingSettings by viewModel.pendingConversationSettings.collectAsState()
-    // Resolved per-conversation values: override â†?global default
-    val convId = currentConversationId
-    val convOverride = if (convId != null) conversationSettings[convId] else pendingSettings
-    val codeExecutionEnabled = convOverride?.codeExecutionEnabled ?: globalCodeExecution
-    val googleSearchEnabled = convOverride?.googleSearchEnabled ?: globalGoogleSearch
-    val thinkingEnabled = convOverride?.thinkingEnabled ?: globalThinkingEnabled
-    val thinkingLevel = convOverride?.thinkingLevel ?: globalThinkingLevel
-    val thinkingBudgetEnabled = convOverride?.thinkingBudgetEnabled ?: globalThinkingBudgetEnabled
-    val thinkingBudgetTokens = convOverride?.thinkingBudgetTokens ?: globalThinkingBudgetTokens
-    // Web Search and Shell: global switch OFF â†?always false, regardless of override
-    val webSearchEnabled = globalWebSearch && (convOverride?.webSearchEnabled ?: true)
-    val shellEnabled = globalShell && (convOverride?.shellEnabled ?: true)
-    val contextWindow = convOverride?.contextWindow ?: maxContextWindow
-    val blurEffectsEnabled by viewModel.settings.blurEffectsEnabled.collectAsState()
-    val codeBlockWrapEnabled by viewModel.settings.codeBlockWrapEnabled.collectAsState()
-    val splitBubbleByLine by viewModel.settings.splitAssistantBubbleByLine.collectAsState()
-    val hapticsEnabled by viewModel.settings.hapticsEnabled.collectAsState()
-    val haptics = rememberOrangeIslandHaptics(hapticsEnabled)
-    val customChatBackground by viewModel.settings.customColorChatBackground.collectAsState()
-    val chatBackgroundImagePath by viewModel.settings.illustrationChatBackgroundPath.collectAsState()
-    val inputBackgroundImagePath by viewModel.settings.illustrationInputBackgroundPath.collectAsState()
-    val topBarBackgroundImagePath by viewModel.settings.illustrationTopBarBackgroundPath.collectAsState()
-    val reasoningBackgroundImagePath by viewModel.settings.illustrationReasoningBackgroundPath.collectAsState()
-    val topBarAlpha by viewModel.settings.transparencyTopBar.collectAsState()
-    val topBarCapsuleScale by viewModel.settings.topBarCapsuleScale.collectAsState()
-    val customInputFieldColor by viewModel.settings.customColorInputField.collectAsState()
-    val customUserBubbleColor by viewModel.settings.customColorUserBubble.collectAsState()
-    val userBubbleBackgroundImagePath by viewModel.settings.illustrationUserBubbleBackgroundPath.collectAsState()
-    val userBubbleCornerRadius by viewModel.settings.illustrationUserBubbleCornerRadius.collectAsState()
-    val customAssistantBubbleColor by viewModel.settings.customColorAssistantBubble.collectAsState()
-    val customReasoningPanelColor by viewModel.settings.customColorReasoningPanel.collectAsState()
-    val customChatTextColor by viewModel.settings.customColorChatText.collectAsState()
-    val customGlobalTextColor by viewModel.settings.customColorGlobalText.collectAsState()
-    val messageBubbleAlpha by viewModel.settings.transparencyMessageBubble.collectAsState()
-    val userBubbleMaskAlpha by viewModel.settings.transparencyUserBubbleMask.collectAsState()
-    val reasoningPanelAlpha by viewModel.settings.transparencyReasoningPanel.collectAsState()
+    val uiState by viewModel.chatUiState.collectAsState()
+    val thoughtExpandedStates = remember(uiState.currentConversationId) { mutableStateMapOf<String, Boolean>() }
+    val haptics = rememberOrangeIslandHaptics(uiState.hapticsEnabled)
 
 
     var showRenameDialog by remember { mutableStateOf<String?>(null) }
@@ -302,7 +233,7 @@ fun ChatApp(
 
     // Consume a one-shot prefilled input (set by an outside caller like the workflow detail page's
     // "Edit in chat" button) into the chat input field. Clears the pending value afterwards.
-    val pendingPrefill by viewModel.pendingPrefillInput.collectAsState()
+    val pendingPrefill = uiState.pendingPrefillInput
     LaunchedEffect(pendingPrefill) {
         val text = pendingPrefill ?: return@LaunchedEffect
         if (text.isNotBlank()) {
@@ -321,7 +252,7 @@ fun ChatApp(
     }
 
 
-    // ©¤©¤ Programmatic scroll helpers ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // ï¿½ï¿½ï¿½ï¿½ Programmatic scroll helpers ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     // All of these rely on LazyListState's own layout-driven positioning
     // (animateScrollToItem / scrollToItem) instead of summing per-message pixel
     // heights. The old approach manually accumulated messageHeights to compute an
@@ -337,15 +268,15 @@ fun ChatApp(
      *  knows this scroll came from us and doesn't mistake it for the user scrolling
      *  (which would wrongly suspend follow). */
     suspend fun scrollToBottom(animate: Boolean = true) {
-        if (messages.isEmpty()) return
+        if (uiState.messages.isEmpty()) return
         // scrollToItem(index, offset) aligns the item's TOP to the contentPadding.top line,
         // then scrolls DOWN by `offset` px. A huge offset (Int.MAX_VALUE) was pushing the
         // last message UP and out of the viewport, leaving the tail spacer as a blank
-        // screen ¡ª that's the "blank screen, scroll up to see messages" bug. offset 0 just
+        // screen ï¿½ï¿½ that's the "blank screen, scroll up to see uiState.messages" bug. offset 0 just
         // parks the last message at the top padding line, which for any conversation taller
         // than the viewport is exactly the bottom; for short ones the list can't scroll past
-        // its content anyway, so it lands at max scroll (messages visible, no blank).
-        val lastIndex = messages.lastIndex
+        // its content anyway, so it lands at max scroll (uiState.messages visible, no blank).
+        val lastIndex = uiState.messages.lastIndex
         try {
             withTimeout(2000) {
                 snapshotFlow { listState.layoutInfo.totalItemsCount }
@@ -369,23 +300,23 @@ fun ChatApp(
      *  message in view rather than jumping to the very bottom. For a MODEL reply
      *  we target its parent USER message, matching the previous behaviour. */
     suspend fun scrollToMessage(targetMessageId: String, animate: Boolean = true) {
-        val msg = messages.find { it.id == targetMessageId } ?: return
+        val msg = uiState.messages.find { it.id == targetMessageId } ?: return
         val targetIndex = if (msg.participant == Participant.MODEL && msg.parentId != null) {
-            val parentIndex = messages.indexOfFirst { it.id == msg.parentId }
-            if (parentIndex != -1) parentIndex else messages.indexOfFirst { it.id == targetMessageId }
+            val parentIndex = uiState.messages.indexOfFirst { it.id == msg.parentId }
+            if (parentIndex != -1) parentIndex else uiState.messages.indexOfFirst { it.id == targetMessageId }
         } else {
-            messages.indexOfFirst { it.id == targetMessageId }
+            uiState.messages.indexOfFirst { it.id == targetMessageId }
         }
         if (targetIndex == -1) return
         if (animate) listState.animateScrollToItem(targetIndex, 0)
         else listState.scrollToItem(targetIndex, 0)
     }
 
-    val branchSwitchTrigger by viewModel.branchSwitchTrigger.collectAsState()
+    val branchSwitchTrigger = uiState.branchSwitchTrigger
 
     LaunchedEffect(branchSwitchTrigger) {
         val targetMessageId = branchSwitchTrigger ?: return@LaunchedEffect
-        if (currentConversationId == null) {
+        if (uiState.currentConversationId == null) {
             viewModel.clearBranchSwitchTrigger()
             viewModel.setSwitching(false)
             return@LaunchedEffect
@@ -393,7 +324,7 @@ fun ChatApp(
 
         try {
             val currentMsgs = withTimeout(4000) {
-                snapshotFlow { messages }
+                snapshotFlow { uiState.messages }
                     .filter { currentMsgs -> currentMsgs.any { it.id == targetMessageId } }
                     .first()
             }
@@ -416,7 +347,7 @@ fun ChatApp(
         viewModel.setSwitching(false)
     }
 
-    LaunchedEffect(currentConversationId) {
+    LaunchedEffect(uiState.currentConversationId) {
         // New chat's first send creates the conversation; its own scroll-to-message handles
         // scrolling, so skip this conversation-open auto-scroll once to avoid a double scroll.
         if (viewModel.suppressNextOpenScroll) {
@@ -424,18 +355,18 @@ fun ChatApp(
             viewModel.setSwitching(false)
             return@LaunchedEffect
         }
-        if (currentConversationId != null) {
+        if (uiState.currentConversationId != null) {
             // IMPORTANT timing: while the switching overlay is up, MessageList is fed an
             // EMPTY list (see the switchingToExisting guard at the MessageList call site),
             // so the LazyColumn hasn't laid out any real items yet. We must NOT scroll
-            // before the overlay drops ¡ª scrolling against an empty/just-inflating list is
+            // before the overlay drops ï¿½ï¿½ scrolling against an empty/just-inflating list is
             // exactly the "freezes for a beat, then jumps to the last message" symptom.
             // So: wait for the overlay to clear (isSwitching == false), which means the real
             // message list has been switched in, THEN give the LazyColumn a frame to measure,
             // THEN jump to the bottom. scrollToBottom also waits for totalItemsCount itself.
             try {
                 withTimeout(4000) {
-                    snapshotFlow { isSwitching }.filter { !it }.first()
+                    snapshotFlow { uiState.isSwitching }.filter { !it }.first()
                 }
             } catch (e: Exception) {
                 // Timeout
@@ -461,15 +392,15 @@ fun ChatApp(
     //    settle detector treats it as ours, not the user's.
     //  - conflate() caps work to one scroll per frame; per-token micro-jumps are
     //    smoothed out instead of queueing into visible jitter.
-    LaunchedEffect(currentConversationId) {
+    LaunchedEffect(uiState.currentConversationId) {
         snapshotFlow {
-            val last = messages.lastOrNull()
+            val last = uiState.messages.lastOrNull()
             last?.let { "${it.id}|${it.text.length}|${it.thoughts?.length ?: 0}|${it.status}" }
-        }.filter { messages.isNotEmpty() }
+        }.filter { uiState.messages.isNotEmpty() }
             .conflate()
             .collect {
-                if (stickToBottom.value && messages.isNotEmpty()) {
-                    val last = messages.lastOrNull()
+                if (stickToBottom.value && uiState.messages.isNotEmpty()) {
+                    val last = uiState.messages.lastOrNull()
                     com.orangeisland.app.util.DebugLog.d(
                         "ChatScroll",
                         "stream-follow: lastId=${last?.id?.take(8)} len=${last?.text?.length} hasDetails=${last?.text?.contains("<details", ignoreCase = true) == true} firstIdx=${listState.firstVisibleItemIndex} firstOff=${listState.firstVisibleItemScrollOffset} total=${listState.layoutInfo.totalItemsCount}"
@@ -479,7 +410,7 @@ fun ChatApp(
                         // offset 0 parks the last message at the top padding line (= the
                         // bottom of a tall list). See scrollToBottom for why Int.MAX_VALUE
                         // was wrong (blank screen).
-                        listState.scrollToItem(messages.lastIndex, 0)
+                        listState.scrollToItem(uiState.messages.lastIndex, 0)
                     } finally {
                         programmaticScroll.value = false
                     }
@@ -492,7 +423,7 @@ fun ChatApp(
             // The only producer of this flow today is MessageGenerationController,
             // which fires onScrollToMessage(userMessageId) right after a send. The
             // old behaviour scrolled TO that user message, leaving the just-created
-            // assistant reply below the fold ¡ª i.e. "it jumps to my message". For
+            // assistant reply below the fold ï¿½ï¿½ i.e. "it jumps to my message". For
             // ChatGPT-style we want the send to pin to the BOTTOM (the live reply),
             // so both null and non-null ids route through scrollToBottom here.
             // scrollToMessage(targetId) is kept for explicit "bring this message to
@@ -517,15 +448,15 @@ fun ChatApp(
         }
     }
 
-    var observedGeneration by remember { mutableStateOf(isLoading) }
-    var previousIsLoading by remember { mutableStateOf(isLoading) }
-    LaunchedEffect(isLoading) {
+    var observedGeneration by remember { mutableStateOf(uiState.isLoading) }
+    var previousIsLoading by remember { mutableStateOf(uiState.isLoading) }
+    LaunchedEffect(uiState.isLoading) {
         when {
-            isLoading && !previousIsLoading -> {
+            uiState.isLoading && !previousIsLoading -> {
                 observedGeneration = true
             }
-            !isLoading && previousIsLoading && observedGeneration -> {
-                val terminalStatus = messages.lastOrNull { it.participant == Participant.MODEL }?.status
+            !uiState.isLoading && previousIsLoading && observedGeneration -> {
+                val terminalStatus = uiState.messages.lastOrNull { it.participant == Participant.MODEL }?.status
                 when (terminalStatus) {
                     MessageStatus.ERROR -> haptics.reject()
                     MessageStatus.STOPPED -> haptics.generationStopped()
@@ -534,16 +465,16 @@ fun ChatApp(
                 observedGeneration = false
             }
         }
-        previousIsLoading = isLoading
+        previousIsLoading = uiState.isLoading
     }
 
-    val answeringHapticActive = isLoading &&
-        generatingInConversationId == currentConversationId &&
-        messages.lastOrNull { it.participant == Participant.MODEL }?.let { message ->
+    val answeringHapticActive = uiState.isLoading &&
+        uiState.generatingInConversationId == uiState.currentConversationId &&
+        uiState.messages.lastOrNull { it.participant == Participant.MODEL }?.let { message ->
             message.status == MessageStatus.SENDING && message.hasActiveAnswerSegment()
         } == true
-    DisposableEffect(answeringHapticActive, hapticsEnabled) {
-        if (answeringHapticActive && hapticsEnabled) {
+    DisposableEffect(answeringHapticActive, uiState.hapticsEnabled) {
+        if (answeringHapticActive && uiState.hapticsEnabled) {
             haptics.startAnsweringTexture()
         }
         onDispose {
@@ -552,18 +483,18 @@ fun ChatApp(
     }
 
     var pendingDrawerConversationHaptic by remember { mutableStateOf<String?>(null) }
-    var previousIsSwitching by remember { mutableStateOf(isSwitching) }
-    LaunchedEffect(isSwitching, currentConversationId) {
+    var previousIsSwitching by remember { mutableStateOf(uiState.isSwitching) }
+    LaunchedEffect(uiState.isSwitching, uiState.currentConversationId) {
         if (
             previousIsSwitching &&
-            !isSwitching &&
+            !uiState.isSwitching &&
             pendingDrawerConversationHaptic != null &&
-            pendingDrawerConversationHaptic == currentConversationId
+            pendingDrawerConversationHaptic == uiState.currentConversationId
         ) {
             haptics.success()
             pendingDrawerConversationHaptic = null
         }
-        previousIsSwitching = isSwitching
+        previousIsSwitching = uiState.isSwitching
     }
 
     CompositionLocalProvider(LocalOrangeIslandHaptics provides haptics) {
@@ -597,8 +528,8 @@ fun ChatApp(
             modifier = Modifier
                 .fillMaxSize()
                 .then(
-                    if (chatBackgroundImagePath.isBlank()) {
-                        customChatBackground?.let { argb ->
+                    if (uiState.chatBackgroundImagePath.isBlank()) {
+                        uiState.customChatBackground?.let { argb ->
                             Modifier.background(com.orangeisland.app.ui.components.ColorMath.argbToColor(argb))
                         } ?: Modifier
                     } else Modifier
@@ -606,9 +537,9 @@ fun ChatApp(
                 .clearFocusOnTap()
                 .onSizeChanged { viewportHeightPx = it.height }
         ) {
-            if (chatBackgroundImagePath.isNotBlank()) {
+            if (uiState.chatBackgroundImagePath.isNotBlank()) {
                 coil.compose.AsyncImage(
-                    model = chatBackgroundImagePath,
+                    model = uiState.chatBackgroundImagePath,
                     contentDescription = null,
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
@@ -617,7 +548,7 @@ fun ChatApp(
             val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
             val (targetCa, targetQa) = if (!dark) {
                 0.00f to 0.00f
-            } else if (isNewChatMode) {
+            } else if (uiState.isNewChatMode) {
                 0.20f to 0.10f
             } else {
                 0.02f to 0.01f
@@ -631,16 +562,16 @@ fun ChatApp(
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 topBar = {
                     ChatTopBar(
-                        isNewChatMode = isNewChatMode,
-                        activeProjectName = activeProjectName,
+                        isNewChatMode = uiState.isNewChatMode,
+                        activeProjectName = uiState.activeProjectName,
                         onExitProject = {
                             haptics.action()
                             viewModel.setActiveProject(null)
                             viewModel.createNewChat()
                         },
-                        conversations = conversations,
-                        currentConversationId = currentConversationId,
-                        totalTokens = totalTokens,
+                        conversations = uiState.conversations,
+                        currentConversationId = uiState.currentConversationId,
+                        totalTokens = uiState.totalTokens,
                         onOpenDrawer = { haptics.action(); focusManager.clearFocus(); scope.launch { drawerState.open() } },
                         onSystemPromptClick = { haptics.action(); showPromptDialog = true },
                         onNewChat = {
@@ -649,9 +580,9 @@ fun ChatApp(
                             viewModel.createNewChat()
                             inputFocusRequester.requestFocus()
                         },
-                        topBarBackgroundImagePath = topBarBackgroundImagePath,
-                        topBarAlpha = topBarAlpha,
-                        topBarCapsuleScale = topBarCapsuleScale,
+                        topBarBackgroundImagePath = uiState.topBarBackgroundImagePath,
+                        topBarAlpha = uiState.topBarAlpha,
+                        topBarCapsuleScale = uiState.topBarCapsuleScale,
                     )
                 }
             ) { padding ->
@@ -659,7 +590,7 @@ fun ChatApp(
                     val topBarH = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp
                     val pivotY = ((LocalConfiguration.current.screenHeightDp + topBarH.value / 2f - bottomBarHeight.value) / 2f).coerceAtLeast(0f) / LocalConfiguration.current.screenHeightDp
                     AnimatedContent(
-                        targetState = Pair(isNewChatMode, showLaunchContent),
+                        targetState = Pair(uiState.isNewChatMode, showLaunchContent),
                         transitionSpec = {
                             val targetNewChat = targetState.first
                             val targetShowLaunch = targetState.second
@@ -673,7 +604,7 @@ fun ChatApp(
                                 (fadeIn(animationSpec = fadeInSpec) + scaleIn(initialScale = 0.6f, transformOrigin = TransformOrigin(0.5f, pivotY), animationSpec = enterSpec))
                                     .togetherWith(fadeOut(animationSpec = tween(300)))
                             } else if (!targetNewChat && !initialNewChat) {
-                                // Switching between existing conversations: no animation
+                                // Switching between existing uiState.conversations: no animation
                                 EnterTransition.None togetherWith ExitTransition.None
                             } else {
                                 // Returning from new-chat to an existing conversation
@@ -685,7 +616,7 @@ fun ChatApp(
                         modifier = Modifier.fillMaxSize()
                     ) { (targetNewChat, targetShowLaunch) ->
                         if (!targetNewChat) {
-                            val messageListModifier = if (blurEffectsEnabled) {
+                            val messageListModifier = if (uiState.blurEffectsEnabled) {
                                 Modifier.fillMaxSize().gradientBlur(blurAtTopDp = 8f, blurAtBottomDp = 0f)
                             } else {
                                 Modifier.fillMaxSize()
@@ -694,48 +625,48 @@ fun ChatApp(
                             // The visible "freeze with no spinner" on chat open was because the
                             // heavy LazyColumn first-pass layout (lots of items + per-message
                             // height/branch bookkeeping) ran on the SAME frame as the spinner's
-                            // fadeIn ¡ª so the main thread was blocked and the spinner never got
+                            // fadeIn ï¿½ï¿½ so the main thread was blocked and the spinner never got
                             // drawn, exactly when we needed it. Emptying the list during the
                             // switch makes that first frame cheap (only the spinner paints);
-                            // the real list renders on the frame after isSwitching flips false.
-                            val switchingToExisting = isSwitching && !isTransitioningToNewChat
+                            // the real list renders on the frame after uiState.isSwitching flips false.
+                            val switchingToExisting = uiState.isSwitching && !uiState.isTransitioningToNewChat
                             MessageList(
-                                messages = if (switchingToExisting) emptyList() else messages,
-                                allMessages = if (switchingToExisting) emptyList() else allMessages,
+                                messages = if (switchingToExisting) emptyList() else uiState.messages,
+                                allMessages = if (switchingToExisting) emptyList() else uiState.allMessages,
                                 modifier = messageListModifier,
                                 state = listState,
                                 // Global generation gate: while ANY generation is in
                                 // progress, all per-message actions (edit / delete /
                                 // regenerate / branch-switch) are disabled. Bound to the
-                                // global isLoading so there is no per-conversation timing
-                                // window (generatingInConversationId is set asynchronously).
-                                isLoading = isLoading,
-                                isSwitching = isSwitching,
-                                visualizeContextRollout = visualizeContextRollout,
-                                showUsageStats = showUsageStats,
-                                toolCallDisplayMode = toolCallDisplayMode,
-                                maxContextWindow = contextWindow,
-                                modelAliases = modelAliases,
-                                customUserBubbleColor = customUserBubbleColor,
-                                userBubbleBackgroundImagePath = userBubbleBackgroundImagePath,
-                                userBubbleCornerRadiusOverride = userBubbleCornerRadius,
-                                customAssistantBubbleColor = customAssistantBubbleColor,
-                                customReasoningPanelColor = customReasoningPanelColor,
-                                reasoningBackgroundImagePath = reasoningBackgroundImagePath,
-                                customChatTextColor = customChatTextColor,
-                                customGlobalTextColor = customGlobalTextColor,
-                                messageBubbleAlpha = messageBubbleAlpha,
-                                userBubbleMaskAlpha = userBubbleMaskAlpha,
-                                reasoningPanelAlpha = reasoningPanelAlpha,
+                                // global uiState.isLoading so there is no per-conversation timing
+                                // window (uiState.generatingInConversationId is set asynchronously).
+                                isLoading = uiState.isLoading,
+                                isSwitching = uiState.isSwitching,
+                                visualizeContextRollout = uiState.visualizeContextRollout,
+                                showUsageStats = uiState.showUsageStats,
+                                toolCallDisplayMode = uiState.toolCallDisplayMode,
+                                maxContextWindow = uiState.contextWindow,
+                                modelAliases = uiState.modelAliases,
+                                customUserBubbleColor = uiState.customUserBubbleColor,
+                                userBubbleBackgroundImagePath = uiState.userBubbleBackgroundImagePath,
+                                userBubbleCornerRadiusOverride = uiState.userBubbleCornerRadius,
+                                customAssistantBubbleColor = uiState.customAssistantBubbleColor,
+                                customReasoningPanelColor = uiState.customReasoningPanelColor,
+                                reasoningBackgroundImagePath = uiState.reasoningBackgroundImagePath,
+                                customChatTextColor = uiState.customChatTextColor,
+                                customGlobalTextColor = uiState.customGlobalTextColor,
+                                messageBubbleAlpha = uiState.messageBubbleAlpha,
+                                userBubbleMaskAlpha = uiState.userBubbleMaskAlpha,
+                                reasoningPanelAlpha = uiState.reasoningPanelAlpha,
                                 bottomBarHeight = bottomBarHeight,
                                 viewportHeight = viewportHeightPx,
                                 messageHeights = messageHeights,
                                 onEditMessage = { id, text ->
-                                    val isFirstMessage = messages.isEmpty()
+                                    val isFirstMessage = uiState.messages.isEmpty()
                                     viewModel.editMessage(id, text)
                                     scope.launch {
                                         if (!isFirstMessage) {
-                                            // An edit kicks off a fresh reply ¡ª follow it to the bottom.
+                                            // An edit kicks off a fresh reply ï¿½ï¿½ follow it to the bottom.
                                             stickToBottom.value = true
                                             delay(50)
                                             scrollToBottom(animate = true)
@@ -762,9 +693,10 @@ fun ChatApp(
                                 onMediaClick = onMediaClick,
                                 onFileContentClick = onFileContentClick,
                                 onPdfPagesClick = { pages, idx -> haptics.action(); onPdfPagesClick?.invoke(pages, idx) },
+                                onLoadOlderMessages = { viewModel.loadOlderMessages() },
                                 thoughtExpandedStates = thoughtExpandedStates,
-                                codeBlockWrapEnabled = codeBlockWrapEnabled,
-                                splitBubbleByLine = splitBubbleByLine,
+                                codeBlockWrapEnabled = uiState.codeBlockWrapEnabled,
+                                splitBubbleByLine = uiState.splitBubbleByLine,
                                 stickToBottomEnabled = true,
                                 contentPadding = PaddingValues(
                                     start = 8.dp,
@@ -799,7 +731,7 @@ fun ChatApp(
                                         )
                                         Spacer(modifier = Modifier.height(20.dp))
                                         TypewriterText(
-                                            text = activeProjectName?.let { stringResource(R.string.welcome_to_project, it) }
+                                            text = uiState.activeProjectName?.let { stringResource(R.string.welcome_to_project, it) }
                                                 ?: stringResource(R.string.welcome_to_orange_island),
                                             style = MaterialTheme.typography.headlineMedium,
                                             fontWeight = FontWeight.Bold,
@@ -815,7 +747,7 @@ fun ChatApp(
 
                     val showButton by remember {
                         derivedStateOf {
-                            if (isNewChatMode) false
+                            if (uiState.isNewChatMode) false
                             else {
                                 val info = listState.layoutInfo
                                 val total = info.totalItemsCount
@@ -843,10 +775,10 @@ fun ChatApp(
                     }
 
                     AnimatedVisibility(
-                        visible = isSwitching && !isTransitioningToNewChat,
+                        visible = uiState.isSwitching && !uiState.isTransitioningToNewChat,
                         // Snappy enter (60ms) so the spinner is visible immediately when a
-                        // conversation is tapped ¡ª the previous 200ms fadeIn was longer than
-                        // the whole switching window for already-cached conversations, so the
+                        // conversation is tapped ï¿½ï¿½ the previous 200ms fadeIn was longer than
+                        // the whole switching window for already-cached uiState.conversations, so the
                         // spinner never actually appeared. Exit stays gentle.
                         enter = fadeIn(animationSpec = tween(60)),
                         exit = fadeOut(animationSpec = tween(200))
@@ -917,10 +849,10 @@ fun ChatApp(
                         .navigationBarsPadding()
                         .imePadding()
                         .padding(8.dp),
-                    color = if (inputBackgroundImagePath.isNotBlank()) {
+                    color = if (uiState.inputBackgroundImagePath.isNotBlank()) {
                         Color.Transparent
                     } else {
-                        customInputFieldColor?.let { com.orangeisland.app.ui.components.ColorMath.argbToColor(it) } ?: MaterialTheme.colorScheme.surface
+                        uiState.customInputFieldColor?.let { com.orangeisland.app.ui.components.ColorMath.argbToColor(it) } ?: MaterialTheme.colorScheme.surface
                     },
                     tonalElevation = 2.dp,
                     shadowElevation = 8.dp,
@@ -929,9 +861,9 @@ fun ChatApp(
                     Box(
                         contentAlignment = Alignment.BottomCenter
                     ) {
-                        if (inputBackgroundImagePath.isNotBlank()) {
+                        if (uiState.inputBackgroundImagePath.isNotBlank()) {
                             coil.compose.AsyncImage(
-                                model = inputBackgroundImagePath,
+                                model = uiState.inputBackgroundImagePath,
                                 contentDescription = null,
                                 contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                                 modifier = Modifier.matchParentSize(),
@@ -960,27 +892,27 @@ fun ChatApp(
                             haptics.generationStopped()
                             viewModel.stopGeneration()
                         },
-                        isLoading = isLoading,
-                        isSwitching = isSwitching,
-                        enabledModels = enabledModels,
-                        selectedModel = selectedModel,
-                        modelAliases = modelAliases,
-                        codeExecutionEnabled = codeExecutionEnabled,
-                        googleSearchEnabled = googleSearchEnabled,
-                        thinkingEnabled = thinkingEnabled,
-                        thinkingLevel = thinkingLevel,
-                        thinkingBudgetEnabled = thinkingBudgetEnabled,
-                        thinkingBudgetTokens = thinkingBudgetTokens,
-                        onCodeExecutionToggle = { enabled -> haptics.selection(); viewModel.updateConversationSetting(currentConversationId) { it.copy(codeExecutionEnabled = enabled) } },
-                        onGoogleSearchToggle = { enabled -> haptics.selection(); viewModel.updateConversationSetting(currentConversationId) { it.copy(googleSearchEnabled = enabled) } },
-                        onThinkingToggle = { enabled -> haptics.selection(); viewModel.updateConversationSetting(currentConversationId) { it.copy(thinkingEnabled = enabled) } },
-                        onThinkingLevelChange = { level -> viewModel.updateConversationSetting(currentConversationId) { it.copy(thinkingLevel = level) } },
-                        onThinkingBudgetEnabledChange = { enabled -> viewModel.updateConversationSetting(currentConversationId) { it.copy(thinkingBudgetEnabled = enabled) } },
-                        onThinkingBudgetTokensChange = { tokens -> viewModel.updateConversationSetting(currentConversationId) { it.copy(thinkingBudgetTokens = tokens) } },
-                        webSearchEnabled = webSearchEnabled,
-                        onWebSearchToggle = { enabled -> haptics.selection(); viewModel.updateConversationSetting(currentConversationId) { it.copy(webSearchEnabled = enabled) } },
-                        shellEnabled = shellEnabled,
-                        onShellToggle = { enabled -> haptics.selection(); viewModel.updateConversationSetting(currentConversationId) { it.copy(shellEnabled = enabled) } },
+                        isLoading = uiState.isLoading,
+                        isSwitching = uiState.isSwitching,
+                        enabledModels = uiState.enabledModels,
+                        selectedModel = uiState.selectedModel,
+                        modelAliases = uiState.modelAliases,
+                        codeExecutionEnabled = uiState.codeExecutionEnabled,
+                        googleSearchEnabled = uiState.googleSearchEnabled,
+                        thinkingEnabled = uiState.thinkingEnabled,
+                        thinkingLevel = uiState.thinkingLevel,
+                        thinkingBudgetEnabled = uiState.thinkingBudgetEnabled,
+                        thinkingBudgetTokens = uiState.thinkingBudgetTokens,
+                        onCodeExecutionToggle = { enabled -> haptics.selection(); viewModel.updateConversationSetting(uiState.currentConversationId) { it.copy(codeExecutionEnabled = enabled) } },
+                        onGoogleSearchToggle = { enabled -> haptics.selection(); viewModel.updateConversationSetting(uiState.currentConversationId) { it.copy(googleSearchEnabled = enabled) } },
+                        onThinkingToggle = { enabled -> haptics.selection(); viewModel.updateConversationSetting(uiState.currentConversationId) { it.copy(thinkingEnabled = enabled) } },
+                        onThinkingLevelChange = { level -> viewModel.updateConversationSetting(uiState.currentConversationId) { it.copy(thinkingLevel = level) } },
+                        onThinkingBudgetEnabledChange = { enabled -> viewModel.updateConversationSetting(uiState.currentConversationId) { it.copy(thinkingBudgetEnabled = enabled) } },
+                        onThinkingBudgetTokensChange = { tokens -> viewModel.updateConversationSetting(uiState.currentConversationId) { it.copy(thinkingBudgetTokens = tokens) } },
+                        webSearchEnabled = uiState.webSearchEnabled,
+                        onWebSearchToggle = { enabled -> haptics.selection(); viewModel.updateConversationSetting(uiState.currentConversationId) { it.copy(webSearchEnabled = enabled) } },
+                        shellEnabled = uiState.shellEnabled,
+                        onShellToggle = { enabled -> haptics.selection(); viewModel.updateConversationSetting(uiState.currentConversationId) { it.copy(shellEnabled = enabled) } },
                         onModelSelect = { haptics.selection(); viewModel.setActiveModel(it) },
                         onImageClick = { url -> haptics.action(); onMediaClick(listOf(url), 0) },
                         onAllMediaClick = { urls, idx -> haptics.action(); onMediaClick(urls, idx) },
@@ -992,8 +924,8 @@ fun ChatApp(
                         isExpandAnimating = isExpandAnimating,
                         onCollapse = { haptics.action(); isExpanded = false },
                         onExpand = { haptics.action(); isExpanded = true },
-                        showWebSearch = globalWebSearch,
-                        showShell = shellDevices.isNotEmpty() && globalShell,
+                        showWebSearch = uiState.globalWebSearch,
+                        showShell = uiState.shellDevices.isNotEmpty() && uiState.globalShell,
                         onPdfPagesClick = { pages, idx -> haptics.action(); onPdfPagesClick?.invoke(pages, idx) },
                         onPdfPreviewSelect = { pages, idx -> haptics.action(); onPdfPreviewSelect?.invoke(pages, idx) },
                         pdfViewerSelection = pdfViewerSelection,
@@ -1001,15 +933,14 @@ fun ChatApp(
                         onInitPdfSelection = onInitPdfSelection,
                         fullScreenViewerUrls = fullScreenViewerUrls,
                         onAdvancedClick = { showAdvancedDialog = true },
-                        showMcpEntry = mcpServers.any { it.enabled },
-                        mcpConversationActive = convOverride?.mcpServerIds != null &&
-                            convOverride.mcpServerIds.isNotEmpty(),
+                        showMcpEntry = uiState.mcpServers.any { it.enabled },
+                        mcpConversationActive = uiState.mcpServerIds?.isNotEmpty() == true,
                         onMcpClick = { haptics.action(); showMcpSheet = true },
                         onInputFocusChanged = { focused ->
-                            if (focused && isAtBottom && !isNewChatMode) {
+                            if (focused && isAtBottom && !uiState.isNewChatMode) {
                                 scope.launch {
-                                    if (messages.isNotEmpty()) {
-                                        listState.animateScrollToItem(messages.lastIndex, 0)
+                                    if (uiState.messages.isNotEmpty()) {
+                                        listState.animateScrollToItem(uiState.messages.lastIndex, 0)
                                     }
                                 }
                             }
@@ -1048,26 +979,19 @@ fun ChatApp(
     // â”€â”€ Project dialogs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // The model/prompt option lists are built from the same settings flows used by the
     // per-conversation dialogs, so "project default" and "chat override" see the same set.
-    // NOTE: these shadow a few top-of-composable names on purpose â€?here we want the GLOBAL
-    // settings defaults (not currentActiveModel / per-chat overrides) for project pickers.
-    val projectEnabledModels by viewModel.settings.enabledModels.collectAsState()
-    val projectModelAliases by viewModel.settings.modelAliases.collectAsState()
-    val projectSystemPrompts by viewModel.settings.systemPrompts.collectAsState()
-    val projectActivePromptId by viewModel.settings.activeSystemPromptId.collectAsState()
-    val globalSelectedModel by viewModel.settings.selectedModel.collectAsState()
-
-    val projectModelOptions = remember(projectEnabledModels, projectModelAliases) {
-        projectEnabledModels.toList().map { id ->
-            id to (projectModelAliases[id]?.ifBlank { null } ?: id.substringAfter(":", id))
+        // Project pickers use the global settings defaults from the single UI state.
+val projectModelOptions = remember(uiState.enabledModels, uiState.modelAliases) {
+        uiState.enabledModels.toList().map { id ->
+            id to (uiState.modelAliases[id]?.ifBlank { null } ?: id.substringAfter(":", id))
         }
     }
-    val projectPromptOptions = remember(projectSystemPrompts) {
-        projectSystemPrompts.map { it.id to it.title }
+    val projectPromptOptions = remember(uiState.systemPrompts) {
+        uiState.systemPrompts.map { it.id to it.title }
     }
-    val globalDefaultPromptTitle = projectSystemPrompts.find { it.id == projectActivePromptId }?.title
+    val globalDefaultPromptTitle = uiState.systemPrompts.find { it.id == uiState.activeSystemPromptId }?.title
         ?: stringResource(R.string.no_system_prompt)
-    val globalDefaultModelTitle = remember(globalSelectedModel, projectModelAliases) {
-        projectModelAliases[globalSelectedModel]?.ifBlank { null } ?: globalSelectedModel.substringAfter(":", globalSelectedModel)
+    val globalDefaultModelTitle = remember(uiState.globalSelectedModel, uiState.modelAliases) {
+        uiState.modelAliases[uiState.globalSelectedModel]?.ifBlank { null } ?: uiState.globalSelectedModel.substringAfter(":", uiState.globalSelectedModel)
     }
 
     if (showCreateProjectDialog) {
@@ -1111,7 +1035,7 @@ fun ChatApp(
         ) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(200))
     ) {
         val id = projectToSettings
-        val project = id?.let { projects.find { p -> p.id == it } }
+        val project = id?.let { uiState.projects.find { p -> p.id == it } }
         if (id != null && project != null) {
             // Refresh project memory files whenever the dialog is open for this project.
             // Simplest correct hook: re-fetch on (re)composition boundary via remember +
@@ -1124,8 +1048,8 @@ fun ChatApp(
             LaunchedEffect(id, memoryRefreshKey) {
                 projectMemoryFiles = viewModel.listProjectMemoryFiles(id)
             }
-            val conversationsInProject = remember(conversations, id) {
-                conversations.filter { it.projectId == id }
+            val conversationsInProject = remember(uiState.conversations, id) {
+                uiState.conversations.filter { it.projectId == id }
             }
             ProjectSettingsScreen(
                 projectId = id,
@@ -1194,18 +1118,18 @@ fun ChatApp(
 
     if (showMcpSheet) {
         McpConversationSheet(
-            servers = mcpServers.filter { it.enabled },
-            selectedIds = convOverride?.mcpServerIds,
+            servers = uiState.mcpServers.filter { it.enabled },
+            selectedIds = uiState.mcpServerIds,
             onInherit = {
-                viewModel.updateConversationSetting(currentConversationId) { it.copy(mcpServerIds = null) }
+                viewModel.updateConversationSetting(uiState.currentConversationId) { it.copy(mcpServerIds = null) }
             },
             onToggle = { id, on ->
-                viewModel.updateConversationSetting(currentConversationId) { settings ->
+                viewModel.updateConversationSetting(uiState.currentConversationId) { settings ->
                     // First toggle in inherit-mode seeds the explicit list with every enabled
                     // server (so unchecking one doesn't silently drop all the others); subsequent
                     // toggles just add/remove the one id.
                     val seed = settings.mcpServerIds
-                        ?: mcpServers.filter { it.enabled }.map { s -> s.id }
+                        ?: uiState.mcpServers.filter { it.enabled }.map { s -> s.id }
                     val next = if (on) (seed + id).distinct() else seed - id
                     settings.copy(mcpServerIds = next)
                 }

@@ -510,7 +510,7 @@ internal fun ProjectSettingsScreen(
                         )
                     }
                 } else {
-                    items(memoryFiles) { file ->
+                    items(memoryFiles, key = { it.name }) { file ->
                         Row(
                             verticalAlignment = Alignment.Top,
                             modifier = Modifier

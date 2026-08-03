@@ -132,7 +132,7 @@ internal fun ChatSystemPromptDialog(
                         Text(stringResource(R.string.global_default_format, globalDefaultTitle))
                     }
                 }
-                items(systemPrompts) { prompt ->
+                items(systemPrompts, key = { it.id }) { prompt ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth().clickable { selectedPromptId = prompt.id }.padding(8.dp)

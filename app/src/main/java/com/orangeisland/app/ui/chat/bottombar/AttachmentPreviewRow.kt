@@ -61,8 +61,10 @@ internal fun AttachmentPreviewRow(
         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp, start = 8.dp, end = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(composer.selectedAttachments.size) { index ->
-            val attachment = composer.selectedAttachments[index]
+        items(
+            items = composer.selectedAttachments,
+            key = { it.uri }
+        ) { attachment ->
             val uriStr = attachment.uri
             val isVideo = attachment.type == "video"
             val isPdf = attachment.type == "pdf"
@@ -200,7 +202,8 @@ internal fun AttachmentPreviewRow(
                         .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.8f), CircleShape)
                         .clip(RoundedCornerShape(18.dp))
                         .clickable {
-                            composer.removeAttachmentAt(index)
+                            val index = composer.selectedAttachments.indexOf(attachment)
+                            if (index != -1) composer.removeAttachmentAt(index)
                         },
                     contentAlignment = Alignment.Center
                 ) {

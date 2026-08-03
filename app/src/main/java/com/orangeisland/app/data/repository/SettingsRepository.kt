@@ -7,15 +7,19 @@ import com.orangeisland.app.data.ConversationSettings
 import com.orangeisland.app.data.CustomProviderConfig
 import com.orangeisland.app.data.EmbeddingModelConfig
 import com.orangeisland.app.data.LocalChatModelConfig
+import com.orangeisland.app.data.McpServerConfig
 import com.orangeisland.app.data.PromptTemplateItem
+import com.orangeisland.app.data.ChatSettingsSnapshot
 import com.orangeisland.app.data.SettingsManager
 import com.orangeisland.app.data.ShellDeviceConfig
 import com.orangeisland.app.data.SystemPromptEntry
 import com.orangeisland.app.model.ToolCallDisplayModes
 import com.orangeisland.app.util.Constants
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -242,6 +246,106 @@ class SettingsRepository(
             }
         }
     }
+
+    /**
+     * Single aggregated snapshot of every setting consumed by the chat screen.
+     * Use this instead of collecting the ~40 individual settings flows when building a
+     * [com.orangeisland.app.viewmodel.ChatUiState].
+     */
+    @Suppress("UNCHECKED_CAST")
+    val chatSettingsSnapshot: StateFlow<ChatSettingsSnapshot> = combine(
+        listOf<Flow<Any?>>(
+            enabledModels,
+            modelAliases,
+            visualizeContextRollout,
+            showMessageUsageStats,
+            maxContextWindow,
+            codeExecutionEnabled,
+            googleSearchEnabled,
+            thinkingEnabled,
+            thinkingLevel,
+            thinkingBudgetEnabled,
+            thinkingBudgetTokens,
+            webSearchEnabled,
+            webSearchApiKeys,
+            shellEnabled,
+            shellDevices,
+            mcpServers,
+            toolCallDisplayMode,
+            conversationSettings,
+            blurEffectsEnabled,
+            codeBlockWrapEnabled,
+            splitAssistantBubbleByLine,
+            hapticsEnabled,
+            customColorChatBackground,
+            illustrationChatBackgroundPath,
+            illustrationInputBackgroundPath,
+            illustrationTopBarBackgroundPath,
+            illustrationReasoningBackgroundPath,
+            transparencyTopBar,
+            topBarCapsuleScale,
+            customColorInputField,
+            customColorUserBubble,
+            illustrationUserBubbleBackgroundPath,
+            illustrationUserBubbleCornerRadius,
+            customColorAssistantBubble,
+            customColorReasoningPanel,
+            customColorChatText,
+            customColorGlobalText,
+            transparencyMessageBubble,
+            transparencyUserBubbleMask,
+            transparencyReasoningPanel,
+            systemPrompts,
+            activeSystemPromptId,
+            selectedModel
+        )
+    ) { values: Array<Any?> ->
+        ChatSettingsSnapshot(
+            enabledModels = values[0] as Set<String>,
+            modelAliases = values[1] as Map<String, String>,
+            visualizeContextRollout = values[2] as Boolean,
+            showMessageUsageStats = values[3] as Boolean,
+            maxContextWindow = values[4] as Int,
+            codeExecutionEnabled = values[5] as Boolean,
+            googleSearchEnabled = values[6] as Boolean,
+            thinkingEnabled = values[7] as Boolean,
+            thinkingLevel = values[8] as String,
+            thinkingBudgetEnabled = values[9] as Boolean,
+            thinkingBudgetTokens = values[10] as Int,
+            webSearchEnabled = values[11] as Boolean,
+            webSearchApiKeys = values[12] as Map<String, String>,
+            shellEnabled = values[13] as Boolean,
+            shellDevices = values[14] as List<ShellDeviceConfig>,
+            mcpServers = values[15] as List<McpServerConfig>,
+            toolCallDisplayMode = values[16] as String,
+            conversationSettings = values[17] as Map<String, ConversationSettings>,
+            blurEffectsEnabled = values[18] as Boolean,
+            codeBlockWrapEnabled = values[19] as Boolean,
+            splitAssistantBubbleByLine = values[20] as Boolean,
+            hapticsEnabled = values[21] as Boolean,
+            customColorChatBackground = values[22] as Long?,
+            illustrationChatBackgroundPath = values[23] as String,
+            illustrationInputBackgroundPath = values[24] as String,
+            illustrationTopBarBackgroundPath = values[25] as String,
+            illustrationReasoningBackgroundPath = values[26] as String,
+            transparencyTopBar = values[27] as Float,
+            topBarCapsuleScale = values[28] as Float,
+            customColorInputField = values[29] as Long?,
+            customColorUserBubble = values[30] as Long?,
+            illustrationUserBubbleBackgroundPath = values[31] as String,
+            illustrationUserBubbleCornerRadius = values[32] as Float,
+            customColorAssistantBubble = values[33] as Long?,
+            customColorReasoningPanel = values[34] as Long?,
+            customColorChatText = values[35] as Long?,
+            customColorGlobalText = values[36] as Long?,
+            transparencyMessageBubble = values[37] as Float,
+            transparencyUserBubbleMask = values[38] as Float,
+            transparencyReasoningPanel = values[39] as Float,
+            systemPrompts = values[40] as List<SystemPromptEntry>,
+            activeSystemPromptId = values[41] as String?,
+            selectedModel = values[42] as String
+        )
+    }.stateIn(scope, SharingStarted.Eagerly, ChatSettingsSnapshot())
 
     // ── Write (fire-and-forget; read current state from own StateFlows) ──
     //

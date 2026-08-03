@@ -288,7 +288,10 @@ private fun UserMessageBubbleContent(
                     modifier = Modifier.padding(bottom = if (message.text.isNotEmpty()) 8.dp else 0.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    itemsIndexed(displayItems) { itemIdx, (index, imagePath, metaItem) ->
+                    itemsIndexed(
+                        items = displayItems,
+                        key = { _, (_, imagePath, _) -> imagePath }
+                    ) { itemIdx, (index, imagePath, metaItem) ->
                         val type = remember(imagePath, metaItem?.type) {
                             resolveAttachmentType(imagePath, metaItem, ctx)
                         }
