@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="橘子岛 Orange Island 开放审核使用规则与隐私风险须知" />
+  <title>使用规则 - 橘子岛 Orange Island</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="brand">🍊 橘子岛</a>
+      <nav>
+        <a href="index.html">首页</a>
+        <a href="rules.html" class="active">使用规则</a>
+        <a href="quiz.html">审核答题</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="rules-container">
+    <div class="reading-progress">
+      <div><strong>阅读进度</strong> — 请完整阅读后再去答题</div>
+      <div class="bar">
+        <div class="bar-inner" id="reading-progress-bar"></div>
+      </div>
+    </div>
+
+    <h1>橘子岛 · 完整使用说明书</h1>
+    <p class="lead">请完整阅读以下内容。文后附 25 道客观验证题，申请开放审核资格时须全部答对。</p>
+
+    <h2>第一章：橘子岛是什么</h2>
+    <p>橘子岛是一款 <strong>BYOK（Bring Your Own Key）Android AI 客户端</strong>，它本身不提供 AI 聊天服务，而是作为统一入口，让你连接多个 AI 提供商。</p>
+    <p>使用橘子岛前，你必须自行准备至少一个 AI 服务提供商的 API Key。橘子岛不售卖、不提供、不赠送 API Key 或模型调用额度。</p>
+    <p>橘子岛支持以下 8 个内置提供商：</p>
+    <table>
+      <tr><th>编号</th><th>提供商</th><th>说明</th></tr>
+      <tr><td>A</td><td>OpenAI</td><td>GPT 系列、o1/o3 推理模型</td></tr>
+      <tr><td>B</td><td>Anthropic</td><td>Claude 系列</td></tr>
+      <tr><td>C</td><td>Google Gemini</td><td>Gemini 系列，支持代码执行与搜索插件</td></tr>
+      <tr><td>D</td><td>DeepSeek</td><td>DeepSeek-V3 / R1 等</td></tr>
+      <tr><td>E</td><td>Qwen（DashScope）</td><td>阿里通义千问系列</td></tr>
+      <tr><td>F</td><td>OpenRouter</td><td>多模型聚合平台</td></tr>
+      <tr><td>G</td><td>Ollama</td><td>本地网络或本机上的 Ollama 服务</td></tr>
+      <tr><td>H</td><td>Local</td><td>本机直接运行 GGUF 模型（llama.cpp）</td></tr>
+    </table>
+    <p>除内置提供商外，你还可以添加任意 <strong>OpenAI-compatible 自定义端点</strong>，只需填写名称、Base URL 和 API Key。</p>
+
+    <h2>第二章：首次使用四步</h2>
+    <ol>
+      <li>打开应用后，点击底部导航栏的 <strong>Settings（设置）</strong>。</li>
+      <li>进入 <strong>Settings → Provider</strong>，选择你要使用的提供商，点击添加 <strong>API Key</strong>。你可以为同一个提供商添加多个 Key，并分别命名别名。</li>
+      <li>进入 <strong>Settings → Models</strong>，点击 <strong>「Sync from All Providers」</strong>。橘子岛会从所有已配置有效 Key 的提供商拉取可用模型列表。</li>
+      <li>返回主界面，点击底部输入框，在模型选择器中选中一个模型，输入内容后发送即可开始对话。</li>
+    </ol>
+
+    <h2>第三章：模型选择与管理</h2>
+    <p>同步完成后，所有可用模型会按提供商分类显示。你需要在 <strong>Settings → Models</strong> 中手动开启想用的模型，未启用的模型不会出现在聊天界面的模型选择器中。</p>
+    <p>模型 ID 格式为 <code>ProviderName:model-id</code>，例如 <code>OpenAI:gpt-4o</code>、<code>Anthropic:claude-3-5-sonnet-20241022</code>。</p>
+    <p>你可以为模型设置显示别名（Alias），方便在模型选择器中识别。部分提供商支持 Base URL 覆盖，用于代理或自托管场景。</p>
+    <p>对话支持 <strong>Per-message model switching</strong>，即在同一次对话的不同消息中使用不同模型。</p>
+
+    <h2>第四章：聊天界面详解</h2>
+    <p>橘子岛的聊天记录采用 <strong>树状结构（Tree-structured）</strong>，而非线性列表。</p>
+    <ul>
+      <li>在任意模型回复上长按，选择 <strong>Regenerate</strong>，会生成一个同级分支回复，原回复不会被删除。</li>
+      <li>在自己发送的消息上长按，选择 <strong>Edit</strong>，会基于修改后的内容生成新的分支。</li>
+      <li>当一条消息存在多个分支回复时，消息旁会显示分支切换按钮，点击可在不同回复间切换。</li>
+    </ul>
+    <p>输入框上方工具栏可开关：Thinking、Web Search、Code Execution、Shell、Image Gen、Transcription。</p>
+
+    <h2>第五章：Thinking（推理模式）</h2>
+    <p>开启 Thinking 后，模型会先输出内部推理过程，再输出正式回答。推理内容默认可折叠。</p>
+    <p>Thinking Level 分为 <strong>Low / Medium / High</strong>，可在 Settings → Generation 或对话级高级设置中调整。不是所有模型都支持 Thinking。</p>
+
+    <h2>第六章：联网搜索</h2>
+    <p>橘子岛支持 DuckDuckGo Lite（默认，无需 Key）、Brave Search、Serper、Tavily、SearXNG。模型可以调用 <code>web_search</code> 和 <code>web_fetch</code> 两个工具。</p>
+
+    <h2>第七章：代码执行</h2>
+    <p>代码执行基于本地 <strong>PRoot + Alpine Linux 沙盒</strong>。首次启用时会下载 rootfs。某些 VPN / tun 网络可能与 PRoot 冲突，导致代码执行失败，可尝试关闭 VPN 后重试。</p>
+
+    <h2>第八章：远程 Shell（Conch 协议）</h2>
+    <p>Conch 是橘子岛用于远程控制设备的私有协议。使用前，你必须先在自己的目标设备（服务器、电脑、NAS 等）上部署 Conch 服务端，然后在 <strong>Settings → Shell Devices</strong> 中添加设备。</p>
+    <p>Conch 协议采用 <strong>ECDH 密钥交换 + AES-256-GCM 加密 + HMAC-SHA256 签名</strong>，并具备 token bucket 速率限制与 nonce 防重放机制。</p>
+
+    <h2>第九章：记忆（Memory）</h2>
+    <p>橘子岛的记忆功能分为两类：</p>
+    <ul>
+      <li><strong>Active Memory（活跃记忆）</strong>：保存在 <code>active_memory.md</code> 中，会自动附加到每次对话的系统提示词末尾。</li>
+      <li><strong>Saved Memory Files（记忆文件）</strong>：保存在 <code>memory_db/*.md</code> 中，模型可以通过工具自行创建、读取、编辑、删除。</li>
+    </ul>
+
+    <h2>第十章：RAG 对话搜索</h2>
+    <p>RAG（Retrieval-Augmented Generation）允许模型搜索你历史对话的内容。使用 RAG 前需要配置嵌入模型。语义搜索基于<strong>余弦相似度</strong>计算，仅返回高于阈值的历史消息。</p>
+
+    <h2>第十一章：本地模型（Local / Ollama）</h2>
+    <p>橘子岛内置 llama.cpp，可直接在 Android 设备上运行 GGUF 模型。同一时间<strong>只能加载一个本地模型</strong>。Ollama 接入需要在局域网或本机上运行 Ollama 服务。</p>
+
+    <h2>第十二章：系统提示词</h2>
+    <p>系统提示词模板分为三段：System Prompt、User Prepend、User Append。支持变量替换，例如 <code>{sent_time}</code>、<code>{sent_date}</code>、<code>{current_date}</code>。</p>
+
+    <h2>第十三章：图像生成</h2>
+    <p>图像生成功能需要你自行配置 OpenAI-compatible 的图像生成接口。模型通过 <code>generate_image</code> 工具触发图像生成。</p>
+
+    <h2>第十四章：数据导出、导入与备份</h2>
+    <p>橘子岛支持导出 <code>.橘子岛</code> 文件，可包含：对话、记忆、系统提示词、设置、API Key。导入时支持 Merge（合并）、Replace（替换）、Skip（跳过）三种策略。还支持导入 Claude 和 ChatGPT 的导出文件。</p>
+
+    <h2>第十五章：工作流（Workflows）</h2>
+    <p>工作流有两种模式：Graph（节点图）和 Linear（线性）。支持的触发条件包括：手动、开机、定时、WiFi/蓝牙/电源/耳机连接断开、屏幕开关、应用启动/关闭、收到通知、地理围栏进入/离开等。Linear 工作流创建后需要用户审批才会真正启用。</p>
+
+    <h2>第十六章：界面与主题</h2>
+    <p>橘子岛采用 Material 3 设计，支持 Material You 动态取色。主题模式可在 Settings → Appearance 中切换：Light / Dark / System。</p>
+
+    <h2>第十七章：语言与更新</h2>
+    <p>橘子岛支持简体中文、繁体中文、英文。可在 Settings → Language 中切换。应用内置更新检查，可在 Settings → About 中手动检查。</p>
+
+    <h2>第十八章：常见问题速查</h2>
+    <ul>
+      <li><strong>模型列表为空？</strong> 检查 API Key、点击 Sync from All Providers、在 Models 页面启用模型。</li>
+      <li><strong>代码执行失败？</strong> 检查 rootfs 是否已下载；若开启 VPN，尝试关闭后重试。</li>
+      <li><strong>本地模型加载慢？</strong> 模型越大越慢，建议使用量化版本。</li>
+      <li><strong>搜索不到历史对话？</strong> 检查 RAG、embedding 模型、缓存。</li>
+    </ul>
+
+    <h2>第十九章：隐私与安全风险须知</h2>
+    <p><strong>数据本地化但不等于绝对安全。</strong>橘子岛本身不收集你的数据，但你的聊天记录、API Key、记忆文件、系统提示词均存储在你的设备本地。设备丢失、Root 后被恶意应用访问、未加密备份泄露等风险由你自行承担。</p>
+    <p><strong>消息会离开你的设备。</strong>你发送给模型的所有消息、附件、图片，都会传输到你配置的第三方 AI 提供商。这些提供商的隐私政策、数据留存、训练使用规则由各提供商决定，橘子岛无法管控。</p>
+    <p><strong>API Key 安全由你负责。</strong>橘子岛使用 Android Keystore 加密存储 API Key，但如果你 Root 设备、截图分享设置页面、将导出文件上传到公开网盘、或在公共群聊中泄露 Key，责任由你自己承担。</p>
+    <p><strong>导出文件包含敏感信息。</strong><code>.橘子岛</code> 导出文件可能包含 API Key、聊天记录、记忆、提示词。请不要将该文件发送给陌生人、上传到不可信网盘、或保存在没有加密的共享存储中。</p>
+    <p><strong>远程 Shell 具有真实系统权限。</strong>Conch 连接的是你自己的服务器，模型通过 Shell 工具执行的命令会真实作用于目标设备。请确保 Conch 部署在你拥有合法管理权限的设备上。</p>
+    <p><strong>代码执行沙盒不是绝对隔离。</strong>PRoot + Alpine 沙盒提供有限的隔离，但不应被视为生产级安全沙盒。不要运行来源不明或高度可疑的代码。</p>
+    <p><strong>联网搜索可能访问任意网页。</strong>Web Search 工具会抓取第三方网页内容，这些网页可能包含追踪脚本、恶意内容或不实信息。请自行判断搜索结果的可信度。</p>
+    <p><strong>工作流自动化可能触发意外行为。</strong>请谨慎配置涉及 Shell、通知、网络请求的工作流，避免误操作或隐私泄露。</p>
+
+    <h2>第二十章：禁止事项与测试约定</h2>
+    <ul>
+      <li><strong>禁止二次传播</strong>：未经开发者书面授权，不得以任何形式分发、转让、出售、泄露内测版安装包、下载链接、签名文件等。</li>
+      <li><strong>禁止公开披露内测内容</strong>：不得在公开平台发布内测截图、录屏、功能说明、Bug 细节、崩溃日志、API 设计、协议细节等。</li>
+      <li><strong>禁止商业使用</strong>：内测版本仅限个人学习、研究、测试使用，不得用于任何商业目的。</li>
+      <li><strong>禁止逆向工程</strong>：不得对客户端、服务端、安装包、协议进行反编译、反汇编、抓包分析、协议破解、修改重打包。</li>
+      <li><strong>禁止账号/资格转让</strong>：内测资格与申请人本人绑定，不得出售、出租、借用、共享。</li>
+      <li><strong>禁止滥用与违法用途</strong>：不得利用橘子岛从事骚扰、诈骗、生成或传播违法内容、攻击他人系统、未经授权控制第三方设备等。</li>
+      <li><strong>禁止干扰开发秩序</strong>：不得在反馈渠道刷屏、辱骂、恶意提交重复 issue、伪造 Bug、传播不实信息。</li>
+      <li><strong>反馈义务</strong>：测试者应在发现 Bug 时按指定渠道提交有效反馈。</li>
+      <li><strong>资格管理</strong>：连续 14 天不登录、30 天内未提交任何有效反馈、或违反规则的用户，将被移出内测。累计被移除两次者将进入黑名单。</li>
+    </ul>
+
+    <div class="card text-center mt-4">
+      <h2>阅读完毕</h2>
+      <p>请确认你已完整阅读以上全部规则与说明。</p>
+      <a href="quiz.html" class="btn btn-primary">去答题</a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© <span id="year"></span> 橘子岛 Orange Island. 保留所有权利。</p>
+      <p><a id="github-link" href="#" target="_blank" rel="noopener">GitHub</a></p>
+    </div>
+  </footer>
+
+  <script src="assets/config.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const gh = window.ORANGE_ISLAND_CONFIG?.GITHUB_URL;
+    if (gh) document.getElementById('github-link').href = gh;
+
+    // Reading progress bar
+    const bar = document.getElementById('reading-progress-bar');
+    function updateReadingProgress() {
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const scrolled = window.scrollY;
+      const pct = docHeight > 0 ? Math.min(100, Math.round((scrolled / docHeight) * 100)) : 0;
+      bar.style.width = pct + '%';
+    }
+    window.addEventListener('scroll', updateReadingProgress, { passive: true });
+    updateReadingProgress();
+  </script>
+</body>
+</html>

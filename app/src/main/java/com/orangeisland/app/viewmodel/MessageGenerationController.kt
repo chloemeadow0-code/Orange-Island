@@ -969,12 +969,15 @@ class MessageGenerationController(
                     onSnackbarSuspend(appContext.getString(R.string.snackbar_compress_already_running))
                 }
             }
+            DebugLog.d("CompressHistory", "compressHistory ignored: already running for conv=$conversationId manual=$isManual")
             return  // already compressing
         }
+        DebugLog.d("CompressHistory", "compressHistory started: conv=$conversationId manual=$isManual")
         viewModelScope.launch {
             try {
                 val conversation = convRepo.getConversation(conversationId)
                 if (conversation == null) {
+                    DebugLog.w("CompressHistory", "compressHistory abort: conversation not found conv=$conversationId")
                     return@launch
                 }
                 // Resolve the TARGET conversation's own path — not messages.value, which
@@ -1000,6 +1003,7 @@ class MessageGenerationController(
                     it.participant == Participant.USER || it.participant == Participant.MODEL
                 }
                 val userMsgs = visibleMsgs.filter { it.participant == Participant.USER }
+                DebugLog.d("CompressHistory", "conv=$conversationId path=${path.size} visible=${visibleMsgs.size} user=${userMsgs.size} existingWatermark=${conversation.compactedUpToTimestamp}")
                 // Use the SAME resolution path as the actual generation request
                 // (GenerationRequestBuilder.buildEffectiveConversationSettings): a per-conversation
                 // override takes priority over the global default. Previously this read the global
@@ -1019,11 +1023,24 @@ class MessageGenerationController(
                 // 手动"现在压缩"必须绕过这个门槛——用户已经主动点了压缩，不该再被自动触发
                 // 用的阈值挡住；自动压缩（isManual = false）继续保留门槛，避免每轮回复都触发。
                 if (!isManual && !userCountExceeded && !tokenExceeded) {
+                    DebugLog.d("CompressHistory", "auto-compress skipped: under threshold conv=$conversationId")
                     return@launch
                 }
 
-                val retainBoundaryMsg = visibleMsgs.last()
-                val retainFromIndex = path.indexOfLast { it.id == retainBoundaryMsg.id }.coerceAtLeast(0)
+                val retainCount = maxContext.coerceAtLeast(1)
+                val retainBoundaryIndex = visibleMsgs.size - retainCount
+                DebugLog.d("CompressHistory", "retainCount=$retainCount retainBoundaryIndex=$retainBoundaryIndex visibleMsgs=${visibleMsgs.size} maxContext=$maxContext")
+                if (retainBoundaryIndex < 0) {
+                    DebugLog.d("CompressHistory", "nothing to compress: visibleMsgs=${visibleMsgs.size} < retainCount=$retainCount conv=$conversationId")
+                    if (isManual) {
+                        onSnackbarSuspend(appContext.getString(R.string.snackbar_compress_nothing_to_compress))
+                    }
+                    return@launch
+                }
+                val retainBoundaryMsg = visibleMsgs[retainBoundaryIndex]
+                val retainFromIndex = path.indexOfFirst { it.id == retainBoundaryMsg.id }
+                    .takeIf { it >= 0 } ?: 0
+                DebugLog.d("CompressHistory", "retainBoundaryMsg=${retainBoundaryMsg.id} retainFromIndex=$retainFromIndex")
 
                 val watermark = conversation.compactedUpToTimestamp ?: -1L
                 val toCompressAll = path.subList(0, retainFromIndex)
@@ -1031,13 +1048,16 @@ class MessageGenerationController(
                     .filter { it.participant == Participant.USER || it.participant == Participant.MODEL }
                     // Skip anything already folded into the previous summary.
                     .filter { it.timestamp > watermark }
+                DebugLog.d("CompressHistory", "toCompressAll=${toCompressAll.size} watermark=$watermark")
                 if (toCompressAll.isEmpty()) {
+                    DebugLog.d("CompressHistory", "nothing to compress: toCompressAll empty after watermark filter conv=$conversationId")
                     if (isManual) {
                         onSnackbarSuspend(appContext.getString(R.string.snackbar_compress_nothing_to_compress))
                     }
                     return@launch
                 }
 
+                DebugLog.d("CompressHistory", "starting compression for conv=$conversationId toCompressAll=${toCompressAll.size}")
                 onSnackbarSuspend(appContext.getString(R.string.snackbar_compressing))
 
                 // Resolve compression model / provider / key once.
@@ -1069,6 +1089,7 @@ class MessageGenerationController(
                 var cursor = 0
                 val batchTokenThreshold = (resolveModelContextLimit(modelIdWithPrefix) * 0.8).toInt()
                 var currentWatermark = watermark
+                DebugLog.d("CompressHistory", "batch loop start: total=${toCompressAll.size} batchTokenThreshold=$batchTokenThreshold")
 
                 while (cursor < toCompressAll.size) {
                     var batchTokens = 0
@@ -1134,10 +1155,12 @@ class MessageGenerationController(
 
                     summary = summary.trim()
                     if (summary.isBlank()) {
+                        DebugLog.w("CompressHistory", "batch summary blank for conv=$conversationId, stopping batch loop")
                         break
                     }
 
                     val lastBatchMsg = batch.last()
+                    DebugLog.d("CompressHistory", "batch summarized: conv=$conversationId batchSize=${batch.size} lastBatchMsg=${lastBatchMsg.id} summaryLen=${summary.length}")
 
                     // Persist immediately so partial failure does not roll back prior rounds.
                     convRepo.getConversation(conversationId)?.let { existing ->
@@ -1197,10 +1220,28 @@ class MessageGenerationController(
                         // retainBoundaryMsg (the exact point the live conversation continues
                         // from) keeps a single root and makes these old branches reachable via
                         // normal branch-switching at that point instead of floating disconnected.
-                        val orphaned = liveEntities.filter { it.id !in deletedSet && it.parentId in deletedSet }
+                        val liveIds = liveEntities.map { it.id }.toHashSet()
+                        val orphaned = liveEntities.filter {
+                            it.id != retainBoundaryMsg.id &&
+                            it.id !in deletedSet &&
+                            it.parentId in deletedSet
+                        }
                         orphaned.forEach { msg ->
                             convRepo.upsertMessage(msg.copy(parentId = retainBoundaryMsg.id))
                         }
+                        // The retain boundary's own parent may have been deleted in this or an
+                        // earlier batch. Keep the visible tail reachable from root by reparenting
+                        // it to null; otherwise resolvePath()/sendMessage() cannot walk to the
+                        // continuation and the chat appears empty after re-entering.
+                        val retainBoundaryEntity = liveEntities.find { it.id == retainBoundaryMsg.id }
+                        val shouldReparentBoundary = retainBoundaryEntity != null &&
+                            retainBoundaryEntity.parentId != null &&
+                            retainBoundaryEntity.parentId !in liveIds
+                        if (shouldReparentBoundary) {
+                            DebugLog.d("CompressHistory", "reparenting retainBoundary ${retainBoundaryMsg.id} to root (old parent=${retainBoundaryEntity.parentId})")
+                            convRepo.upsertMessage(retainBoundaryEntity.copy(parentId = null))
+                        }
+                        DebugLog.d("CompressHistory", "batch deleted=${idsToDelete.size} orphaned=${orphaned.size} reparentBoundary=$shouldReparentBoundary")
                         totalDeletedCount += idsToDelete.size
                     }
 
@@ -1215,10 +1256,11 @@ class MessageGenerationController(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                DebugLog.e("MessageGenerationController", "compressHistory failed for conv=$conversationId", e)
+                DebugLog.e("CompressHistory", "compressHistory failed for conv=$conversationId", e)
                 onSnackbarSuspend(appContext.getString(R.string.snackbar_compress_error))
             } finally {
                 compressingConversationIds.remove(conversationId)
+                DebugLog.d("CompressHistory", "compressHistory finished for conv=$conversationId")
             }
         }
     }

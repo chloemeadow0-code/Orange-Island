@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="橘子岛 Orange Island - 属于你的 BYOK AI 客户端" />
+  <title>橘子岛 Orange Island</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="brand">
+        🍊 橘子岛
+      </a>
+      <nav>
+        <a href="index.html" class="active">首页</a>
+        <a href="rules.html">使用规则</a>
+        <a href="quiz.html">审核答题</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>橘子岛 <span style="color: var(--primary);">Orange Island</span></h1>
+      <p class="tagline">
+        一款 BYOK（Bring Your Own Key）Android AI 客户端。连接多家 AI 提供商，数据只留在你的设备上。
+      </p>
+      <div class="actions">
+        <a href="rules.html" class="btn btn-primary">阅读使用规则</a>
+        <a href="quiz.html" class="btn btn-secondary">申请审核答题</a>
+      </div>
+    </section>
+
+    <section class="container">
+      <div class="features">
+        <div class="feature">
+          <h3>🔑 BYOK</h3>
+          <p>自备 API Key，无中间商，无订阅费，直接连接 OpenAI、Claude、Gemini、DeepSeek 等。</p>
+        </div>
+        <div class="feature">
+          <h3>🌳 非线性对话</h3>
+          <p>树状消息结构，支持分支、编辑、重新生成，保留每一个思路。</p>
+        </div>
+        <div class="feature">
+          <h3>🛠️ 代理工具</h3>
+          <p>联网搜索、代码执行、图像生成、记忆文件、RAG 搜索、远程 Shell。</p>
+        </div>
+        <div class="feature">
+          <h3>📱 本地模型</h3>
+          <p>内置 llama.cpp，可在设备上离线运行 GGUF 模型。</p>
+        </div>
+        <div class="feature">
+          <h3>🔒 数据本地</h3>
+          <p>聊天记录、API Key、设置全部存储在设备本地，不上传官方服务器。</p>
+        </div>
+        <div class="feature">
+          <h3>⚡ 工作流</h3>
+          <p>按时间、通知、地理围栏等事件触发自动化任务。</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>如何申请审核</h2>
+        <ol>
+          <li>完整阅读 <a href="rules.html">使用规则与隐私风险须知</a>。</li>
+          <li>进入 <a href="quiz.html">审核答题</a>，输入 QQ 号并回答所有题目。</li>
+          <li>全部答对即可获取入群方式与使用资格。</li>
+          <li>每个 QQ 号只能提交一次，请认真作答。</li>
+        </ol>
+        <div class="text-center mt-4">
+          <a href="quiz.html" class="btn btn-primary">开始答题</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© <span id="year"></span> 橘子岛 Orange Island. 保留所有权利。</p>
+      <p>
+        <a id="github-link" href="#" target="_blank" rel="noopener">GitHub</a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="assets/config.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const gh = window.ORANGE_ISLAND_CONFIG?.GITHUB_URL;
+    if (gh) document.getElementById('github-link').href = gh;
+  </script>
+</body>
+</html>

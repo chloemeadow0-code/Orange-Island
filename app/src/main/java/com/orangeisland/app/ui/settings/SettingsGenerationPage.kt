@@ -55,20 +55,20 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
 
     // State for the Default Context Window slider + unlimited toggle. Hoisted here so
     // the slider item and the separate unlimited toggle item can share it.
-    var contextWindowDraft by remember { mutableIntStateOf(maxContextWindow.coerceIn(30, 100)) }
-    var sliderDraft by remember { mutableFloatStateOf(maxContextWindow.coerceIn(30, 100).toFloat()) }
+    var contextWindowDraft by remember { mutableIntStateOf(maxContextWindow.coerceIn(5, 100)) }
+    var sliderDraft by remember { mutableFloatStateOf(maxContextWindow.coerceIn(5, 100).toFloat()) }
     var isUnlimited by remember { mutableStateOf(maxContextWindow == Int.MAX_VALUE) }
     var lastFiniteValue by remember {
-        mutableIntStateOf(if (maxContextWindow == Int.MAX_VALUE) 30 else maxContextWindow.coerceIn(30, 100))
+        mutableIntStateOf(if (maxContextWindow == Int.MAX_VALUE) 30 else maxContextWindow.coerceIn(5, 100))
     }
     LaunchedEffect(maxContextWindow) {
         if (maxContextWindow == Int.MAX_VALUE) {
             isUnlimited = true
         } else {
             isUnlimited = false
-            lastFiniteValue = maxContextWindow.coerceIn(30, 100)
-            contextWindowDraft = maxContextWindow.coerceIn(30, 100)
-            sliderDraft = maxContextWindow.coerceIn(30, 100).toFloat()
+            lastFiniteValue = maxContextWindow.coerceIn(5, 100)
+            contextWindowDraft = maxContextWindow.coerceIn(5, 100)
+            sliderDraft = maxContextWindow.coerceIn(5, 100).toFloat()
         }
     }
 
@@ -86,7 +86,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             val displayText = if (isUnlimited) {
                                 stringResource(R.string.context_retain_unlimited)
                             } else {
-                                stringResource(R.string.context_retain, contextWindowDraft.coerceAtLeast(30))
+                                stringResource(R.string.context_retain, contextWindowDraft.coerceAtLeast(5))
                             }
                             Column(
                                 modifier = Modifier
@@ -121,12 +121,12 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                             onValueChange = {
                                                 sliderDraft = it
                                                 if (!isUnlimited) {
-                                                    contextWindowDraft = it.toInt().coerceIn(30, 100)
+                                                    contextWindowDraft = it.toInt().coerceIn(5, 100)
                                                 }
                                             },
                                             onValueChangeFinished = {
                                                 if (!isUnlimited) {
-                                                    val committed = sliderDraft.toInt().coerceIn(30, 100)
+                                                    val committed = sliderDraft.toInt().coerceIn(5, 100)
                                                     contextWindowDraft = committed
                                                     sliderDraft = committed.toFloat()
                                                     if (committed != maxContextWindow) {
@@ -135,7 +135,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                                 }
                                             },
                                             enabled = !isUnlimited,
-                                            valueRange = 30f..100f,
+                                            valueRange = 5f..100f,
                                             modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
@@ -159,13 +159,13 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         checked = isUnlimited,
                                         onCheckedChange = { checked ->
                                             if (checked) {
-                                                lastFiniteValue = contextWindowDraft.coerceAtLeast(30)
+                                                lastFiniteValue = contextWindowDraft.coerceAtLeast(5)
                                                 isUnlimited = true
                                                 viewModel.settings.setMaxContextWindow(Int.MAX_VALUE)
                                             } else {
                                                 isUnlimited = false
                                                 contextWindowDraft = lastFiniteValue
-                                                sliderDraft = lastFiniteValue.coerceIn(30, 100).toFloat()
+                                                sliderDraft = lastFiniteValue.coerceIn(5, 100).toFloat()
                                                 viewModel.settings.setMaxContextWindow(lastFiniteValue)
                                             }
                                         }
@@ -175,10 +175,10 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     if (isUnlimited) {
                                         isUnlimited = false
                                         contextWindowDraft = lastFiniteValue
-                                        sliderDraft = lastFiniteValue.coerceIn(30, 100).toFloat()
+                                        sliderDraft = lastFiniteValue.coerceIn(5, 100).toFloat()
                                         viewModel.settings.setMaxContextWindow(lastFiniteValue)
                                     } else {
-                                        lastFiniteValue = contextWindowDraft.coerceAtLeast(30)
+                                        lastFiniteValue = contextWindowDraft.coerceAtLeast(5)
                                         isUnlimited = true
                                         viewModel.settings.setMaxContextWindow(Int.MAX_VALUE)
                                     }
