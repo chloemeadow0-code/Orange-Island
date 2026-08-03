@@ -280,7 +280,29 @@ internal fun AssistantMessageContent(
                 }
             }
 
-            Column {
+            Column(
+                // Anti-shrink lifted to the WHOLE content column (was only on the 576 text Box).
+                // Logs showed the message height yo-yo'ing between its real height and a ~176px
+                // skeleton (padding + status header + bottom Spacer) on every token while
+                // streaming a <details> reply. The collapse wasn't in the text Box — it was in
+                // the timeline/segments blocks (TimelineSegmentsContent's per-block enter
+                // animation measures ~0 height before it finishes, and the text Box is empty
+                // when useTimelineSegments=true). Pinning the whole column to its max-seen
+                // height during streaming stops any sub-block's transient empty frame from
+                // dropping the message down to the skeleton height.
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (isStreaming && streamingMaxHeightPx > 0)
+                            Modifier.heightIn(min = with(LocalDensity.current) { streamingMaxHeightPx.toDp() })
+                        else Modifier
+                    )
+                    .onSizeChanged { size ->
+                        if (isStreaming) {
+                            streamingMaxHeightPx = maxOf(streamingMaxHeightPx, size.height)
+                        }
+                    }
+            ) {
                 val isError = message.status == MessageStatus.ERROR || message.participant == Participant.ERROR
 
                 // Only zero out thought height when legacy thought block is not shown
@@ -576,16 +598,10 @@ internal fun AssistantMessageContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .then(
-                            if (isStreaming && streamingMaxHeightPx > 0)
-                                Modifier.heightIn(min = with(LocalDensity.current) { streamingMaxHeightPx.toDp() })
-                            else Modifier
-                        )
-                        .onSizeChanged { size ->
-                            if (isStreaming) {
-                                streamingMaxHeightPx = maxOf(streamingMaxHeightPx, size.height)
-                            }
-                        }
+                        // Anti-shrink moved up to the content Column (283); this Box no longer
+                        // pins its own height or tracks streamingMaxHeightPx, to avoid a double
+                        // constraint where the inner Box's min would be set from the whole-column
+                        // measurement.
                         .noOpBringIntoView()
                 ) {
                     if (isError) {

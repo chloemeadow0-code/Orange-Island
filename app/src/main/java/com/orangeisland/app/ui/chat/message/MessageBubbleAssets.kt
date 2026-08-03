@@ -208,10 +208,24 @@ internal fun rememberChatMarkdownAssets(textColor: Color, codeBlockWrapEnabled: 
             custom = { type, model ->
                 val isDetailsBlock = type == MarkdownElementTypes.HTML_BLOCK &&
                     model.node.getUnescapedTextInNode(model.content).contains("<details", ignoreCase = true)
-                if (isDetailsBlock && !LocalMarkdownStreaming.current) {
+                if (isDetailsBlock) {
+                    com.orangeisland.app.util.DebugLog.d(
+                        "DetailsRender",
+                        "details block: streaming=${LocalMarkdownStreaming.current}, len=${model.content.length}"
+                    )
+                }
+                if (isDetailsBlock) {
+                    // Always render the collapsible card (never fall back to raw HTML text).
+                    // Logs proved the previous "streaming → plain text" fallback was the jitter
+                    // source: a closed <details> rendered as raw HTML text mid-stream is tall,
+                    // then collapses to the compact card once streaming ends — a height drop
+                    // that yanks the viewport. The card form is height-stable (collapsed by
+                    // default = just the title row) whether streaming or not, so there's no
+                    // height transition to fight the scroll.
                     MarkdownDetailsBlock(
                         content = model.content,
                         node = model.node,
+                        preview = LocalMarkdownStreaming.current,
                     )
                 } else {
                     model.node.children.forEach { child ->

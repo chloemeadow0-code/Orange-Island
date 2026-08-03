@@ -1,0 +1,18 @@
+{
+  "id": "com.mochi.network.isolation",
+  "name": "网络隔离诊断",
+  "version": "1.0.0",
+  "author": "もちちゃん & 神谷凛",
+  "description": "隔离排查橘子岛主机 fetch、UI 浏览器网络，以及网易云访问可用性。",
+  "icon": "🧷",
+  "allowedHosts": ["example.com", "music.163.com"],
+  "ui": "ui.html",
+  "config": [
+    { "name": "ai_name", "type": "string", "label": "家机名字", "required": false, "placeholder": "林默" },
+    { "name": "user_name", "type": "string", "label": "你的名字", "required": false, "placeholder": "晓晓" }
+  ],
+  "tools": [
+    { "name": "diagnose_main_fetch", "description": "用 main.js fetch 测试 example.com 与 music.163.com 的访问情况", "parameters": [] },
+    { "name": "get_plugin_context", "description": "读取插件上下文", "parameters": [] }
+  ]
+}

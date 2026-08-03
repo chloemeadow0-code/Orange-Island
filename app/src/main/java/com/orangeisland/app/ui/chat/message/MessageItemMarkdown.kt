@@ -234,11 +234,34 @@ private suspend fun StreamingMarkdownBlocksState.applyParsed(parsed: ParsedStrea
     val canAppend = existing.size <= parsedBlocks.size &&
         existing.indices.all { index -> existing[index].hasSameIdentity(parsedBlocks[index]) }
 
-    if (!canAppend) {
-        existing.clear()
-        appendStableBlocksInBatches(parsedBlocks, startIndex = 0)
-    } else if (parsedBlocks.size > existing.size) {
-        appendStableBlocksInBatches(parsedBlocks, startIndex = existing.size)
+    if (canAppend) {
+        if (parsedBlocks.size > existing.size) {
+            appendStableBlocksInBatches(parsedBlocks, startIndex = existing.size)
+        }
+    } else {
+        // The block structure changed (e.g. a <details> tag closed and the trailing text
+        // became an HTML_BLOCK). Previously this did existing.clear() then re-added in
+        // batches across frames — but clear() momentarily empties the list, so the message
+        // collapses to its placeholder height (~176px) for a frame before content comes
+        // back. That height yo-yo (real height ↔ 176) is what made the viewport jump back
+        // to the message on every token.
+        //
+        // Replace atomically inside a single snapshot: swap each differing slot in place
+        // and truncate/append the tail, all in one transaction. No intermediate empty
+        // state, so the LazyColumn sees a direct height transition with no dip.
+        androidx.compose.runtime.snapshots.Snapshot.withMutableSnapshot {
+            val n = minOf(existing.size, parsedBlocks.size)
+            for (i in 0 until n) {
+                if (!existing[i].hasSameIdentity(parsedBlocks[i])) {
+                    existing[i] = parsedBlocks[i]
+                }
+            }
+            if (parsedBlocks.size > existing.size) {
+                existing.addAll(parsedBlocks.subList(existing.size, parsedBlocks.size))
+            } else if (parsedBlocks.size < existing.size) {
+                while (existing.size > parsedBlocks.size) existing.removeAt(existing.size - 1)
+            }
+        }
     }
     tailNode = parsed.tailNode
     fallbackTail = parsed.fallbackTail
@@ -668,7 +691,12 @@ private fun String.trimUnclosedDetailsHtml(): String {
         val closeMatch = close.find(this, afterOpen)
         if (closeMatch == null) {
             // Opening tag (complete or not) with no closing tag → truncate here.
-            return substring(0, openMatch.range.first)
+            val result = substring(0, openMatch.range.first)
+            com.orangeisland.app.util.DebugLog.d(
+                "DetailsRender",
+                "trimUnclosed: truncated len=${this.length}->${result.length}, keptTail=\"${result.takeLast(40)}\""
+            )
+            return result
         }
         searchFrom = closeMatch.range.last + 1
     }

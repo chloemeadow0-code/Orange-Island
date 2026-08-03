@@ -64,6 +64,11 @@ internal fun MarkdownDetailsBlock(
     content: String,
     node: ASTNode,
     modifier: Modifier = Modifier,
+    // When true (streaming), the block is locked collapsed and non-interactive. This keeps
+    // its height constant (just the title row) regardless of how much body text streams in,
+    // so the stick-to-bottom scroll never sees a height change from this block. Once
+    // streaming ends the caller drops preview=true and the block becomes expandable.
+    preview: Boolean = false,
 ) {
     val raw = remember(content, node) { node.getUnescapedTextInNode(content) }
     val parsed = remember(raw) { parseDetails(raw) }
@@ -79,8 +84,10 @@ internal fun MarkdownDetailsBlock(
         imageTransformer = LocalImageTransformer.current,
         flavour = DetailsBodyFlavour,
     )
-    // Stable per-block collapsed state keyed on the title text.
+    // Stable per-block collapsed state keyed on the title text. In preview mode we ignore
+    // it and force collapsed.
     var expanded by rememberSaveable(parsed.title) { mutableStateOf(false) }
+    if (preview) expanded = false
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
         label = "detailsChevron"
@@ -94,7 +101,7 @@ internal fun MarkdownDetailsBlock(
             .fillMaxWidth()
             .padding(vertical = 6.dp)
             .clip(RoundedCornerShape(18.dp))
-            .clickable { expanded = !expanded }
+            .then(if (preview) Modifier else Modifier.clickable { expanded = !expanded })
         // NOTE: no animateContentSize() here. While streaming, the outer message height
         // changes on every token; an animated size transition lags behind those changes
         // (it keeps resizing AFTER text.length has settled), so the chat's stick-to-bottom

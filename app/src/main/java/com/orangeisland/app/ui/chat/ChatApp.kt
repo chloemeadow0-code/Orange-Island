@@ -469,6 +469,11 @@ fun ChatApp(
             .conflate()
             .collect {
                 if (stickToBottom.value && messages.isNotEmpty()) {
+                    val last = messages.lastOrNull()
+                    com.orangeisland.app.util.DebugLog.d(
+                        "ChatScroll",
+                        "stream-follow: lastId=${last?.id?.take(8)} len=${last?.text?.length} hasDetails=${last?.text?.contains("<details", ignoreCase = true) == true} firstIdx=${listState.firstVisibleItemIndex} firstOff=${listState.firstVisibleItemScrollOffset} total=${listState.layoutInfo.totalItemsCount}"
+                    )
                     programmaticScroll.value = true
                     try {
                         // offset 0 parks the last message at the top padding line (= the
