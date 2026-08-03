@@ -17,6 +17,8 @@
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <!-- Saving images to the gallery on pre-Q only; Q+ uses scoped MediaStore (no permission). -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <!-- Update feature: download and install APK updates. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Gadgetbridge health data: read external DB file under /sdcard/Download -->
     <uses-permission
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"

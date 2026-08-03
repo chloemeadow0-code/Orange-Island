@@ -432,6 +432,8 @@
     <string name="context_window_default">Default Context Window</string>
     <string name="context_retain">Retain %1$d recent messages</string>
     <string name="context_retain_unlimited">Retaining full conversation history</string>
+    <string name="context_window_unlimited">Unlimited Context Window</string>
+    <string name="context_window_unlimited_desc">Retain the full conversation history instead of limiting to recent messages</string>
     <string name="unlimited">Unlimited</string>
     <string name="context_visualize">Visualize Context Roll-Out</string>
     <string name="context_visualize_desc">Dim messages outside the context window</string>
@@ -1095,8 +1097,10 @@
     <string name="about_update_available">Update available: v%1$s</string>
     <string name="about_up_to_date">You\'re up to date (v%1$s)</string>
     <string name="about_checking">Checking...</string>
+    <string name="about_check_error">Update check failed: %1$s</string>
     <string name="about_available_body">A new version of 橘子岛 is available on GitHub.</string>
     <string name="about_view_release">View Release</string>
+    <string name="about_download_apk">Download APK</string>
     <string name="about_later">Later</string>
 
     <!-- Data Control -->

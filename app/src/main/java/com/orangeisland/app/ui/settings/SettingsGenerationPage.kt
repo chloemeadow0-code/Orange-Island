@@ -25,8 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
 import com.orangeisland.app.ui.common.IslandIcon
@@ -55,6 +53,25 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val thinkingBudgetTokens by viewModel.settings.thinkingBudgetTokens.collectAsState()
     val showDocFab by viewModel.settings.showDocumentationFab.collectAsState()
 
+    // State for the Default Context Window slider + unlimited toggle. Hoisted here so
+    // the slider item and the separate unlimited toggle item can share it.
+    var contextWindowDraft by remember { mutableIntStateOf(maxContextWindow.coerceIn(30, 100)) }
+    var sliderDraft by remember { mutableFloatStateOf(maxContextWindow.coerceIn(30, 100).toFloat()) }
+    var isUnlimited by remember { mutableStateOf(maxContextWindow == Int.MAX_VALUE) }
+    var lastFiniteValue by remember {
+        mutableIntStateOf(if (maxContextWindow == Int.MAX_VALUE) 30 else maxContextWindow.coerceIn(30, 100))
+    }
+    LaunchedEffect(maxContextWindow) {
+        if (maxContextWindow == Int.MAX_VALUE) {
+            isUnlimited = true
+        } else {
+            isUnlimited = false
+            lastFiniteValue = maxContextWindow.coerceIn(30, 100)
+            contextWindowDraft = maxContextWindow.coerceIn(30, 100)
+            sliderDraft = maxContextWindow.coerceIn(30, 100).toFloat()
+        }
+    }
+
     CollapsingSettingsScaffold(
         title = stringResource(R.string.generation_title),
         onBack = onBack,
@@ -66,24 +83,10 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     title = stringResource(R.string.context_window_default),
                     items = listOf(
                         {
-                            var contextWindowDraft by remember { mutableIntStateOf(maxContextWindow) }
-                            var sliderDraft by remember { mutableFloatStateOf(maxContextWindow.coerceIn(1, 500).toFloat()) }
-                            var isUnlimited by remember { mutableStateOf(maxContextWindow == Int.MAX_VALUE) }
-                            var lastFiniteValue by remember { mutableIntStateOf(if (maxContextWindow == Int.MAX_VALUE) 20 else maxContextWindow) }
-                            LaunchedEffect(maxContextWindow) {
-                                if (maxContextWindow == Int.MAX_VALUE) {
-                                    isUnlimited = true
-                                } else {
-                                    isUnlimited = false
-                                    lastFiniteValue = maxContextWindow
-                                    contextWindowDraft = maxContextWindow
-                                    sliderDraft = maxContextWindow.coerceIn(1, 500).toFloat()
-                                }
-                            }
                             val displayText = if (isUnlimited) {
                                 stringResource(R.string.context_retain_unlimited)
                             } else {
-                                stringResource(R.string.context_retain, contextWindowDraft.coerceAtLeast(1))
+                                stringResource(R.string.context_retain, contextWindowDraft.coerceAtLeast(30))
                             }
                             Column(
                                 modifier = Modifier
@@ -115,10 +118,15 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         )
                                         Slider(
                                             value = sliderDraft,
-                                            onValueChange = { sliderDraft = it },
+                                            onValueChange = {
+                                                sliderDraft = it
+                                                if (!isUnlimited) {
+                                                    contextWindowDraft = it.toInt().coerceIn(30, 100)
+                                                }
+                                            },
                                             onValueChangeFinished = {
                                                 if (!isUnlimited) {
-                                                    val committed = sliderDraft.toInt().coerceIn(1, 500)
+                                                    val committed = sliderDraft.toInt().coerceIn(30, 100)
                                                     contextWindowDraft = committed
                                                     sliderDraft = committed.toFloat()
                                                     if (committed != maxContextWindow) {
@@ -127,53 +135,55 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                                 }
                                             },
                                             enabled = !isUnlimited,
-                                            valueRange = 1f..500f,
+                                            valueRange = 30f..100f,
                                             modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                                         )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            OutlinedTextField(
-                                                value = if (isUnlimited) "" else contextWindowDraft.toString(),
-                                                onValueChange = { raw ->
-                                                    val digits = raw.filter { it.isDigit() }
-                                                    val parsed = digits.toIntOrNull()?.coerceAtLeast(1) ?: 1
-                                                    contextWindowDraft = parsed
-                                                    sliderDraft = parsed.coerceIn(1, 500).toFloat()
-                                                    if (parsed != maxContextWindow) {
-                                                        viewModel.settings.setMaxContextWindow(parsed)
-                                                    }
-                                                },
-                                                enabled = !isUnlimited,
-                                                placeholder = { Text(stringResource(R.string.unlimited)) },
-                                                singleLine = true,
-                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                                modifier = Modifier.weight(1f),
-                                                label = { Text(stringResource(R.string.context_window)) }
-                                            )
-                                            FilterChip(
-                                                selected = isUnlimited,
-                                                onClick = {
-                                                    if (isUnlimited) {
-                                                        isUnlimited = false
-                                                        contextWindowDraft = lastFiniteValue
-                                                        sliderDraft = lastFiniteValue.coerceIn(1, 500).toFloat()
-                                                        viewModel.settings.setMaxContextWindow(lastFiniteValue)
-                                                    } else {
-                                                        lastFiniteValue = contextWindowDraft.coerceAtLeast(1)
-                                                        isUnlimited = true
-                                                        viewModel.settings.setMaxContextWindow(Int.MAX_VALUE)
-                                                    }
-                                                },
-                                                label = { Text(stringResource(R.string.unlimited)) }
-                                            )
-                                        }
                                         Spacer(modifier = Modifier.height(4.dp))
                                     }
                                 }
                             }
+                        },
+                        {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.context_window_unlimited)) },
+                                supportingContent = { Text(stringResource(R.string.context_window_unlimited_desc)) },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Default.Memory,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                trailingContent = {
+                                    Switch(
+                                        checked = isUnlimited,
+                                        onCheckedChange = { checked ->
+                                            if (checked) {
+                                                lastFiniteValue = contextWindowDraft.coerceAtLeast(30)
+                                                isUnlimited = true
+                                                viewModel.settings.setMaxContextWindow(Int.MAX_VALUE)
+                                            } else {
+                                                isUnlimited = false
+                                                contextWindowDraft = lastFiniteValue
+                                                sliderDraft = lastFiniteValue.coerceIn(30, 100).toFloat()
+                                                viewModel.settings.setMaxContextWindow(lastFiniteValue)
+                                            }
+                                        }
+                                    )
+                                },
+                                modifier = Modifier.clickable {
+                                    if (isUnlimited) {
+                                        isUnlimited = false
+                                        contextWindowDraft = lastFiniteValue
+                                        sliderDraft = lastFiniteValue.coerceIn(30, 100).toFloat()
+                                        viewModel.settings.setMaxContextWindow(lastFiniteValue)
+                                    } else {
+                                        lastFiniteValue = contextWindowDraft.coerceAtLeast(30)
+                                        isUnlimited = true
+                                        viewModel.settings.setMaxContextWindow(Int.MAX_VALUE)
+                                    }
+                                }
+                            )
                         },
                         {
                             SettingsItem(

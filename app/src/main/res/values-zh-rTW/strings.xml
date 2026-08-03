@@ -253,6 +253,8 @@
     <string name="context_window_default">預設上下文視窗</string>
     <string name="context_retain">保留最近 %1$d 則訊息</string>
     <string name="context_retain_unlimited">保留全部對話歷史</string>
+    <string name="context_window_unlimited">無限上下文視窗</string>
+    <string name="context_window_unlimited_desc">保留完整對話歷史，而不是只保留最近的訊息</string>
     <string name="unlimited">無限</string>
     <string name="context_visualize">視覺化上下文捲動</string>
     <string name="context_visualize_desc">將上下文視窗外的訊息變暗</string>
@@ -900,8 +902,10 @@ THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMP
     <string name="about_update_available">有新版本：v%1$s</string>
     <string name="about_up_to_date">已是最新版本 (v%1$s)</string>
     <string name="about_checking">檢查中…</string>
+    <string name="about_check_error">檢查更新失敗：%1$s</string>
     <string name="about_available_body">橘子岛 的新版本已在 GitHub 上發布。</string>
     <string name="about_view_release">檢視版本</string>
+    <string name="about_download_apk">下載 APK</string>
     <string name="about_later">稍後</string>
     <string name="rating_title">評價 橘子岛</string>
     <string name="rating_star">%1$d 星</string>

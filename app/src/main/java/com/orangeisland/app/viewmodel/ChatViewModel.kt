@@ -2,7 +2,9 @@
 
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.orangeisland.app.R
@@ -16,6 +18,7 @@ import com.orangeisland.app.api.openai.*
 import com.orangeisland.app.data.AutoBackupManager
 import com.orangeisland.app.data.BuiltInPrompts
 import com.orangeisland.app.data.ClaudeChatImporter
+import com.orangeisland.app.data.ChatSettingsSnapshot
 import com.orangeisland.app.data.ConversationSettings
 import com.orangeisland.app.data.DataExporter
 import com.orangeisland.app.data.DataImporter
@@ -29,6 +32,7 @@ import com.orangeisland.app.data.UsageLogManager
 
 import com.orangeisland.app.data.local.ChatEntity
 import com.orangeisland.app.data.local.MessageEntity
+import com.orangeisland.app.data.local.ProjectEntity
 import com.orangeisland.app.data.repository.ConversationRepository
 import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.model.AttachmentItem
@@ -55,6 +59,7 @@ import com.orangeisland.app.util.PdfPageRenderer
 import com.orangeisland.app.util.SearchResultFormatter
 import com.orangeisland.app.util.SnackbarEvent
 import com.orangeisland.app.util.SshClient
+import com.orangeisland.app.util.UpdateCheckResult
 import com.orangeisland.app.util.UpdateChecker
 import com.orangeisland.app.util.UpdateInfo
 import kotlinx.coroutines.CancellationException
@@ -69,7 +74,9 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import okhttp3.Request
 import java.io.File
+import java.io.FileOutputStream
 import java.util.UUID
 
 class ChatViewModel(
@@ -129,6 +136,62 @@ class ChatViewModel(
      * receive the repository (not raw DAO) for a uniform boundary.
      */
     private val convRepo: ConversationRepository = conversationRepository
+
+    /** Cache for the expensive entity -> [ChatMessage] mapping (SearchResultFormatter + JSON parsing).
+     *  Room re-emits the whole list on every streaming token, so re-parsing unchanged messages is
+     *  a major hot-path cost. Key covers the fields that affect the mapped output. */
+    private val chatMessageCache = android.util.LruCache<String, ChatMessage>(200)
+
+    private fun messageCacheKey(entity: MessageEntity): String = buildString {
+        append(entity.id)
+        append('|')
+        append(entity.status.name)
+        append('|')
+        append(entity.text.hashCode())
+        append('|')
+        append(entity.thoughts.hashCode())
+        append('|')
+        append(entity.toolCallJson.hashCode())
+        append('|')
+        append(entity.attachmentMeta.hashCode())
+    }
+
+    private fun mapMessageEntity(entity: MessageEntity): ChatMessage {
+        val key = messageCacheKey(entity)
+        return chatMessageCache.get(key) ?: ChatMessage(
+            id = entity.id,
+            parentId = entity.parentId,
+            text = SearchResultFormatter.format(entity.text, appContext),
+            images = entity.images,
+            audio = entity.audio,
+            thoughts = entity.thoughts,
+            thoughtTitle = entity.thoughtTitle,
+            tokenCount = entity.tokenCount,
+            cachedTokenCount = entity.cachedTokenCount,
+            contextMessageCount = entity.contextMessageCount,
+            status = entity.status,
+            participant = entity.participant,
+            timestamp = entity.timestamp,
+            thoughtTimeMs = entity.thoughtTimeMs,
+            generationDurationMs = entity.generationDurationMs,
+            modelName = entity.modelName,
+            segments = entity.toolCallJson?.let { json ->
+                try { Json.decodeFromString<List<MessageSegment>>(json) } catch (_: Exception) { null }
+            } ?: entity.thoughts?.takeIf { t -> t.isNotBlank() }?.let { listOf(MessageSegment(type = "thought", content = entity.thoughts)) },
+            toolCall = entity.toolCallJson?.let { json ->
+                try {
+                    val segs = Json.decodeFromString<List<MessageSegment>>(json)
+                    segs.lastOrNull { s -> s.type == "tool" }?.let { s ->
+                        val rawResult = s.toolResult ?: ""
+                        ToolCallData(s.toolName ?: "", s.toolArgs ?: "{}", SearchResultFormatter.format(rawResult, appContext))
+                    }
+                } catch (_: Exception) { null }
+            },
+            attachmentMeta = entity.attachmentMeta?.let { json ->
+                try { Json.decodeFromString<AttachmentMeta>(json) } catch (_: Exception) { null }
+            }
+        ).also { chatMessageCache.put(key, it) }
+    }
 
     private val localProvider = LocalProvider(appContext, settings)
 
@@ -197,22 +260,21 @@ class ChatViewModel(
             )
             kotlinx.coroutines.flow.combine(proxyFlows) { it }.collect { applyProxy() }
         }
-        // Auto update-check disabled: UpdateChecker is hardcoded to the upstream
-        // repo (orangeisland/app). Re-enable after repointing UpdateChecker.kt to
-        // your own release source.
-        // viewModelScope.launch(Dispatchers.IO) {
-        //     if (settings.getAutoUpdateCheck()) {
-        //         val lastCheck = settings.getLastUpdateCheckTime()
-        //         val now = System.currentTimeMillis()
-        //         if (now - lastCheck > 24 * 60 * 60 * 1000L) {
-        //             settings.saveLastUpdateCheckTime(now)
-        //             val info = UpdateChecker.check(getCurrentVersion())
-        //             if (info != null) {
-        //                 _updateDialogData.value = info
-        //             }
-        //         }
-        //     }
-        // }
+        // Check for app updates on launch (at most once per day) when auto-check is enabled.
+        viewModelScope.launch(Dispatchers.IO) {
+            if (settings.getAutoUpdateCheck()) {
+                val lastCheck = settings.getLastUpdateCheckTime()
+                val now = System.currentTimeMillis()
+                if (now - lastCheck > 24 * 60 * 60 * 1000L) {
+                    settings.saveLastUpdateCheckTime(now)
+                    when (val result = UpdateChecker.check(getCurrentVersion(), getCurrentVersionCode())) {
+                        is UpdateCheckResult.Available -> _updateDialogData.value = result.info
+                        is UpdateCheckResult.Error -> DebugLog.w("ChatViewModel", "Auto update check failed: ${result.reason}")
+                        UpdateCheckResult.UpToDate -> { /* nothing to do */ }
+                    }
+                }
+            }
+        }
         viewModelScope.launch(Dispatchers.IO) {
             val models = settings.getEmbeddingModels()
             val activeId = settings.getActiveEmbeddingModelId()
@@ -580,6 +642,10 @@ class ChatViewModel(
     fun dismissUpdateDialog() { _updateDialogData.value = null }
     fun showUpdateDialog(info: UpdateInfo) { _updateDialogData.value = info }
 
+    private val _apkDownloadProgress = MutableStateFlow<Float?>(null)
+    val apkDownloadProgress: StateFlow<Float?> = _apkDownloadProgress.asStateFlow()
+    fun dismissApkDownloadProgress() { _apkDownloadProgress.value = null }
+
     /** PDF / text-file preview state (see [MediaPreviewState]). */
     private val mediaPreview = MediaPreviewState()
     val previewPdfPages: StateFlow<List<String>> get() = mediaPreview.pdfPages
@@ -610,19 +676,32 @@ class ChatViewModel(
             }
         }
 
+    private val _messageLoadLimit = MutableStateFlow(200)
+    val messageLoadLimit: StateFlow<Int> = _messageLoadLimit.asStateFlow()
+
+    fun loadOlderMessages(count: Int = 100) {
+        val current = _messageLoadLimit.value
+        _messageLoadLimit.value = current + count
+    }
+
+    fun loadAllMessages() {
+        _messageLoadLimit.value = Int.MAX_VALUE
+    }
+
     val messages: StateFlow<List<ChatMessage>> = combine(
         _allMessages,
         _streamingMessage,
         _selectedChildren,
-        currentCompactedSummary
-    ) { allMsgs, streaming, selectedChildren, summary ->
+        currentCompactedSummary,
+        _messageLoadLimit
+    ) { allMsgs, streaming, selectedChildren, summary, limit ->
         // Single source of truth for the visible-path walk: the tested
         // ConversationUiState.resolvePath (covered by ConversationUiStateTest).
         val path = ConversationUiState.resolvePath(allMsgs, streaming, selectedChildren)
         // If this conversation has a compacted summary, prepend a virtual SYSTEM card showing
         // the summary. The card is NOT a persisted message — it's derived from the conversation's
         // compactedSummary field so it stays in sync with auto/manual compression.
-        if (summary != null) {
+        val fullPath = if (summary != null) {
             val (summaryText, watermark) = summary
             // Count how many original messages were folded in: everything on the path at or before
             // the watermark (those are the ones compression collapsed into the summary).
@@ -638,6 +717,10 @@ class ChatViewModel(
         } else {
             path
         }
+        // UI-level window: only render the tail of the conversation. The full path is still kept
+        // in [_allMessages] for branch switching / context logic, so older messages can be pulled
+        // in by calling [loadOlderMessages] / [loadAllMessages].
+        fullPath.takeLast(limit.coerceAtLeast(1))
     }.distinctUntilChanged()
     .flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -718,6 +801,156 @@ class ChatViewModel(
     private val _pendingConversationSettings = MutableStateFlow<ConversationSettings?>(null)
     val pendingConversationSettings: StateFlow<ConversationSettings?> = _pendingConversationSettings.asStateFlow()
 
+    private val _branchSwitchTrigger = MutableStateFlow<String?>(null)
+    val branchSwitchTrigger: StateFlow<String?> = _branchSwitchTrigger.asStateFlow()
+
+    /**
+     * Single aggregate UI state for the chat screen.
+     *
+     * Combines all ViewModel flows and the settings snapshot into one [StateFlow] so that
+     * [ChatApp] needs only a single `collectAsState()` instead of ~45 individual subscriptions.
+     * Per-conversation setting overrides are resolved here once and exposed as plain fields.
+     */
+    @Suppress("UNCHECKED_CAST")
+    val chatUiState: StateFlow<ChatUiState> = combine(
+        listOf(
+            conversations,
+            messages,
+            allMessages,
+            isLoading,
+            currentConversationId,
+            generatingInConversationId,
+            projects,
+            activeProjectId,
+            isNewChatMode,
+            isSwitching,
+            isTransitioningToNewChat,
+            totalTokens,
+            currentActiveModel,
+            pendingConversationSettings,
+            branchSwitchTrigger,
+            pendingPrefillInput,
+            isSyncingModels,
+            updateDialogData,
+            pendingSystemPromptId,
+            pendingProjectId,
+            settings.chatSettingsSnapshot
+        )
+    ) { values ->
+        val conversations = values[0] as List<ChatConversation>
+        val messages = values[1] as List<ChatMessage>
+        val allMessages = values[2] as List<ChatMessage>
+        val isLoading = values[3] as Boolean
+        val currentConversationId = values[4] as String?
+        val generatingInConversationId = values[5] as String?
+        val projects = values[6] as List<ProjectEntity>
+        val activeProjectId = values[7] as String?
+        val isNewChatMode = values[8] as Boolean
+        val isSwitching = values[9] as Boolean
+        val isTransitioningToNewChat = values[10] as Boolean
+        val totalTokens = values[11] as Int
+        val currentActiveModel = values[12] as String
+        val pendingConversationSettings = values[13] as ConversationSettings?
+        val branchSwitchTrigger = values[14] as String?
+        val pendingPrefillInput = values[15] as String?
+        val isSyncingModels = values[16] as Boolean
+        val updateDialogData = values[17] as UpdateInfo?
+        val pendingSystemPromptId = values[18] as String?
+        val pendingProjectId = values[19] as String?
+        val settings = values[20] as ChatSettingsSnapshot
+
+        val activeProjectName = activeProjectId?.let { id -> projects.find { it.id == id }?.name }
+        val convOverride = if (currentConversationId != null) {
+            settings.conversationSettings[currentConversationId]
+        } else {
+            pendingConversationSettings
+        }
+        val globalWebSearch = settings.webSearchEnabled
+        val globalShell = settings.shellEnabled
+        val mcpServerIds = convOverride?.mcpServerIds
+
+        ChatUiState(
+            conversations = conversations,
+            messages = messages,
+            allMessages = allMessages,
+            isLoading = isLoading,
+            currentConversationId = currentConversationId,
+            generatingInConversationId = generatingInConversationId,
+            projects = projects,
+            activeProjectId = activeProjectId,
+            activeProjectName = activeProjectName,
+            isNewChatMode = isNewChatMode,
+            isSwitching = isSwitching,
+            isTransitioningToNewChat = isTransitioningToNewChat,
+            totalTokens = totalTokens,
+            selectedModel = currentActiveModel,
+            pendingConversationSettings = pendingConversationSettings,
+            branchSwitchTrigger = branchSwitchTrigger,
+            pendingPrefillInput = pendingPrefillInput,
+            isSyncingModels = isSyncingModels,
+            updateDialogData = updateDialogData,
+            pendingSystemPromptId = pendingSystemPromptId,
+            pendingProjectId = pendingProjectId,
+            enabledModels = settings.enabledModels,
+            modelAliases = settings.modelAliases,
+            visualizeContextRollout = settings.visualizeContextRollout,
+            showUsageStats = settings.showMessageUsageStats,
+            codeExecutionEnabled = ChatUiState.resolveEnabled(
+                settings.codeExecutionEnabled,
+                convOverride?.codeExecutionEnabled
+            ),
+            googleSearchEnabled = ChatUiState.resolveEnabled(
+                settings.googleSearchEnabled,
+                convOverride?.googleSearchEnabled
+            ),
+            thinkingEnabled = convOverride?.thinkingEnabled ?: settings.thinkingEnabled,
+            thinkingLevel = convOverride?.thinkingLevel ?: settings.thinkingLevel,
+            thinkingBudgetEnabled = convOverride?.thinkingBudgetEnabled ?: settings.thinkingBudgetEnabled,
+            thinkingBudgetTokens = convOverride?.thinkingBudgetTokens ?: settings.thinkingBudgetTokens,
+            webSearchEnabled = ChatUiState.resolveEnabled(
+                settings.webSearchEnabled,
+                convOverride?.webSearchEnabled
+            ),
+            globalWebSearch = globalWebSearch,
+            shellEnabled = ChatUiState.resolveEnabled(
+                settings.shellEnabled,
+                convOverride?.shellEnabled
+            ),
+            globalShell = globalShell,
+            toolCallDisplayMode = settings.toolCallDisplayMode,
+            contextWindow = convOverride?.contextWindow ?: settings.maxContextWindow,
+            webSearchApiKeys = settings.webSearchApiKeys,
+            shellDevices = settings.shellDevices,
+            mcpServers = settings.mcpServers,
+            mcpServerIds = mcpServerIds,
+            blurEffectsEnabled = settings.blurEffectsEnabled,
+            codeBlockWrapEnabled = settings.codeBlockWrapEnabled,
+            splitBubbleByLine = settings.splitAssistantBubbleByLine,
+            hapticsEnabled = settings.hapticsEnabled,
+            customChatBackground = settings.customColorChatBackground,
+            chatBackgroundImagePath = settings.illustrationChatBackgroundPath,
+            inputBackgroundImagePath = settings.illustrationInputBackgroundPath,
+            topBarBackgroundImagePath = settings.illustrationTopBarBackgroundPath,
+            reasoningBackgroundImagePath = settings.illustrationReasoningBackgroundPath,
+            topBarAlpha = settings.transparencyTopBar,
+            topBarCapsuleScale = settings.topBarCapsuleScale,
+            customInputFieldColor = settings.customColorInputField,
+            customUserBubbleColor = settings.customColorUserBubble,
+            userBubbleBackgroundImagePath = settings.illustrationUserBubbleBackgroundPath,
+            userBubbleCornerRadius = settings.illustrationUserBubbleCornerRadius,
+            customAssistantBubbleColor = settings.customColorAssistantBubble,
+            customReasoningPanelColor = settings.customColorReasoningPanel,
+            customChatTextColor = settings.customColorChatText,
+            customGlobalTextColor = settings.customColorGlobalText,
+            messageBubbleAlpha = settings.transparencyMessageBubble,
+            userBubbleMaskAlpha = settings.transparencyUserBubbleMask,
+            reasoningPanelAlpha = settings.transparencyReasoningPanel,
+            systemPrompts = settings.systemPrompts,
+            activeSystemPromptId = settings.activeSystemPromptId,
+            globalSelectedModel = settings.selectedModel
+        )
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, ChatUiState())
+
     fun setPendingConversationSettings(settings: ConversationSettings?) {
         _pendingConversationSettings.value = settings
     }
@@ -785,8 +1018,6 @@ class ChatViewModel(
         }
     }
 
-    private val _branchSwitchTrigger = MutableStateFlow<String?>(null)
-    val branchSwitchTrigger: StateFlow<String?> = _branchSwitchTrigger.asStateFlow()
 
     fun clearBranchSwitchTrigger() {
         _branchSwitchTrigger.value = null
@@ -861,42 +1092,8 @@ class ChatViewModel(
                         _selectedChildren.value = emptyMap()
                     }
 
-                    convRepo.getMessagesForConversation(id).collect { entities ->
-                        val mapped = entities.map {
-                            ChatMessage(
-                                id = it.id,
-                                parentId = it.parentId,
-                                text = SearchResultFormatter.format(it.text, appContext),
-                                images = it.images,
-                                audio = it.audio,
-                                thoughts = it.thoughts,
-                                thoughtTitle = it.thoughtTitle,
-                                tokenCount = it.tokenCount,
-                                cachedTokenCount = it.cachedTokenCount,
-                                contextMessageCount = it.contextMessageCount,
-                                status = it.status,
-                                participant = it.participant,
-                                timestamp = it.timestamp,
-                                thoughtTimeMs = it.thoughtTimeMs,
-                                generationDurationMs = it.generationDurationMs,
-                                modelName = it.modelName,
-                                segments = it.toolCallJson?.let { json ->
-                                    try { Json.decodeFromString<List<MessageSegment>>(json) } catch (_: Exception) { null }
-                                } ?: it.thoughts?.takeIf { t -> t.isNotBlank() }?.let { listOf(MessageSegment(type = "thought", content = it)) },
-                                toolCall = it.toolCallJson?.let { json ->
-                                    try {
-                                        val segs = Json.decodeFromString<List<MessageSegment>>(json)
-                                        segs.lastOrNull { s -> s.type == "tool" }?.let { s ->
-                                            val rawResult = s.toolResult ?: ""
-                                            ToolCallData(s.toolName ?: "", s.toolArgs ?: "{}", SearchResultFormatter.format(rawResult, appContext))
-                                        }
-                                    } catch (_: Exception) { null }
-                                },
-                                attachmentMeta = it.attachmentMeta?.let { json ->
-                                    try { Json.decodeFromString<AttachmentMeta>(json) } catch (_: Exception) { null }
-                                }
-                            )
-                        }
+                                        convRepo.getMessagesForConversation(id).collect { entities ->
+                        val mapped = entities.map { mapMessageEntity(it) }
                         // Backfill toolCall for old result_ messages persisted without toolCallJson.
                         // They inherit the parent tool_ message's ToolCallData so the provider can
                         // format them as proper "tool" role messages with matching tool_call_id.
@@ -1089,10 +1286,94 @@ class ChatViewModel(
     fun getCurrentVersion(): String {
         return try { appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName ?: "?" } catch (_: Exception) { "?" }
     }
-    suspend fun checkForUpdates(): UpdateInfo? {
-        val current = getCurrentVersion()
-        return UpdateChecker.check(current)
+    fun getCurrentVersionCode(): Int {
+        return try {
+            val info = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
+            info.longVersionCode.toInt()
+        } catch (_: Exception) { 0 }
     }
+
+    /**
+     * Manually check for updates from the About screen.
+     * Shows the update dialog if a newer release is found, otherwise posts a
+     * "you're up to date" or error snackbar.
+     */
+    suspend fun triggerManualUpdateCheck() {
+        val current = getCurrentVersion()
+        val currentCode = getCurrentVersionCode()
+        when (val result = withContext(Dispatchers.IO) { UpdateChecker.check(current, currentCode) }) {
+            is UpdateCheckResult.Available -> {
+                _updateDialogData.value = result.info
+                // Record the check time so auto-check won't also fire immediately.
+                settings.saveLastUpdateCheckTime(System.currentTimeMillis())
+            }
+            UpdateCheckResult.UpToDate -> {
+                emitSnackbar(getApplication<Application>().getString(R.string.about_up_to_date, current))
+            }
+            is UpdateCheckResult.Error -> {
+                emitSnackbar(getApplication<Application>().getString(R.string.about_check_error, result.reason))
+            }
+        }
+    }
+
+    /**
+     * Download the APK with an in-app progress bar, then open the system package
+     * installer. Falls back to browser if anything goes wrong.
+     */
+    fun downloadAndInstallApk(url: String, version: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                _apkDownloadProgress.value = 0f
+                val file = File(appContext.cacheDir, "shared/orange-island-$version.apk")
+                file.parentFile?.mkdirs()
+
+                val request = Request.Builder().url(url).build()
+                HttpClient.client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw Exception("Server returned ${response.code}")
+                    }
+                    val total = response.body.contentLength()
+                    response.body.byteStream().use { input ->
+                        FileOutputStream(file).use { output ->
+                            val buffer = ByteArray(8192)
+                            var downloaded = 0L
+                            var read: Int
+                            while (input.read(buffer).also { read = it } != -1) {
+                                output.write(buffer, 0, read)
+                                downloaded += read
+                                if (total > 0) {
+                                    _apkDownloadProgress.value = downloaded.toFloat() / total
+                                }
+                            }
+                        }
+                    }
+                }
+
+                _apkDownloadProgress.value = 1f
+                val uri = FileProvider.getUriForFile(
+                    appContext,
+                    "${appContext.packageName}.fileprovider",
+                    file
+                )
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "application/vnd.android.package-archive")
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                }
+                appContext.startActivity(intent)
+                _apkDownloadProgress.value = null
+            } catch (e: Exception) {
+                DebugLog.e("ChatViewModel", "APK download failed", e)
+                _apkDownloadProgress.value = null
+                emitSnackbar("APK download failed: ${e.message}")
+                // Fall back to opening the URL in the browser.
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                appContext.startActivity(intent)
+            }
+        }
+    }
+
     fun addEmbeddingModel(config: EmbeddingModelConfig) = ragManager.addEmbeddingModel(config)
     fun deleteEmbeddingModel(id: String) = ragManager.deleteEmbeddingModel(id)
     fun renameEmbeddingModel(id: String, newName: String, batchSize: Int? = null) =
@@ -1296,6 +1577,7 @@ class ChatViewModel(
         _allMessages.value = emptyList()
         _selectedChildren.value = emptyMap()
         _branchSwitchTrigger.value = null
+        _messageLoadLimit.value = 200
         switchingJob = viewModelScope.launch {
             kotlinx.coroutines.delay(SWITCH_OVERLAY_FADE_MS)
             _isSwitching.value = false
@@ -1312,6 +1594,7 @@ class ChatViewModel(
         switchingJob = viewModelScope.launch {
             _isNewChatMode.value = false
             _branchSwitchTrigger.value = null
+            _messageLoadLimit.value = 200
             _currentConversationId.value = id
             val conversation = convRepo.getConversation(id)
             _currentActiveModel.value = conversation?.modelId
@@ -1507,6 +1790,9 @@ class ChatViewModel(
 
     fun switchBranch(parentId: String?, currentMessageId: String, direction: Int) {
         if (_isLoading.value && _generatingInConversationId.value == _currentConversationId.value) return
+        // Branch targets may be far back in the conversation; ensure the full visible path is
+        // loaded so the switch and subsequent scroll can locate the target message.
+        loadAllMessages()
         val siblings = _allMessages.value.filter { it.parentId == parentId && !it.id.startsWith(Constants.TOOL_MSG_PREFIX) && !it.id.startsWith(Constants.RESULT_MSG_PREFIX) }.sortedBy { it.timestamp }
         if (siblings.size < 2) return
         var currentIndex = siblings.indexOfFirst { it.id == currentMessageId }

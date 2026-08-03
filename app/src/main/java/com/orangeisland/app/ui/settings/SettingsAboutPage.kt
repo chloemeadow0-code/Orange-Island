@@ -9,20 +9,26 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Balance
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -57,6 +63,10 @@ fun SettingsAboutPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val versionName = packageInfo?.versionName ?: "?"
     val versionCode = packageInfo?.longVersionCode ?: 0
 
+    val autoUpdateCheck by viewModel.settings.autoUpdateCheck.collectAsState()
+    var isCheckingUpdates by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
     CollapsingSettingsScaffold(
         title = stringResource(R.string.about_title),
         onBack = onBack
@@ -80,6 +90,65 @@ fun SettingsAboutPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     leadingContent = { IslandIcon(IslandIcons.AboutDeveloper, size = 38.dp) }
                 )
             }))
+
+            SettingsGroup(
+                title = stringResource(R.string.about_updates),
+                items = listOf({
+                    SettingsItem(
+                        modifier = Modifier.clickable(enabled = !isCheckingUpdates) {
+                            scope.launch {
+                                isCheckingUpdates = true
+                                viewModel.triggerManualUpdateCheck()
+                                isCheckingUpdates = false
+                            }
+                        },
+                        headlineContent = { Text(stringResource(R.string.about_check_updates)) },
+                        supportingContent = {
+                            Text(
+                                if (isCheckingUpdates) stringResource(R.string.about_checking)
+                                else stringResource(R.string.about_check_updates_desc)
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                Icons.Default.Download,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        trailingContent = {
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                    )
+                }, {
+                    SettingsItem(
+                        headlineContent = { Text(stringResource(R.string.about_auto_update)) },
+                        supportingContent = { Text(stringResource(R.string.about_auto_update_desc)) },
+                        leadingContent = {
+                            Icon(
+                                Icons.Default.Update,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = autoUpdateCheck,
+                                onCheckedChange = { checked ->
+                                    scope.launch { viewModel.settings.setAutoUpdateCheck(checked) }
+                                }
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            scope.launch { viewModel.settings.setAutoUpdateCheck(!autoUpdateCheck) }
+                        }
+                    )
+                })
+            )
 
             SettingsGroup(title = stringResource(R.string.about_licenses), items = listOf({
                 SettingsItem(

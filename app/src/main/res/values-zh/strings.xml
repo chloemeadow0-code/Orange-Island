@@ -286,6 +286,8 @@
     <string name="context_window_default">默认上下文窗口</string>
     <string name="context_retain">保留最近 %1$d 条消息</string>
     <string name="context_retain_unlimited">保留全部对话历史</string>
+    <string name="context_window_unlimited">无限上下文窗口</string>
+    <string name="context_window_unlimited_desc">保留完整对话历史，而不是只保留最近的消息</string>
     <string name="unlimited">无限</string>
     <string name="context_visualize">可视化上下文滚动</string>
     <string name="context_visualize_desc">将上下文窗口外的消息变暗</string>
@@ -1031,8 +1033,10 @@
     <string name="about_update_available">有新版本：v%1$s</string>
     <string name="about_up_to_date">已是最新版本 (v%1$s)</string>
     <string name="about_checking">检查中...</string>
+    <string name="about_check_error">检查更新失败：%1$s</string>
     <string name="about_available_body">橘子岛 的新版本已在 GitHub 上发布。</string>
     <string name="about_view_release">查看版本</string>
+    <string name="about_download_apk">下载 APK</string>
     <string name="about_later">稍后</string>
     <string name="rating_title">评价 橘子岛</string>
     <string name="rating_star">%1$d 星</string>

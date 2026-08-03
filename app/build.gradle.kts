@@ -77,7 +77,8 @@ android {
     buildTypes {
         release {
             signingConfig = releaseSigning
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -187,12 +188,10 @@ dependencies {
     implementation(libs.media3.ui)
     implementation(libs.okhttp)
     implementation(libs.material.color.utilities)
-    implementation(libs.lottie.compose)
     implementation(libs.work.runtime.ktx)
     implementation(libs.jsch)
     implementation(libs.commons.compress)
     implementation(libs.mcp.sdk.client)
-    implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.sse)
     implementation(libs.ktor.client.content.negotiation)

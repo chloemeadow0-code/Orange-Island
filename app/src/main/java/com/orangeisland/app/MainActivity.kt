@@ -638,15 +638,41 @@ fun MainNavigation(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(info.url)))
                     viewModel.dismissUpdateDialog()
-                }) { Text(stringResource(R.string.about_view_release)) }
+                    viewModel.downloadAndInstallApk(info.url, info.version)
+                }) { Text(stringResource(R.string.about_download_apk)) }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.dismissUpdateDialog() }) {
                     Text(stringResource(R.string.about_later))
                 }
             }
+        )
+    }
+
+    // APK download progress dialog
+    val apkDownloadProgress by viewModel.apkDownloadProgress.collectAsState()
+    if (apkDownloadProgress != null) {
+        val progress = apkDownloadProgress!!
+        AlertDialog(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            onDismissRequest = { /* download is in progress, do not dismiss */ },
+            title = { Text("Downloading update...", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "${(progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = { }
         )
     }
 
