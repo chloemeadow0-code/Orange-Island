@@ -112,6 +112,10 @@ class ChatViewModel(
      *  Wired through to the GenerationManager's tool dispatcher. Null when voice call is not
      *  available (e.g. unit tests, title generation). */
     val voiceCallGate: com.orangeisland.app.viewmodel.VoiceCallGate? = null,
+    /** Shared gate between the AI camera tool (take_photo) and the chat UI camera launcher.
+     *  Wired through to the GenerationManager's tool dispatcher. Null when camera tools are not
+     *  available (e.g. unit tests, title generation). */
+    val cameraToolGate: com.orangeisland.app.tool.CameraToolGate? = null,
     /** Collects environment changes (foreground app, model, prompt, wallpaper, theme, battery,
      *  WiFi, Bluetooth) and formats them for injection into the system prompt via {app_context}. */
     private val appContextCollector: com.orangeisland.app.data.environment.AppContextCollector? = null,
@@ -430,7 +434,8 @@ class ChatViewModel(
             permissionController = permissionController,
             workflowToolProvider = workflowToolProvider,
             userInteractionGate = userInteractionGate,
-            voiceCallGate = voiceCallGate
+            voiceCallGate = voiceCallGate,
+            cameraToolGate = cameraToolGate
         ).also { gm ->
             gm.onMessagePersisted = { messageId, text ->
                 if (settings.autoCacheEnabled.value && (settings.modelSearchMethod.value == Constants.SEARCH_METHOD_RAG || settings.manualSearchMethod.value == Constants.SEARCH_METHOD_RAG)) {
@@ -954,6 +959,7 @@ class ChatViewModel(
                 convOverride?.shellEnabled
             ),
             globalShell = globalShell,
+            cameraToolEnabled = settings.cameraToolEnabled,
             videoNarrationEnabled = convOverride?.videoNarrationEnabled
                 ?: settings.videoNarrationEnabledModels.contains(currentActiveModel),
             toolCallDisplayMode = settings.toolCallDisplayMode,

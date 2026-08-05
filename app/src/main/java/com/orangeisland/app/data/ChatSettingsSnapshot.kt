@@ -25,6 +25,7 @@ data class ChatSettingsSnapshot(
     val webSearchApiKeys: Map<String, String> = emptyMap(),
     val shellEnabled: Boolean = false,
     val shellDevices: List<ShellDeviceConfig> = emptyList(),
+    val cameraToolEnabled: Boolean = false,
     val mcpServers: List<McpServerConfig> = emptyList(),
     val videoNarrationEnabledModels: Set<String> = emptySet(),
     val toolCallDisplayMode: String = ToolCallDisplayModes.DEFAULT,

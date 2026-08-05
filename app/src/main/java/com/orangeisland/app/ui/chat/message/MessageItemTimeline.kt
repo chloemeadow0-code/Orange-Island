@@ -132,6 +132,7 @@ import com.orangeisland.app.model.MessageStatus
 import com.orangeisland.app.model.Participant
 import com.orangeisland.app.model.ToolCallDisplayModes
 import com.orangeisland.app.ui.common.LocalOrangeIslandHaptics
+import com.orangeisland.app.ui.chat.LocalCameraToolGate
 import com.orangeisland.app.ui.theme.MonoFamily
 import com.orangeisland.app.ui.theme.ChatType
 import com.orangeisland.app.ui.components.ColorMath

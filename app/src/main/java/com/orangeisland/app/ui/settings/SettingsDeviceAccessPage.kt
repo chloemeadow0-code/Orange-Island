@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Chat
@@ -63,6 +64,7 @@ fun SettingsDeviceAccessPage(
 ) {
     val settings = viewModel.settings
     val deviceInfoEnabled by settings.deviceInfoEnabled.collectAsState()
+    val cameraToolEnabled by settings.cameraToolEnabled.collectAsState()
     val locationEnabled by settings.locationEnabled.collectAsState()
     val calendarEnabled by settings.calendarEnabled.collectAsState()
     val notificationEnabled by settings.notificationEnabled.collectAsState()
@@ -142,6 +144,9 @@ fun SettingsDeviceAccessPage(
             Manifest.permission.WRITE_CALENDAR
         ))
     }
+    fun requestCamera() {
+        runtimePermLauncher.launch(arrayOf(Manifest.permission.CAMERA))
+    }
 
     CollapsingSettingsScaffold(
         title = stringResource(R.string.device_access_title),
@@ -162,6 +167,21 @@ fun SettingsDeviceAccessPage(
                         checked = deviceInfoEnabled,
                         onCheckedChange = { settings.setDeviceInfoEnabled(it) },
                         permissionState = PermissionState.NotRequired
+                    )
+                }
+                // Camera (take_photo) — uses CameraX directly; requires CAMERA runtime permission.
+                add {
+                    ToolToggleRow(
+                        title = "相机拍照",
+                        desc = "允许 AI 自主调用相机拍照并查看照片内容（使用 CameraX 自动拍照，需要相机权限）",
+                        icon = Icons.Default.PhotoCamera,
+                        checked = cameraToolEnabled,
+                        onCheckedChange = { on ->
+                            if (on) requestCamera()
+                            settings.setCameraToolEnabled(on)
+                        },
+                        permissionState = if (pc.isGranted(PermissionController.Tool.CAMERA))
+                            PermissionState.Granted else PermissionState.RuntimeNeeded
                     )
                 }
                 // Location

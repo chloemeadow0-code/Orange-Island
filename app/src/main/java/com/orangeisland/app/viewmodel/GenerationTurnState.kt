@@ -238,6 +238,7 @@ class GenerationTurnState(
                 }
             }
             is StreamEvent.ToolCallRequest -> {
+                com.orangeisland.app.util.DebugLog.d("ToolEvt", "ToolCallRequest name=${event.name} id=${event.id}")
                 flushAnswerSegment()
                 flushThoughtSegment()
                 val ts = MessageSegment(type = "tool", toolName = event.name, toolArgs = event.arguments, toolResult = null, toolCallId = event.id, signature = event.signature)
@@ -246,6 +247,7 @@ class GenerationTurnState(
                 emitCurrent()
                 lastEmitMs = System.currentTimeMillis()
                 val result = executeTool(event.name, event.arguments)
+                com.orangeisland.app.util.DebugLog.d("ToolEvt", "executeTool returned len=${result.length} for ${event.name}")
                 val drainedImages = drainGeneratedImages()
                 val drainedAudio = drainAudio()
                 generatedImages.addAll(drainedImages)
@@ -266,6 +268,7 @@ class GenerationTurnState(
                 currentStatus = MessageStatus.SENDING
             }
             is StreamEvent.ToolCallsRequest -> {
+                com.orangeisland.app.util.DebugLog.d("ToolEvt", "ToolCallsRequest count=${event.calls.size} names=[${event.calls.joinToString { it.name }}]")
                 flushAnswerSegment()
                 flushThoughtSegment()
                 event.calls.forEach { call ->

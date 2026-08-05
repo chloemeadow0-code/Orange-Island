@@ -38,7 +38,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class PermissionController(private val appContext: Context) {
 
     /** The Device Access tools that need a system permission. */
-    enum class Tool { LOCATION, CALENDAR, NOTIFICATION, MEDIA, USAGE_STATS, ACCESSIBILITY, UI_AUTOMATION, OVERLAY, RECORD_AUDIO }
+    enum class Tool { LOCATION, CALENDAR, NOTIFICATION, MEDIA, USAGE_STATS, ACCESSIBILITY, UI_AUTOMATION, OVERLAY, RECORD_AUDIO, CAMERA }
 
     /** True iff the tool's required permission(s) are currently granted. Safe to call from any thread. */
     fun isGranted(tool: Tool): Boolean = when (tool) {
@@ -48,15 +48,13 @@ class PermissionController(private val appContext: Context) {
             hasPermission(Manifest.permission.WRITE_CALENDAR)
         // Special permissions — see [checkSpecialGranted] for the non-checkSelfPermission path.
         Tool.NOTIFICATION -> notificationListenerEnabled
-        // Media control reuses the notification-listener authorization: a bound
-        // NotificationListenerService is what lets MediaSessionManager see other apps' sessions
-        // reliably, so we treat the listener grant as the media-control gate too.
         Tool.MEDIA -> notificationListenerEnabled
         Tool.USAGE_STATS -> usageAccessEnabled
         Tool.ACCESSIBILITY -> accessibilityEnabled
         Tool.UI_AUTOMATION -> uiAutomationAccessibilityEnabled
         Tool.OVERLAY -> overlayEnabled
         Tool.RECORD_AUDIO -> hasPermission(Manifest.permission.RECORD_AUDIO)
+        Tool.CAMERA -> hasPermission(Manifest.permission.CAMERA)
     }
 
     /** Launches the system Settings screen the user must visit to grant [tool]'s special permission.

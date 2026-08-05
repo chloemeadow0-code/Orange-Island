@@ -217,6 +217,13 @@ class AppContainer(private val appContext: Context) {
         com.orangeisland.app.viewmodel.VoiceCallGate()
     }
 
+    /** Shared camera gate between the AI take_photo tool and the chat UI camera launcher.
+     *  Constructed once here so the same instance is wired to the ToolDispatcher (tool side)
+     *  and to the chat screen (render side). */
+    val cameraToolGate: com.orangeisland.app.tool.CameraToolGate by lazy {
+        com.orangeisland.app.tool.CameraToolGate()
+    }
+
     /** Approval gate for sensitive device-access tools (location, notifications, usage stats).
      *  When autoApprove is false, AI-driven calls suspend until the user confirms via dialog.
      *
@@ -294,7 +301,8 @@ class AppContainer(private val appContext: Context) {
             sensitiveToolApproval = sensitiveToolApprovalGate,
             chatDao = chatDao,
             userInteractionGate = userInteractionGate,
-            voiceCallGate = voiceCallGate
+            voiceCallGate = voiceCallGate,
+            cameraToolGate = cameraToolGate
         )
     }
 
@@ -407,8 +415,8 @@ class AppContainer(private val appContext: Context) {
             application, chatDao, settingsManager, memoryManager, appContext, sandboxManagerFactory,
             autoBackupManager, conversationRepository, settingsRepository, workflowRepository,
             workflowApprovalGate, pluginToolProvider, pluginLoader, pluginSandbox,
-            workflowAiToolProvider, userInteractionGate, voiceCallGate, appContextCollector,
-            pluginMemoryProvider
+            workflowAiToolProvider, userInteractionGate, voiceCallGate, cameraToolGate,
+            appContextCollector, pluginMemoryProvider
         )
 
     fun healthViewModelFactory(): com.orangeisland.app.viewmodel.HealthViewModelFactory =

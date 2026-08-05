@@ -212,6 +212,7 @@ class SettingsManager(private val context: Context) {
         // ── Device Access tools (per-tool on/off) ─────────────────
         // Each is off by default; the user opts in from Settings → Device Access.
         val DEVICE_INFO_ENABLED = booleanPreferencesKey("device_info_enabled")
+        val CAMERA_TOOL_ENABLED = booleanPreferencesKey("camera_tool_enabled")
         val LOCATION_ENABLED = booleanPreferencesKey("location_enabled")
         val CALENDAR_ENABLED = booleanPreferencesKey("calendar_enabled")
         val NOTIFICATION_ENABLED = booleanPreferencesKey("notification_enabled")
@@ -530,6 +531,7 @@ class SettingsManager(private val context: Context) {
 
     // ── Device Access tools (all default off) ─────────────────
     val deviceInfoEnabled: Flow<Boolean> = context.dataStore.data.map { it[DEVICE_INFO_ENABLED] ?: false }
+    val cameraToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[CAMERA_TOOL_ENABLED] ?: false }
     val locationEnabled: Flow<Boolean> = context.dataStore.data.map { it[LOCATION_ENABLED] ?: false }
     val calendarEnabled: Flow<Boolean> = context.dataStore.data.map { it[CALENDAR_ENABLED] ?: false }
     val notificationEnabled: Flow<Boolean> = context.dataStore.data.map { it[NOTIFICATION_ENABLED] ?: false }
@@ -1137,6 +1139,7 @@ class SettingsManager(private val context: Context) {
 
     // ── Device Access tools ───────────────────────────────────
     suspend fun saveDeviceInfoEnabled(enabled: Boolean) { context.dataStore.edit { it[DEVICE_INFO_ENABLED] = enabled } }
+    suspend fun saveCameraToolEnabled(enabled: Boolean) { context.dataStore.edit { it[CAMERA_TOOL_ENABLED] = enabled } }
     suspend fun saveLocationEnabled(enabled: Boolean) { context.dataStore.edit { it[LOCATION_ENABLED] = enabled } }
     suspend fun saveCalendarEnabled(enabled: Boolean) { context.dataStore.edit { it[CALENDAR_ENABLED] = enabled } }
     suspend fun saveNotificationEnabled(enabled: Boolean) { context.dataStore.edit { it[NOTIFICATION_ENABLED] = enabled } }

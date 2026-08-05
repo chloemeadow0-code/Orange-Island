@@ -61,7 +61,10 @@ class ToolDispatcher(
     /** Optional gate for the AI voice-call tool (make_voice_call). Shared with the incoming-call
      *  UI so the tool can suspend until the user answers/declines. Null when voice call is not
      *  wired up (e.g. title generation, background workers). */
-    private val voiceCallGate: com.orangeisland.app.viewmodel.VoiceCallGate? = null
+    private val voiceCallGate: com.orangeisland.app.viewmodel.VoiceCallGate? = null,
+    /** Optional gate for the AI camera tool (take_photo). Shared with the chat UI so the tool
+     *  can suspend until the user completes the capture. Null when camera tools are not wired up. */
+    private val cameraToolGate: CameraToolGate? = null
 ) {
     companion object {
         /** Shell-provider tool names that are pure file I/O (split out from command execution). */
@@ -107,6 +110,9 @@ class ToolDispatcher(
     private val userInteractionToolProvider = UserInteractionToolProvider(userInteractionGate)
     private val ttsToolProvider = TtsToolProvider(app)
     private val voiceCallToolProvider = VoiceCallToolProvider(voiceCallGate)
+    private val cameraToolProvider = cameraToolGate?.let {
+        com.orangeisland.app.tool.device.CameraToolProvider(app, it, llmProviders)
+    }
 
     /** Every active provider, in dispatch order. [handles] is queried in this order, so earlier
      *  providers win on name collisions. Names are namespaced (plugin__/mcp__) to avoid this in
@@ -132,6 +138,7 @@ class ToolDispatcher(
         add(ttsToolProvider)
         add(voiceCallToolProvider)
         add(userInteractionToolProvider)
+        cameraToolProvider?.let { add(it) }
     }
 
     // ── Confirmation hooks ──────────────────────────────────────────────────
@@ -286,6 +293,11 @@ class ToolDispatcher(
      *  model can proactively ring the user for a full-duplex voice conversation. */
     fun voiceCallDefinitions(ctx: GenerationContext): List<ToolDefinition> =
         voiceCallToolProvider.definitions(ctx)
+
+    /** AI camera tool (take_photo). Exposed when the user has opted in via the camera-tool
+     *  setting; lets the model autonomously capture a photo via the system camera. */
+    fun cameraDefinitions(ctx: GenerationContext): List<ToolDefinition> =
+        cameraToolProvider?.definitions(ctx) ?: emptyList()
 
     /** Drains audio file paths queued by the most recent speak tool call. Called by the LLM
      *  loop right after a speak call so the audio renders inline. */

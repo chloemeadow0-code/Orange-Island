@@ -15,6 +15,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -501,7 +503,10 @@ fun ChatApp(
         previousIsSwitching = uiState.isSwitching
     }
 
-    CompositionLocalProvider(LocalOrangeIslandHaptics provides haptics) {
+    CompositionLocalProvider(
+        LocalOrangeIslandHaptics provides haptics,
+        LocalCameraToolGate provides viewModel.cameraToolGate
+    ) {
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = true,
@@ -779,12 +784,38 @@ fun ChatApp(
                         }
                     }
 
+                    // AI camera capture overlay: floats above the input bar while take_photo is
+                    // pending. Independent of message-list rendering so it always shows up.
+                    val cameraGate = viewModel.cameraToolGate
+                    if (cameraGate != null) {
+                        val cameraPending by cameraGate.pending.collectAsState()
+                        val cameraRequest = cameraPending.firstOrNull()
+                        AnimatedVisibility(
+                            visible = cameraRequest != null,
+                            enter = fadeIn(tween(200)) + slideInVertically(
+                                initialOffsetY = { it },
+                                animationSpec = tween(250)
+                            ),
+                            exit = fadeOut(tween(200)) + slideOutVertically(
+                                targetOffsetY = { it },
+                                animationSpec = tween(200)
+                            ),
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = bottomBarHeight + 12.dp, start = 16.dp, end = 16.dp)
+                        ) {
+                            if (cameraRequest != null) {
+                                com.orangeisland.app.ui.chat.CameraMiniCapture(
+                                    gate = cameraGate,
+                                    request = cameraRequest,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+
                     AnimatedVisibility(
                         visible = uiState.isSwitching && !uiState.isTransitioningToNewChat,
-                        // Snappy enter (60ms) so the spinner is visible immediately when a
-                        // conversation is tapped �� the previous 200ms fadeIn was longer than
-                        // the whole switching window for already-cached uiState.conversations, so the
-                        // spinner never actually appeared. Exit stays gentle.
                         enter = fadeIn(animationSpec = tween(60)),
                         exit = fadeOut(animationSpec = tween(200))
                     ) {

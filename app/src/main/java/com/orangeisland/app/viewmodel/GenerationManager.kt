@@ -143,6 +143,7 @@ data class GenerationContext(
     val timeToolEnabled: Boolean = false,
     val uiAutomationEnabled: Boolean = false,
     val userInteractionEnabled: Boolean = true,
+    val cameraToolEnabled: Boolean = false,
     /** The project this conversation belongs to (null = ungrouped). Drives memory scoping:
      *  when non-null, memory tools read/write the project-private memory dir on top of the
      *  always-present global dir; RAG/search filters to the same project. */
@@ -221,7 +222,11 @@ class GenerationManager(
     /** Optional gate for the AI voice-call tool (make_voice_call). Threaded into the standalone
      *  dispatcher when [toolDispatcher] is null. Ignored when [toolDispatcher] is non-null — that
      *  dispatcher carries its own gate. Null in title generation / contexts without the call UI. */
-    private val voiceCallGate: com.orangeisland.app.viewmodel.VoiceCallGate? = null
+    private val voiceCallGate: com.orangeisland.app.viewmodel.VoiceCallGate? = null,
+    /** Optional gate for the AI camera tool (take_photo). Threaded into the standalone dispatcher
+     *  when [toolDispatcher] is null. Ignored when [toolDispatcher] is non-null. Null in title
+     *  generation / contexts without the camera UI. */
+    private val cameraToolGate: com.orangeisland.app.tool.CameraToolGate? = null
 ) {
     var onMessagePersisted: ((messageId: String, text: String) -> Unit)? = null
 
@@ -245,7 +250,8 @@ class GenerationManager(
             permissionController = permissionController,
             workflowToolProvider = workflowToolProvider,
             userInteractionGate = userInteractionGate,
-            voiceCallGate = voiceCallGate
+            voiceCallGate = voiceCallGate,
+            cameraToolGate = cameraToolGate
         )
 
     init {
@@ -356,6 +362,11 @@ class GenerationManager(
      *  — rings the user via a full-screen incoming-call UI. Empty when STT or TTS isn't configured. */
     fun buildVoiceCallTools(ctx: GenerationContext): List<ToolDefinition> =
         tools.voiceCallDefinitions(ctx)
+
+    /** AI camera tool (take_photo). Lets the model autonomously capture a photo via the system
+     *  camera. Empty when the camera-tool setting is off or the gate is not wired up. */
+    fun buildCameraTools(ctx: GenerationContext): List<ToolDefinition> =
+        tools.cameraDefinitions(ctx)
 
     /** Semantic message search — delegates to the RAG provider via [tools], which owns the
      *  embedding-search logic. Kept here as the entry point used by ChatViewModel's
@@ -579,7 +590,9 @@ class GenerationManager(
         val userInteractionTools = buildUserInteractionTools(ctx)
         val ttsTools = buildTtsTools(ctx)
         val voiceCallTools = buildVoiceCallTools(ctx)
-        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + alarmTools + healthTools + automationTools + workflowTools + userInteractionTools + ttsTools + voiceCallTools
+        val cameraTools = buildCameraTools(ctx)
+        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + alarmTools + healthTools + automationTools + workflowTools + userInteractionTools + ttsTools + voiceCallTools + cameraTools
+        DebugLog.d("ToolList", "allTools=${allTools.size} names=[${allTools.joinToString { it.function.name }}] cameraToolEnabled=${ctx.cameraToolEnabled}")
         val providerConfig = ProviderConfig(
             apiKey = config.apiKey,
             modelId = config.modelId,
@@ -678,6 +691,7 @@ class GenerationManager(
 
         val placeholder = conversations.getMessagesForConversationSnapshot(conversationId).find { it.id == modelMessageId }
         val parentId = placeholder?.parentId
+        DebugLog.d("GenStart", "generate convId=$conversationId modelMsgId=$modelMessageId parentId=$parentId isRegen=$isRegenerate")
 
         val state = GenerationTurnState(
             context = context,
@@ -848,15 +862,18 @@ class GenerationManager(
     ): List<ChatMessage> {
         var toolPath = initialToolPath
         var toolRound = 0
+        DebugLog.d("ToolLoop", "ENTER loop initialToolCallDataList=[${state.toolCallDataList.joinToString { it.toolName }}] status=${state.currentStatus}")
 
         while (state.toolCallDataList.isNotEmpty() && state.currentStatus != MessageStatus.ERROR && currentCoroutineContext().isActive) {
             toolRound++
+            DebugLog.d("ToolLoop", "round=$toolRound tools=[${state.toolCallDataList.joinToString { it.toolName }}] modelMsgId=${state.modelMessageId}")
             val roundToolList = state.roundToolSegments.toList()
             state.roundToolSegments.clear()
             val thoughtSegs = state.segments.filter { it.type == "thought" }
             val txedSegments = if (thoughtSegs.isNotEmpty()) thoughtSegs + roundToolList else roundToolList
             val prevLastId = if (toolRound == 1) state.modelMessageId else toolPath.lastOrNull()?.id
             val toolMsgId = "${Constants.TOOL_MSG_PREFIX}${UUID.randomUUID()}"
+            DebugLog.d("ToolLoop", "toolMsgId=$toolMsgId parentId=$prevLastId")
             val toolMsgSegs = txedSegments.ifEmpty { null }
             val tcds = state.toolCallDataList
             val allSegmentsJson = Json.encodeToString(toolMsgSegs ?: tcds.map { tc ->
@@ -905,12 +922,15 @@ class GenerationManager(
 
             val projectedToolPath = projectAssistantImagesToLatestUserMessage(toolPath, providerConfig.includeImages)
             val apiToolPath = applyUserTemplate(projectedToolPath, config.userPrepend, config.userPostpend)
+            DebugLog.d("ToolLoop", "requesting next round, pathSize=${apiToolPath.size}")
             provider.generateResponse(apiToolPath, providerConfig).collect { event ->
                 state.handleStreamEvent(event)
             }
+            DebugLog.d("ToolLoop", "round $toolRound stream done, remaining tools=[${state.toolCallDataList.joinToString { it.toolName }}]")
             state.finishCurrentThoughtTiming()
             state.emitCurrent()
         }
+        DebugLog.d("ToolLoop", "EXIT loop after $toolRound rounds")
         return toolPath
     }
 

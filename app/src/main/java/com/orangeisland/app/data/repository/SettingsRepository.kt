@@ -125,6 +125,7 @@ class SettingsRepository(
     val sandboxEnabled: StateFlow<Boolean> = hot(settingsManager.sandboxEnabled, false)
     // ── Device Access tools (all default off) ─────────────────
     val deviceInfoEnabled: StateFlow<Boolean> = hot(settingsManager.deviceInfoEnabled, false)
+    val cameraToolEnabled: StateFlow<Boolean> = hot(settingsManager.cameraToolEnabled, false)
     val locationEnabled: StateFlow<Boolean> = hot(settingsManager.locationEnabled, false)
     val calendarEnabled: StateFlow<Boolean> = hot(settingsManager.calendarEnabled, false)
     val notificationEnabled: StateFlow<Boolean> = hot(settingsManager.notificationEnabled, false)
@@ -303,7 +304,8 @@ class SettingsRepository(
             transparencyReasoningPanel,
             systemPrompts,
             activeSystemPromptId,
-            selectedModel
+            selectedModel,
+            cameraToolEnabled
         )
     ) { values: Array<Any?> ->
         ChatSettingsSnapshot(
@@ -350,7 +352,8 @@ class SettingsRepository(
             transparencyReasoningPanel = values[40] as Float,
             systemPrompts = values[41] as List<SystemPromptEntry>,
             activeSystemPromptId = values[42] as String?,
-            selectedModel = values[43] as String
+            selectedModel = values[43] as String,
+            cameraToolEnabled = values[44] as Boolean
         )
     }.stateIn(scope, SharingStarted.Eagerly, ChatSettingsSnapshot())
 
@@ -624,6 +627,7 @@ class SettingsRepository(
 
     // ── Device Access tools ───────────────────────────────────
     fun setDeviceInfoEnabled(enabled: Boolean) = scope.launch { settingsManager.saveDeviceInfoEnabled(enabled) }
+    fun setCameraToolEnabled(enabled: Boolean) = scope.launch { settingsManager.saveCameraToolEnabled(enabled) }
     fun setLocationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveLocationEnabled(enabled) }
     fun setCalendarEnabled(enabled: Boolean) = scope.launch { settingsManager.saveCalendarEnabled(enabled) }
     fun setNotificationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveNotificationEnabled(enabled) }

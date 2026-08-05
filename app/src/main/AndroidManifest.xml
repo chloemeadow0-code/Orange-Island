@@ -24,6 +24,10 @@
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
 
+    <!-- Camera tool: AI-driven direct photo capture via CameraX. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
     <!-- ── Device Access tools ─────────────────────────────────── -->
     <!-- Location tool (high-accuracy reverse geocoding + nearby search via Amap REST). -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />

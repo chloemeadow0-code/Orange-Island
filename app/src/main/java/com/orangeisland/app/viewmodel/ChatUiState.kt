@@ -63,6 +63,7 @@ data class ChatUiState(
     val globalWebSearch: Boolean = false,
     val shellEnabled: Boolean = false,
     val globalShell: Boolean = false,
+    val cameraToolEnabled: Boolean = false,
     val videoNarrationEnabled: Boolean = false,
     val toolCallDisplayMode: String = ToolCallDisplayModes.DEFAULT,
     val contextWindow: Int = 20,

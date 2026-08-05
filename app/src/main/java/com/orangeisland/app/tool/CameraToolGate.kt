@@ -11,8 +11,8 @@ import java.util.UUID
  * Bridges the AI `take_photo` tool to the camera-capture UI.
  *
  * When a tool calls [request], the gate pushes a [CaptureRequest] onto [pending]
- * and suspends on a [CompletableDeferred]. The chat screen observes [pending] and
- * renders a camera launcher (via ActivityResultContracts.TakePicture). On capture
+ * and suspends on a [CompletableDeferred]. The chat screen renders a tool card
+ * (via [com.orangeisland.app.ui.chat.CameraCaptureCard]) and auto-captures. On capture
  * complete the deferred resolves with the absolute image file path; on cancel it
  * resolves with null.
  *
@@ -25,10 +25,15 @@ class CameraToolGate {
     /** One pending camera capture request. */
     data class CaptureRequest(
         val id: String,
+        /** Which camera the AI asked for: "back" (default) or "front". */
+        val facing: String = "back",
+        /** The captured photo path once [complete] has been called; null until then. */
+        val photoPath: MutableStateFlow<String?> = MutableStateFlow(null),
         private val deferred: CompletableDeferred<String?>
     ) {
         /** Complete the deferred with the captured image file path. */
         fun complete(imagePath: String) {
+            photoPath.value = imagePath
             if (deferred.isActive) deferred.complete(imagePath)
         }
 
@@ -44,11 +49,16 @@ class CameraToolGate {
     /**
      * The callback consumed by [com.orangeisland.app.tool.device.CameraToolProvider].
      * Pushes a capture request and suspends until the UI resolves it.
+     * @param facing "back" (default) or "front" — which camera the AI requested.
      * @return Absolute file path of the captured photo, or null if cancelled.
      */
-    suspend fun request(): String? {
+    suspend fun request(facing: String = "back"): String? {
         val deferred = CompletableDeferred<String?>()
-        val req = CaptureRequest(id = "camera_${UUID.randomUUID()}", deferred = deferred)
+        val req = CaptureRequest(
+            id = "camera_${UUID.randomUUID()}",
+            facing = if (facing.equals("front", ignoreCase = true)) "front" else "back",
+            deferred = deferred
+        )
         _pending.update { it + req }
         return try {
             deferred.await()

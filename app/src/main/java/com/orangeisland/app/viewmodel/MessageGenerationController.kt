@@ -623,7 +623,13 @@ class MessageGenerationController(
             // matching comment in WorkflowRunner.buildChatMessageRunner). The previous version
             // broke when a message had only tool_/result_ children, parenting the new message
             // mid-conversation and hiding everything after it.
+            //
+            // Branch selection: prefer the user-selected child from [selectedChildren]; only
+            // fall back to the last sibling by timestamp when no selection exists. The old code
+            // always took the last sibling, which sent new messages to the wrong branch after a
+            // regenerate (the newest branch won by timestamp, not by user selection).
             val dbMessages = convRepo.getMessagesForConversationSnapshot(currentId)
+            val selChildren = selectedChildren.value
             var tail: String? = null
             var cursor: String? = null
             val msgWalked = mutableSetOf<String>()
@@ -631,11 +637,16 @@ class MessageGenerationController(
                 val siblings = dbMessages.filter { it.id !in msgWalked && it.parentId == cursor }
                     .sortedBy { it.timestamp }
                 if (siblings.isEmpty()) break
-                val visibleSibs = siblings.filter {
-                    !it.id.startsWith(Constants.TOOL_MSG_PREFIX) &&
-                    !it.id.startsWith(Constants.RESULT_MSG_PREFIX)
+                // Prefer the user-selected child for this parent; otherwise last visible sibling.
+                val selected = selChildren[cursor]?.let { selId ->
+                    siblings.firstOrNull { it.id == selId }
+                } ?: run {
+                    val visibleSibs = siblings.filter {
+                        !it.id.startsWith(Constants.TOOL_MSG_PREFIX) &&
+                        !it.id.startsWith(Constants.RESULT_MSG_PREFIX)
+                    }
+                    if (visibleSibs.isNotEmpty()) visibleSibs.last() else siblings.last()
                 }
-                val selected = if (visibleSibs.isNotEmpty()) visibleSibs.last() else siblings.last()
                 msgWalked.add(selected.id)
                 cursor = selected.id
                 if (!selected.id.startsWith(Constants.TOOL_MSG_PREFIX) &&
