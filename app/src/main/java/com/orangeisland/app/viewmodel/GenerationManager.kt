@@ -53,7 +53,8 @@ data class GenerationConfig(
     val maxTokens: Int? = null,
     val topP: Float? = null,
     val frequencyPenalty: Float? = null,
-    val presencePenalty: Float? = null
+    val presencePenalty: Float? = null,
+    val stream: Boolean = true
 )
 
 data class GenerationContext(
@@ -613,7 +614,8 @@ class GenerationManager(
             topP = config.topP,
             frequencyPenalty = config.frequencyPenalty,
             presencePenalty = config.presencePenalty,
-            cancellationToken = cancellationToken
+            cancellationToken = cancellationToken,
+            stream = config.stream
         )
         // ── Auto-compressed history injection ───────────────────────────
         // If this conversation has a running summary (compactedSummary) up to a

@@ -90,6 +90,10 @@ abstract class BaseOpenAiProvider : LlmProvider {
      *  `stream_options` and return "Upstream request failed" if it is present. */
     protected open val includeStreamOptions: Boolean = true
 
+    /** When false the provider will POST with stream=false and wait for a single complete
+     *  response body instead of consuming SSE chunks. */
+    protected open val supportsNonStream: Boolean = true
+
     protected open fun retryDelayMillis(statusCode: Int, attempt: Int): Long = 1000L * attempt
 
     /**
@@ -172,8 +176,8 @@ abstract class BaseOpenAiProvider : LlmProvider {
         var request = OpenAiChatRequest(
             model = config.modelId,
             messages = apiMessages,
-            stream = true,
-            streamOptions = if (includeStreamOptions) OpenAiStreamOptions(includeUsage = true) else null,
+            stream = config.stream,
+            streamOptions = if (config.stream && includeStreamOptions) OpenAiStreamOptions(includeUsage = true) else null,
             tools = config.tools,
             temperature = config.temperature,
             maxTokens = config.maxTokens,
@@ -187,7 +191,7 @@ abstract class BaseOpenAiProvider : LlmProvider {
 
         try {
             val requestBodyJson = json.encodeToString(OpenAiChatRequest.serializer(), request)
-            DebugLog.d("OrangeIslandAPI", "[$name] REQ -> ${endpointUrls.first()} | model=${config.modelId} | msgs=${apiMessages.size} | tools=${config.tools?.size ?: 0}")
+            DebugLog.d("OrangeIslandAPI", "[$name] REQ -> ${endpointUrls.first()} | model=${config.modelId} | msgs=${apiMessages.size} | tools=${config.tools?.size ?: 0} | stream=${config.stream}")
             DebugLog.d("OrangeIslandAPI", "[$name] REQ_BODY -> ${requestBodyJson.take(4000)}")
 
             val headers = mutableMapOf("Content-Type" to "application/json")
@@ -205,6 +209,84 @@ abstract class BaseOpenAiProvider : LlmProvider {
 
                 while (endpointIndex < endpointUrls.size && !finished && !retryScheduled) {
                     val endpointUrl = endpointUrls[endpointIndex]
+
+                    if (!config.stream) {
+                        // ── Non-streaming path ─────────────────────────────────────
+                        val body = HttpClient.post(endpointUrl, requestBodyJson, headers)
+                        if (body != null) {
+                            try {
+                                val response = json.decodeFromString<OpenAiNonStreamResponse>(body)
+                                val choice = response.choices?.firstOrNull()
+                                val message = choice?.message
+
+                                message?.reasoningContent?.let { rc ->
+                                    if (rc.isNotBlank() && config.thinkingEnabled) {
+                                        emit(StreamEvent.ThoughtChunk(rc))
+                                    }
+                                }
+                                message?.content?.let { content ->
+                                    if (content.isNotEmpty()) {
+                                        if (config.thinkingEnabled && message.reasoningContent.isNullOrBlank()) {
+                                            thinkParser.feed(
+                                                content = content,
+                                                thinkingEnabled = config.thinkingEnabled,
+                                                onText = { emit(StreamEvent.TextChunk(it)) },
+                                                onThought = { emit(StreamEvent.ThoughtChunk(it)) }
+                                            )
+                                            thinkParser.flush(
+                                                onText = { emit(StreamEvent.TextChunk(it)) },
+                                                onThought = { emit(StreamEvent.ThoughtChunk(it)) }
+                                            )
+                                        } else {
+                                            emit(StreamEvent.TextChunk(content))
+                                        }
+                                    }
+                                }
+                                message?.toolCalls?.let { tcs ->
+                                    val calls = tcs.mapNotNull { tc ->
+                                        val fn = tc.function
+                                        if (tc.id != null && fn?.name != null) {
+                                            StreamEvent.ToolCallRequest(
+                                                tc.id, fn.name,
+                                                if (fn.arguments is JsonPrimitive) fn.arguments.content else fn.arguments.toString()
+                                            )
+                                        } else null
+                                    }
+                                    if (calls.size == 1) emit(calls.first())
+                                    else if (calls.size > 1) emit(StreamEvent.ToolCallsRequest(calls))
+                                }
+                                response.usage?.let { usage ->
+                                    emit(
+                                        StreamEvent.UsageUpdate(
+                                            tokenCount = usage.totalTokens,
+                                            thoughtsTokenCount = usage.completionTokensDetails?.reasoningTokens ?: 0,
+                                            cachedTokenCount = usage.promptTokensDetails?.cachedTokens ?: 0
+                                        )
+                                    )
+                                }
+                                finished = true
+                            } catch (e: Exception) {
+                                DebugLog.e("OrangeIslandAPI", "[$name] Non-stream parse error: ${e.message}", e)
+                                emit(StreamEvent.Error(GenerationError.Unknown(e)))
+                                finished = true
+                            }
+                        } else {
+                            // POST returned null (non-2xx). We don't have status code here,
+                            // so treat as final error after fallback endpoints are exhausted.
+                            val hasV1Fallback = endpointIndex + 1 < endpointUrls.size
+                            if (hasV1Fallback) {
+                                DebugLog.w("OrangeIslandAPI", "[$name] non-stream POST failed at $endpointUrl, retrying with ${endpointUrls[endpointIndex + 1]}")
+                                endpointIndex++
+                                continue
+                            }
+                            DebugLog.e("OrangeIslandAPI", "[$name] non-stream POST failed at $endpointUrl")
+                            emit(StreamEvent.Error(GenerationError.Network(statusCode = 0, message = "Request failed")))
+                            finished = true
+                        }
+                        continue
+                    }
+
+                    // ── Streaming path (existing) ──────────────────────────────
                     val handle = HttpClient.streamPost(endpointUrl, requestBodyJson, headers, config.cancellationToken)
                     try {
                         if (handle.code == 200) {

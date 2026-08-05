@@ -44,7 +44,8 @@ data class ProviderConfig(
     val topP: Float? = null,
     val frequencyPenalty: Float? = null,
     val presencePenalty: Float? = null,
-    val cancellationToken: Long? = null
+    val cancellationToken: Long? = null,
+    val stream: Boolean = true
 )
 
 @Serializable
@@ -239,6 +240,28 @@ data class OpenAiErrorResponse(val error: OpenAiError)
 
 @Serializable
 data class OpenAiError(val message: String, val type: String? = null, val code: String? = null)
+
+// ── Non-streaming response shapes ─────────────────────────────────────────
+
+@Serializable
+data class OpenAiNonStreamResponse(
+    val choices: List<OpenAiNonStreamChoice>? = null,
+    val usage: OpenAiUsage? = null
+)
+
+@Serializable
+data class OpenAiNonStreamChoice(
+    val message: OpenAiNonStreamMessage? = null,
+    @SerialName("finish_reason") val finishReason: String? = null
+)
+
+@Serializable
+data class OpenAiNonStreamMessage(
+    val role: String? = null,
+    val content: String? = null,
+    @SerialName("reasoning_content") val reasoningContent: String? = null,
+    @SerialName("tool_calls") val toolCalls: List<OpenAiToolCall>? = null
+)
 
 class PendingToolCall(
     var id: String = "",

@@ -159,6 +159,7 @@ class SettingsRepository(
     val blurEffectsEnabled: StateFlow<Boolean> = hot(settingsManager.blurEffectsEnabled, true)
     val codeBlockWrapEnabled: StateFlow<Boolean> = hot(settingsManager.codeBlockWrapEnabled, false)
     val splitAssistantBubbleByLine: StateFlow<Boolean> = hot(settingsManager.splitAssistantBubbleByLine, false)
+    val nonStreamOutputEnabled: StateFlow<Boolean> = hot(settingsManager.nonStreamOutputEnabled, false)
     val customColorChatText: StateFlow<Long?> = hot(settingsManager.customColorChatText, null)
     val customColorGlobalText: StateFlow<Long?> = hot(settingsManager.customColorGlobalText, null)
     val customColorUserBubble: StateFlow<Long?> = hot(settingsManager.customColorUserBubble, null)
@@ -689,6 +690,7 @@ class SettingsRepository(
     fun setBlurEffectsEnabled(enabled: Boolean) = scope.launch { settingsManager.saveBlurEffectsEnabled(enabled) }
     fun setCodeBlockWrapEnabled(enabled: Boolean) = scope.launch { settingsManager.saveCodeBlockWrapEnabled(enabled) }
     fun setSplitAssistantBubbleByLine(enabled: Boolean) = scope.launch { settingsManager.saveSplitAssistantBubbleByLine(enabled) }
+    fun setNonStreamOutputEnabled(enabled: Boolean) = scope.launch { settingsManager.saveNonStreamOutputEnabled(enabled) }
     fun setCustomColorChatText(v: Long?) = scope.launch { settingsManager.saveCustomColorChatText(v) }
     fun setCustomColorGlobalText(v: Long?) = scope.launch { settingsManager.saveCustomColorGlobalText(v) }
     fun setCustomColorUserBubble(v: Long?) = scope.launch { settingsManager.saveCustomColorUserBubble(v) }

@@ -295,6 +295,8 @@
     <string name="show_usage_stats_desc">在每条 AI 回复下方显示 token 用量、缓存命中和上下文消息数</string>
     <string name="remember_last_conversation">记住上次窗口</string>
     <string name="remember_last_conversation_desc">开启后启动 App 会直接进入上次打开的对话，而不是新建对话</string>
+    <string name="non_stream_output">非流式输出</string>
+    <string name="non_stream_output_desc">关闭后 AI 回复将一次性完整显示，而不是逐字出现</string>
     <string name="cache_hit">命中缓存</string>
     <string name="context_messages">上下文 %1$d 条消息</string>
     <string name="gen_temperature">温度</string>

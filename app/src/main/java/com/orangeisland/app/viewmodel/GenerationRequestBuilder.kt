@@ -169,7 +169,8 @@ class GenerationRequestBuilder(
             maxTokens = effectiveSettings.maxTokens,
             topP = effectiveSettings.topP,
             frequencyPenalty = effectiveSettings.frequencyPenalty,
-            presencePenalty = effectiveSettings.presencePenalty
+            presencePenalty = effectiveSettings.presencePenalty,
+            stream = !settings.nonStreamOutputEnabled.value
         )
         val genCtx = GenerationContext(
             conversationId = currentId,

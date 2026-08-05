@@ -252,6 +252,7 @@ class SettingsManager(private val context: Context) {
         // When on, a finished (non-streaming) assistant reply is split at the model's own \n
         // boundaries into multiple stacked bubbles. Generic helper lives in BubbleSplitter.kt.
         val SPLIT_ASSISTANT_BUBBLE_BY_LINE = booleanPreferencesKey("split_assistant_bubble_by_line")
+        val NON_STREAM_OUTPUT_ENABLED = booleanPreferencesKey("non_stream_output_enabled")
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
         val TOOL_CALL_DISPLAY_MODE = stringPreferencesKey("tool_call_display_mode")
         val SCHEME_STYLE = stringPreferencesKey("scheme_style")
@@ -574,6 +575,7 @@ class SettingsManager(private val context: Context) {
     val blurEffectsEnabled: Flow<Boolean> = context.dataStore.data.map { it[BLUR_EFFECTS_ENABLED] ?: true }
     val codeBlockWrapEnabled: Flow<Boolean> = context.dataStore.data.map { it[CODE_BLOCK_WRAP_ENABLED] ?: false }
     val splitAssistantBubbleByLine: Flow<Boolean> = context.dataStore.data.map { it[SPLIT_ASSISTANT_BUBBLE_BY_LINE] ?: false }
+    val nonStreamOutputEnabled: Flow<Boolean> = context.dataStore.data.map { it[NON_STREAM_OUTPUT_ENABLED] ?: false }
     val customColorChatText: Flow<Long?> = context.dataStore.data.map { it[CUSTOM_COLOR_CHAT_TEXT] }
     val customColorGlobalText: Flow<Long?> = context.dataStore.data.map { it[CUSTOM_COLOR_GLOBAL_TEXT] }
     val customColorUserBubble: Flow<Long?> = context.dataStore.data.map { it[CUSTOM_COLOR_USER_BUBBLE] }
@@ -1183,6 +1185,10 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveSplitAssistantBubbleByLine(enabled: Boolean) {
         context.dataStore.edit { it[SPLIT_ASSISTANT_BUBBLE_BY_LINE] = enabled }
+    }
+
+    suspend fun saveNonStreamOutputEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[NON_STREAM_OUTPUT_ENABLED] = enabled }
     }
 
     suspend fun saveCustomColorChatText(value: Long?) = context.dataStore.edit { if (value == null) it.remove(CUSTOM_COLOR_CHAT_TEXT) else it[CUSTOM_COLOR_CHAT_TEXT] = value }

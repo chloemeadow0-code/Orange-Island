@@ -52,6 +52,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val thinkingBudgetEnabled by viewModel.settings.thinkingBudgetEnabled.collectAsState()
     val thinkingBudgetTokens by viewModel.settings.thinkingBudgetTokens.collectAsState()
     val showDocFab by viewModel.settings.showDocumentationFab.collectAsState()
+    val nonStreamOutput by viewModel.settings.nonStreamOutputEnabled.collectAsState()
 
     // State for the Default Context Window slider + unlimited toggle. Hoisted here so
     // the slider item and the separate unlimited toggle item can share it.
@@ -218,6 +219,19 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     Switch(checked = rememberLastConversation, onCheckedChange = { viewModel.settings.setRememberLastConversation(it) })
                                 },
                                 modifier = Modifier.clickable { viewModel.settings.setRememberLastConversation(!rememberLastConversation) }
+                            )
+                        },
+                        {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.non_stream_output)) },
+                                supportingContent = { Text(stringResource(R.string.non_stream_output_desc)) },
+                                leadingContent = {
+                                    Icon(Icons.Default.Visibility, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                },
+                                trailingContent = {
+                                    Switch(checked = nonStreamOutput, onCheckedChange = { viewModel.settings.setNonStreamOutputEnabled(it) })
+                                },
+                                modifier = Modifier.clickable { viewModel.settings.setNonStreamOutputEnabled(!nonStreamOutput) }
                             )
                         }
                     )
