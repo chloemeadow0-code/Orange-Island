@@ -547,6 +547,8 @@
     <string name="video_transcription_ellipsis">正在转述视频…</string>
 
     <!-- Settings - TTS Page -->
+    <string name="enabled">已启用</string>
+    <string name="disabled">未启用</string>
     <string name="tts_title">语音合成</string>
     <string name="tts_group_general">通用</string>
     <string name="tts_enable">启用语音合成</string>

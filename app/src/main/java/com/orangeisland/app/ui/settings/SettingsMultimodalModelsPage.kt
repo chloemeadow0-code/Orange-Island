@@ -5,8 +5,8 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddPhotoAlternate
-import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,6 +33,8 @@ fun SettingsMultimodalModelsPage(
     val transcriptionEnabledModels by viewModel.settings.imageTranscriptionEnabledModels.collectAsState()
     val videoNarrationModel by viewModel.settings.videoNarrationModel.collectAsState()
     val videoNarrationEnabledModels by viewModel.settings.videoNarrationEnabledModels.collectAsState()
+    val ttsEnabled by viewModel.settings.ttsEnabled.collectAsState()
+    val sttEnabled by viewModel.settings.sttEnabled.collectAsState()
     val imageGenModel by viewModel.settings.imageGenModel.collectAsState()
     val imageGenSize by viewModel.settings.imageGenSize.collectAsState()
     val embeddingModels by viewModel.settings.embeddingModels.collectAsState()
@@ -60,6 +62,8 @@ fun SettingsMultimodalModelsPage(
                 viewModel = viewModel,
                 onBack = { detailScreen = null }
             )
+            "tts" -> SettingsTtsPage(viewModel = viewModel, onBack = { detailScreen = null })
+            "stt" -> SettingsSttPage(viewModel = viewModel, onBack = { detailScreen = null })
             "imagegen" -> SettingsImageGenPage(
                 viewModel = viewModel,
                 onBack = { detailScreen = null }
@@ -113,6 +117,26 @@ fun SettingsMultimodalModelsPage(
                                             Icon(Icons.Default.Videocam, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
                                         },
                                         modifier = Modifier.clickable { detailScreen = "video_narration" }
+                                    )
+                                },
+                                {
+                                    SettingsItem(
+                                        headlineContent = { Text(stringResource(R.string.settings_tts)) },
+                                        supportingContent = { Text(stringResource(if (ttsEnabled) R.string.enabled else R.string.disabled)) },
+                                        leadingContent = {
+                                            Icon(Icons.Default.RecordVoiceOver, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+                                        },
+                                        modifier = Modifier.clickable { detailScreen = "tts" }
+                                    )
+                                },
+                                {
+                                    SettingsItem(
+                                        headlineContent = { Text(stringResource(R.string.settings_stt)) },
+                                        supportingContent = { Text(stringResource(if (sttEnabled) R.string.enabled else R.string.disabled)) },
+                                        leadingContent = {
+                                            Icon(Icons.Default.Mic, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+                                        },
+                                        modifier = Modifier.clickable { detailScreen = "stt" }
                                     )
                                 },
                                 {

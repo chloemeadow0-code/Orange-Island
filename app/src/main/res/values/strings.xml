@@ -714,6 +714,8 @@
     <string name="video_transcription_ellipsis">Narrating video…</string>
 
     <!-- Settings - TTS Page -->
+    <string name="enabled">Enabled</string>
+    <string name="disabled">Disabled</string>
     <string name="tts_title">Text-to-Speech</string>
     <string name="tts_group_general">General</string>
     <string name="tts_enable">Enable Text-to-Speech</string>
