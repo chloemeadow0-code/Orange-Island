@@ -135,6 +135,21 @@ fun MessageList(
             .collect { onLoadOlderMessages() }
     }
 
+    // Diagnostic: track what MessageList receives vs what the LazyColumn actually lays out.
+    // "Only the last message renders on branch switch" shows up here as a mismatch between
+    // `messages.size` (what resolvePath produced) and totalItemsCount (what the LazyColumn
+    // is showing) plus a non-zero firstVisibleItemIndex.
+    LaunchedEffect(messages) {
+        com.orangeisland.app.util.DebugLog.d("MsgRender", "MessageList received msgs=${messages.size} " +
+            "ids=${messages.joinToString(",") { it.id.take(12) }}")
+    }
+    LaunchedEffect(state) {
+        snapshotFlow { Triple(state.firstVisibleItemIndex, state.layoutInfo.totalItemsCount, state.layoutInfo.visibleItemsInfo.size) }
+            .collect { (firstIdx, total, visible) ->
+                com.orangeisland.app.util.DebugLog.d("MsgRender", "LazyColumn firstVisibleIdx=$firstIdx totalItems=$total visibleNow=$visible msgsInModel=${messages.size}")
+            }
+    }
+
     Box(modifier = modifier) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),

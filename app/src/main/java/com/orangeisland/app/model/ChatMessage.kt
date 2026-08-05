@@ -55,6 +55,7 @@ data class ChatMessage(
     val parentId: String? = null,
     val text: String,
     val images: List<String> = emptyList(),
+    val videos: List<String> = emptyList(),
     val audio: List<String> = emptyList(),
     val thoughts: String? = null,
     val thoughtTitle: String? = null,

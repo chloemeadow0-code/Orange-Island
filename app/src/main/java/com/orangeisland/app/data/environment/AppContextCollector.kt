@@ -6,6 +6,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import androidx.core.content.ContextCompat
@@ -13,12 +17,16 @@ import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.util.DebugLog
 import com.orangeisland.app.util.NoisePackageFilter
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.log10
+import kotlin.math.sqrt
 
 /**
  * Collects environment changes (app foreground, model switch, prompt switch, wallpaper,
@@ -87,8 +95,8 @@ class AppContextCollector(
     }
 
     /** Formats the snapshot injected via `{app_context}`: a recent-usage summary (top apps by
-     *  foreground minutes over the last [usageLookbackMs]) followed by the ring buffer of
-     *  environment events (model / theme / battery / wifi / ...).
+     *  foreground minutes over the last [usageLookbackMs]), ambient noise level, and the ring
+     *  buffer of environment events (model / theme / battery / wifi / ...).
      *
      *  The usage summary is queried on demand rather than accumulated from window-change events,
      *  because the event-based approach recorded the IME ↔ app ↔ Launcher churn as "app switches"
@@ -96,13 +104,14 @@ class AppContextCollector(
      *  actually spent time in instead. If usage access isn't granted or the query returns nothing,
      *  the summary is omitted and only the event list is emitted — the model still gets the rest
      *  of the context. */
-    fun getSnapshot(): String {
+    suspend fun getSnapshot(): String {
         val usageBlock = buildUsageSummary()
+        val noiseBlock = measureAmbientNoise()
         val copy = synchronized(events) { events.toList() }
         val eventBlock = if (copy.isEmpty()) "" else copy.joinToString("\n") {
             "• ${timeSdf.format(Date(it.timestamp))} ${it.description}"
         }
-        return listOf(usageBlock, eventBlock).filter { it.isNotBlank() }.joinToString("\n")
+        return listOf(usageBlock, noiseBlock, eventBlock).filter { it.isNotBlank() }.joinToString("\n")
     }
 
     /**
@@ -135,6 +144,76 @@ class AppContextCollector(
     }.getOrElse {
         DebugLog.w("AppContext", "usage summary failed (likely no usage-access permission)", it)
         ""
+    }
+
+    /** Best-effort 0.5-second ambient noise sample via [AudioRecord].
+     *  Returns a human-readable line (e.g. "环境噪音：约 45dB（安静）") or "" when the
+     *  permission isn't granted, the microphone is busy, or reading fails.
+     *
+     *  The dB value is an *approximation* uncalibrated to absolute SPL; different phones
+     *  will report different numbers for the same acoustic environment. It is still useful
+     *  for relative "how loud is it right now" context. */
+    private suspend fun measureAmbientNoise(): String = withContext(Dispatchers.IO) {
+        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO)
+            != PackageManager.PERMISSION_GRANTED) {
+            return@withContext ""
+        }
+
+        val sampleRate = 44100
+        val channelConfig = AudioFormat.CHANNEL_IN_MONO
+        val audioFormat = AudioFormat.ENCODING_PCM_16BIT
+        val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+        if (minBufferSize <= 0) return@withContext ""
+
+        val audioRecord = AudioRecord(
+            MediaRecorder.AudioSource.MIC,
+            sampleRate, channelConfig, audioFormat, minBufferSize
+        )
+        if (audioRecord.state != AudioRecord.STATE_INITIALIZED) {
+            return@withContext ""
+        }
+
+        try {
+            audioRecord.startRecording()
+            val buffer = ShortArray(minBufferSize)
+            val startTime = System.currentTimeMillis()
+            var totalSamples = 0L
+            var sumSquares = 0.0
+
+            while (System.currentTimeMillis() - startTime < 500L) {
+                val read = audioRecord.read(buffer, 0, buffer.size)
+                if (read > 0) {
+                    for (i in 0 until read) {
+                        val sample = buffer[i].toDouble()
+                        sumSquares += sample * sample
+                    }
+                    totalSamples += read
+                }
+            }
+            audioRecord.stop()
+
+            if (totalSamples == 0L) return@withContext ""
+            val rms = sqrt(sumSquares / totalSamples)
+            if (rms == 0.0) return@withContext ""
+
+            // Empirical mapping: phone-microphone RMS in a quiet room is ~50–200;
+            // on a noisy street it can reach 1 000–5 000. Adding an offset of 90
+            // brings the result into a roughly realistic 20–120 dB range.
+            val dbSpl = (20 * log10(rms) + 90).toInt().coerceIn(20, 120)
+            val level = when (dbSpl) {
+                in 0..35 -> "极静"
+                in 36..50 -> "安静"
+                in 51..65 -> "一般"
+                in 66..80 -> "嘈杂"
+                else -> "很吵"
+            }
+            "环境噪音：约 ${dbSpl}dB（$level）"
+        } catch (e: Exception) {
+            DebugLog.e("AppContext", "measureAmbientNoise failed", e)
+            ""
+        } finally {
+            audioRecord.release()
+        }
     }
 
     // ── Internal ────────────────────────────────────────────────────────

@@ -44,7 +44,15 @@ object Constants {
     const val PROVIDER_OPEN_ROUTER = "Open Router"
     const val PROVIDER_ELEVENLABS = "ElevenLabs"
     const val PROVIDER_MINIMAX_TTS = "MiniMax"
+    const val PROVIDER_MINIMAX_CHAT = "MiniMax Chat"
     const val PROVIDER_UNKNOWN = "Unknown"
+
+    /** Max inline video size (bytes) for direct video_url base64 embedding.
+     *  MiniMax accepts up to 50 MB per URL/Base64 video, but keep a margin for JSON overhead. */
+    const val MAX_INLINE_VIDEO_BYTES = 45 * 1024 * 1024L
+
+    /** Max video file size (bytes) that can be uploaded via MiniMax files API. */
+    const val MAX_MINIMAX_UPLOAD_VIDEO_BYTES = 512 * 1024 * 1024L
     /** Placeholder model ID used as StateFlow/DataStore cold-start fallback and
      *  template preview sample. NOT the real default model — it is overwritten
      *  as soon as the user selects a model or DataStore loads the persisted value. */

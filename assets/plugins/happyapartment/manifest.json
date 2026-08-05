@@ -1,0 +1,103 @@
+{
+  "id": "orangeisland.happyapartment",
+  "name": "幸福公寓·AI 沙盒",
+  "version": "1.1.0",
+  "author": "diant",
+  "description": "把《幸福公寓物语》做成给 AI 玩的像素模拟经营环境（单一标准模式）。AI 通过观察状态、调用动作工具（装修/招租/扩建/推进时间/参赛/用道具）来经营公寓。无 UI，数据来自 GDD 还原数值 + 难度增强层。",
+  "allowedHosts": [],
+  "config": [],
+  "tools": [
+    {
+      "name": "new_game",
+      "description": "开始或重开一局游戏（单一标准模式，含一定难度：S级需总舒适>=700、维护费×1.2、转职可能失败扣属性）。参数 seed: 整数随机种子（可选，用于可复现）。返回初始观察。调用后游戏状态被重置。",
+      "parameters": [
+        {"name": "seed", "type": "integer", "required": false, "description": "随机种子，用于可复现，默认20260804"}
+      ]
+    },
+    {
+      "name": "observe",
+      "description": "返回当前完整游戏状态（JSON）：时间、现金/研究点/卷轴、房间列表(含家具/舒适度/专门房/是否故障)、居民列表(属性/职业/年龄/婚育/生病)、夺冠记录、解锁进度。AI 每步决策前都应调用。",
+      "parameters": []
+    },
+    {
+      "name": "legal_actions",
+      "description": "根据当前状态返回此刻可执行的动作建议列表，帮助 AI 缩小决策空间。返回字符串数组。",
+      "parameters": []
+    },
+    {
+      "name": "list_furniture",
+      "description": "列出家具(含 id/名称/适用地板/舒适度/成本/是否已解锁/解锁条件)，可用参数 floor 过滤地板(elastic/green/orange/tile/pink)。供 place_furniture 参考。",
+      "parameters": [
+        {"name": "floor", "type": "string", "required": false, "description": "按地板过滤: elastic/green/orange/tile/pink"}
+      ]
+    },
+    {
+      "name": "place_furniture",
+      "description": "在指定房间放置一件家具。参数 room_id, furniture_id。会扣现金(家具cost)，重算房间舒适度并尝试激活'专门房间'配方。容量满/未解锁/现金不足会被拒。返回结果与触发的专门房。",
+      "parameters": [
+        {"name": "room_id", "type": "string", "required": true, "description": "目标房间 id"},
+        {"name": "furniture_id", "type": "string", "required": true, "description": "家具 id，可用 list_furniture 查询"}
+      ]
+    },
+    {
+      "name": "remove_furniture",
+      "description": "从房间移除一件家具（返还50%现金）。参数 room_id, furniture_id。返回结果。",
+      "parameters": [
+        {"name": "room_id", "type": "string", "required": true, "description": "房间 id"},
+        {"name": "furniture_id", "type": "string", "required": true, "description": "家具 id"}
+      ]
+    },
+    {
+      "name": "recruit",
+      "description": "向指定空房招募一名居民。参数 room_id。消耗研究点(按房间舒适度分档: <50→5, <90→35, <130→100, ≥130→200，再×0.9)。居民带随机属性/职业。返回新居民信息与招租档次。",
+      "parameters": [
+        {"name": "room_id", "type": "string", "required": true, "description": "目标空房 id"}
+      ]
+    },
+    {
+      "name": "expand",
+      "description": "扩建一间新房。参数 floor(地板类型 elastic/green/orange/tile/pink)。消耗现金(1500+400×现有房数)与研究点(2+房数/4)。返回新房 id。",
+      "parameters": [
+        {"name": "floor", "type": "string", "required": false, "description": "新房地板类型，默认 elastic"}
+      ]
+    },
+    {
+      "name": "advance",
+      "description": "推进时间(月)。参数 months(默认1, 最大60)。每月结算: 收租、扣维护费(×1.2)、居民老化/退休、随机事件(生病/设备故障/节日红包/投诉)、生病久拖可能搬离、年底翻年。重要: 每月自动+1研究点(公寓运营)且每住户+1研究点(租金衍生), 这是研究点稳定来源, 不会卡死在0研究点。返回本月发生的事与最新资源。",
+      "parameters": [
+        {"name": "months", "type": "integer", "required": false, "description": "推进月数，默认1"}
+      ]
+    },
+    {
+      "name": "enter_competition",
+      "description": "报名并立即结算某榜单竞赛。参数 category: comfort|rent|brain|hobby|sport|charm|population|wealth; tier: local(地域)|national(全国)|world(世界)。对手强度按 tier 放大。夺冠发奖(金币/研究点/卷轴)并登记 rankWins 用于解锁家具；世界八榜全冠解锁豪华浴室。",
+      "parameters": [
+        {"name": "category", "type": "string", "required": true, "description": "竞赛榜单类别"},
+        {"name": "tier", "type": "string", "required": false, "description": "档次 local/national/world，默认 local"}
+      ]
+    },
+    {
+      "name": "use_item",
+      "description": "使用道具/卷轴。参数 type 之一: transfer(转职,需 resident_id+target职业名,成0.7失败-6属性+冷却3月,首次转职解锁对应家具)、adv_transfer(高级转职,研究点20,成0.9)、medicine(治病,卷轴1)、upgrade(属性+10,研究点5,target=brain/sport/hobby/charm)、young(年轻-5岁,卷轴1)、love(结婚,卷轴1,resident_id)、child(生子,卷轴2,需已婚)、rent_scroll(房间租金+0.1,卷轴2,room_id)。",
+      "parameters": [
+        {"name": "type", "type": "string", "required": true, "description": "道具类型: transfer/adv_transfer/medicine/upgrade/young/love/child/rent_scroll"},
+        {"name": "resident_id", "type": "string", "required": false, "description": "作用居民 id(转职/治病/升级/年轻/结婚/生子)"},
+        {"name": "target", "type": "string", "required": false, "description": "转职目标职业名 或 升级属性名"},
+        {"name": "room_id", "type": "string", "required": false, "description": "作用房间 id(rent_scroll)"}
+      ]
+    },
+    {
+      "name": "set_rent",
+      "description": "手动调整某房间租金倍率。参数 room_id, mult(0.5~2)。返回结果。",
+      "parameters": [
+        {"name": "room_id", "type": "string", "required": true, "description": "房间 id"},
+        {"name": "mult", "type": "number", "required": true, "description": "租金倍率 0.5~2"}
+      ]
+    },
+    {
+      "name": "summary",
+      "description": "返回一段给 AI 看的简明文字报告：当前年月、资产、公寓评级、居民数、专门房间、夺冠记录、下一步建议。",
+      "parameters": []
+    }
+  ]
+}

@@ -63,18 +63,45 @@ class AppLockAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
-        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        // Respond to both window-state changes (an app coming to the foreground) and window-list
+        // changes (the foreground app shuffling its own windows / the mask getting covered by a
+        // dialog or splash). The window-list case is what lets us re-assert the mask after it has
+        // been pushed aside — without it, once the mask is buried a single window-state event is
+        // never emitted again (same foreground package), and the lock silently stops working.
+        val type = event.eventType
+        if (type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+            type != AccessibilityEvent.TYPE_WINDOWS_CHANGED) return
         if (!cachedEnabled) return
 
-        val pkg = event.packageName?.toString() ?: return
+        // Resolve the foreground package. For WINDOW_STATE_CHANGED the event carries it directly;
+        // for WINDOWS_CHANGED it usually doesn't, so fall back to the dispatcher's last-known
+        // foreground (kept fresh by the automation accessibility service and already noise-filtered).
+        val pkg = when {
+            type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ->
+                event.packageName?.toString()
+            else -> com.orangeisland.app.workflow.trigger.AppForegroundDispatcher.lastKnown
+        } ?: return
+        if (pkg.isBlank()) return
         // Ignore our own package (MainActivity + AppLockMaskActivity) to prevent feedback loops.
-        if (pkg == ownPackage || pkg.isBlank()) return
+        if (pkg == ownPackage) {
+            // When we leave our own package, the mask (if shown) is no longer on top.
+            if (maskOnTopFor != null) maskOnTopFor = null
+            return
+        }
 
         val entry = cachedEntries[pkg] ?: return
+        // Track that the mask is (about to be) covering this app, so subsequent WINDOWS_CHANGED
+        // events for the same locked app don't spam-launch it repeatedly.
+        if (maskOnTopFor == pkg) return
+        maskOnTopFor = pkg
         showMask(entry)
     }
 
     override fun onInterrupt() { /* no-op */ }
+
+    /** The package the mask is currently believed to be covering, or null when it isn't shown /
+     *  has been pushed aside and not yet re-asserted. Used to debounce re-launch. */
+    @Volatile private var maskOnTopFor: String? = null
 
     /** Launch the fullscreen mask activity directly on top of the locked app. */
     private fun showMask(entry: AppLockEntry) {
@@ -89,7 +116,9 @@ class AppLockAccessibilityService : AccessibilityService() {
             putExtra(AppLockMaskActivity.EXTRA_LABEL, entry.label)
             putExtra(AppLockMaskActivity.EXTRA_MESSAGE, entry.message)
         }
-        runCatching { startActivity(intent) }
+        val launched = runCatching { startActivity(intent) }.isSuccess
+        // If the launch failed, clear the tracking so the next matching event retries.
+        if (!launched) maskOnTopFor = null
     }
 
     companion object {

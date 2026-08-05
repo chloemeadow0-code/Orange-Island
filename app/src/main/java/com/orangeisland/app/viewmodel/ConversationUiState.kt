@@ -28,6 +28,28 @@ data class ConversationUiState(
             val visibleTotal = allMessages.count {
                 !it.id.startsWith(Constants.TOOL_MSG_PREFIX) && !it.id.startsWith(Constants.RESULT_MSG_PREFIX)
             }
+            val userMsgs = allMessages.filter {
+                it.participant == Participant.USER &&
+                    !it.id.startsWith(Constants.TOOL_MSG_PREFIX) &&
+                    !it.id.startsWith(Constants.RESULT_MSG_PREFIX)
+            }
+            val modelMsgs = allMessages.filter {
+                it.participant == Participant.MODEL &&
+                    !it.id.startsWith(Constants.TOOL_MSG_PREFIX) &&
+                    !it.id.startsWith(Constants.RESULT_MSG_PREFIX)
+            }
+            DebugLog.d("MsgDisappear", "resolvePath START: all=${allMessages.size} visible=$visibleTotal " +
+                "users=${userMsgs.size} models=${modelMsgs.size} selectedKeys=${selectedChildren.size} " +
+                "rootSel=${selectedChildren[null]?.take(20)}")
+            allMessages.forEach { m ->
+                if (m.participant == Participant.USER || m.participant == Participant.MODEL) {
+                    DebugLog.d("MsgDisappear", "  msg ${m.id.take(12)} parent=${m.parentId?.take(12) ?: "null"} " +
+                        "role=${m.participant} status=${m.status} ts=${m.timestamp}")
+                }
+            }
+            selectedChildren.forEach { (pid, cid) ->
+                DebugLog.d("MsgDisappear", "  selectedChildren[${pid?.take(12) ?: "null"}]=${cid.take(12)}")
+            }
             var cursor: String? = null
 
             while (true) {
@@ -41,6 +63,13 @@ data class ConversationUiState(
                     // at a message from a different conversation). If found, splice the
                     // earliest such orphan in as a continuation of the current path instead
                     // of silently dropping it — and everything hanging off it — from view.
+                    //
+                    // SAFETY: only consider orphans that don't themselves belong to a
+                    // different conversation (the cross-conversation leakage bug can place a
+                    // foreign MODEL reply's row in a query result, but its parentId still
+                    // names its real owner — which is NOT this conversation). Splicing such
+                    // a foreign row in here is what let leaked messages hijack the visible
+                    // path. Skip them: they will be cleaned up at their real owner.
                     val orphan = allMessages
                         .filter { it.id !in visited && it.parentId != null && it.parentId !in allIds }
                         .minByOrNull { it.timestamp }
@@ -57,6 +86,20 @@ data class ConversationUiState(
                 } else {
                     siblings.find { it.id == selectedId } ?: siblings.last()
                 }
+                // Conversation root must be a USER message. When MODEL replies have been
+                // orphaned onto parentId=null by the cross-conversation leakage bug (a MODEL
+                // persisted with parentId=null, or reparented by compression), they would
+                // otherwise become root-level siblings of the real USER root and win the
+                // `visibleSiblings.last()` pick by timestamp — hiding the user's own message.
+                // Force the root to USER when one is present; let MODEL/MODEL orphan chains
+                // be reached only as siblings/branches, never as the entry point.
+                if (cursor == null && selected.participant != Participant.USER) {
+                    val userRoot = visibleSiblings.firstOrNull { it.participant == Participant.USER }
+                    if (userRoot != null) selected = userRoot
+                }
+                DebugLog.d("MsgDisappear", "walk cursor=${cursor?.take(12) ?: "null"} " +
+                    "siblings=${siblings.size} visible=${visibleSiblings.size} " +
+                    "selectedId=${selectedId?.take(12) ?: "null"} -> picked=${selected.id.take(12)}(${selected.participant})")
                 // Substitute streaming message if it matches
                 if (streamingMsg != null && selected.id == streamingMsg.id) {
                     selected = streamingMsg
@@ -82,6 +125,8 @@ data class ConversationUiState(
                     "root sel=${selectedChildren[null]?.take(20)} | " +
                     "ids=" + allMessages.joinToString(",") { it.id.take(12) })
             }
+            DebugLog.d("MsgDisappear", "resolvePath END: path=${path.size} " +
+                "pathIds=${path.joinToString(",") { it.id.take(12) }}")
             return path
         }
     }

@@ -61,12 +61,23 @@ abstract class BaseOpenAiProvider : LlmProvider {
         emit: suspend (StreamEvent) -> Unit
     ) {
         delta.reasoningContent?.let { reasoning ->
-            if (reasoning.isNotEmpty() && config.thinkingEnabled) {
+            if (reasoning.isNotBlank() && config.thinkingEnabled) {
                 emit(StreamEvent.ThoughtChunk(reasoning))
             }
         }
         delta.content?.let { content ->
-            if (content.isNotEmpty()) emit(StreamEvent.TextChunk(content))
+            if (content.isNotEmpty()) {
+                if (config.thinkingEnabled && delta.reasoningContent.isNullOrBlank()) {
+                    thinkParser.feed(
+                        content = content,
+                        thinkingEnabled = config.thinkingEnabled,
+                        onText = { emit(StreamEvent.TextChunk(it)) },
+                        onThought = { emit(StreamEvent.ThoughtChunk(it)) }
+                    )
+                } else {
+                    emit(StreamEvent.TextChunk(content))
+                }
+            }
         }
     }
 
@@ -81,6 +92,63 @@ abstract class BaseOpenAiProvider : LlmProvider {
 
     protected open fun retryDelayMillis(statusCode: Int, attempt: Int): Long = 1000L * attempt
 
+    /**
+     * Hook for providers that support native video content. Given a list of messages
+     * containing local/remote video references, return a copy where each reference is
+     * resolved to a URL the provider accepts (data URL, mm_file://, http URL, etc.).
+     * The default implementation encodes small local files as base64 data URLs.
+     */
+    protected open suspend fun resolveVideoUrls(
+        messages: List<ChatMessage>,
+        apiKey: String,
+        baseUrl: String
+    ): List<ChatMessage> {
+        return messages.map { msg ->
+            if (msg.videos.isEmpty()) return@map msg
+            val resolved = msg.videos.mapNotNull { videoRef -> resolveVideoUrlDefault(videoRef) }
+            msg.copy(videos = resolved)
+        }
+    }
+
+    private fun resolveVideoUrlDefault(videoRef: String): String? {
+        if (videoRef.startsWith("http://", ignoreCase = true) ||
+            videoRef.startsWith("https://", ignoreCase = true) ||
+            videoRef.startsWith("data:", ignoreCase = true) ||
+            videoRef.startsWith("mm_file://", ignoreCase = true)
+        ) {
+            return videoRef
+        }
+        val file = java.io.File(videoRef.removePrefix("file://"))
+        if (!file.exists()) {
+            DebugLog.w("BaseOpenAiProvider", "Video file not found: $videoRef")
+            return null
+        }
+        if (file.length() > com.orangeisland.app.util.Constants.MAX_INLINE_VIDEO_BYTES) {
+            DebugLog.w("BaseOpenAiProvider", "Video too large to inline (${file.length()} bytes): $videoRef")
+            return null
+        }
+        return try {
+            val bytes = file.readBytes()
+            val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+            val mime = guessVideoMimeType(file.name)
+            "data:$mime;base64,$base64"
+        } catch (e: Exception) {
+            DebugLog.e("BaseOpenAiProvider", "Failed to encode video ${file.name}", e)
+            null
+        }
+    }
+
+    private fun guessVideoMimeType(fileName: String): String {
+        return when {
+            fileName.endsWith(".mov", ignoreCase = true) -> "video/quicktime"
+            fileName.endsWith(".avi", ignoreCase = true) -> "video/x-msvideo"
+            fileName.endsWith(".mkv", ignoreCase = true) -> "video/x-matroska"
+            fileName.endsWith(".webm", ignoreCase = true) -> "video/webm"
+            fileName.endsWith(".mp4", ignoreCase = true) -> "video/mp4"
+            else -> "video/mp4"
+        }
+    }
+
     // -- Template method --
 
     override fun generateResponse(
@@ -91,11 +159,14 @@ abstract class BaseOpenAiProvider : LlmProvider {
         val endpointUrls = endpointCandidates(baseUrl, "chat/completions")
 
         val validatedMessages = prepareMessages(messages, config.maxContextWindow)
+        val messagesWithVideos = resolveVideoUrls(validatedMessages, config.apiKey, baseUrl)
 
         val apiMessages = convertToOpenAiMessages(
-            messages = validatedMessages,
+            messages = messagesWithVideos,
             systemPrompt = transformSystemPrompt(config.systemPrompt),
-            includeImages = config.includeImages
+            includeImages = config.includeImages,
+            includeVideos = config.includeVideos,
+            defaultVideoUrlOptions = config.videoUrlOptions
         )
 
         var request = OpenAiChatRequest(

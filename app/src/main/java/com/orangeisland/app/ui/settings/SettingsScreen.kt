@@ -273,8 +273,7 @@ fun SettingsScreen(
                 "titlegen" -> SettingsTitleGenPage(viewModel, onBack = { selectedCategory = null })
                 "autocompress" -> SettingsAutoCompressPage(
                     viewModel,
-                    onBack = { selectedCategory = null },
-                    onNavigateToGeneration = { selectedCategory = "generation" }
+                    onBack = { selectedCategory = null }
                 )
                 "memory" -> SettingsMemoryPage(viewModel, onBack = { selectedCategory = null })
                 "datacontrol" -> SettingsDataControlPage(viewModel, onBack = { selectedCategory = null })

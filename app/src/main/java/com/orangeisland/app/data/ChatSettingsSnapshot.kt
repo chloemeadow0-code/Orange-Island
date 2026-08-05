@@ -26,6 +26,7 @@ data class ChatSettingsSnapshot(
     val shellEnabled: Boolean = false,
     val shellDevices: List<ShellDeviceConfig> = emptyList(),
     val mcpServers: List<McpServerConfig> = emptyList(),
+    val videoNarrationEnabledModels: Set<String> = emptySet(),
     val toolCallDisplayMode: String = ToolCallDisplayModes.DEFAULT,
     val conversationSettings: Map<String, ConversationSettings> = emptyMap(),
     val blurEffectsEnabled: Boolean = true,

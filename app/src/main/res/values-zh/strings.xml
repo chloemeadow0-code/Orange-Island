@@ -94,7 +94,7 @@
     <string name="settings_title_gen">标题生成</string>
     <string name="settings_title_gen_desc">自动生成对话标题</string>
     <string name="settings_auto_compress">压缩历史</string>
-    <string name="settings_auto_compress_desc">对话过长时自动总结历史消息</string>
+    <string name="settings_auto_compress_desc">手动压缩历史消息时使用的模型和 Prompt</string>
     <string name="settings_transcription">图像转述</string>
     <string name="settings_transcription_desc">使用视觉模型为无视觉能力的模型描述图片内容</string>
     <string name="settings_tts">语音合成</string>
@@ -521,12 +521,8 @@
     <string name="title_gen_prompt">标题 Prompt</string>
     <string name="title_gen_prompt_desc">生成对话标题时使用的系统指令</string>
 
-    <!-- Settings - Auto-Compress Page -->
-    <string name="auto_compress_auto">自动压缩对话</string>
-    <string name="auto_compress_auto_desc">总结较早的消息，让长对话保持在上下文窗口内。触发阈值使用"生成"设置里的全局上下文窗口：当前为保留最近 %1$d 轮对话</string>
-    <string name="auto_compress_auto_desc_unlimited">总结较早的消息，让长对话保持在上下文窗口内。触发阈值使用"生成"设置里的全局上下文窗口：当前为保留全部对话历史（无限制）</string>
+    <!-- Settings - Compression Page -->
     <string name="auto_compress_model">压缩模型</string>
-    <string name="auto_compress_threshold_source">触发阈值设置</string>
     <string name="auto_compress_current_model">使用当前模型</string>
     <string name="auto_compress_select_model">选择压缩模型</string>
     <string name="auto_compress_prompt">压缩 Prompt</string>
@@ -546,6 +542,7 @@
     <string name="transcription_add_model">添加模型</string>
     <string name="transcription_ellipsis">正在转述图片…</string>
     <string name="transcription_progress">正在转述图片 %1$d/%2$d…</string>
+    <string name="video_transcription_ellipsis">正在转述视频…</string>
 
     <!-- Settings - TTS Page -->
     <string name="tts_title">语音合成</string>
@@ -1331,4 +1328,25 @@
     <string name="font_size_large">大</string>
     <string name="font_size_xlarge">超大</string>
     <string name="font_size_xxlarge">特大</string>
+
+    <!-- 视频转述 -->
+    <string name="video_narration">视频转述</string>
+    <string name="settings_video_narration">视频转述</string>
+    <string name="settings_video_narration_desc">使用视频理解模型为不支持原生视频的模型生成文字转述</string>
+    <string name="video_narration_progress">正在转述视频 %1$d/%2$d…</string>
+    <string name="video_narration_model">转述模型</string>
+    <string name="video_narration_no_model">未选择</string>
+    <string name="video_narration_select_model">选择转述模型</string>
+    <string name="video_narration_enabled_models">已启用模型</string>
+    <string name="video_narration_no_models_enabled">未启用任何模型</string>
+    <string name="video_narration_no_models_hint">添加模型以启用视频转述</string>
+    <string name="video_narration_add_model">添加模型</string>
+    <string name="video_narration_options">视频选项</string>
+    <string name="video_narration_detail">细节级别</string>
+    <string name="video_narration_fps">抽帧率</string>
+    <string name="video_narration_fps_desc">视频模型每秒采样的帧数</string>
+    <string name="video_narration_max_long_side">最大长边</string>
+    <string name="video_narration_max_long_side_desc">每帧采样时长边缩放到的像素值</string>
+    <string name="video_narration_prompt">转述提示词</string>
+    <string name="video_narration_prompt_desc">每次视频转述请求附加的指令</string>
 </resources>

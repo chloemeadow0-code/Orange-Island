@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   App Lock accessibility service config. We request the minimum capability needed:
-  only window-state events (so we know when a foreground app changes), no gesture
-  observation, no text reading, no overlay. Locked apps are bounced home via
-  performGlobalAction(GLOBAL_ACTION_HOME).
+  window-state events (an app coming to the foreground) plus windows-changed events
+  (the foreground app shuffling windows / the mask getting covered), so the mask can be
+  re-asserted after being pushed aside. No gesture observation, no text reading, no overlay.
+  Locked apps are bounced home via performGlobalAction(GLOBAL_ACTION_HOME).
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowsChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagDefault"
     android:canPerformGestures="false"

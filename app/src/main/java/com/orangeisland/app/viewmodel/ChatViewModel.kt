@@ -126,6 +126,13 @@ class ChatViewModel(
         private val AUTO_DELETE_TIERS_HOURS = listOf(168, 720, 8760)
         /** Desktop-pet speech bubble length cap (characters). */
         private const val PET_BUBBLE_MAX = 30
+        /**
+         * Sentinel for "render the entire resolved path" used by [_messageLoadLimit]. Far below
+         * [Int.MAX_VALUE] so `loadOlderMessages` adding to it can never overflow into the
+         * negative range — a negative limit made `takeLast` coerce to 1 and collapsed the chat
+         * to a single bubble after a branch switch.
+         */
+        private const val FULL_LOAD = 100_000
     }
 
     val settings: SettingsRepository = settingsRepository
@@ -676,16 +683,25 @@ class ChatViewModel(
             }
         }
 
+    /**
+     * UI-level window for how many messages to render (the tail of the resolved path). Capped
+     * at a sentinel [FULL_LOAD] (not [Int.MAX_VALUE]) so the auto-load-on-scroll path can't
+     * overflow it back into the negative range — `takeLast(limit)` with a negative limit would
+     * coerce to 1 and silently collapse the conversation to a single message (the
+     * "only the last message renders after a branch switch" symptom).
+     */
     private val _messageLoadLimit = MutableStateFlow(200)
     val messageLoadLimit: StateFlow<Int> = _messageLoadLimit.asStateFlow()
 
     fun loadOlderMessages(count: Int = 100) {
         val current = _messageLoadLimit.value
-        _messageLoadLimit.value = current + count
+        // Stop growing once we've loaded everything; never let it wrap to negative.
+        if (current >= FULL_LOAD) return
+        _messageLoadLimit.value = (current + count).coerceAtMost(FULL_LOAD)
     }
 
     fun loadAllMessages() {
-        _messageLoadLimit.value = Int.MAX_VALUE
+        _messageLoadLimit.value = FULL_LOAD
     }
 
     val messages: StateFlow<List<ChatMessage>> = combine(
@@ -720,7 +736,13 @@ class ChatViewModel(
         // UI-level window: only render the tail of the conversation. The full path is still kept
         // in [_allMessages] for branch switching / context logic, so older messages can be pulled
         // in by calling [loadOlderMessages] / [loadAllMessages].
-        fullPath.takeLast(limit.coerceAtLeast(1))
+        val windowed = if (limit <= 0) fullPath else fullPath.takeLast(limit)
+        if (windowed.size != path.size) {
+            DebugLog.d("MsgRender", "messages TRUNCATED: path=${path.size} fullPath=${fullPath.size} " +
+                "windowed=${windowed.size} limit=$limit summary=${summary != null} " +
+                "convId=${_currentConversationId.value?.take(12)}")
+        }
+        windowed
     }.distinctUntilChanged()
     .flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -805,6 +827,18 @@ class ChatViewModel(
     val branchSwitchTrigger: StateFlow<String?> = _branchSwitchTrigger.asStateFlow()
 
     /**
+     * True only while a BRANCH switch is in flight (switching the selected child of an
+     * existing message, NOT loading a different conversation). Distinct from [_isSwitching]:
+     * [ChatApp] uses this to keep the message list mounted during a branch switch. Routing
+     * branch switches through [_isSwitching] alone made `switchingToExisting` flip true,
+     * which feeds MessageList an EMPTY list — and when the list comes back the LazyColumn's
+     * scroll offset is stale, so the user's message gets scrolled out of view ("only the AI
+     * reply is visible until I re-enter the conversation").
+     */
+    private val _isBranchSwitching = MutableStateFlow(false)
+    val isBranchSwitching: StateFlow<Boolean> = _isBranchSwitching.asStateFlow()
+
+    /**
      * Single aggregate UI state for the chat screen.
      *
      * Combines all ViewModel flows and the settings snapshot into one [StateFlow] so that
@@ -825,6 +859,7 @@ class ChatViewModel(
             isNewChatMode,
             isSwitching,
             isTransitioningToNewChat,
+            _isBranchSwitching,
             totalTokens,
             currentActiveModel,
             pendingConversationSettings,
@@ -848,16 +883,17 @@ class ChatViewModel(
         val isNewChatMode = values[8] as Boolean
         val isSwitching = values[9] as Boolean
         val isTransitioningToNewChat = values[10] as Boolean
-        val totalTokens = values[11] as Int
-        val currentActiveModel = values[12] as String
-        val pendingConversationSettings = values[13] as ConversationSettings?
-        val branchSwitchTrigger = values[14] as String?
-        val pendingPrefillInput = values[15] as String?
-        val isSyncingModels = values[16] as Boolean
-        val updateDialogData = values[17] as UpdateInfo?
-        val pendingSystemPromptId = values[18] as String?
-        val pendingProjectId = values[19] as String?
-        val settings = values[20] as ChatSettingsSnapshot
+        val isBranchSwitching = values[11] as Boolean
+        val totalTokens = values[12] as Int
+        val currentActiveModel = values[13] as String
+        val pendingConversationSettings = values[14] as ConversationSettings?
+        val branchSwitchTrigger = values[15] as String?
+        val pendingPrefillInput = values[16] as String?
+        val isSyncingModels = values[17] as Boolean
+        val updateDialogData = values[18] as UpdateInfo?
+        val pendingSystemPromptId = values[19] as String?
+        val pendingProjectId = values[20] as String?
+        val settings = values[21] as ChatSettingsSnapshot
 
         val activeProjectName = activeProjectId?.let { id -> projects.find { it.id == id }?.name }
         val convOverride = if (currentConversationId != null) {
@@ -882,6 +918,7 @@ class ChatViewModel(
             isNewChatMode = isNewChatMode,
             isSwitching = isSwitching,
             isTransitioningToNewChat = isTransitioningToNewChat,
+            isBranchSwitching = isBranchSwitching,
             totalTokens = totalTokens,
             selectedModel = currentActiveModel,
             pendingConversationSettings = pendingConversationSettings,
@@ -917,6 +954,8 @@ class ChatViewModel(
                 convOverride?.shellEnabled
             ),
             globalShell = globalShell,
+            videoNarrationEnabled = convOverride?.videoNarrationEnabled
+                ?: settings.videoNarrationEnabledModels.contains(currentActiveModel),
             toolCallDisplayMode = settings.toolCallDisplayMode,
             contextWindow = convOverride?.contextWindow ?: settings.maxContextWindow,
             webSearchApiKeys = settings.webSearchApiKeys,
@@ -1023,6 +1062,11 @@ class ChatViewModel(
         _branchSwitchTrigger.value = null
     }
 
+    /** Clears the branch-switching flag once the UI has scrolled to the target message. */
+    fun clearBranchSwitching() {
+        _isBranchSwitching.value = false
+    }
+
     // Export/Import state lives in [importExport]; exposed here for the UI.
     val exportProgress get() = importExport.exportProgress
     val importProgress get() = importExport.importProgress
@@ -1080,20 +1124,33 @@ class ChatViewModel(
 
                     // Restore selected branches
                     val conversation = convRepo.getConversation(id)
+                    DebugLog.d("MsgDisappear", "OPEN conv=${id.take(12)}: " +
+                        "selectedBranchesJson=${conversation?.selectedBranchesJson?.take(120) ?: "null"}")
                     if (conversation?.selectedBranchesJson != null) {
                         try {
                             val map = Json.decodeFromString<Map<String, String>>(conversation.selectedBranchesJson)
                             val decodedMap = map.mapKeys { if (it.key == "null") null else it.key }
                             _selectedChildren.value = decodedMap
+                            DebugLog.d("MsgDisappear", "  RESTORE selectedChildren=" +
+                                decodedMap.entries.joinToString("; ") { (k, v) -> "${k?.take(12) ?: "null"}->${v.take(12)}" })
                         } catch (e: Exception) {
                             _selectedChildren.value = emptyMap()
+                            DebugLog.d("MsgDisappear", "  RESTORE FAILED -> empty selectedChildren")
                         }
                     } else {
                         _selectedChildren.value = emptyMap()
+                        DebugLog.d("MsgDisappear", "  no saved branches -> empty selectedChildren")
                     }
 
                                         convRepo.getMessagesForConversation(id).collect { entities ->
                         val mapped = entities.map { mapMessageEntity(it) }
+                        DebugLog.d("MsgDisappear", "DB LOAD conv=${id.take(12)}: dbEntities=${entities.size} mapped=${mapped.size}")
+                        entities.forEach { e ->
+                            if (e.participant == Participant.USER || e.participant == Participant.MODEL) {
+                                DebugLog.d("MsgDisappear", "  DB msg ${e.id.take(12)} parent=${e.parentId?.take(12) ?: "null"} " +
+                                    "role=${e.participant} status=${e.status} ts=${e.timestamp} convId=${e.conversationId.take(12)}")
+                            }
+                        }
                         // Backfill toolCall for old result_ messages persisted without toolCallJson.
                         // They inherit the parent tool_ message's ToolCallData so the provider can
                         // format them as proper "tool" role messages with matching tool_call_id.
@@ -1133,6 +1190,8 @@ class ChatViewModel(
             _selectedChildren.collect { childrenMap ->
                 val id = _currentConversationId.value
                 if (id != null) {
+                    DebugLog.d("MsgDisappear", "PERSIST selectedChildren conv=${id.take(12)}: " +
+                        childrenMap.entries.joinToString("; ") { (k, v) -> "${k?.take(12) ?: "null"}->${v.take(12)}" })
                     persistSelectedChildren(id, childrenMap)
                 }
             }
@@ -1805,14 +1864,14 @@ class ChatViewModel(
         if (newIndex == currentIndex) return
         
         switchingJob?.cancel()
-        _isSwitching.value = true
+        _isBranchSwitching.value = true
         switchingJob = viewModelScope.launch {
             kotlinx.coroutines.delay(SWITCH_OVERLAY_FADE_MS) // Allow overlay to fade in
             val newMap = _selectedChildren.value.toMutableMap()
             val targetMessage = siblings[newIndex]
             newMap[parentId] = targetMessage.id
             _selectedChildren.value = newMap
-            
+
             _branchSwitchTrigger.value = null
             _branchSwitchTrigger.value = targetMessage.id
         }

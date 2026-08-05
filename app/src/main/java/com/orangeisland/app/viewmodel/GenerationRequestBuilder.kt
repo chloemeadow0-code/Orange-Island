@@ -9,6 +9,7 @@ import com.orangeisland.app.data.environment.AppContextCollector
 import com.orangeisland.app.data.repository.ConversationRepository
 import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.model.ModelId
+import com.orangeisland.app.model.Participant
 import com.orangeisland.app.model.apiModelName
 import com.orangeisland.app.util.Constants
 import com.orangeisland.app.util.DebugLog
@@ -63,6 +64,38 @@ class GenerationRequestBuilder(
     private fun resolveTranscriptionBaseUrl(): String? {
         val model = settings.imageTranscriptionModel.value ?: return null
         return providerRegistry.getEffectiveBaseUrl(providerRegistry.providerForModel(model))
+    }
+
+    private fun resolveVideoNarrationProviderName(): String =
+        settings.videoNarrationModel.value?.let { providerRegistry.providerForModel(it) } ?: ""
+
+    private fun resolveVideoNarrationModelId(): String =
+        settings.videoNarrationModel.value?.let { ModelId.parse(it).modelName } ?: ""
+
+    private fun resolveVideoNarrationApiKey(): String {
+        val model = settings.videoNarrationModel.value ?: return ""
+        val providerName = providerRegistry.providerForModel(model)
+        if (providerName == Constants.PROVIDER_LOCAL) return ""
+        return settings.resolveActiveKey(providerName) ?: ""
+    }
+
+    private fun resolveVideoNarrationBaseUrl(): String? {
+        val model = settings.videoNarrationModel.value ?: return null
+        return providerRegistry.getEffectiveBaseUrl(providerRegistry.providerForModel(model))
+    }
+
+    private fun isVideoNarrationEnabled(effectiveSettings: ConversationSettings): Boolean {
+        val activeModel = currentActiveModel.value
+        val globalEnabled = settings.videoNarrationEnabledModels.value.contains(activeModel)
+        val perConv = effectiveSettings.videoNarrationEnabled
+        val result = perConv ?: globalEnabled
+        DebugLog.d(
+            "VideoNarration",
+            "isVideoNarrationEnabled: activeModel='$activeModel' " +
+                "enabledModelsList=${settings.videoNarrationEnabledModels.value} " +
+                "globalEnabled=$globalEnabled perConvOverride=$perConv -> result=$result"
+        )
+        return result
     }
 
     // Image generation reuses the selected model's provider credentials (mirrors transcription).
@@ -186,6 +219,16 @@ class GenerationRequestBuilder(
             transcriptionModelId = resolveTranscriptionModelId(),
             transcriptionApiKey = resolveTranscriptionApiKey(),
             transcriptionBaseUrl = resolveTranscriptionBaseUrl(),
+            videoNarrationEnabled = isVideoNarrationEnabled(effectiveSettings),
+            videoNarrationModel = settings.videoNarrationModel.value,
+            videoNarrationPrompt = settings.videoNarrationPrompt.value,
+            videoNarrationFps = settings.videoNarrationFps.value,
+            videoNarrationDetail = settings.videoNarrationDetail.value,
+            videoNarrationMaxLongSide = settings.videoNarrationMaxLongSide.value,
+            videoNarrationProviderName = resolveVideoNarrationProviderName(),
+            videoNarrationModelId = resolveVideoNarrationModelId(),
+            videoNarrationApiKey = resolveVideoNarrationApiKey(),
+            videoNarrationBaseUrl = resolveVideoNarrationBaseUrl(),
             mcpServers = settings.mcpServers.value,
             mcpServerIds = effectiveSettings.mcpServerIds,
             pluginIds = effectiveSettings.pluginIds,
@@ -236,6 +279,13 @@ class GenerationRequestBuilder(
         val sdf = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
         val dateSdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
         val now = java.util.Date()
+        val appContextSnapshot = appContextCollector?.getSnapshot() ?: ""
+        val conversationGapLine = buildConversationGapLine(currentId, now.time)
+        val combinedAppContext = if (conversationGapLine.isNotBlank() && appContextSnapshot.isNotBlank()) {
+            "$conversationGapLine\n$appContextSnapshot"
+        } else {
+            conversationGapLine + appContextSnapshot
+        }
 
         val runtimeValues = mapOf(
             PredefinedVariables.TIME to sdf.format(now),
@@ -244,7 +294,7 @@ class GenerationRequestBuilder(
             PredefinedVariables.SENT_DATE to dateSdf.format(now),
             PredefinedVariables.MODEL_ID to modelId,
             PredefinedVariables.ACTIVE_MEMORY to if (includeActiveMemory && activeMemory.isNotBlank()) activeMemory else "",
-            PredefinedVariables.APP_CONTEXT to (appContextCollector?.getSnapshot() ?: "")
+            PredefinedVariables.APP_CONTEXT to combinedAppContext
         )
 
         val projectId = conversation?.projectId
@@ -281,6 +331,48 @@ class GenerationRequestBuilder(
             projectId = projectId,
             systemPromptId = targetPromptId
         )
+    }
+
+    private fun formatConversationGap(millis: Long): String {
+        val seconds = millis / 1000
+        return when {
+            seconds < 60 -> "不到1分钟"
+            seconds < 3600 -> "${seconds / 60}分钟"
+            seconds < 86400 -> {
+                val hours = seconds / 3600
+                val minutes = (seconds % 3600) / 60
+                if (minutes == 0L) "${hours}小时" else "${hours}小时${minutes}分钟"
+            }
+            else -> {
+                val days = seconds / 86400
+                "${days}天"
+            }
+        }
+    }
+
+    private suspend fun buildConversationGapLine(conversationId: String, nowMillis: Long): String {
+        return try {
+            val messages = convRepo.getMessagesForConversationSnapshot(conversationId)
+            val userMessages = messages
+                .filter { it.participant == Participant.USER }
+                .sortedBy { it.timestamp }
+            if (userMessages.isEmpty()) {
+                return "距用户上次发消息已过了：这是对话中的第一条消息"
+            }
+            val lastUserMsg = userMessages.last()
+            val isCurrentMessage = (nowMillis - lastUserMsg.timestamp) < 5000L
+            val targetMsg = if (isCurrentMessage && userMessages.size >= 2) {
+                userMessages[userMessages.size - 2]
+            } else {
+                lastUserMsg
+            }
+            val gap = nowMillis - targetMsg.timestamp
+            val gapText = if (gap < 1000L) "不到1分钟" else formatConversationGap(gap)
+            "距用户上次发消息已过了：$gapText"
+        } catch (e: Exception) {
+            DebugLog.e("GenerationRequestBuilder", "buildConversationGapLine failed", e)
+            ""
+        }
     }
 
     /**

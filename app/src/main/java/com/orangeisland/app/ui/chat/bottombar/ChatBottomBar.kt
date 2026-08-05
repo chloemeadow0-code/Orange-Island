@@ -79,6 +79,7 @@ fun ChatBottomBar(
     thinkingBudgetTokens: Int = 4096,
     webSearchEnabled: Boolean = false,
     shellEnabled: Boolean = false,
+    videoNarrationEnabled: Boolean = false,
     showMcpEntry: Boolean = false,
     mcpConversationActive: Boolean = false,
     onCodeExecutionToggle: (Boolean) -> Unit = {},
@@ -89,6 +90,7 @@ fun ChatBottomBar(
     onThinkingBudgetTokensChange: (Int) -> Unit = {},
     onWebSearchToggle: (Boolean) -> Unit = {},
     onShellToggle: (Boolean) -> Unit = {},
+    onVideoNarrationToggle: (Boolean) -> Unit = {},
     onMcpClick: () -> Unit = {},
     onModelSelect: (String) -> Unit,
     onImageClick: (String) -> Unit = {},
@@ -494,6 +496,23 @@ fun ChatBottomBar(
                                 onClick = { onWebSearchToggle(!webSearchEnabled) }
                             )
                         }
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Videocam, null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(stringResource(R.string.video_narration))
+                                }
+                            },
+                            trailingIcon = {
+                                Switch(
+                                    checked = videoNarrationEnabled,
+                                    onCheckedChange = { onVideoNarrationToggle(it) },
+                                    modifier = Modifier.scale(0.7f)
+                                )
+                            },
+                            onClick = { onVideoNarrationToggle(!videoNarrationEnabled) }
+                        )
                         if (showShell) {
                             DropdownMenuItem(
                                 text = {

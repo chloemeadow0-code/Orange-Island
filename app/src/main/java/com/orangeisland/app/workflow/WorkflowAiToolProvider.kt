@@ -8,6 +8,9 @@ import com.orangeisland.app.api.ToolProperty
 import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.data.repository.WorkflowRepository
 import com.orangeisland.app.model.LinearWorkflow
+import com.orangeisland.app.model.ScheduleMode
+import com.orangeisland.app.model.StartNode
+import com.orangeisland.app.model.TriggerSpec
 import com.orangeisland.app.model.Workflow
 import com.orangeisland.app.tool.ToolProvider
 import com.orangeisland.app.util.DebugLog
@@ -20,6 +23,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 
 /**
@@ -57,10 +61,17 @@ class WorkflowAiToolProvider(
      *  reconciles them via a Flow on the enabled set. Graph workflows have no such subscription,
      *  so a persisted Schedule trigger must be explicitly scheduled or it never fires (the original
      *  bug: AI-authored graph schedules were written to the DB but never enqueued). Null in tests. */
-    private val appContext: Context? = null
+    private val appContext: Context? = null,
+    /** When true, ONLY expose [workflow_set_schedule] ¡ª the one authoring tool that is safe to run
+     *  unattended (it mutates a schedule config, never graph structure, and needs no approval).
+     *  Used by background/headless workflow dispatchers so a running workflow can set its own next
+     *  fire time (self-rescheduling loop) WITHOUT also exposing create/update/delete (which need a
+     *  foreground approval gate the background context can't satisfy). */
+    private val backgroundSafeOnly: Boolean = false
 ) : ToolProvider {
 
-    override fun definitions(ctx: GenerationContext): List<ToolDefinition> = listOf(
+    override fun definitions(ctx: GenerationContext): List<ToolDefinition> =
+        if (backgroundSafeOnly) listOf(setScheduleDefinition()) else listOf(
         ToolDefinition(function = ToolFunction(
             name = "workflow_list",
             description = "List the user's saved workflows. Each entry has id, name, description, enabled. Use before workflow_run/workflow_update to find the right id.",
@@ -132,10 +143,31 @@ class WorkflowAiToolProvider(
                 ),
                 required = listOf("workflow_id", "enabled")
             )
-        ))
+        )),
+        setScheduleDefinition()
     )
 
-    override fun handles(name: String): Boolean = name in TOOL_NAMES
+    /** The [workflow_set_schedule] definition, factored out so [backgroundSafeOnly] mode can expose
+     *  just this one tool without dragging in the approval-gated authoring tools. */
+    private fun setScheduleDefinition(): ToolDefinition = ToolDefinition(function = ToolFunction(
+        name = "workflow_set_schedule",
+        description = "Set a graph workflow's schedule to fire ONCE at a specific time (OneShot). " +
+            "Use this for 'wake the workflow at time T' loops: after the run, call it again to set the next time. " +
+            "Unlike workflow_update_graph, this only changes the schedule config (not the graph structure) and " +
+            "needs NO user approval, so it works in background/headless runs. " +
+            "Provide EITHER at_ms (epoch milliseconds) OR in_minutes (minutes from now; >=1).",
+        parameters = ToolParameters(
+            properties = mapOf(
+                "workflow_id" to ToolProperty("string", "Workflow id (must be a graph/canvas workflow with a Schedule start node)."),
+                "at_ms" to ToolProperty("string", "Absolute fire time as epoch milliseconds. Use this for an exact timestamp."),
+                "in_minutes" to ToolProperty("string", "Relative fire time in minutes from now (>=1). Preferred when you just want 'N minutes later'.")
+            ),
+            required = listOf("workflow_id")
+        )
+    ))
+
+    override fun handles(name: String): Boolean =
+        if (backgroundSafeOnly) name == "workflow_set_schedule" else name in TOOL_NAMES
 
     override suspend fun execute(name: String, arguments: String, ctx: GenerationContext): String = when (name) {
         "workflow_list" -> listWorkflows()
@@ -147,6 +179,7 @@ class WorkflowAiToolProvider(
         "workflow_update_graph" -> updateGraphWorkflow(arguments, ctx)
         "workflow_delete" -> deleteWorkflow(arguments)
         "workflow_set_enabled" -> setEnabledWorkflow(arguments)
+        "workflow_set_schedule" -> setScheduleWorkflow(arguments)
         else -> "Unknown workflow tool: $name"
     }
 
@@ -323,6 +356,68 @@ class WorkflowAiToolProvider(
         return buildJsonObject { put("ok", true); put("id", id); put("enabled", enabled) }.toString()
     }
 
+    /**
+     * Set a graph workflow's schedule to fire ONCE at a specific time (OneShot). This is the
+     * "wake the workflow at time T" primitive that lets an AI build a self-rescheduling loop: it
+     * calls this to set the next fire time, the workflow runs at that time, and (once the run has
+     * decided the following time) it calls this again.
+     *
+     * Deliberately **approval-free**: unlike [updateGraphWorkflow], this only mutates the schedule
+     * config of an existing start node (never the graph structure, tools, or edges), so the blast
+     * radius is tiny ¡ª at worst the workflow fires at an unexpected time, which is exactly what the
+     * user asked the AI to manage. This is what lets it run from a background/headless workflow
+     * execution, where the [approval] gate is unavailable.
+     */
+    private suspend fun setScheduleWorkflow(arguments: String): String {
+        val obj = try {
+            Json.parseToJsonElement(arguments) as? JsonObject ?: return errorJson("invalid arguments")
+        } catch (e: Exception) {
+            return errorJson("invalid arguments: ${e.message}")
+        }
+        val id = (obj["workflow_id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+            ?: return errorJson("missing workflow_id")
+        // Resolve the target epoch-ms from EITHER at_ms (absolute) or in_minutes (relative).
+        val atMs: Long = run {
+            (obj["at_ms"] as? JsonPrimitive)?.contentOrNull?.toLongOrNull()?.let { return@run it }
+            val mins = (obj["in_minutes"] as? JsonPrimitive)?.contentOrNull?.toLongOrNull()
+            if (mins != null && mins >= 1) return@run System.currentTimeMillis() + mins * 60_000L
+            return errorJson("provide at_ms (epoch ms) or in_minutes (>=1)")
+        }
+        if (atMs <= System.currentTimeMillis()) {
+            return errorJson("target time is in the past; pick a future at_ms / in_minutes")
+        }
+        // Only graph workflows with a Schedule start node are eligible.
+        if (repository.modeOf(id) != "graph") {
+            return errorJson("workflow $id is not a graph/canvas workflow; set_schedule only applies to graph schedules")
+        }
+        val existing = repository.get(id) ?: return errorJson("workflow not found: $id")
+        val startIdx = existing.nodes.indexOfFirst { it is StartNode && it.trigger is TriggerSpec.Schedule }
+        if (startIdx < 0) {
+            return errorJson("workflow $id has no Schedule start node; add a ¶¨Ê± trigger in the editor first")
+        }
+        val newTrigger = TriggerSpec.Schedule(
+            mode = ScheduleMode.OneShot,
+            config = mapOf("atMs" to atMs.toString())
+        )
+        val newNodes = existing.nodes.toMutableList().apply {
+            val old = this[startIdx] as StartNode
+            this[startIdx] = old.copy(trigger = newTrigger)
+        }
+        val updated = existing.copy(nodes = newNodes, updatedAt = System.currentTimeMillis())
+        repository.upsert(updated)
+        // The GraphScheduleSignalSource (subscribed to observeAll()) will reconcile the WorkManager
+        // request on the next emission, but re-arm explicitly too so the new fire time takes effect
+        // immediately even before that emission drains.
+        scheduleGraph(updated)
+        return buildJsonObject {
+            put("ok", true)
+            put("id", id)
+            put("mode", "oneshot")
+            put("at_ms", atMs)
+            put("fire_in_ms", atMs - System.currentTimeMillis())
+        }.toString()
+    }
+
     /** Enqueue (or replace) the WorkManager request for a graph-mode workflow's Schedule trigger.
      *  No-op if the workflow has no schedule trigger or is disabled ¡ª [WorkflowWorker.schedule]
      *  handles both guards internally. Best-effort: a scheduling failure is logged but does not
@@ -448,7 +543,7 @@ class WorkflowAiToolProvider(
             "workflow_list", "workflow_get", "workflow_run",
             "workflow_create", "workflow_create_graph",
             "workflow_update", "workflow_update_graph",
-            "workflow_delete", "workflow_set_enabled"
+            "workflow_delete", "workflow_set_enabled", "workflow_set_schedule"
         )
 
         /** The workflow_create parameter spec, written as a teaching prompt: lists every supported
@@ -539,7 +634,7 @@ definition shape:
 }
 
 NODE KINDS:
-  start - Entry point. Must have a "trigger" object. Supported trigger types: manual, schedule {mode, config}, intent {action}, app_open, voice {keyword?}, api.
+  start - Entry point. Must have a "trigger" object. Supported trigger types: manual, schedule {mode, config}, intent {action}, app_open {package_name}, voice {keyword?}, api.
   action - Calls a tool. Fields: tool (string, required), args (object of NodeValues), script (optional).
   branch - Compares two values, emits boolean. Fields: lhs (NodeValue), cmp (EQ/NE/LT/LE/GT/GE/CONTAINS/NOT_CONTAINS/IN/NOT_IN), rhs (NodeValue).
   merge - Reduces multiple incoming booleans. Field: reducer (ALL_TRUE or ANY_TRUE).

@@ -265,7 +265,7 @@ object GraphDefinitionParser {
                 val action = obj.str("action") ?: return null
                 TriggerSpec.IntentAction(action)
             }
-            "app_open" -> TriggerSpec.AppOpen
+            "app_open" -> TriggerSpec.AppOpen(packageName = obj.str("package_name") ?: obj.str("packageName") ?: "")
             "voice" -> TriggerSpec.Voice(obj.str("keyword"))
             "api" -> TriggerSpec.Api
             else -> null

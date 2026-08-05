@@ -103,7 +103,6 @@ class WorkflowGuard(
             "execute_shell_command", "file_write", "file_edit",
             "delete_memory_file", "edit_memory_file", "create_memory_file", "update_active_memory",
             "ui_tap", "ui_swipe", "ui_scroll", "ui_global_action", "ui_text_input",
-            "lock_app", "unlock_app", "set_pin",
             "create_calendar_event", "delete_calendar_event",
             "generate_image"
         )
@@ -119,6 +118,16 @@ class WorkflowGuard(
          * [com.orangeisland.app.tool.NavigationToolProvider.backgroundLaunchGuard] returns a clear
          * `background_activity_blocked` error when that permission is missing ¡ª so an unpermitted
          * background launch fails loudly instead of silently dropping.
+         *
+         * `app_lock` is included too: it writes a settings entry (reversible ¡ª the AI can call
+         * unlock_app), and automated app-locking is a primary reason users build background
+         * workflows. Blocking it in the background would defeat the feature. It is deliberately
+         * NOT in [DESTRUCTIVE_TOOLS], so foreground runs don't prompt for every lock/unlock.
+         *
+         * `workflow_set_schedule` is included so a background-triggered graph workflow can set its
+         * own next OneShot fire time ¡ª the self-rescheduling loop that powers AI-driven timers. It
+         * only mutates a schedule config (never graph structure) and is approval-free by design, so
+         * it is safe to run unattended. The full workflow_* authoring tools stay blocked.
          */
         val BACKGROUND_SAFE_TOOLS: Set<String> = setOf(
             "web_search", "web_fetch",
@@ -129,7 +138,9 @@ class WorkflowGuard(
             "get_foreground_app", "get_foreground_app_nav",
             "ui_inspect", "list_installed_apps",
             "file_read", "file_glob", "file_grep",
-            "open_app", "open_url", "open_settings", "share_text"
+            "open_app", "open_url", "open_settings", "share_text",
+            "app_lock",
+            "workflow_set_schedule"
         )
     }
 }

@@ -18,7 +18,9 @@ import kotlinx.serialization.Serializable
  *  - [Manual]      : the user taps "Run" in the editor.
  *  - [Schedule]    : a time-based firing (interval / one-shot / cron-like).
  *  - [IntentAction]: an external app broadcasts an Intent with a matching action.
- *  - [AppOpen]     : the workflow runs once when Orange Island is launched (cold start).
+ *  - [AppOpen]     : fires when the given app (by [AppOpen.packageName]) is brought to the
+ *                    foreground. Monitored by AppForegroundSignalSource via the automation
+ *                    accessibility service. A blank packageName never fires (treated as unconfigured).
  *  - [Voice]       : a spoken phrase launches the run (voice-trigger feature).
  *  - [Api]         : launched by the AI via the workflow_* tool family.
  */
@@ -42,7 +44,7 @@ sealed class TriggerSpec {
 
     @Serializable
     @SerialName("app_open")
-    data object AppOpen : TriggerSpec()
+    data class AppOpen(val packageName: String = "") : TriggerSpec()
 
     @Serializable
     @SerialName("voice")

@@ -37,7 +37,9 @@ fun encodeImageToBase64(imagePath: String): Pair<String, String>? {
 fun convertToOpenAiMessages(
     messages: List<ChatMessage>,
     systemPrompt: String? = null,
-    includeImages: Boolean = true
+    includeImages: Boolean = true,
+    includeVideos: Boolean = true,
+    defaultVideoUrlOptions: com.orangeisland.app.api.OpenAiVideoUrl? = null
 ): List<OpenAiMessage> {
     val apiMessages = mutableListOf<OpenAiMessage>()
 
@@ -127,6 +129,19 @@ fun convertToOpenAiMessages(
                         )
                     )
                 }
+            }
+        }
+
+        if (includeVideos && msg.participant == Participant.USER) {
+            for (videoUrl in msg.videos) {
+                if (videoUrl.isBlank()) continue
+                parts.add(
+                    OpenAiContentPart(
+                        type = "video_url",
+                        videoUrl = defaultVideoUrlOptions?.copy(url = videoUrl)
+                            ?: com.orangeisland.app.api.OpenAiVideoUrl(url = videoUrl)
+                    )
+                )
             }
         }
 

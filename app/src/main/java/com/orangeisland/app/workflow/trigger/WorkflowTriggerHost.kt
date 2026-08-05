@@ -57,6 +57,11 @@ class WorkflowTriggerHost(
         }
         jobs += runCatching { AppForegroundSignalSource.start(scope, repository, starter) }
             .onFailure { DebugLog.e(TAG, "app-foreground source failed", it) }.getOrDefault(scope.launch { })
+        // Reactive scheduler for graph-mode Schedule triggers. Subscribes to observeAll() so any
+        // change to a graph workflow's schedule config (incl. an AI-written OneShot atMs) re-arms
+        // the WorkManager request without needing a manual save/enable nudge.
+        jobs += runCatching { GraphScheduleSignalSource.start(context, scope, repository) }
+            .onFailure { DebugLog.e(TAG, "graph-schedule source failed", it) }.getOrDefault(scope.launch { })
         jobs += runCatching { NotificationSignalSource.start(scope, repository, starter) }
             .onFailure { DebugLog.e(TAG, "notification source failed", it) }.getOrDefault(scope.launch { })
         jobs += runCatching { GeofenceSignalSource.start(context, scope, repository, starter) }

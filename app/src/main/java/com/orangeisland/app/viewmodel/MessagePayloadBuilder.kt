@@ -23,6 +23,7 @@ class MessagePayloadBuilder(
     /** 见原 ChatViewModel.MessagePayload */
     data class MessagePayload(
         val allImages: List<String>,
+        val videos: List<String>,
         val attachmentMeta: AttachmentMeta?
     )
 
@@ -41,6 +42,7 @@ class MessagePayloadBuilder(
         // directPaths: paths that skip processImages (pre-extracted frames, PDF copies, rendered pages)
         val mediaUris = mutableListOf<String>()
         val directPaths = mutableListOf<String>()
+        val videos = mutableListOf<String>()
         val sliceConfigs = mutableMapOf<String, VideoSliceConfig>()
         val metaItems = mutableListOf<AttachmentItem>()
         var nextImageIndex = 0
@@ -76,6 +78,7 @@ class MessagePayloadBuilder(
                             videoFile.outputStream().use { input.copyTo(it) }
                         }
                         localVideoUri = "file://${videoFile.absolutePath}"
+                        videos.add(localVideoUri)
                     } catch (_: Exception) {
                         // Fallback: keep original content URI (may expire)
                         localVideoUri = att.uri
@@ -187,6 +190,6 @@ class MessagePayloadBuilder(
         val attachmentMeta = if (adjustedMetaItems.isNotEmpty()) {
             AttachmentMeta(items = adjustedMetaItems)
         } else null
-        return MessagePayload(allImages, attachmentMeta)
+        return MessagePayload(allImages, videos, attachmentMeta)
     }
 }

@@ -424,6 +424,13 @@ private fun StartNodeEditor(node: StartNode, onUpdate: (FlowNode) -> Unit) {
     var intervalMinutes by remember(node.id) {
         mutableStateOf(scheduleIntervalMinutes(node.trigger))
     }
+    // Schedule sub-mode: 循环 (recurring interval) vs 单次 (one-shot at a future time). Derived
+    // from the existing trigger so re-opening the editor shows the right toggle.
+    var scheduleOneShot by remember(node.id) {
+        mutableStateOf((node.trigger as? TriggerSpec.Schedule)?.mode is ScheduleMode.OneShot)
+    }
+    // One-shot delay in minutes from save-time. Persisted as atMs (epoch ms) when the user commits.
+    var oneShotMinutes by remember(node.id) { mutableStateOf(30) }
 
     OutlinedTextField(
         value = label,
@@ -458,20 +465,74 @@ private fun StartNodeEditor(node: StartNode, onUpdate: (FlowNode) -> Unit) {
         }
     }
 
-    // Only show the interval field for the Schedule trigger.
+    // Schedule trigger: 循环 (recurring interval) vs 单次 (one-shot, fire once at a future time).
     if (triggerKind == "定时") {
         Spacer(modifier = Modifier.height(8.dp))
+        val subModes = listOf("循环", "单次")
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            subModes.forEachIndexed { index, sub ->
+                SegmentedButton(
+                    selected = (scheduleOneShot && sub == "单次") || (!scheduleOneShot && sub == "循环"),
+                    onClick = {
+                        scheduleOneShot = sub == "单次"
+                        val newTrigger = if (scheduleOneShot) oneShotTrigger(oneShotMinutes)
+                            else scheduleTrigger(intervalMinutes)
+                        onUpdate(node.copy(trigger = newTrigger))
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = subModes.size)
+                ) { Text(sub, style = MaterialTheme.typography.labelSmall) }
+            }
+        }
+
+        if (!scheduleOneShot) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = intervalMinutes.toString(),
+                onValueChange = { input ->
+                    val minutes = input.toIntOrNull()
+                    if (minutes != null && minutes > 0) {
+                        intervalMinutes = minutes
+                        onUpdate(node.copy(trigger = scheduleTrigger(minutes)))
+                    }
+                },
+                label = { Text("间隔（分钟，最少 15）") },
+                supportingText = { Text("WorkManager 最低 15 分钟，更小的值会被自动上调") },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = oneShotMinutes.toString(),
+                onValueChange = { input ->
+                    val minutes = input.toIntOrNull()
+                    if (minutes != null && minutes > 0) {
+                        oneShotMinutes = minutes
+                        onUpdate(node.copy(trigger = oneShotTrigger(minutes)))
+                    }
+                },
+                label = { Text("几分钟后触发（仅一次）") },
+                supportingText = { Text("保存后 $oneShotMinutes 分钟跑一次就停。AI 也可用 workflow_set_schedule 在运行时改下一次时间。") },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
+    }
+
+    // Only show the target-package field for the AppOpen trigger. A blank package would never
+    // fire (AppForegroundSignalSource ignores it), so prompt the user to fill one in.
+    if (triggerKind == "打开应用") {
+        Spacer(modifier = Modifier.height(8.dp))
+        val currentPkg = (node.trigger as? TriggerSpec.AppOpen)?.packageName ?: ""
         OutlinedTextField(
-            value = intervalMinutes.toString(),
+            value = currentPkg,
             onValueChange = { input ->
-                val minutes = input.toIntOrNull()
-                if (minutes != null && minutes > 0) {
-                    intervalMinutes = minutes
-                    onUpdate(node.copy(trigger = scheduleTrigger(minutes)))
-                }
+                onUpdate(node.copy(trigger = TriggerSpec.AppOpen(packageName = input.trim())))
             },
-            label = { Text("间隔（分钟，最少 15）") },
-            supportingText = { Text("WorkManager 最低 15 分钟，更小的值会被自动上调") },
+            label = { Text("目标应用包名") },
+            supportingText = { Text("填 Android 包名，如 com.tencent.mm（微信）、com.tencent.mobileqq（QQ）。留空则不会触发。") },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
@@ -1330,7 +1391,12 @@ private fun triggerKindOf(trigger: TriggerSpec): String = when (trigger) {
  * [fallbackMinutes]. This stops the segment toggle from wiping a half-typed interval.
  */
 private fun triggerFromKind(kind: String, current: TriggerSpec? = null, fallbackMinutes: Int = 15): TriggerSpec = when (kind) {
-    "打开应用" -> TriggerSpec.AppOpen
+    "打开应用" -> {
+        // Preserve an existing package name when re-selecting the segment, so toggling kinds
+        // doesn't wipe a value the user already typed.
+        val existingPkg = (current as? TriggerSpec.AppOpen)?.packageName ?: ""
+        TriggerSpec.AppOpen(packageName = existingPkg)
+    }
     "接口" -> TriggerSpec.Api
     "定时" -> {
         val minutes = (current as? TriggerSpec.Schedule)?.let(::scheduleIntervalMinutes) ?: fallbackMinutes
@@ -1346,6 +1412,16 @@ private fun triggerFromKind(kind: String, current: TriggerSpec? = null, fallback
 private fun scheduleTrigger(minutes: Int): TriggerSpec.Schedule {
     val clamped = minutes.coerceAtLeast(15)
     return TriggerSpec.Schedule(ScheduleMode.Interval, mapOf("intervalMs" to (clamped * 60_000L).toString()))
+}
+
+/** Build a OneShot Schedule trigger firing [minutes] from now. The absolute atMs is computed at
+ *  call time (save/commit), so this is "fire once, N minutes after the user sets it" — exactly the
+ *  shape `workflow_set_schedule` writes too. WorkManager honours the resulting delay via
+ *  ScheduleCalculator.nextDelayMs. */
+private fun oneShotTrigger(minutes: Int): TriggerSpec.Schedule {
+    val clamped = minutes.coerceAtLeast(1)
+    val atMs = System.currentTimeMillis() + clamped * 60_000L
+    return TriggerSpec.Schedule(ScheduleMode.OneShot, mapOf("atMs" to atMs.toString()))
 }
 
 /** Read the interval (in whole minutes) out of a Schedule trigger's config, defaulting to 15 when

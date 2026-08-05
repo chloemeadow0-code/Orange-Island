@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -30,6 +31,8 @@ fun SettingsMultimodalModelsPage(
     val modelAliases by viewModel.settings.modelAliases.collectAsState()
     val transcriptionModel by viewModel.settings.imageTranscriptionModel.collectAsState()
     val transcriptionEnabledModels by viewModel.settings.imageTranscriptionEnabledModels.collectAsState()
+    val videoNarrationModel by viewModel.settings.videoNarrationModel.collectAsState()
+    val videoNarrationEnabledModels by viewModel.settings.videoNarrationEnabledModels.collectAsState()
     val imageGenModel by viewModel.settings.imageGenModel.collectAsState()
     val imageGenSize by viewModel.settings.imageGenSize.collectAsState()
     val embeddingModels by viewModel.settings.embeddingModels.collectAsState()
@@ -50,6 +53,10 @@ fun SettingsMultimodalModelsPage(
     ) { screen ->
         when (screen) {
             "transcription" -> SettingsTranscriptionPage(
+                viewModel = viewModel,
+                onBack = { detailScreen = null }
+            )
+            "video_narration" -> SettingsVideoNarrationPage(
                 viewModel = viewModel,
                 onBack = { detailScreen = null }
             )
@@ -87,6 +94,25 @@ fun SettingsMultimodalModelsPage(
                                             IslandIcon(IslandIcons.Transcription, size = 38.dp)
                                         },
                                         modifier = Modifier.clickable { detailScreen = "transcription" }
+                                    )
+                                },
+                                {
+                                    val vnm = videoNarrationModel
+                                    val supporting = if (vnm != null) {
+                                        val alias = modelAliases[vnm]
+                                        val parsed = ModelId.parse(vnm)
+                                        val displayName = alias ?: parsed.apiModelName
+                                        "$displayName · ${videoNarrationEnabledModels.size} enabled"
+                                    } else {
+                                        stringResource(R.string.video_narration_no_model)
+                                    }
+                                    SettingsItem(
+                                        headlineContent = { Text(stringResource(R.string.settings_video_narration)) },
+                                        supportingContent = { Text(supporting) },
+                                        leadingContent = {
+                                            Icon(Icons.Default.Videocam, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+                                        },
+                                        modifier = Modifier.clickable { detailScreen = "video_narration" }
                                     )
                                 },
                                 {

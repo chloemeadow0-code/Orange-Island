@@ -583,7 +583,7 @@ internal fun TimelineSegmentsContent(
                     }
                     index++
                 }
-                "thought", "tool", "transcription" -> {
+                "thought", "tool", "transcription", "video_transcription" -> {
                     if (groupAdjacentBlocks) {
                         val blockSegments = mutableListOf<MessageSegment>()
                         val blockDetailIndices = mutableListOf<Int>()
@@ -707,19 +707,19 @@ private fun TimelineInfoSegmentCard(
             ) {
             val isTool = seg.type == "tool"
             val isTranscription = seg.type == "transcription"
-            if (isTool) {
-                Icon(Icons.Default.Build, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
-            } else if (isTranscription) {
-                Icon(Icons.Filled.Image, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
-            } else {
-                Icon(androidx.compose.ui.res.painterResource(id = com.orangeisland.app.R.drawable.thinking_orange), null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+            val isVideoNarration = seg.type == "video_transcription"
+            when {
+                isTool -> Icon(Icons.Default.Build, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                isTranscription -> Icon(Icons.Filled.Image, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                isVideoNarration -> Icon(Icons.Filled.PlayArrow, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                else -> Icon(androidx.compose.ui.res.painterResource(id = com.orangeisland.app.R.drawable.thinking_orange), null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
             }
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = when (seg.type) {
                         "tool" -> toolDisplayName(seg.toolName)
-                        "transcription" -> transcriptionLabel(detailSegments, detailIndex)
+                        "transcription", "video_transcription" -> transcriptionLabel(detailSegments, detailIndex)
                         else -> stringResource(R.string.tool_thinking)
                     },
                     style = ChatType.meta,
@@ -730,6 +730,7 @@ private fun TimelineInfoSegmentCard(
                 )
                 val summary = when (seg.type) {
                     "tool" -> toolSummary(seg)
+                    "video_transcription" -> seg.content.takeIf { it.isNotBlank() } ?: "Video narration is empty."
                     "transcription" -> seg.content.takeIf { it.isNotBlank() } ?: "Image transcription is empty."
                     else -> {
                         val flat = seg.content.replace('\n', ' ')

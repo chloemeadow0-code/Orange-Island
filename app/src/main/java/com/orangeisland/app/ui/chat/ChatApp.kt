@@ -318,7 +318,7 @@ fun ChatApp(
         val targetMessageId = branchSwitchTrigger ?: return@LaunchedEffect
         if (uiState.currentConversationId == null) {
             viewModel.clearBranchSwitchTrigger()
-            viewModel.setSwitching(false)
+            viewModel.clearBranchSwitching()
             return@LaunchedEffect
         }
 
@@ -328,6 +328,8 @@ fun ChatApp(
                     .filter { currentMsgs -> currentMsgs.any { it.id == targetMessageId } }
                     .first()
             }
+            com.orangeisland.app.util.DebugLog.d("MsgRender", "branchSwitch resolved: msgs=${currentMsgs.size} " +
+                "ids=${currentMsgs.joinToString(",") { it.id.take(12) }}")
 
             val msg = currentMsgs.find { it.id == targetMessageId }
             val currentTargetIndex = if (msg?.participant == Participant.MODEL && msg.parentId != null) {
@@ -338,13 +340,15 @@ fun ChatApp(
             }
 
             if (currentTargetIndex != -1) {
+                com.orangeisland.app.util.DebugLog.d("MsgRender", "scrollToItem index=$currentTargetIndex " +
+                    "layoutInfo.totalItemsCount=${listState.layoutInfo.totalItemsCount}")
                 listState.scrollToItem(currentTargetIndex, 0)
             }
         } catch (e: Exception) {
             // Timeout or intended cancellation
         }
         viewModel.clearBranchSwitchTrigger()
-        viewModel.setSwitching(false)
+        viewModel.clearBranchSwitching()
     }
 
     LaunchedEffect(uiState.currentConversationId) {
@@ -629,7 +633,8 @@ fun ChatApp(
                             // drawn, exactly when we needed it. Emptying the list during the
                             // switch makes that first frame cheap (only the spinner paints);
                             // the real list renders on the frame after uiState.isSwitching flips false.
-                            val switchingToExisting = uiState.isSwitching && !uiState.isTransitioningToNewChat
+                            val switchingToExisting = uiState.isSwitching && !uiState.isTransitioningToNewChat && !uiState.isBranchSwitching
+                            if (switchingToExisting) com.orangeisland.app.util.DebugLog.d("MsgRender", "MessageList fed EMPTY (switchingToExisting): isSwitching=${uiState.isSwitching} isBranchSwitching=${uiState.isBranchSwitching} isTransitioning=${uiState.isTransitioningToNewChat}")
                             MessageList(
                                 messages = if (switchingToExisting) emptyList() else uiState.messages,
                                 allMessages = if (switchingToExisting) emptyList() else uiState.allMessages,
@@ -913,6 +918,8 @@ fun ChatApp(
                         onWebSearchToggle = { enabled -> haptics.selection(); viewModel.updateConversationSetting(uiState.currentConversationId) { it.copy(webSearchEnabled = enabled) } },
                         shellEnabled = uiState.shellEnabled,
                         onShellToggle = { enabled -> haptics.selection(); viewModel.updateConversationSetting(uiState.currentConversationId) { it.copy(shellEnabled = enabled) } },
+                        videoNarrationEnabled = uiState.videoNarrationEnabled,
+                        onVideoNarrationToggle = { enabled -> haptics.selection(); viewModel.updateConversationSetting(uiState.currentConversationId) { it.copy(videoNarrationEnabled = enabled) } },
                         onModelSelect = { haptics.selection(); viewModel.setActiveModel(it) },
                         onImageClick = { url -> haptics.action(); onMediaClick(listOf(url), 0) },
                         onAllMediaClick = { urls, idx -> haptics.action(); onMediaClick(urls, idx) },

@@ -103,6 +103,16 @@ data class GenerationContext(
     val transcriptionModelId: String = "",
     val transcriptionApiKey: String = "",
     val transcriptionBaseUrl: String? = null,
+    val videoNarrationEnabled: Boolean = false,
+    val videoNarrationModel: String? = null,
+    val videoNarrationPrompt: String = com.orangeisland.app.data.BuiltInPrompts.VIDEO_NARRATION_USER,
+    val videoNarrationFps: Float = 1f,
+    val videoNarrationDetail: String = "default",
+    val videoNarrationMaxLongSide: Int = 1280,
+    val videoNarrationProviderName: String = "",
+    val videoNarrationModelId: String = "",
+    val videoNarrationApiKey: String = "",
+    val videoNarrationBaseUrl: String? = null,
     /** All configured MCP servers (resolved at request-build time so the provider doesn't
      *  read DataStore on the hot path). [McpToolProvider] filters these by [mcpServerIds]. */
     val mcpServers: List<com.orangeisland.app.data.McpServerConfig> = emptyList(),
@@ -256,6 +266,7 @@ class GenerationManager(
         tools.imageGenDefinitions(ctx)
 
     private val transcriptionManager = TranscriptionManager(providers, conversations, context)
+    private val videoNarrationManager = VideoNarrationManager(providers, conversations, context)
 
     private fun getProviderInstance(name: String): LlmProvider =
         providers[name] ?: providers.values.first()
@@ -469,18 +480,32 @@ class GenerationManager(
             val toolCall = segs?.lastOrNull { s -> s.type == "tool" }?.let { s ->
                 ToolCallData(s.toolName ?: "", s.toolArgs ?: "{}", s.toolResult ?: "", s.toolCallId)
             }
-            val meta = it.attachmentMeta?.let { json -> try { Json.decodeFromString<com.orangeisland.app.model.AttachmentMeta>(json) } catch (_: Exception) { null } }
+            val meta = com.orangeisland.app.model.AttachmentMeta.parse(it.attachmentMeta)
+            val videos = meta?.items?.filter { item -> item.type == "video" }?.mapNotNull { item -> item.originalUri } ?: emptyList()
+            if (meta != null && meta.items.any { item -> item.type == "video" }) {
+                val vidItems = meta.items.filter { item -> item.type == "video" }
+                DebugLog.d("VideoNarration", "buildApiPath msg=${it.id.take(12)} role=${it.participant} " +
+                    "metaItems=${meta.items.size} videoItems=${vidItems.size} " +
+                    "videoTranscriptions=${vidItems.mapIndexed { i, v -> "[$i]blank=${v.videoTranscription.isNullOrBlank()} len=${v.videoTranscription?.length ?: 0}" }} " +
+                    "videoNarrationEnabled(ctx)=${ctx.videoNarrationEnabled}")
+            }
             val attachmentText = if (meta != null) {
                 meta.items.mapNotNull { item ->
                     val content = item.textContent
                     val transcription = item.transcription
-                    val includeTranscription = ctx.imageTranscriptionEnabled && transcription != null && transcription.isNotBlank()
+                    val videoTranscription = item.videoTranscription
+                    val includeImageTranscription = ctx.imageTranscriptionEnabled && transcription != null && transcription.isNotBlank()
+                    val includeVideoNarration = ctx.videoNarrationEnabled && videoTranscription != null && videoTranscription.isNotBlank()
                     when {
                         content != null -> {
                             val label = item.fileName ?: "file"
                             "\n\n--- File: $label ---\n$content"
                         }
-                        includeTranscription -> {
+                        includeVideoNarration -> {
+                            val label = item.fileName ?: "video"
+                            "\n\n--- Video Narration: $label ---\n$videoTranscription"
+                        }
+                        includeImageTranscription -> {
                             val label = item.fileName ?: "image"
                             "\n\n--- Image Transcription: $label ---\n$transcription"
                         }
@@ -489,9 +514,44 @@ class GenerationManager(
                 }.joinToString("")
             } else ""
             val combinedText = if (attachmentText.isNotBlank()) it.text + attachmentText else it.text
-            val hasTranscription = ctx.imageTranscriptionEnabled && meta != null && meta.items.any { item -> !item.transcription.isNullOrBlank() }
-            val effectiveImages = if (hasTranscription) emptyList() else it.images
-            ChatMessage(id = it.id, parentId = it.parentId, text = combinedText, images = effectiveImages, thoughts = it.thoughts, thoughtTitle = it.thoughtTitle, tokenCount = it.tokenCount, cachedTokenCount = it.cachedTokenCount, contextMessageCount = it.contextMessageCount, status = it.status, participant = it.participant, timestamp = it.timestamp, thoughtTimeMs = it.thoughtTimeMs, generationDurationMs = it.generationDurationMs, segments = segs, toolCall = toolCall)
+            val hasImageTranscription = ctx.imageTranscriptionEnabled && meta != null && meta.items.any { item -> !item.transcription.isNullOrBlank() }
+            val narratedVideoItems = if (ctx.videoNarrationEnabled && meta != null) {
+                meta.items.filter { item -> item.type == "video" && !item.videoTranscription.isNullOrBlank() }
+            } else emptyList()
+            val hasVideoNarration = narratedVideoItems.isNotEmpty()
+            // Image stripping: drop ALL images when image transcription covers them (legacy
+            // whole-message behaviour). Otherwise, when video narration is active, drop only
+            // the frames that belong to a narrated video — pure images and frames of an
+            // UN-narrated video must survive (the latter still need to reach the model).
+            val effectiveImages = when {
+                hasImageTranscription -> emptyList()
+                hasVideoNarration -> {
+                    val narratedFrameIndices = narratedVideoItems.flatMap { item ->
+                        val start = item.imageIndex ?: return@flatMap emptyList<Int>()
+                        val count = item.pageCount ?: 1
+                        start until (start + count)
+                    }.toSet()
+                    if (narratedFrameIndices.isNotEmpty()) {
+                        // Precise strip: drop only the frames belonging to narrated videos.
+                        it.images.filterIndexed { idx, _ -> idx !in narratedFrameIndices }
+                    } else {
+                        // Fallback for legacy attachmentMeta stored as a bare URI array — the
+                        // reconstructed video items carry no imageIndex/pageCount, so we can't
+                        // tell which images are frames. If this message has ONLY video items
+                        // (no pure images), every image must be a video frame → strip them all.
+                        val hasPureImageItems = meta?.items.orEmpty().any { it.type != "video" && it.type != "file" && it.type != "pdf" }
+                        if (!hasPureImageItems) emptyList() else it.images
+                    }
+                }
+                else -> it.images
+            }
+            val effectiveVideos = if (hasVideoNarration) emptyList() else videos
+            if (videos.isNotEmpty() || (hasVideoNarration && it.images.isNotEmpty())) {
+                DebugLog.d("VideoNarration", "buildApiPath strip msg=${it.id.take(12)}: hasVideoNarration=$hasVideoNarration " +
+                    "-> videos=${videos.size} effectiveVideos=${effectiveVideos.size} " +
+                    "images=${it.images.size} effectiveImages=${effectiveImages.size} (dropped ${it.images.size - effectiveImages.size} video frames)")
+            }
+            ChatMessage(id = it.id, parentId = it.parentId, text = combinedText, images = effectiveImages, videos = effectiveVideos, thoughts = it.thoughts, thoughtTitle = it.thoughtTitle, tokenCount = it.tokenCount, cachedTokenCount = it.cachedTokenCount, contextMessageCount = it.contextMessageCount, status = it.status, participant = it.participant, timestamp = it.timestamp, thoughtTimeMs = it.thoughtTimeMs, generationDurationMs = it.generationDurationMs, segments = segs, toolCall = toolCall)
         }.filter { it.participant != Participant.ERROR }
             .let { path ->
                 if (isRegenerate && replaceMessageId != null) {
@@ -638,6 +698,7 @@ class GenerationManager(
             if (ctx.imageTranscriptionEnabled && ctx.transcriptionModelId.isNotEmpty()) {
                 kotlinx.coroutines.delay(500)
                 val targets = transcriptionManager.collectTargets(conversationId, parentId)
+                DebugLog.d("ImageTranscription", "transcription gate: imageTranscriptionEnabled=${ctx.imageTranscriptionEnabled} modelId='${ctx.transcriptionModelId}' provider='${ctx.transcriptionProviderName}' targets=${targets.size}")
                 if (targets.isNotEmpty()) {
                     val (transcriptionSegments, transcriptionError) = transcriptionManager.transcribe(
                         targets, conversationId,
@@ -647,14 +708,48 @@ class GenerationManager(
                         generationJob, modelMessageId, startTime, onStreamUpdate
                     )
                     if (transcriptionError != null) {
+                        DebugLog.e("ImageTranscription", "transcription returned ERROR: $transcriptionError")
                         state.totalText = transcriptionError
                         state.currentStatus = MessageStatus.ERROR
                         transcriptionPerformed = true
                     } else {
+                        DebugLog.d("ImageTranscription", "transcription OK, segments=${transcriptionSegments.size}")
                         state.segments.addAll(0, transcriptionSegments)
                         transcriptionPerformed = true
                     }
+                } else {
+                    DebugLog.d("ImageTranscription", "transcription gate OPEN but collectTargets returned 0 — no images need transcription")
                 }
+            } else {
+                DebugLog.d("ImageTranscription", "transcription SKIPPED: enabled=${ctx.imageTranscriptionEnabled} modelIdEmpty=${ctx.transcriptionModelId.isEmpty()} (modelId='${ctx.transcriptionModelId}')")
+            }
+
+            if (state.currentStatus != MessageStatus.ERROR && ctx.videoNarrationEnabled && ctx.videoNarrationModelId.isNotEmpty()) {
+                kotlinx.coroutines.delay(500)
+                val videoTargets = videoNarrationManager.collectTargets(conversationId, parentId)
+                DebugLog.d("VideoNarration", "narration gate: videoNarrationEnabled=${ctx.videoNarrationEnabled} modelId='${ctx.videoNarrationModelId}' provider='${ctx.videoNarrationProviderName}' targets=${videoTargets.size}")
+                if (videoTargets.isNotEmpty()) {
+                    val (narrationSegments, narrationError) = videoNarrationManager.narrate(
+                        videoTargets, conversationId,
+                        ctx.videoNarrationProviderName, ctx.videoNarrationModelId,
+                        ctx.videoNarrationApiKey, ctx.videoNarrationBaseUrl,
+                        ctx.videoNarrationPrompt,
+                        ctx.videoNarrationFps, ctx.videoNarrationDetail, ctx.videoNarrationMaxLongSide,
+                        generationJob, modelMessageId, startTime, onStreamUpdate
+                    )
+                    if (narrationError != null) {
+                        DebugLog.e("VideoNarration", "narration returned ERROR: $narrationError")
+                        state.totalText = narrationError
+                        state.currentStatus = MessageStatus.ERROR
+                    } else {
+                        DebugLog.d("VideoNarration", "narration OK, segments=${narrationSegments.size}")
+                        state.segments.addAll(0, narrationSegments)
+                    }
+                } else {
+                    DebugLog.d("VideoNarration", "narration gate OPEN but collectTargets returned 0 — no videos need narration")
+                }
+            } else if (state.currentStatus != MessageStatus.ERROR) {
+                DebugLog.d("VideoNarration", "narration SKIPPED: enabled=${ctx.videoNarrationEnabled} modelIdEmpty=${ctx.videoNarrationModelId.isEmpty()} (modelId='${ctx.videoNarrationModelId}')")
             }
 
             if (state.currentStatus != MessageStatus.ERROR) {
@@ -858,6 +953,7 @@ class GenerationManager(
                     val conversationExists = conversations.getConversation(conversationId) != null
                     if (conversationExists) {
                         val finalSegments = state.finalSegments()
+                        DebugLog.d("VideoNarration", "PERSIST segments: ${finalSegments?.map { "${it.type}(${it.content.length})" } ?: "null"}")
                         val segmentsJson = finalSegments?.let { Json.encodeToString(it) }
                         DebugLog.d("GenStopRace", "[generateFinally] BEFORE upsert id=${state.modelMessageId} textLen=${state.totalText.length} status=${state.currentStatus} time=${System.currentTimeMillis()}")
                         val entity = MessageEntity(

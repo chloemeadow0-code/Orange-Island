@@ -100,6 +100,7 @@ data class ConversationSettings(
     val thinkingBudgetTokens: Int? = null,
     val webSearchEnabled: Boolean? = null,
     val shellEnabled: Boolean? = null,
+    val videoNarrationEnabled: Boolean? = null,
     /** Per-conversation MCP server activation.
      *  `null`  = inherit globally enabled servers (default).
      *  empty   = MCP tools disabled for this conversation.
@@ -112,7 +113,7 @@ data class ConversationSettings(
         && frequencyPenalty == null && presencePenalty == null
         && codeExecutionEnabled == null && googleSearchEnabled == null && thinkingEnabled == null
         && thinkingLevel == null && thinkingBudgetEnabled == null && thinkingBudgetTokens == null
-        && webSearchEnabled == null && shellEnabled == null && mcpServerIds == null && pluginIds == null
+        && webSearchEnabled == null && shellEnabled == null && videoNarrationEnabled == null && mcpServerIds == null && pluginIds == null
 }
 
 class SettingsManager(private val context: Context) {
@@ -152,13 +153,18 @@ class SettingsManager(private val context: Context) {
         val TITLE_GENERATION_ENABLED = booleanPreferencesKey("title_generation_enabled")
         val TITLE_GENERATION_MODEL = stringPreferencesKey("title_generation_model")
         val TITLE_GENERATION_PROMPT = stringPreferencesKey("title_generation_prompt")
-        val AUTO_COMPRESS_ENABLED = booleanPreferencesKey("auto_compress_enabled")
         val AUTO_COMPRESS_MODEL = stringPreferencesKey("auto_compress_model")
         val AUTO_COMPRESS_PROMPT = stringPreferencesKey("auto_compress_prompt")
         val IMAGE_TRANSCRIPTION_ENABLED_MODELS = stringSetPreferencesKey("image_transcription_enabled_models")
         val IMAGE_TRANSCRIPTION_MODEL = stringPreferencesKey("image_transcription_model")
         val IMAGE_TRANSCRIPTION_BATCH_SIZE = intPreferencesKey("image_transcription_batch_size")
         val IMAGE_TRANSCRIPTION_PROMPT = stringPreferencesKey("image_transcription_prompt")
+        val VIDEO_NARRATION_ENABLED_MODELS = stringSetPreferencesKey("video_narration_enabled_models")
+        val VIDEO_NARRATION_MODEL = stringPreferencesKey("video_narration_model")
+        val VIDEO_NARRATION_PROMPT = stringPreferencesKey("video_narration_prompt")
+        val VIDEO_NARRATION_FPS = stringPreferencesKey("video_narration_fps")
+        val VIDEO_NARRATION_DETAIL = stringPreferencesKey("video_narration_detail")
+        val VIDEO_NARRATION_MAX_LONG_SIDE = intPreferencesKey("video_narration_max_long_side")
         val ACCESS_PAST_CONVERSATIONS = booleanPreferencesKey("access_past_conversations")
         val ACCESS_SAVED_MEMORIES = booleanPreferencesKey("access_saved_memories")
         val ACCESS_ACTIVE_MEMORY = booleanPreferencesKey("access_active_memory")
@@ -424,7 +430,6 @@ class SettingsManager(private val context: Context) {
     val titleGenerationPrompt: Flow<String> = context.dataStore.data.map { pref ->
         pref[TITLE_GENERATION_PROMPT]?.takeIf { it.isNotBlank() } ?: BuiltInPrompts.TITLE_GENERATION_SYSTEM
     }
-    val autoCompressEnabled: Flow<Boolean> = context.dataStore.data.map { it[AUTO_COMPRESS_ENABLED] ?: false }
     val autoCompressModel: Flow<String?> = context.dataStore.data.map { it[AUTO_COMPRESS_MODEL] }
     val autoCompressPrompt: Flow<String> = context.dataStore.data.map { pref ->
         pref[AUTO_COMPRESS_PROMPT]?.takeIf { it.isNotBlank() } ?: BuiltInPrompts.HISTORY_COMPRESSION_SYSTEM
@@ -434,6 +439,20 @@ class SettingsManager(private val context: Context) {
     val imageTranscriptionBatchSize: Flow<Int> = context.dataStore.data.map { it[IMAGE_TRANSCRIPTION_BATCH_SIZE] ?: 3 }
     val imageTranscriptionPrompt: Flow<String> = context.dataStore.data.map { pref ->
         pref[IMAGE_TRANSCRIPTION_PROMPT]?.takeIf { it.isNotBlank() } ?: BuiltInPrompts.IMAGE_TRANSCRIPTION_USER
+    }
+    val videoNarrationEnabledModels: Flow<Set<String>> = context.dataStore.data.map { it[VIDEO_NARRATION_ENABLED_MODELS] ?: emptySet() }
+    val videoNarrationModel: Flow<String?> = context.dataStore.data.map { it[VIDEO_NARRATION_MODEL] }
+    val videoNarrationPrompt: Flow<String> = context.dataStore.data.map { pref ->
+        pref[VIDEO_NARRATION_PROMPT]?.takeIf { it.isNotBlank() } ?: BuiltInPrompts.VIDEO_NARRATION_USER
+    }
+    val videoNarrationFps: Flow<Float> = context.dataStore.data.map { pref ->
+        pref[VIDEO_NARRATION_FPS]?.toFloatOrNull()?.coerceIn(0.2f, 5f) ?: 1f
+    }
+    val videoNarrationDetail: Flow<String> = context.dataStore.data.map { pref ->
+        pref[VIDEO_NARRATION_DETAIL]?.takeIf { it in setOf("low", "default", "high") } ?: "default"
+    }
+    val videoNarrationMaxLongSide: Flow<Int> = context.dataStore.data.map { pref ->
+        pref[VIDEO_NARRATION_MAX_LONG_SIDE]?.coerceIn(1, 4096) ?: 1280
     }
 
     val accessPastConversations: Flow<Boolean> = context.dataStore.data.map { it[ACCESS_PAST_CONVERSATIONS] ?: true }
@@ -1016,9 +1035,6 @@ class SettingsManager(private val context: Context) {
         }
     }
 
-    suspend fun saveAutoCompressEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[AUTO_COMPRESS_ENABLED] = enabled }
-    }
     suspend fun saveAutoCompressModel(model: String?) {
         context.dataStore.edit {
             if (model == null) it.remove(AUTO_COMPRESS_MODEL)
@@ -1052,6 +1068,36 @@ class SettingsManager(private val context: Context) {
             if (prompt.isBlank()) it.remove(IMAGE_TRANSCRIPTION_PROMPT)
             else it[IMAGE_TRANSCRIPTION_PROMPT] = prompt
         }
+    }
+
+    suspend fun saveVideoNarrationEnabledModels(models: Set<String>) {
+        context.dataStore.edit { it[VIDEO_NARRATION_ENABLED_MODELS] = models }
+    }
+
+    suspend fun saveVideoNarrationModel(model: String?) {
+        context.dataStore.edit {
+            if (model == null) it.remove(VIDEO_NARRATION_MODEL)
+            else it[VIDEO_NARRATION_MODEL] = model
+        }
+    }
+
+    suspend fun saveVideoNarrationPrompt(prompt: String) {
+        context.dataStore.edit {
+            if (prompt.isBlank()) it.remove(VIDEO_NARRATION_PROMPT)
+            else it[VIDEO_NARRATION_PROMPT] = prompt
+        }
+    }
+
+    suspend fun saveVideoNarrationFps(fps: Float) {
+        context.dataStore.edit { it[VIDEO_NARRATION_FPS] = fps.coerceIn(0.2f, 5f).toString() }
+    }
+
+    suspend fun saveVideoNarrationDetail(detail: String) {
+        context.dataStore.edit { it[VIDEO_NARRATION_DETAIL] = if (detail in setOf("low", "default", "high")) detail else "default" }
+    }
+
+    suspend fun saveVideoNarrationMaxLongSide(size: Int) {
+        context.dataStore.edit { it[VIDEO_NARRATION_MAX_LONG_SIDE] = size.coerceIn(1, 4096) }
     }
 
     suspend fun saveShowDocumentationFab(enabled: Boolean) {

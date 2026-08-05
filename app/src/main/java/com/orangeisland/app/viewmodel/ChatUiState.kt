@@ -33,6 +33,11 @@ data class ChatUiState(
     val isNewChatMode: Boolean = true,
     val isSwitching: Boolean = false,
     val isTransitioningToNewChat: Boolean = false,
+    /** True only during a branch switch (same conversation, different selected child). Unlike
+     *  [isSwitching], the message list must stay mounted during a branch switch — clearing it
+     *  (the `switchingToExisting` guard in ChatApp) left a stale scroll offset that hid the
+     *  user's message until re-entering the conversation. */
+    val isBranchSwitching: Boolean = false,
     val totalTokens: Int = 0,
     val selectedModel: String = Constants.EXAMPLE_MODEL_ID,
     val pendingConversationSettings: ConversationSettings? = null,
@@ -58,6 +63,7 @@ data class ChatUiState(
     val globalWebSearch: Boolean = false,
     val shellEnabled: Boolean = false,
     val globalShell: Boolean = false,
+    val videoNarrationEnabled: Boolean = false,
     val toolCallDisplayMode: String = ToolCallDisplayModes.DEFAULT,
     val contextWindow: Int = 20,
     val webSearchApiKeys: Map<String, String> = emptyMap(),

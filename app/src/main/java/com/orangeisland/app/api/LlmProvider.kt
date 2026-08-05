@@ -37,6 +37,8 @@ data class ProviderConfig(
     val userPrepend: String? = null,
     val userPostpend: String? = null,
     val includeImages: Boolean = true,
+    val includeVideos: Boolean = true,
+    val videoUrlOptions: OpenAiVideoUrl? = null,
     val temperature: Float? = null,
     val maxTokens: Int? = null,
     val topP: Float? = null,
@@ -132,12 +134,21 @@ data class OpenAiRequestFunction(
 data class OpenAiContentPart(
     val type: String,
     val text: String? = null,
-    @SerialName("image_url") val imageUrl: OpenAiImageUrl? = null
+    @SerialName("image_url") val imageUrl: OpenAiImageUrl? = null,
+    @SerialName("video_url") val videoUrl: OpenAiVideoUrl? = null
 )
 
 @Serializable
 data class OpenAiImageUrl(
     val url: String
+)
+
+@Serializable
+data class OpenAiVideoUrl(
+    val url: String,
+    val detail: String? = null,
+    val fps: Float? = null,
+    @SerialName("max_long_side_pixel") val maxLongSidePixel: Int? = null
 )
 
 

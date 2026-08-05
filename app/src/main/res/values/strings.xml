@@ -218,8 +218,8 @@
     <string name="settings_web_search_desc">Configure web search tool for all providers</string>
     <string name="settings_title_gen">Title Generation</string>
     <string name="settings_title_gen_desc">Auto-generate conversation titles</string>
-    <string name="settings_auto_compress">Auto-Compress History</string>
-    <string name="settings_auto_compress_desc">Summarize older messages when the conversation gets long</string>
+    <string name="settings_auto_compress">Compress History</string>
+    <string name="settings_auto_compress_desc">Model and prompt used when manually compressing conversation history</string>
     <string name="settings_transcription">Image Transcription</string>
     <string name="settings_transcription_desc">Use a vision model to describe images for non-vision models</string>
     <string name="settings_tts">Text-to-Speech</string>
@@ -688,12 +688,8 @@
     <string name="title_gen_prompt">Title Prompt</string>
     <string name="title_gen_prompt_desc">System instruction used when generating conversation titles</string>
 
-    <!-- Settings - Auto-Compress Page -->
-    <string name="auto_compress_auto">Auto-Compress Conversation</string>
-    <string name="auto_compress_auto_desc">Summarizes older messages to keep long conversations within the context window. Trigger threshold follows the global "Context Window" setting in Generation — currently set to retain the most recent %1$d turns</string>
-    <string name="auto_compress_auto_desc_unlimited">Summarizes older messages to keep long conversations within the context window. Trigger threshold follows the global "Context Window" setting in Generation — currently set to retain the full conversation history (unlimited)</string>
+    <!-- Settings - Compression Page -->
     <string name="auto_compress_model">Compression Model</string>
-    <string name="auto_compress_threshold_source">Trigger Threshold Setting</string>
     <string name="auto_compress_current_model">Use Current Model</string>
     <string name="auto_compress_select_model">Select Compression Model</string>
     <string name="auto_compress_prompt">Compression Prompt</string>
@@ -713,6 +709,7 @@
     <string name="transcription_add_model">Add Model</string>
     <string name="transcription_ellipsis">Transcribing images…</string>
     <string name="transcription_progress">Transcribing images %1$d/%2$d…</string>
+    <string name="video_transcription_ellipsis">Narrating video…</string>
 
     <!-- Settings - TTS Page -->
     <string name="tts_title">Text-to-Speech</string>
@@ -1472,4 +1469,25 @@
     <string name="font_size_large">Large</string>
     <string name="font_size_xlarge">Extra Large</string>
     <string name="font_size_xxlarge">Huge</string>
+
+    <!-- Video Narration -->
+    <string name="video_narration">Video Narration</string>
+    <string name="settings_video_narration">Video Narration</string>
+    <string name="settings_video_narration_desc">Use a video-understanding model to narrate videos for non-video models</string>
+    <string name="video_narration_progress">Narrating video %1$d/%2$d…</string>
+    <string name="video_narration_model">Narration Model</string>
+    <string name="video_narration_no_model">Not selected</string>
+    <string name="video_narration_select_model">Select narration model</string>
+    <string name="video_narration_enabled_models">Enabled Models</string>
+    <string name="video_narration_no_models_enabled">No models enabled</string>
+    <string name="video_narration_no_models_hint">Add models above to enable video narration</string>
+    <string name="video_narration_add_model">Add Model</string>
+    <string name="video_narration_options">Video Options</string>
+    <string name="video_narration_detail">Detail</string>
+    <string name="video_narration_fps">FPS</string>
+    <string name="video_narration_fps_desc">Frames per second sampled by the video model</string>
+    <string name="video_narration_max_long_side">Max Long Side</string>
+    <string name="video_narration_max_long_side_desc">Longest edge in pixels for each sampled frame</string>
+    <string name="video_narration_prompt">Narration Prompt</string>
+    <string name="video_narration_prompt_desc">Instruction sent with each video narration request</string>
 </resources>

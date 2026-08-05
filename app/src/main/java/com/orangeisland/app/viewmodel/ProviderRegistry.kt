@@ -7,6 +7,7 @@ import com.orangeisland.app.api.local.LocalProvider
 import com.orangeisland.app.api.ollama.OllamaProvider
 import com.orangeisland.app.api.openai.CustomOpenAiProvider
 import com.orangeisland.app.api.openai.DeepSeekProvider
+import com.orangeisland.app.api.openai.MiniMaxProvider
 import com.orangeisland.app.api.openai.OpenAiProvider
 import com.orangeisland.app.api.openai.OpenRouterProvider
 import com.orangeisland.app.api.openai.QwenProvider
@@ -44,6 +45,7 @@ class ProviderRegistry(
         Constants.PROVIDER_QWEN to QwenProvider(),
         Constants.PROVIDER_OLLAMA to OllamaProvider(),
         Constants.PROVIDER_OPEN_ROUTER to OpenRouterProvider(),
+        Constants.PROVIDER_MINIMAX_CHAT to MiniMaxProvider(),
         Constants.PROVIDER_LOCAL to localProvider
     )
 

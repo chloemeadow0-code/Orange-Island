@@ -79,13 +79,18 @@ class SettingsRepository(
     val titleGenerationEnabled: StateFlow<Boolean> = hot(settingsManager.titleGenerationEnabled, true)
     val titleGenerationModel: StateFlow<String?> = hot(settingsManager.titleGenerationModel, null)
     val titleGenerationPrompt: StateFlow<String> = hot(settingsManager.titleGenerationPrompt, BuiltInPrompts.TITLE_GENERATION_SYSTEM)
-    val autoCompressEnabled: StateFlow<Boolean> = hot(settingsManager.autoCompressEnabled, false)
     val autoCompressModel: StateFlow<String?> = hot(settingsManager.autoCompressModel, null)
     val autoCompressPrompt: StateFlow<String> = hot(settingsManager.autoCompressPrompt, BuiltInPrompts.HISTORY_COMPRESSION_SYSTEM)
     val imageTranscriptionEnabledModels: StateFlow<Set<String>> = hot(settingsManager.imageTranscriptionEnabledModels, emptySet())
     val imageTranscriptionModel: StateFlow<String?> = hot(settingsManager.imageTranscriptionModel, null)
     val imageTranscriptionBatchSize: StateFlow<Int> = hot(settingsManager.imageTranscriptionBatchSize, 3)
     val imageTranscriptionPrompt: StateFlow<String> = hot(settingsManager.imageTranscriptionPrompt, BuiltInPrompts.IMAGE_TRANSCRIPTION_USER)
+    val videoNarrationEnabledModels: StateFlow<Set<String>> = hot(settingsManager.videoNarrationEnabledModels, emptySet())
+    val videoNarrationModel: StateFlow<String?> = hot(settingsManager.videoNarrationModel, null)
+    val videoNarrationPrompt: StateFlow<String> = hot(settingsManager.videoNarrationPrompt, BuiltInPrompts.VIDEO_NARRATION_USER)
+    val videoNarrationFps: StateFlow<Float> = hot(settingsManager.videoNarrationFps, 1f)
+    val videoNarrationDetail: StateFlow<String> = hot(settingsManager.videoNarrationDetail, "default")
+    val videoNarrationMaxLongSide: StateFlow<Int> = hot(settingsManager.videoNarrationMaxLongSide, 1280)
     val accessPastConversations: StateFlow<Boolean> = hot(settingsManager.accessPastConversations, true)
     val accessSavedMemories: StateFlow<Boolean> = hot(settingsManager.accessSavedMemories, true)
     val accessActiveMemory: StateFlow<Boolean> = hot(settingsManager.accessActiveMemory, true)
@@ -271,6 +276,7 @@ class SettingsRepository(
             shellEnabled,
             shellDevices,
             mcpServers,
+            videoNarrationEnabledModels,
             toolCallDisplayMode,
             conversationSettings,
             blurEffectsEnabled,
@@ -317,33 +323,34 @@ class SettingsRepository(
             shellEnabled = values[13] as Boolean,
             shellDevices = values[14] as List<ShellDeviceConfig>,
             mcpServers = values[15] as List<McpServerConfig>,
-            toolCallDisplayMode = values[16] as String,
-            conversationSettings = values[17] as Map<String, ConversationSettings>,
-            blurEffectsEnabled = values[18] as Boolean,
-            codeBlockWrapEnabled = values[19] as Boolean,
-            splitAssistantBubbleByLine = values[20] as Boolean,
-            hapticsEnabled = values[21] as Boolean,
-            customColorChatBackground = values[22] as Long?,
-            illustrationChatBackgroundPath = values[23] as String,
-            illustrationInputBackgroundPath = values[24] as String,
-            illustrationTopBarBackgroundPath = values[25] as String,
-            illustrationReasoningBackgroundPath = values[26] as String,
-            transparencyTopBar = values[27] as Float,
-            topBarCapsuleScale = values[28] as Float,
-            customColorInputField = values[29] as Long?,
-            customColorUserBubble = values[30] as Long?,
-            illustrationUserBubbleBackgroundPath = values[31] as String,
-            illustrationUserBubbleCornerRadius = values[32] as Float,
-            customColorAssistantBubble = values[33] as Long?,
-            customColorReasoningPanel = values[34] as Long?,
-            customColorChatText = values[35] as Long?,
-            customColorGlobalText = values[36] as Long?,
-            transparencyMessageBubble = values[37] as Float,
-            transparencyUserBubbleMask = values[38] as Float,
-            transparencyReasoningPanel = values[39] as Float,
-            systemPrompts = values[40] as List<SystemPromptEntry>,
-            activeSystemPromptId = values[41] as String?,
-            selectedModel = values[42] as String
+            videoNarrationEnabledModels = values[16] as Set<String>,
+            toolCallDisplayMode = values[17] as String,
+            conversationSettings = values[18] as Map<String, ConversationSettings>,
+            blurEffectsEnabled = values[19] as Boolean,
+            codeBlockWrapEnabled = values[20] as Boolean,
+            splitAssistantBubbleByLine = values[21] as Boolean,
+            hapticsEnabled = values[22] as Boolean,
+            customColorChatBackground = values[23] as Long?,
+            illustrationChatBackgroundPath = values[24] as String,
+            illustrationInputBackgroundPath = values[25] as String,
+            illustrationTopBarBackgroundPath = values[26] as String,
+            illustrationReasoningBackgroundPath = values[27] as String,
+            transparencyTopBar = values[28] as Float,
+            topBarCapsuleScale = values[29] as Float,
+            customColorInputField = values[30] as Long?,
+            customColorUserBubble = values[31] as Long?,
+            illustrationUserBubbleBackgroundPath = values[32] as String,
+            illustrationUserBubbleCornerRadius = values[33] as Float,
+            customColorAssistantBubble = values[34] as Long?,
+            customColorReasoningPanel = values[35] as Long?,
+            customColorChatText = values[36] as Long?,
+            customColorGlobalText = values[37] as Long?,
+            transparencyMessageBubble = values[38] as Float,
+            transparencyUserBubbleMask = values[39] as Float,
+            transparencyReasoningPanel = values[40] as Float,
+            systemPrompts = values[41] as List<SystemPromptEntry>,
+            activeSystemPromptId = values[42] as String?,
+            selectedModel = values[43] as String
         )
     }.stateIn(scope, SharingStarted.Eagerly, ChatSettingsSnapshot())
 
@@ -551,6 +558,10 @@ class SettingsRepository(
     fun addImageTranscriptionModels(models: Set<String>) = scope.launch { settingsManager.saveImageTranscriptionEnabledModels(imageTranscriptionEnabledModels.value + models) }
     fun removeImageTranscriptionModel(model: String) = scope.launch { settingsManager.saveImageTranscriptionEnabledModels(imageTranscriptionEnabledModels.value - model) }
 
+    // Video narration
+    fun addVideoNarrationModels(models: Set<String>) = scope.launch { settingsManager.saveVideoNarrationEnabledModels(videoNarrationEnabledModels.value + models) }
+    fun removeVideoNarrationModel(model: String) = scope.launch { settingsManager.saveVideoNarrationEnabledModels(videoNarrationEnabledModels.value - model) }
+
     // Shell devices
     fun removeShellDevice(deviceId: String) = scope.launch { settingsManager.saveShellDevices(shellDevices.value.filter { it.id != deviceId }) }
 
@@ -571,12 +582,17 @@ class SettingsRepository(
     fun setTitleGenerationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveTitleGenerationEnabled(enabled) }
     fun setTitleGenerationModel(model: String?) = scope.launch { settingsManager.saveTitleGenerationModel(model) }
     fun setTitleGenerationPrompt(prompt: String) = scope.launch { settingsManager.saveTitleGenerationPrompt(prompt) }
-    fun setAutoCompressEnabled(enabled: Boolean) = scope.launch { settingsManager.saveAutoCompressEnabled(enabled) }
     fun setAutoCompressModel(model: String?) = scope.launch { settingsManager.saveAutoCompressModel(model) }
     fun setAutoCompressPrompt(prompt: String) = scope.launch { settingsManager.saveAutoCompressPrompt(prompt) }
     fun setImageTranscriptionModel(model: String?) = scope.launch { settingsManager.saveImageTranscriptionModel(model) }
     fun setImageTranscriptionBatchSize(size: Int) = scope.launch { settingsManager.saveImageTranscriptionBatchSize(size) }
     fun setImageTranscriptionPrompt(prompt: String) = scope.launch { settingsManager.saveImageTranscriptionPrompt(prompt) }
+    fun setVideoNarrationEnabledModels(models: Set<String>) = scope.launch { settingsManager.saveVideoNarrationEnabledModels(models) }
+    fun setVideoNarrationModel(model: String?) = scope.launch { settingsManager.saveVideoNarrationModel(model) }
+    fun setVideoNarrationPrompt(prompt: String) = scope.launch { settingsManager.saveVideoNarrationPrompt(prompt) }
+    fun setVideoNarrationFps(fps: Float) = scope.launch { settingsManager.saveVideoNarrationFps(fps) }
+    fun setVideoNarrationDetail(detail: String) = scope.launch { settingsManager.saveVideoNarrationDetail(detail) }
+    fun setVideoNarrationMaxLongSide(size: Int) = scope.launch { settingsManager.saveVideoNarrationMaxLongSide(size) }
     fun setAccessPastConversations(enabled: Boolean) = scope.launch { settingsManager.saveAccessPastConversations(enabled) }
     fun setAccessSavedMemories(enabled: Boolean) = scope.launch { settingsManager.saveAccessSavedMemories(enabled) }
     fun setAccessActiveMemory(enabled: Boolean) = scope.launch { settingsManager.saveAccessActiveMemory(enabled) }

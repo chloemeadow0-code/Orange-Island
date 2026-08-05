@@ -12,6 +12,7 @@ import com.orangeisland.app.model.AttachmentMeta
 import com.orangeisland.app.model.AttachmentItem
 import com.orangeisland.app.model.ChatMessage
 import com.orangeisland.app.model.MessageSegment
+import com.orangeisland.app.util.DebugLog
 import com.orangeisland.app.model.MessageStatus
 import com.orangeisland.app.model.Participant
 import com.orangeisland.app.service.OrangeIslandForegroundService
@@ -67,17 +68,23 @@ class TranscriptionManager(
             if (msg.images.isEmpty()) continue
 
             if (msg.participant == Participant.USER) {
-                val meta = msg.attachmentMeta?.let {
-                    try { Json.decodeFromString<AttachmentMeta>(it) } catch (_: Exception) { null }
-                } ?: continue
+                val meta = AttachmentMeta.parse(msg.attachmentMeta)
+                if (meta == null) {
+                    DebugLog.d("ImageTranscription", "collectTargets msg=${msg.id.take(12)} images=${msg.images.size} parse FAILED -> raw=${msg.attachmentMeta?.take(200)}")
+                    continue
+                }
+                DebugLog.d("ImageTranscription", "collectTargets msg=${msg.id.take(12)} images=${msg.images.size} metaItems=${meta.items.size} " +
+                    "itemTypes=${meta.items.map { "${it.type}(idx=${it.imageIndex},trans=${!it.transcription.isNullOrBlank()})" }} " +
+                    "raw=${msg.attachmentMeta?.take(200)}")
                 val isLatest = msg.id == latestUserMsg?.id
                 meta.items.forEachIndexed { index, item ->
                     val imageIndex = item.imageIndex
                     val imageType = item.type
-                    if (imageIndex == null || (imageType != "image" && imageType != "pdf" && imageType != "video")) return@forEachIndexed
+                    // Video narration has its own manager (VideoNarrationManager); do not
+                    // process videos here or they show up as "Image Transcription".
+                    if (imageIndex == null || (imageType != "image" && imageType != "pdf")) return@forEachIndexed
                     val count = when (imageType) {
                         "pdf" -> item.pageCount ?: 1
-                        "video" -> item.pageCount ?: 1
                         else -> 1
                     }
                     for (i in 0 until count) {
@@ -93,9 +100,7 @@ class TranscriptionManager(
             }
 
             if (msg.participant == Participant.MODEL) {
-                val meta = msg.attachmentMeta?.let {
-                    try { Json.decodeFromString<AttachmentMeta>(it) } catch (_: Exception) { null }
-                } ?: AttachmentMeta()
+                val meta = AttachmentMeta.parse(msg.attachmentMeta) ?: AttachmentMeta()
                 val items = meta.items.toMutableList()
                 var changed = false
                 msg.images.forEachIndexed { imageIndex, imagePath ->
@@ -227,9 +232,7 @@ class TranscriptionManager(
         for ((messageId, updates) in results) {
             val entity = conversations.getMessagesForConversationSnapshot(conversationId).find { it.id == messageId }
             if (entity != null) {
-                val meta = entity.attachmentMeta?.let {
-                    try { Json.decodeFromString<AttachmentMeta>(it) } catch (_: Exception) { null }
-                } ?: AttachmentMeta()
+                val meta = AttachmentMeta.parse(entity.attachmentMeta) ?: AttachmentMeta()
                 val items = meta.items.toMutableList()
                 val grouped: Map<Int, List<String>> = updates.groupBy { it.first }.mapValues { e -> e.value.map { it.second } }
                 for ((index, texts) in grouped) {

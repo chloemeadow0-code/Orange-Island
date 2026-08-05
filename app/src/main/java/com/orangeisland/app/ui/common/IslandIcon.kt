@@ -121,7 +121,6 @@ enum class IslandIcons(@DrawableRes val res: Int) {
     AutoCache(R.drawable.island_auto_cache),
     ContextVisualization(R.drawable.island_context_visualization),
     UsageStatistics(R.drawable.island_usage_statistics),
-    AutoCompress(R.drawable.island_auto_compress),
     RemoteActionConfirmation(R.drawable.island_remote_action_confirmation),
     SandboxFileBrowser(R.drawable.island_sandbox_file_browser),
     McpTool(R.drawable.island_mcp_tool),

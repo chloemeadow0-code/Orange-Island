@@ -2,6 +2,7 @@ package com.orangeisland.app.tool.device
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -103,6 +104,10 @@ class AppLockMaskActivity : ComponentActivity() {
 
 @Composable
 private fun MaskScreen(label: String, message: String) {
+    // Swallow the system back gesture/button: there is no PIN escape hatch, so letting the user
+    // back out of the mask would defeat the lock. (The app can still be left via Recents / Home,
+    // which AppLockAccessibilityService handles by re-showing the mask.)
+    BackHandler(enabled = true) { /* intentionally empty: consume back press */ }
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background

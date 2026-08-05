@@ -185,7 +185,13 @@ internal fun AssistantMessageContent(
                     }
                 }
                 val toolCallingStatus = stringResource(R.string.tool_calling_ellipsis)
-                val transcribingStatus = stringResource(R.string.transcription_ellipsis)
+                // Video narration reuses MessageStatus.TRANSCRIBING but sets thoughtTitle="Video Narration";
+                // pick the matching label so the status bar doesn't say "Transcribing images" for a video.
+                val transcribingStatus = if (message.thoughtTitle.equals("Video Narration", ignoreCase = true)) {
+                    stringResource(R.string.video_transcription_ellipsis)
+                } else {
+                    stringResource(R.string.transcription_ellipsis)
+                }
                 val statusText = when {
                     message.status == MessageStatus.SUCCESS -> if (!showUsageStats && message.tokenCount > 0) stringResource(R.string.cost_tokens, message.tokenCount) else null
                     isStreaming && isTranscribing -> transcribingStatus
@@ -392,21 +398,24 @@ internal fun AssistantMessageContent(
                     val toolCount = segs.count { it.type == "tool" && it.toolResult != null }
                     val thoughtMs = thoughtDurationMs(segs) ?: message.thoughtTimeMs
                     val hasThought = thoughtMs != null && thoughtMs > 0
+                    val hasVideoNarration = segs.any { it.type == "video_transcription" }
+                    val hasImageTranscription = segs.any { it.type == "transcription" }
                     val collapsedTitle = when {
                         isThinking -> message.thoughtTitle ?: stringResource(R.string.thinking_ellipsis)
                         isTranscribing -> message.thoughtTitle ?: stringResource(R.string.transcription_ellipsis)
                         isToolCalling || isToolInProgress -> toolDisplayName(lastSeg.toolName)
                         else -> {
-                            if (hasThought) {
-                                thoughtDurationTitle(thoughtMs!!, toolCount)
-                            } else if (toolCount > 0) {
-                                stringResource(R.string.called_n_tools, toolCount)
-                            } else if (message.thoughtTitle != null) {
-                                message.thoughtTitle
-                            } else if (segs.any { it.type == "transcription" }) {
-                                "Image Transcription"
-                            } else {
-                                stringResource(R.string.thinking_complete)
+                            // Transcription/narration are pre-processing stages; surface them in the
+                            // collapsed title even when the message also has thinking, otherwise a
+                            // reasoning model (always-think) would bury the video narration under the
+                            // "thought N seconds" label and the user can't tell a video was narrated.
+                            when {
+                                hasVideoNarration -> "Video Narration"
+                                hasImageTranscription -> "Image Transcription"
+                                hasThought -> thoughtDurationTitle(thoughtMs!!, toolCount)
+                                toolCount > 0 -> stringResource(R.string.called_n_tools, toolCount)
+                                message.thoughtTitle != null -> message.thoughtTitle
+                                else -> stringResource(R.string.thinking_complete)
                             }
                         }
                     }

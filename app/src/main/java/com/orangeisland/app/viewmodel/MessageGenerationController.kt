@@ -277,7 +277,7 @@ class MessageGenerationController(
                         isError = true
                     )
                 }
-                if (settings.autoCompressEnabled.value) {
+                if (settings.autoCompressModel.value != null) {
                     compressHistory(currentId)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -444,7 +444,7 @@ class MessageGenerationController(
                     isError = true
                 )
             }
-            if (settings.autoCompressEnabled.value) {
+            if (settings.autoCompressModel.value != null) {
                 compressHistory(currentId)
             }
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -598,7 +598,9 @@ class MessageGenerationController(
 
             val myPersistId = session.nextPersistId()
             val tPayload = System.currentTimeMillis()
-            val (allImages, attachmentMeta) = payloadBuilder.buildMessagePayload(application, images, attachments)
+            val payload = payloadBuilder.buildMessagePayload(application, images, attachments)
+            val allImages = payload.allImages
+            val attachmentMeta = payload.attachmentMeta
             DebugLog.d("GenPerf", "buildPayload: ${System.currentTimeMillis() - tPayload}ms, images=${allImages.size}, attachments=${attachments.size}")
             currentId = currentConversationId.value
             val wasNewChat = isNewChatMode.value
@@ -718,7 +720,7 @@ class MessageGenerationController(
             // which meant a turn that failed BECAUSE the context was too long would never
             // trigger the compression that could have fixed it for the next turn —
             // exactly the death spiral we're closing here.
-            if (settings.autoCompressEnabled.value) {
+            if (settings.autoCompressModel.value != null) {
                 compressHistory(currentId)
             }
         } catch (e: kotlinx.coroutines.CancellationException) {

@@ -80,6 +80,20 @@ class WorkflowWorker(
         val providerRegistry = com.orangeisland.app.viewmodel.ProviderRegistry(settingsRepository, localProvider, scope).also {
             it.ensureCustomProvidersRegistered()
         }
+        // Self-reference dance: the background-safe WorkflowAiToolProvider (exposing only
+        // workflow_set_schedule, approval-free) needs a runnerProvider, the runner needs the
+        // dispatcher, and the dispatcher needs the provider. Break the cycle with a lateinit holder
+        // the provider's lambda reads lazily (only invoked when the tool actually runs, by which
+        // point `runner` is assigned). This lets a running graph workflow reschedule its own next
+        // fire time without exposing create/update/delete (which need a foreground approval gate
+        // this headless context can't satisfy).
+        lateinit var runner: WorkflowRunner
+        val workflowToolProvider = WorkflowAiToolProvider(
+            repository = repository,
+            runnerProvider = { runner },
+            appContext = appContext,
+            backgroundSafeOnly = true
+        )
         val dispatcher = ToolDispatcher(
             app = applicationContext as android.app.Application,
             conversations = com.orangeisland.app.data.repository.ConversationRepository(db.chatDao(), appContext),
@@ -90,9 +104,10 @@ class WorkflowWorker(
             mcpPool = null,
             pluginToolProvider = null,
             permissionController = com.orangeisland.app.viewmodel.PermissionController(appContext),
-            chatDao = db.chatDao()
+            chatDao = db.chatDao(),
+            workflowToolProvider = workflowToolProvider
         )
-        val runner = WorkflowRunner(
+        runner = WorkflowRunner(
             repository = repository,
             dispatcher = dispatcher,
             settings = settings,

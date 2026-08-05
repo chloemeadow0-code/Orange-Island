@@ -118,7 +118,8 @@ fun mergeConsecutiveSameRole(messages: List<ChatMessage>): List<ChatMessage> {
             val merged = messages.subList(i, j)
             val mergedText = merged.joinToString("\n") { it.text }
             val mergedImages = merged.flatMap { it.images }
-            result.add(current.copy(text = mergedText, images = mergedImages))
+            val mergedVideos = merged.flatMap { it.videos }
+            result.add(current.copy(text = mergedText, images = mergedImages, videos = mergedVideos))
         }
         i = j
     }
