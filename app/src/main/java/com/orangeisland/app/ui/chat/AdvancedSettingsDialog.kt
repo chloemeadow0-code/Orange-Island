@@ -25,7 +25,6 @@ fun AdvancedSettingsDialog(
     onResetToDefaults: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    var contextWindow by remember { mutableStateOf(overrides.contextWindow) }
     var temperature by remember { mutableStateOf(overrides.temperature) }
     var maxTokens by remember { mutableStateOf(overrides.maxTokens) }
     var topP by remember { mutableStateOf(overrides.topP) }
@@ -33,7 +32,7 @@ fun AdvancedSettingsDialog(
     var presencePenalty by remember { mutableStateOf(overrides.presencePenalty) }
 
     fun currentSettings() = overrides.copy(
-        contextWindow = contextWindow,
+        contextWindow = overrides.contextWindow,
         temperature = temperature,
         maxTokens = maxTokens,
         topP = topP,
@@ -52,14 +51,6 @@ fun AdvancedSettingsDialog(
                 val fmt2: (Float) -> String = { v -> String.format(Locale.US, "%.2f", v) }
                 val gDefaults = globalDefaults
 
-                // Context Window
-                ContextWindowParamRow(
-                    label = stringResource(R.string.context_window),
-                    value = contextWindow,
-                    defaultVal = gDefaults.contextWindow,
-                    onChange = { contextWindow = it },
-                    onReset = { contextWindow = null }
-                )
                 // Temperature
                 AdvancedParamRow(
                     label = stringResource(R.string.gen_temperature),
@@ -117,7 +108,7 @@ fun AdvancedSettingsDialog(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 TextButton(onClick = {
                     onResetToDefaults()
-                    contextWindow = null; temperature = null; maxTokens = null
+                    temperature = null; maxTokens = null
                     topP = null; frequencyPenalty = null; presencePenalty = null
                 }) { Text(stringResource(R.string.gen_reset)) }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -132,138 +123,6 @@ fun AdvancedSettingsDialog(
         },
         dismissButton = null
     )
-}
-
-/**
- * Parameter row for the Advanced dialog. Always shows value.
- * When value is null, shows the default value passed from global settings.
- * Reset clears the local override (doesn't close dialog).
- */
-@Composable
-private fun ContextWindowParamRow(
-    label: String,
-    value: Int?,
-    defaultVal: Int?,
-    onChange: (Int) -> Unit,
-    onReset: () -> Unit
-) {
-    val hasDefault = defaultVal != null
-    val effective = value ?: defaultVal ?: 20
-    val isOverride = value != null
-    val isUnlimited = effective == Int.MAX_VALUE
-
-    var draft by remember { mutableIntStateOf(if (effective == Int.MAX_VALUE) 100 else effective) }
-    var sliderDraft by remember { mutableFloatStateOf(if (effective == Int.MAX_VALUE) 100f else effective.coerceIn(1, 500).toFloat()) }
-    var lastFiniteValue by remember { mutableIntStateOf(if (effective == Int.MAX_VALUE) 20 else effective) }
-    var localUnlimited by remember { mutableStateOf(effective == Int.MAX_VALUE) }
-
-    LaunchedEffect(effective) {
-        if (effective == Int.MAX_VALUE) {
-            localUnlimited = true
-        } else {
-            localUnlimited = false
-            lastFiniteValue = effective
-            draft = effective
-            sliderDraft = effective.coerceIn(1, 500).toFloat()
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.weight(1f)
-            )
-            if (isOverride) {
-                val displayValue = if (isUnlimited) stringResource(R.string.unlimited) else effective.toString()
-                Text(
-                    text = displayValue,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Text(
-                    text = stringResource(R.string.gen_reset),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                    modifier = Modifier.clickable(onClick = onReset)
-                )
-            } else if (hasDefault) {
-                val displayValue = if (defaultVal == Int.MAX_VALUE) stringResource(R.string.unlimited) else defaultVal.toString()
-                Text(
-                    text = displayValue,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Normal
-                )
-            } else {
-                Text(
-                    text = stringResource(R.string.gen_not_specified),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-            }
-        }
-        Slider(
-            value = sliderDraft,
-            onValueChange = { sliderDraft = it },
-            onValueChangeFinished = {
-                if (!localUnlimited) {
-                    val committed = sliderDraft.toInt().coerceIn(1, 500)
-                    draft = committed
-                    sliderDraft = committed.toFloat()
-                    onChange(committed)
-                }
-            },
-            enabled = !localUnlimited,
-            valueRange = 1f..500f,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedTextField(
-                value = if (localUnlimited) "" else draft.toString(),
-                onValueChange = { raw ->
-                    val digits = raw.filter { it.isDigit() }
-                    val parsed = digits.toIntOrNull()?.coerceAtLeast(1) ?: 1
-                    draft = parsed
-                    sliderDraft = parsed.coerceIn(1, 500).toFloat()
-                    onChange(parsed)
-                },
-                enabled = !localUnlimited,
-                placeholder = { Text(stringResource(R.string.unlimited)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.weight(1f),
-                label = { Text(label) }
-            )
-            FilterChip(
-                selected = localUnlimited,
-                onClick = {
-                    if (localUnlimited) {
-                        localUnlimited = false
-                        draft = lastFiniteValue.coerceIn(1, 500)
-                        sliderDraft = lastFiniteValue.coerceIn(1, 500).toFloat()
-                        onChange(lastFiniteValue)
-                    } else {
-                        lastFiniteValue = draft.coerceAtLeast(1)
-                        localUnlimited = true
-                        onChange(Int.MAX_VALUE)
-                    }
-                },
-                label = { Text(stringResource(R.string.unlimited)) }
-            )
-        }
-    }
 }
 
 @Composable
