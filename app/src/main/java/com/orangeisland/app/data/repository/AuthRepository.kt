@@ -15,6 +15,7 @@ import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.serialization.Serializable
@@ -160,6 +161,43 @@ class AuthRepository(
             ""
         )
     }
+
+    // ── 远程封禁检查 ───────────────────────────────────────────────────────────
+    // 查询 Supabase 的 banned_users 表。命中(返回 true)就清空本地登录态,
+    // 让该用户当场被踢回登录页。以后要封谁,只需在 Supabase Dashboard 的
+    // banned_users 表里加一行 username 即可,不用发新版。
+
+    /**
+     * @return 当前用户是否在远程封禁名单中。true = 被封。
+     *         若本地没登录或网络错误,返回 false(不误伤)。
+     */
+    suspend fun checkBannedAndKick(): Boolean {
+        val username = settingsManager.userName.first()
+        if (username.isBlank()) return false
+        return try {
+            val hit = supabase.postgrest.from("banned_users")
+                .select { filter { eq("username", username.trim().lowercase()) } }
+                .decodeList<@Serializable BanRow>()
+                .isNotEmpty()
+            if (hit) {
+                // 命中封禁:清空本地会话,等同于强制 logout。
+                runCatching { supabase.auth.signOut(SignOutScope.LOCAL) }
+                settingsManager.clearAuthSession()
+                UsageLogManager.log(
+                    UsageLogManager.Type.SYNC,
+                    "auth_banned_remote",
+                    "username=$username"
+                )
+            }
+            hit
+        } catch (e: Exception) {
+            DebugLog.e(TAG, "ban check failed", e)
+            false
+        }
+    }
+
+    @Serializable
+    private data class BanRow(val username: String = "")
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

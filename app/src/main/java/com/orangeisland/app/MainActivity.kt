@@ -142,6 +142,12 @@ class MainActivity : ComponentActivity() {
         val settingsManager = SettingsManager(applicationContext)
         runBlocking(Dispatchers.IO) {
             settingsManager.initializeFirstInstallDefaults(locale = java.util.Locale.getDefault())
+            // 一次性强制登出：用于把旧版本（已登录）用户全部踢回登录页。
+            // 修改 SettingsManager 里 FORCE_LOGOUT_AT_VERSION 的值并发新版即可触发。
+            settingsManager.runForceLogoutIfNeeded()
+            // 远程封禁检查：查 Supabase 的 banned_users 表，命中就清空本地会话。
+            // 以后要针对某个 username 封禁，只需在 Dashboard 的 banned_users 表加一行。
+            authRepo.checkBannedAndKick()
         }
 
         // Parse external intent on cold start

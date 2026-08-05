@@ -294,6 +294,7 @@ class SettingsManager(private val context: Context) {
         val LOGGED_IN = booleanPreferencesKey("logged_in")
         val USER_NAME = stringPreferencesKey("user_name")
         val USER_EMAIL = stringPreferencesKey("user_email")
+        val LAST_FORCE_LOGOUT_VERSION = intPreferencesKey("last_force_logout_version")
         val RATING_PROMPT_SUBMITTED = booleanPreferencesKey("rating_prompt_submitted")
         val RATING_PROMPT_DISMISSED = booleanPreferencesKey("rating_prompt_dismissed")
         val SHOW_DOCUMENTATION_FAB = booleanPreferencesKey("show_documentation_fab")
@@ -1263,6 +1264,23 @@ class SettingsManager(private val context: Context) {
             it.remove(LOGGED_IN)
             it.remove(USER_NAME)
             it.remove(USER_EMAIL)
+        }
+    }
+
+    // ── 一次性强制登出（用于踢掉旧版本用户）────────────────────────────────────
+    // 修改 FORCE_LOGOUT_AT_VERSION 的值并发新版，所有 lastForceLogoutVersion
+    // 不等于它的人启动时会被清空登录态、弹回登录页。
+    private val FORCE_LOGOUT_AT_VERSION: Int = 2
+
+    suspend fun runForceLogoutIfNeeded() {
+        val last = context.dataStore.data.map { it[LAST_FORCE_LOGOUT_VERSION] ?: 0 }.first()
+        if (last < FORCE_LOGOUT_AT_VERSION) {
+            context.dataStore.edit {
+                it.remove(LOGGED_IN)
+                it.remove(USER_NAME)
+                it.remove(USER_EMAIL)
+                it[LAST_FORCE_LOGOUT_VERSION] = FORCE_LOGOUT_AT_VERSION
+            }
         }
     }
 
