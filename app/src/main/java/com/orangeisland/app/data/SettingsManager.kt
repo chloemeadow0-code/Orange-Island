@@ -354,6 +354,15 @@ class SettingsManager(private val context: Context) {
         val STT_API_KEY = stringPreferencesKey("stt_api_key")
         val STT_MODEL = stringPreferencesKey("stt_model")
         val STT_BASE_URL = stringPreferencesKey("stt_base_url")
+        // ── Music Studio (native music generation) ─────────────────
+        val MUSIC_STUDIO_ENABLED = booleanPreferencesKey("music_studio_enabled")
+        val MUSIC_STUDIO_PROVIDER = stringPreferencesKey("music_studio_provider")
+        val MUSIC_STUDIO_SUNO_API_URL = stringPreferencesKey("music_studio_suno_api_url")
+        val MUSIC_STUDIO_SUNO_API_KEY = stringPreferencesKey("music_studio_suno_api_key")
+        val MUSIC_STUDIO_REPLICATE_API_KEY = stringPreferencesKey("music_studio_replicate_api_key")
+        val MUSIC_STUDIO_REPLICATE_MODEL_VERSION = stringPreferencesKey("music_studio_replicate_model_version")
+        val MUSIC_STUDIO_RVC_MODEL_URL = stringPreferencesKey("music_studio_rvc_model_url")
+        val MUSIC_STUDIO_VOICE_REPLACEMENT_ENABLED = booleanPreferencesKey("music_studio_voice_replacement_enabled")
     }
 
     val selectedModel: Flow<String> = context.dataStore.data.map { it[SELECTED_MODEL] ?: Constants.EXAMPLE_MODEL_ID }
@@ -665,6 +674,20 @@ class SettingsManager(private val context: Context) {
     }
     val sttModel: Flow<String> = context.dataStore.data.map { it[STT_MODEL] ?: "" }
     val sttBaseUrl: Flow<String> = context.dataStore.data.map { it[STT_BASE_URL] ?: "" }
+
+    // ── Music Studio (native music generation) ─────────────────
+    val musicStudioEnabled: Flow<Boolean> = context.dataStore.data.map { it[MUSIC_STUDIO_ENABLED] ?: false }
+    val musicStudioProvider: Flow<String> = context.dataStore.data.map { it[MUSIC_STUDIO_PROVIDER] ?: "suno" }
+    val musicStudioSunoApiUrl: Flow<String> = context.dataStore.data.map { it[MUSIC_STUDIO_SUNO_API_URL] ?: "" }
+    val musicStudioSunoApiKey: Flow<String> = context.dataStore.data.map { pref ->
+        com.orangeisland.app.util.SecretCrypto.decrypt(pref[MUSIC_STUDIO_SUNO_API_KEY] ?: "")
+    }
+    val musicStudioReplicateApiKey: Flow<String> = context.dataStore.data.map { pref ->
+        com.orangeisland.app.util.SecretCrypto.decrypt(pref[MUSIC_STUDIO_REPLICATE_API_KEY] ?: "")
+    }
+    val musicStudioReplicateModelVersion: Flow<String> = context.dataStore.data.map { it[MUSIC_STUDIO_REPLICATE_MODEL_VERSION] ?: "" }
+    val musicStudioRvcModelUrl: Flow<String> = context.dataStore.data.map { it[MUSIC_STUDIO_RVC_MODEL_URL] ?: "" }
+    val musicStudioVoiceReplacementEnabled: Flow<Boolean> = context.dataStore.data.map { it[MUSIC_STUDIO_VOICE_REPLACEMENT_ENABLED] ?: false }
 
     // ── Plugin device id ──────────────────────────────────────
     // Lazily minted per-install UUID, exposed to plugins as __OI_USER_ID. No setter: it is
@@ -1408,4 +1431,14 @@ class SettingsManager(private val context: Context) {
     suspend fun saveSttBaseUrl(baseUrl: String) {
         context.dataStore.edit { it[STT_BASE_URL] = baseUrl }
     }
+
+    // ── Music Studio (native music generation) ─────────────────
+    suspend fun saveMusicStudioEnabled(enabled: Boolean) { context.dataStore.edit { it[MUSIC_STUDIO_ENABLED] = enabled } }
+    suspend fun saveMusicStudioProvider(provider: String) { context.dataStore.edit { it[MUSIC_STUDIO_PROVIDER] = provider } }
+    suspend fun saveMusicStudioSunoApiUrl(url: String) { context.dataStore.edit { it[MUSIC_STUDIO_SUNO_API_URL] = url } }
+    suspend fun saveMusicStudioSunoApiKey(key: String) { context.dataStore.edit { it[MUSIC_STUDIO_SUNO_API_KEY] = com.orangeisland.app.util.SecretCrypto.encrypt(key) } }
+    suspend fun saveMusicStudioReplicateApiKey(key: String) { context.dataStore.edit { it[MUSIC_STUDIO_REPLICATE_API_KEY] = com.orangeisland.app.util.SecretCrypto.encrypt(key) } }
+    suspend fun saveMusicStudioReplicateModelVersion(version: String) { context.dataStore.edit { it[MUSIC_STUDIO_REPLICATE_MODEL_VERSION] = version } }
+    suspend fun saveMusicStudioRvcModelUrl(url: String) { context.dataStore.edit { it[MUSIC_STUDIO_RVC_MODEL_URL] = url } }
+    suspend fun saveMusicStudioVoiceReplacementEnabled(enabled: Boolean) { context.dataStore.edit { it[MUSIC_STUDIO_VOICE_REPLACEMENT_ENABLED] = enabled } }
 }

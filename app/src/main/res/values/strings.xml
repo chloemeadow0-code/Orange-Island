@@ -781,6 +781,35 @@
     <string name="voice_call_perm_retry">Grant permission</string>
     <string name="voice_call_stt_not_configured">Speech-to-Text is not configured yet. Add your SiliconFlow API key in Settings → Speech-to-Text first.</string>
 
+    <!-- Music Studio -->
+    <string name="music_studio_title">Music Studio</string>
+    <string name="music_studio_desc">Generate music with cloud providers (Suno, Replicate, etc.)</string>
+    <string name="music_studio_enable">Enable Music Studio</string>
+    <string name="music_studio_enable_desc">Allow the app to generate music and expose music tools to the AI</string>
+    <string name="music_studio_group_general">General</string>
+    <string name="music_studio_group_provider">Provider</string>
+    <string name="music_studio_group_voice_replacement">Voice Replacement (RVC)</string>
+    <string name="music_studio_provider">Provider</string>
+    <string name="music_studio_suno_url">Suno API URL</string>
+    <string name="music_studio_suno_key">Suno API Key</string>
+    <string name="music_studio_replicate_key">Replicate API Key</string>
+    <string name="music_studio_replicate_model_version">Replicate Model Version</string>
+    <string name="music_studio_rvc_model_url">RVC Voice Model URL</string>
+    <string name="music_studio_voice_replacement">Enable Voice Replacement</string>
+    <string name="music_studio_voice_replacement_desc">After generation, replace the voice with a custom RVC model via Replicate</string>
+    <string name="music_studio_input_hint">Chat about your song idea…</string>
+    <string name="music_studio_generate">Generate</string>
+    <string name="music_studio_generate_title">Generate Music</string>
+    <string name="music_studio_title_label">Title</string>
+    <string name="music_studio_lyrics_label">Lyrics</string>
+    <string name="music_studio_style_label">Style (e.g. pop, lofi, upbeat)</string>
+    <string name="music_studio_generation_hint">Generation may take 1–8 minutes. Please keep the app open.</string>
+    <string name="music_library">Music Library</string>
+    <string name="music_library_empty">No songs yet. Generate one first!</string>
+    <string name="stop">Stop</string>
+    <string name="close">Close</string>
+    <string name="error">Error</string>
+
     <string name="prompt_content">Prompt</string>
 
     <!-- Settings - Memory Page -->

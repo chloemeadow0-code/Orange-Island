@@ -251,6 +251,7 @@ class GenerationRequestBuilder(
             uiAutomationEnabled = settings.uiAutomationEnabled.value,
             userInteractionEnabled = settings.userInteractionEnabled.value,
             cameraToolEnabled = settings.cameraToolEnabled.value,
+            musicStudioEnabled = settings.musicStudioEnabled.value,
             // Memory + RAG scope: a conversation inside a project only sees that project's
             // private memory store (plus the global one), and searches stay within it.
             projectId = projectId,

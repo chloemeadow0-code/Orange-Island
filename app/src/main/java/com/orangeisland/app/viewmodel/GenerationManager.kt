@@ -145,6 +145,7 @@ data class GenerationContext(
     val uiAutomationEnabled: Boolean = false,
     val userInteractionEnabled: Boolean = true,
     val cameraToolEnabled: Boolean = false,
+    val musicStudioEnabled: Boolean = false,
     /** The project this conversation belongs to (null = ungrouped). Drives memory scoping:
      *  when non-null, memory tools read/write the project-private memory dir on top of the
      *  always-present global dir; RAG/search filters to the same project. */

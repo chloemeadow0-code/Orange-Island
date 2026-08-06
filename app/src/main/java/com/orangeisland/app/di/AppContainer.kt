@@ -10,10 +10,13 @@ import com.orangeisland.app.api.openai.DeepSeekProvider
 import com.orangeisland.app.api.openai.OpenAiProvider
 import com.orangeisland.app.api.openai.OpenRouterProvider
 import com.orangeisland.app.api.openai.QwenProvider
+import com.orangeisland.app.api.music.ReplicateMusicGenerationProvider
+import com.orangeisland.app.api.music.SunoMusicGenerationProvider
 import com.orangeisland.app.data.MemoryManager
 import com.orangeisland.app.data.SettingsManager
 import com.orangeisland.app.data.local.ChatDao
 import com.orangeisland.app.data.local.ChatDatabase
+import com.orangeisland.app.data.music.MusicStudioRepository
 import com.orangeisland.app.data.repository.ConversationRepository
 import com.orangeisland.app.data.repository.SettingsRepository
 import com.orangeisland.app.data.AutoBackupManager
@@ -299,6 +302,7 @@ class AppContainer(private val appContext: Context) {
             pluginToolProvider = pluginToolProvider,
             permissionController = com.orangeisland.app.viewmodel.PermissionController(appContext),
             workflowToolProvider = workflowAiToolProvider,
+            musicStudioRepository = musicStudioRepository,
             sensitiveToolApproval = sensitiveToolApprovalGate,
             chatDao = chatDao,
             userInteractionGate = userInteractionGate,
@@ -422,6 +426,18 @@ class AppContainer(private val appContext: Context) {
 
     fun healthViewModelFactory(): com.orangeisland.app.viewmodel.HealthViewModelFactory =
         com.orangeisland.app.viewmodel.HealthViewModelFactory(application, settingsManager)
+
+    /** Music generation repository and ViewModel factory. Currently wired with Suno; more
+     *  providers are added by extending the list passed to [MusicStudioRepository]. */
+    val musicStudioRepository: MusicStudioRepository by lazy {
+        MusicStudioRepository(
+            context = appContext,
+            providers = listOf(SunoMusicGenerationProvider(), ReplicateMusicGenerationProvider())
+        )
+    }
+
+    fun musicStudioViewModelFactory(): com.orangeisland.app.ui.music.MusicStudioViewModelFactory =
+        com.orangeisland.app.ui.music.MusicStudioViewModelFactory(application, settingsRepository, musicStudioRepository)
 
     /**
      * Factory for the Voice Call ViewModel. Takes the shared [ChatViewModel] so the call loop can

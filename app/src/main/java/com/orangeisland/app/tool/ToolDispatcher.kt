@@ -6,6 +6,7 @@ import com.orangeisland.app.api.ToolDefinition
 import com.orangeisland.app.data.MemoryManager
 import com.orangeisland.app.data.UsageLogManager
 import com.orangeisland.app.data.local.ChatDao
+import com.orangeisland.app.data.music.MusicStudioRepository
 import com.orangeisland.app.data.repository.ConversationRepository
 import com.orangeisland.app.mcp.McpClientPool
 import com.orangeisland.app.plugin.PluginToolProvider
@@ -44,6 +45,8 @@ class ToolDispatcher(
     private val mcpPool: McpClientPool? = null,
     /** Optional JS-plugin tool provider. When null, plugin tools are disabled. */
     private val pluginToolProvider: PluginToolProvider? = null,
+    /** Optional Music Studio tool provider. When null, music tools are disabled. */
+    private val musicStudioRepository: MusicStudioRepository? = null,
     /** Permission state for the Device Access tools. Null when device tools should not run
      *  (e.g. title generation). */
     private val permissionController: PermissionController? = null,
@@ -107,6 +110,7 @@ class ToolDispatcher(
     }
     private val mcpToolProvider = mcpPool?.let { com.orangeisland.app.tool.McpToolProvider(it) }
     private val chatContextToolProvider = chatDao?.let { com.orangeisland.app.tool.ChatContextToolProvider(it) }
+    private val musicStudioToolProvider = musicStudioRepository?.let { MusicStudioToolProvider(app, it) }
     private val userInteractionToolProvider = UserInteractionToolProvider(userInteractionGate)
     private val ttsToolProvider = TtsToolProvider(app)
     private val voiceCallToolProvider = VoiceCallToolProvider(voiceCallGate)
@@ -134,6 +138,7 @@ class ToolDispatcher(
         chatContextToolProvider?.let { add(it) }
         mcpToolProvider?.let { add(it) }
         pluginToolProvider?.let { add(it) }
+        musicStudioToolProvider?.let { add(it) }
         workflowToolProvider?.let { add(it) }
         add(ttsToolProvider)
         add(voiceCallToolProvider)

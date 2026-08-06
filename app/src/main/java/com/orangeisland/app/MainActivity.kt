@@ -553,6 +553,7 @@ fun MainNavigation(
     var showMiniAppList by rememberSaveable { mutableStateOf(false) }
     var selectedMiniApp by remember { mutableStateOf<com.orangeisland.app.data.MiniAppEntry?>(null) }
     var showHealthPage by rememberSaveable { mutableStateOf(false) }
+    var showMusicStudio by rememberSaveable { mutableStateOf(false) }
     var showVoiceCall by rememberSaveable { mutableStateOf(false) }
     var fullScreenMediaUrls by remember { mutableStateOf<List<String>?>(null) }
     var fullScreenMediaIndex by remember { mutableIntStateOf(0) }
@@ -900,6 +901,9 @@ fun MainNavigation(
                 onOpenMiniApp = {
                     showMiniAppList = true
                 },
+                onOpenMusicStudio = {
+                    showMusicStudio = true
+                },
                 onMediaClick = { urls, index ->
                     focusManager.clearFocus()
                     fullScreenMediaUrls = urls
@@ -1013,6 +1017,27 @@ fun MainNavigation(
                 com.orangeisland.app.ui.health.HealthPage(
                     viewModel = healthViewModel,
                     onBack = { showHealthPage = false }
+                )
+            }
+
+            // Music Studio page
+            AnimatedVisibility(
+                visible = showMusicStudio,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                BackHandler(enabled = showMusicStudio) {
+                    showMusicStudio = false
+                }
+                val ctx = LocalContext.current
+                val container = remember {
+                    (ctx.applicationContext as com.orangeisland.app.OrangeIslandApplication).container
+                }
+                val factory = remember { container.musicStudioViewModelFactory() }
+                val musicStudioViewModel: com.orangeisland.app.ui.music.MusicStudioViewModel = viewModel(factory = factory)
+                com.orangeisland.app.ui.music.MusicStudioPage(
+                    viewModel = musicStudioViewModel,
+                    onBack = { showMusicStudio = false }
                 )
             }
 

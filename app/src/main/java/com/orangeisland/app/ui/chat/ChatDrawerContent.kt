@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Compress
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -109,6 +110,7 @@ internal fun ChatDrawerContent(
     onSettingsButtonTop: (Float) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenMiniApp: () -> Unit = {},
+    onOpenMusicStudio: () -> Unit = {},
     onRequestRename: (String, String) -> Unit,
     onRequestDelete: (String) -> Unit,
     onPendingDrawerHaptic: (String?) -> Unit,
@@ -382,6 +384,25 @@ internal fun ChatDrawerContent(
                 Icon(Icons.Default.Apps, null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.mini_app_title), style = ChatType.drawerButton)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            FilledTonalButton(
+                onClick = {
+                    haptics.action()
+                    focusManager.clearFocus()
+                    onOpenMusicStudio()
+                    scope.launch { drawerState.close() }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 42.dp),
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.LibraryMusic, null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.music_studio_title), style = ChatType.drawerButton)
             }
 
             Spacer(modifier = Modifier.height(8.dp))

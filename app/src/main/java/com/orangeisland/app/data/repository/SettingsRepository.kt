@@ -242,6 +242,16 @@ class SettingsRepository(
     val sttModel: StateFlow<String> = hot(settingsManager.sttModel, "")
     val sttBaseUrl: StateFlow<String> = hot(settingsManager.sttBaseUrl, "")
 
+    // ── Music Studio (native music generation) ─────────────────
+    val musicStudioEnabled: StateFlow<Boolean> = hot(settingsManager.musicStudioEnabled, false)
+    val musicStudioProvider: StateFlow<String> = hot(settingsManager.musicStudioProvider, "suno")
+    val musicStudioSunoApiUrl: StateFlow<String> = hot(settingsManager.musicStudioSunoApiUrl, "")
+    val musicStudioSunoApiKey: StateFlow<String> = hot(settingsManager.musicStudioSunoApiKey, "")
+    val musicStudioReplicateApiKey: StateFlow<String> = hot(settingsManager.musicStudioReplicateApiKey, "")
+    val musicStudioReplicateModelVersion: StateFlow<String> = hot(settingsManager.musicStudioReplicateModelVersion, "")
+    val musicStudioRvcModelUrl: StateFlow<String> = hot(settingsManager.musicStudioRvcModelUrl, "")
+    val musicStudioVoiceReplacementEnabled: StateFlow<Boolean> = hot(settingsManager.musicStudioVoiceReplacementEnabled, false)
+
     init {
         // Keep HttpClient's in-memory trusted-host set in sync with what's persisted —
         // it can't read DataStore itself (guardCleartextCredentials is a synchronous call
@@ -841,4 +851,14 @@ class SettingsRepository(
     fun setSttApiKey(key: String) = scope.launch { settingsManager.saveSttApiKey(key) }
     fun setSttModel(model: String) = scope.launch { settingsManager.saveSttModel(model) }
     fun setSttBaseUrl(baseUrl: String) = scope.launch { settingsManager.saveSttBaseUrl(baseUrl) }
+
+    // ── Music Studio (native music generation) ─────────────────
+    fun setMusicStudioEnabled(enabled: Boolean) = scope.launch { settingsManager.saveMusicStudioEnabled(enabled) }
+    fun setMusicStudioProvider(provider: String) = scope.launch { settingsManager.saveMusicStudioProvider(provider) }
+    fun setMusicStudioSunoApiUrl(url: String) = scope.launch { settingsManager.saveMusicStudioSunoApiUrl(url) }
+    fun setMusicStudioSunoApiKey(key: String) = scope.launch { settingsManager.saveMusicStudioSunoApiKey(key) }
+    fun setMusicStudioReplicateApiKey(key: String) = scope.launch { settingsManager.saveMusicStudioReplicateApiKey(key) }
+    fun setMusicStudioReplicateModelVersion(version: String) = scope.launch { settingsManager.saveMusicStudioReplicateModelVersion(version) }
+    fun setMusicStudioRvcModelUrl(url: String) = scope.launch { settingsManager.saveMusicStudioRvcModelUrl(url) }
+    fun setMusicStudioVoiceReplacementEnabled(enabled: Boolean) = scope.launch { settingsManager.saveMusicStudioVoiceReplacementEnabled(enabled) }
 }

@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -38,6 +39,8 @@ fun SettingsMultimodalModelsPage(
     val imageGenModel by viewModel.settings.imageGenModel.collectAsState()
     val imageGenSize by viewModel.settings.imageGenSize.collectAsState()
     val embeddingModels by viewModel.settings.embeddingModels.collectAsState()
+    val musicStudioEnabled by viewModel.settings.musicStudioEnabled.collectAsState()
+    val musicStudioProvider by viewModel.settings.musicStudioProvider.collectAsState()
 
     var detailScreen by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -69,6 +72,10 @@ fun SettingsMultimodalModelsPage(
                 onBack = { detailScreen = null }
             )
             "search" -> SettingsSearchPage(
+                viewModel = viewModel,
+                onBack = { detailScreen = null }
+            )
+            "music_studio" -> SettingsMusicStudioPage(
                 viewModel = viewModel,
                 onBack = { detailScreen = null }
             )
@@ -137,6 +144,21 @@ fun SettingsMultimodalModelsPage(
                                             Icon(Icons.Default.Mic, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
                                         },
                                         modifier = Modifier.clickable { detailScreen = "stt" }
+                                    )
+                                },
+                                {
+                                    val supporting = if (musicStudioEnabled) {
+                                        musicStudioProvider
+                                    } else {
+                                        stringResource(R.string.disabled)
+                                    }
+                                    SettingsItem(
+                                        headlineContent = { Text(stringResource(R.string.music_studio_title)) },
+                                        supportingContent = { Text(supporting) },
+                                        leadingContent = {
+                                            Icon(Icons.Default.LibraryMusic, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+                                        },
+                                        modifier = Modifier.clickable { detailScreen = "music_studio" }
                                     )
                                 },
                                 {
