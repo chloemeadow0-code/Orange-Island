@@ -1,6 +1,7 @@
 package com.orangeisland.app.tool.device
 
 import android.os.Bundle
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -38,6 +39,12 @@ import kotlinx.coroutines.flow.first
  */
 class AppLockMaskActivity : ComponentActivity() {
 
+    // Held as observable state so that when singleTop reuses this instance to show the mask
+    // for a *different* locked app (onNewIntent path), the displayed label/message refresh
+    // without recreating the activity. Without this, the first locked app's text would stick.
+    private var label by mutableStateOf("")
+    private var message by mutableStateOf("")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -49,9 +56,7 @@ class AppLockMaskActivity : ComponentActivity() {
             android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         )
 
-        val packageName = intent.getStringExtra(EXTRA_PACKAGE_NAME) ?: ""
-        val label = intent.getStringExtra(EXTRA_LABEL) ?: packageName
-        val message = intent.getStringExtra(EXTRA_MESSAGE) ?: ""
+        applyIntent(intent)
 
         // Load the user's theme settings once (synchronously on create; this is a tiny read).
         val settings = SettingsManager(applicationContext)
@@ -93,6 +98,20 @@ class AppLockMaskActivity : ComponentActivity() {
                 MaskScreen(label = label, message = message)
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        applyIntent(intent)
+    }
+
+    // Read the lock-entry extras into the observable fields. Called from both onCreate and
+    // onNewIntent (singleTop reuse), so each path shows the latest locked app's text.
+    private fun applyIntent(intent: Intent) {
+        val packageName = intent.getStringExtra(EXTRA_PACKAGE_NAME) ?: ""
+        label = intent.getStringExtra(EXTRA_LABEL) ?: packageName
+        message = intent.getStringExtra(EXTRA_MESSAGE) ?: ""
     }
 
     companion object {
