@@ -28,8 +28,8 @@ android {
         applicationId = "com.orangeisland.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 49
-        versionName = "1.9.9"
+        versionCode = 50
+        versionName = "2.0.0"
 
         // Supabase credentials — read from local.properties (gitignored) so they
         // never enter version control. anon key is public by design (RLS enforces
