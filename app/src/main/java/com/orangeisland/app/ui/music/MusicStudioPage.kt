@@ -444,6 +444,13 @@ private fun TrackCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                if (track.hasVoiceReplacement) {
+                    Text(
+                        text = stringResource(R.string.music_studio_voice_replaced_tag),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
                 Text(
                     text = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(track.createdAt)),
                     style = MaterialTheme.typography.labelSmall,

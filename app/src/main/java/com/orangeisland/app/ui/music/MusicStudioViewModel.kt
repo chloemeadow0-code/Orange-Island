@@ -174,11 +174,13 @@ class MusicStudioViewModel(
                             }
                             WorkInfo.State.SUCCEEDED -> {
                                 val title = info.outputData.getString(MusicGenerationWorker.KEY_TITLE_OUT) ?: "歌曲"
+                                val hasRvc = info.outputData.getBoolean(MusicGenerationWorker.KEY_HAS_VOICE_REPLACEMENT, false)
                                 _state.value = _state.value.copy(
                                     isGenerating = false,
                                     generationMessage = ""
                                 )
-                                addAssistantMessage("✅ 歌曲《$title》已生成并加入音乐库！")
+                                val suffix = if (hasRvc) "（含音色替换）" else ""
+                                addAssistantMessage("✅ 歌曲《$title》$suffix 已生成并加入音乐库！")
                                 loadTracks()
                             }
                             WorkInfo.State.FAILED, WorkInfo.State.CANCELLED -> {

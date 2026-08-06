@@ -797,6 +797,7 @@
     <string name="music_studio_rvc_model_url">RVC Voice Model URL</string>
     <string name="music_studio_voice_replacement">Enable Voice Replacement</string>
     <string name="music_studio_voice_replacement_desc">After generation, replace the voice with a custom RVC model via Replicate</string>
+    <string name="music_studio_voice_replaced_tag">RVC 音色已替换</string>
     <string name="music_studio_input_hint">Chat about your song idea…</string>
     <string name="music_studio_generate">Generate</string>
     <string name="music_studio_generate_title">Generate Music</string>
