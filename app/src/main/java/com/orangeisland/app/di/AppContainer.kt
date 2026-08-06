@@ -421,7 +421,7 @@ class AppContainer(private val appContext: Context) {
             autoBackupManager, conversationRepository, settingsRepository, workflowRepository,
             workflowApprovalGate, pluginToolProvider, pluginLoader, pluginSandbox,
             workflowAiToolProvider, userInteractionGate, voiceCallGate, cameraToolGate,
-            appContextCollector, pluginMemoryProvider
+            appContextCollector, pluginMemoryProvider, musicStudioRepository
         )
 
     fun healthViewModelFactory(): com.orangeisland.app.viewmodel.HealthViewModelFactory =

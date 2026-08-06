@@ -304,6 +304,9 @@ class ToolDispatcher(
     fun cameraDefinitions(ctx: GenerationContext): List<ToolDefinition> =
         cameraToolProvider?.definitions(ctx) ?: emptyList()
 
+    fun musicStudioDefinitions(ctx: GenerationContext): List<ToolDefinition> =
+        musicStudioToolProvider?.definitions(ctx) ?: emptyList()
+
     /** Drains audio file paths queued by the most recent speak tool call. Called by the LLM
      *  loop right after a speak call so the audio renders inline. */
     fun drainAudio(): List<String> = ttsToolProvider.drainAudio()

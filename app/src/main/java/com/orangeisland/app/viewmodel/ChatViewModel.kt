@@ -121,7 +121,10 @@ class ChatViewModel(
     private val appContextCollector: com.orangeisland.app.data.environment.AppContextCollector? = null,
     /** Receives plugin-sent messages and triggers AI generation for them. */
     private val pluginMemoryProvider: com.orangeisland.app.plugin.AppPluginMemoryProvider? = null,
+    /** Music Studio repository. When present, music generation/list/delete tools are exposed to the LLM. */
+    private val musicStudioRepository: com.orangeisland.app.data.music.MusicStudioRepository? = null
 ) : AndroidViewModel(application) {
+
 
     companion object {
         /** Overlay fade duration for conversation-switch transitions. */
@@ -435,7 +438,8 @@ class ChatViewModel(
             workflowToolProvider = workflowToolProvider,
             userInteractionGate = userInteractionGate,
             voiceCallGate = voiceCallGate,
-            cameraToolGate = cameraToolGate
+            cameraToolGate = cameraToolGate,
+            musicStudioRepository = musicStudioRepository
         ).also { gm ->
             gm.onMessagePersisted = { messageId, text ->
                 if (settings.autoCacheEnabled.value && (settings.modelSearchMethod.value == Constants.SEARCH_METHOD_RAG || settings.manualSearchMethod.value == Constants.SEARCH_METHOD_RAG)) {

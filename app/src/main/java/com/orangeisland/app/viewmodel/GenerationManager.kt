@@ -228,7 +228,10 @@ class GenerationManager(
     /** Optional gate for the AI camera tool (take_photo). Threaded into the standalone dispatcher
      *  when [toolDispatcher] is null. Ignored when [toolDispatcher] is non-null. Null in title
      *  generation / contexts without the camera UI. */
-    private val cameraToolGate: com.orangeisland.app.tool.CameraToolGate? = null
+    private val cameraToolGate: com.orangeisland.app.tool.CameraToolGate? = null,
+    /** Optional Music Studio repository. When present, the music generation/list/delete tools are
+     *  exposed to the LLM via the standalone dispatcher. */
+    private val musicStudioRepository: com.orangeisland.app.data.music.MusicStudioRepository? = null
 ) {
     var onMessagePersisted: ((messageId: String, text: String) -> Unit)? = null
 
@@ -253,7 +256,8 @@ class GenerationManager(
             workflowToolProvider = workflowToolProvider,
             userInteractionGate = userInteractionGate,
             voiceCallGate = voiceCallGate,
-            cameraToolGate = cameraToolGate
+            cameraToolGate = cameraToolGate,
+            musicStudioRepository = musicStudioRepository
         )
 
     init {
@@ -369,6 +373,11 @@ class GenerationManager(
      *  camera. Empty when the camera-tool setting is off or the gate is not wired up. */
     fun buildCameraTools(ctx: GenerationContext): List<ToolDefinition> =
         tools.cameraDefinitions(ctx)
+
+    /** Music Studio tools (generate_music/list_music/delete_music). Exposed when the Music Studio
+     *  feature is enabled in settings. */
+    fun buildMusicStudioTools(ctx: GenerationContext): List<ToolDefinition> =
+        tools.musicStudioDefinitions(ctx)
 
     /** Semantic message search — delegates to the RAG provider via [tools], which owns the
      *  embedding-search logic. Kept here as the entry point used by ChatViewModel's
@@ -593,8 +602,9 @@ class GenerationManager(
         val ttsTools = buildTtsTools(ctx)
         val voiceCallTools = buildVoiceCallTools(ctx)
         val cameraTools = buildCameraTools(ctx)
-        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + alarmTools + healthTools + automationTools + workflowTools + userInteractionTools + ttsTools + voiceCallTools + cameraTools
-        DebugLog.d("ToolList", "allTools=${allTools.size} names=[${allTools.joinToString { it.function.name }}] cameraToolEnabled=${ctx.cameraToolEnabled}")
+        val musicStudioTools = buildMusicStudioTools(ctx)
+        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + alarmTools + healthTools + automationTools + workflowTools + userInteractionTools + ttsTools + voiceCallTools + cameraTools + musicStudioTools
+        DebugLog.d("ToolList", "allTools=${allTools.size} names=[${allTools.joinToString { it.function.name }}] cameraToolEnabled=${ctx.cameraToolEnabled} musicStudioEnabled=${ctx.musicStudioEnabled}")
         val providerConfig = ProviderConfig(
             apiKey = config.apiKey,
             modelId = config.modelId,
