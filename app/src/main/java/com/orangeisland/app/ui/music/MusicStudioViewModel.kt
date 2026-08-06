@@ -21,21 +21,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-enum class MusicChatRole { User, Assistant }
-
-data class MusicChatMessage(
-    val text: String,
-    val role: MusicChatRole,
-    val timestamp: Long = System.currentTimeMillis()
-)
-
 data class MusicStudioUiState(
-    val messages: List<MusicChatMessage> = emptyList(),
     val tracks: List<MusicStudioTrack> = emptyList(),
     val isGenerating: Boolean = false,
     val generationMessage: String = "",
     val currentPlayingTrackId: String? = null,
-    val showLibrary: Boolean = false,
     val showGenerateDialog: Boolean = false,
     val errorMessage: String? = null
 )
@@ -66,19 +56,6 @@ class MusicStudioViewModel(
 
     init {
         loadTracks()
-        addAssistantMessage("你好！我是你的音乐创作助手。聊聊你想写的歌，或者直接告诉我歌词和风格，我可以帮你生成音乐。")
-    }
-
-    fun addUserMessage(text: String) {
-        _state.value = _state.value.copy(
-            messages = _state.value.messages + MusicChatMessage(text, MusicChatRole.User)
-        )
-    }
-
-    fun addAssistantMessage(text: String) {
-        _state.value = _state.value.copy(
-            messages = _state.value.messages + MusicChatMessage(text, MusicChatRole.Assistant)
-        )
     }
 
     fun loadTracks() {
@@ -88,10 +65,6 @@ class MusicStudioViewModel(
                 _state.value = _state.value.copy(tracks = tracks)
             }
         }
-    }
-
-    fun toggleLibrary() {
-        _state.value = _state.value.copy(showLibrary = !_state.value.showLibrary)
     }
 
     fun showGenerateDialog() {
@@ -119,7 +92,6 @@ class MusicStudioViewModel(
             return
         }
 
-        addUserMessage("生成歌曲：$title\n风格：${style.ifBlank { "pop" }}\n$lyrics")
         _state.value = _state.value.copy(
             isGenerating = true,
             generationMessage = "正在提交后台任务…",
@@ -173,14 +145,10 @@ class MusicStudioViewModel(
                                 )
                             }
                             WorkInfo.State.SUCCEEDED -> {
-                                val title = info.outputData.getString(MusicGenerationWorker.KEY_TITLE_OUT) ?: "歌曲"
-                                val hasRvc = info.outputData.getBoolean(MusicGenerationWorker.KEY_HAS_VOICE_REPLACEMENT, false)
                                 _state.value = _state.value.copy(
                                     isGenerating = false,
                                     generationMessage = ""
                                 )
-                                val suffix = if (hasRvc) "（含音色替换）" else ""
-                                addAssistantMessage("✅ 歌曲《$title》$suffix 已生成并加入音乐库！")
                                 loadTracks()
                             }
                             WorkInfo.State.FAILED, WorkInfo.State.CANCELLED -> {
@@ -191,7 +159,6 @@ class MusicStudioViewModel(
                                     generationMessage = "",
                                     errorMessage = error
                                 )
-                                addAssistantMessage("❌ 生成失败：$error")
                             }
                             else -> { /* ENQUEUED / BLOCKED */ }
                         }

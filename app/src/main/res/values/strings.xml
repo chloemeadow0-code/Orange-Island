@@ -805,6 +805,7 @@
     <string name="music_studio_lyrics_label">Lyrics</string>
     <string name="music_studio_style_label">Style (e.g. pop, lofi, upbeat)</string>
     <string name="music_studio_generation_hint">Generation may take 1–8 minutes. Please keep the app open.</string>
+    <string name="music_studio_generating">正在生成</string>
     <string name="music_library">Music Library</string>
     <string name="music_library_empty">No songs yet. Generate one first!</string>
     <string name="stop">Stop</string>
