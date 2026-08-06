@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.webkit.WebView
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -18,6 +20,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -26,6 +29,11 @@ import com.orangeisland.app.data.InstalledPlugin
 import com.orangeisland.app.plugin.OrangeIslandWebViewBridge
 import com.orangeisland.app.plugin.PluginMemoryProvider
 import com.orangeisland.app.plugin.PluginSandbox
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * Renders a plugin's `ui.html` inside a sandboxed WebView and wires up the `orangeisland` JS bridge
@@ -94,9 +102,72 @@ fun PluginWebViewPage(
         )
     }
 
+    // Local text-file picker (.txt / .md) requested by the plugin page. The bridge stores the
+    // callback id; we observe it here and launch the system document picker, then deliver the
+    // UTF-8 file contents back to the page as JSON { name, content, mimeType }.
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) {
+            bridge.deliverFilePickResult(buildJsonObject {
+                put("error", "cancelled")
+                put("message", "No file selected")
+            }.toString())
+            return@rememberLauncherForActivityResult
+        }
+        scope.launch(Dispatchers.IO) {
+            val result = try {
+                val mimeType = ctx.contentResolver.getType(uri) ?: ""
+                val supported = mimeType == "text/plain" ||
+                    mimeType == "text/markdown" ||
+                    mimeType == "text/x-markdown"
+                if (!supported) {
+                    buildJsonObject {
+                        put("error", "invalid_type")
+                        put("message", "Only .txt and .md files are supported (got $mimeType)")
+                    }.toString()
+                } else {
+                    ctx.contentResolver.openInputStream(uri)?.use { input ->
+                        val content = input.bufferedReader(Charsets.UTF_8).readText()
+                        val name = uri.lastPathSegment ?: "unknown"
+                        buildJsonObject {
+                            put("name", name)
+                            put("content", content)
+                            put("mimeType", mimeType)
+                        }.toString()
+                    } ?: buildJsonObject {
+                        put("error", "read_error")
+                        put("message", "Could not open input stream")
+                    }.toString()
+                }
+            } catch (e: Exception) {
+                buildJsonObject {
+                    put("error", "read_error")
+                    put("message", e.message ?: "unknown error")
+                }.toString()
+            }
+            withContext(Dispatchers.Main) {
+                bridge.deliverFilePickResult(result)
+            }
+        }
+    }
+
+    LaunchedEffect(bridge.pendingFilePickCallbackId) {
+        if (bridge.pendingFilePickCallbackId != null) {
+            runCatching {
+                filePickerLauncher.launch(arrayOf("text/plain", "text/markdown", "text/x-markdown"))
+            }.onFailure {
+                bridge.deliverFilePickResult(buildJsonObject {
+                    put("error", "launcher_error")
+                    put("message", it.message ?: "unknown error")
+                }.toString())
+            }
+        }
+    }
+
     // Load the HTML verbatim with the bootstrap prepended as a <script> tag. The bootstrap MUST
-    // be wrapped in <script>...</script> — otherwise (bare JS text before <!DOCTYPE>) the
-    // WebView renders it as visible body text. The bootstrap installs `orangeisland.config` /
+    // be wrapped in <script>...</script> — otherwise (bare JS text before <!DOCTYPE>) the WebView
+    // renders it as visible body text. The bootstrap installs `orangeisland.config` /
     // `orangeisland.deviceId` getters (reading live from the bridge via @JavascriptInterface) and
     // mirrors them as the __OI_* globals.
     val rawHtml = remember(uiFile?.absolutePath, uiFile?.lastModified()) {

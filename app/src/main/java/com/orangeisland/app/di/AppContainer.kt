@@ -137,6 +137,7 @@ class AppContainer(private val appContext: Context) {
         providerRegistry = providerRegistry,
         llmProviders = llmProviders,
         chatDao = database.chatDao(),
+        memoryManager = memoryManager,
         appContext = appContext,
         onConfirmDestructive = onConfirmDestructive,
         onNodeState = onNodeState

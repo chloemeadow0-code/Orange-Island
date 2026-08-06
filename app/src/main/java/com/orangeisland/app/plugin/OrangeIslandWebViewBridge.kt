@@ -80,6 +80,12 @@ class OrangeIslandWebViewBridge(
     /** Set by the Compose host once the WebView is created. Calls before this are rejected. */
     @Volatile var webView: WebView? = null
 
+    /**
+     * When the page requests a local text file pick, the host stores the JS callback id here and
+     * launches a document picker. The result is delivered via [deliverFilePickResult].
+     */
+    @Volatile var pendingFilePickCallbackId: String? = null
+
     private val supervisor = SupervisorJob(parentScope.coroutineContext[Job])
     private val scope = CoroutineScope(supervisor + Dispatchers.Main)
     private val queue = Channel<Call>(capacity = Channel.UNLIMITED)
@@ -137,6 +143,17 @@ class OrangeIslandWebViewBridge(
     /** Synchronous read of the per-install device id. Called via `orangeisland.getDeviceId()`. */
     @JavascriptInterface
     fun getDeviceId(): String = deviceUserId
+
+    /**
+     * Requests the host to open a document picker for plain-text files (.txt / .md).
+     * The page must use `orangeisland.pickTextFile(cb)`; the host observes
+     * [pendingFilePickCallbackId] and eventually calls [deliverFilePickResult].
+     */
+    @JavascriptInterface
+    fun pickTextFile(callbackId: String) {
+        pendingFilePickCallbackId = callbackId
+        bridgeLog("pickTextFile requested callbackId=$callbackId")
+    }
 
     /** Synchronous read of the host's currently-active conversation id. Called via
      *  `orangeisland.getCurrentConversationId()`. Returns "" when no conversation is active —
@@ -272,6 +289,16 @@ class OrangeIslandWebViewBridge(
         }.getOrElse { "" }
     }
 
+    /**
+     * Called by the Compose host after a text file has been picked and read.
+     * Clears [pendingFilePickCallbackId] and delivers the result JSON to the page.
+     */
+    fun deliverFilePickResult(resultJson: String) {
+        val callbackId = pendingFilePickCallbackId
+        pendingFilePickCallbackId = null
+        deliver(callbackId, resultJson)
+    }
+
     /** Reserved for future host鈫抪age pushes (e.g. tool-call notifications). No-op in v1. */
     fun pushToPage(payload: String) {
         evaluate("if (typeof window.orangeisland.onMessage === 'function') { window.orangeisland.onMessage(${jsonEncodeJsString(payload)}); }")
@@ -378,6 +405,15 @@ class OrangeIslandWebViewBridge(
                 createConversation: function(projectId, title, modelId, systemPromptId) {
                     try { return native.createConversation(projectId || '', title || '', modelId || '', systemPromptId || '') || ''; }
                     catch (e) { console.error('createConversation error: ' + e); return ''; }
+                },
+                // Request the host to open a local text-file picker (.txt / .md).
+                // The callback receives a JSON object: { name, content, mimeType } or { error, message }.
+                pickTextFile: function(cb) {
+                    var id = '__cb_' + (nextId++);
+                    if (typeof cb === 'function') callbacks[id] = cb;
+                    try { native.pickTextFile(id); }
+                    catch (e) { console.error('pickTextFile error: ' + e); }
+                    return id;
                 },
                 __deliver: function(id, json) {
                     var cb = callbacks[id];

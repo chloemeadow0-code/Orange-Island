@@ -70,6 +70,7 @@ class WorkflowWorker(
         val settings = SettingsManager(appContext)
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val settingsRepository = SettingsRepository(settings, scope)
+        val memoryManager = com.orangeisland.app.data.MemoryManager(appContext)
         val llmProviders = buildLlmProviders()
         // Custom providers (e.g. a user-defined provider like "亲亲老公") live in the dynamic
         // ProviderRegistry, not in the static buildLlmProviders() map. Without it, an LLM node bound
@@ -97,7 +98,7 @@ class WorkflowWorker(
         val dispatcher = ToolDispatcher(
             app = applicationContext as android.app.Application,
             conversations = com.orangeisland.app.data.repository.ConversationRepository(db.chatDao(), appContext),
-            memoryManager = com.orangeisland.app.data.MemoryManager(appContext),
+            memoryManager = memoryManager,
             llmProviders = llmProviders,
             appContext = appContext,
             sandboxFactory = null,
@@ -123,6 +124,7 @@ class WorkflowWorker(
             llmProviders = llmProviders,
             providerRegistry = providerRegistry,
             chatDao = db.chatDao(),
+            memoryManager = memoryManager,
             appContext = appContext
         )
 

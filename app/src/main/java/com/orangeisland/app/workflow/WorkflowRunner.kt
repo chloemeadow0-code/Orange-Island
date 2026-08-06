@@ -1,6 +1,7 @@
 package com.orangeisland.app.workflow
 
 import com.orangeisland.app.api.LlmProvider
+import com.orangeisland.app.data.MemoryManager
 import com.orangeisland.app.data.SettingsManager
 import com.orangeisland.app.data.UsageLogManager
 import com.orangeisland.app.data.repository.SettingsRepository
@@ -62,6 +63,7 @@ class WorkflowRunner(
     private val providerRegistry: ProviderRegistry? = null,
     private val llmProviders: Map<String, LlmProvider> = emptyMap(),
     private val chatDao: com.orangeisland.app.data.local.ChatDao? = null,
+    private val memoryManager: MemoryManager? = null,
     private val appContext: Context? = null,
     private val onConfirmDestructive: (suspend (toolName: String, args: String) -> Boolean)? = null,
     private val onNodeState: ((String, NodeState) -> Unit)? = null
@@ -243,7 +245,7 @@ class WorkflowRunner(
                 effectiveModelId = nodeModelId
             }
 
-            val effectiveSystemPrompt = workflow.systemPromptId?.let { spId ->
+            val workflowSystemPrompt = workflow.systemPromptId?.let { spId ->
                 settingsRepository.systemPrompts.value
                     .firstOrNull { it.id == spId }
                     ?.let { entry ->
@@ -251,19 +253,51 @@ class WorkflowRunner(
                             entry.resolvedSystemItems.forEach { appendLine(it.value) }
                         }.trim()
                     }
-            } ?: nodeSystemPrompt
+            }
+            val projectSystemPrompt = workflow.projectId?.let { resolveProjectSystemPrompt(it) }
+            val projectMemoryBlock = workflow.projectId?.let { buildProjectMemoryBlock(it) }
+            val baseSystemPrompt = when {
+                !workflowSystemPrompt.isNullOrBlank() -> workflowSystemPrompt
+                !projectSystemPrompt.isNullOrBlank() -> projectSystemPrompt
+                else -> nodeSystemPrompt
+            }
+            val effectiveSystemPrompt = when {
+                baseSystemPrompt.isNullOrBlank() && projectMemoryBlock.isNullOrBlank() -> null
+                baseSystemPrompt.isNullOrBlank() -> projectMemoryBlock
+                projectMemoryBlock.isNullOrBlank() -> baseSystemPrompt
+                else -> "$baseSystemPrompt\n\n$projectMemoryBlock"
+            }
+            DebugLog.d(
+                "WorkflowLLM",
+                "system prompt: workflowOverride=${workflowSystemPrompt != null} " +
+                    "projectDefault=${projectSystemPrompt != null} " +
+                    "memoryFiles=${projectMemoryBlock != null} " +
+                    "finalLen=${effectiveSystemPrompt?.length ?: 0}"
+            )
 
             // ── Build message list (project history + current prompt) ────────────
             val history = mutableListOf<ChatMessage>()
             val projectId = workflow.projectId
+            DebugLog.d(
+                "WorkflowLLM",
+                "memory lookup start: workflowId=${workflow.id} projectId=$projectId " +
+                    "chatDao=${chatDao != null} provider=$effectiveProvider model=$effectiveModelId"
+            )
             if (projectId != null && chatDao != null) {
                 val recent = kotlinx.coroutines.runBlocking {
                     chatDao.getRecentMessagesForProject(projectId, limit = 10)
                 }
+                DebugLog.d("WorkflowLLM", "dao returned ${recent.size} recent messages")
                 // DAO returns DESC (newest first); reverse to ASC for chronological order.
                 // Decode overflow pointers so workflow history contains real text.
-                recent.reversed().forEach { raw ->
+                recent.reversed().forEachIndexed { index, raw ->
                     val msg = raw.decodeLargeText(appContext!!)
+                    val preview = msg.text.take(80).replace("\n", " ")
+                    DebugLog.d(
+                        "WorkflowLLM",
+                        "history[$index] id=${raw.id} participant=${msg.participant} " +
+                            "len=${msg.text.length} preview=$preview"
+                    )
                     history += ChatMessage(
                         text = msg.text,
                         participant = when (msg.participant) {
@@ -273,11 +307,21 @@ class WorkflowRunner(
                         status = MessageStatus.SUCCESS
                     )
                 }
+            } else {
+                DebugLog.d(
+                    "WorkflowLLM",
+                    "skipping history lookup: projectId=$projectId chatDao=${chatDao != null}"
+                )
             }
+            DebugLog.d("WorkflowLLM", "appending current prompt: len=${prompt.length}")
             history += ChatMessage(
                 text = prompt,
                 participant = Participant.USER,
                 status = MessageStatus.SUCCESS
+            )
+            DebugLog.d(
+                "WorkflowLLM",
+                "final history size=${history.size} systemPromptLen=${effectiveSystemPrompt?.length ?: 0}"
             )
 
             val llmProvider = providerRegistry?.let { reg ->
@@ -306,7 +350,9 @@ class WorkflowRunner(
             )
             UsageLogManager.logModel(
                 name = "workflow / $effectiveProvider / $effectiveModelId",
-                details = "history=${history.size - 1} | prompt=${prompt.length} chars"
+                details = "workflowId=${workflow.id} projectId=${workflow.projectId} " +
+                    "history=${history.size - 1} prompt=${prompt.length} " +
+                    "system=${effectiveSystemPrompt?.length ?: 0}"
             )
             val sb = StringBuilder()
             var firstError: String? = null
@@ -323,7 +369,8 @@ class WorkflowRunner(
             val elapsed = System.currentTimeMillis() - t0
             UsageLogManager.logModel(
                 name = "workflow / $effectiveProvider / $effectiveModelId ✓",
-                details = "${elapsed}ms | output=${sb.length} chars"
+                details = "${elapsed}ms | output=${sb.length} chars" +
+                    (firstError?.let { " | error=$it" } ?: "")
             )
             firstError?.let {
                 // Enrich the error so the workflow run log shows what was actually requested.
@@ -369,6 +416,50 @@ class WorkflowRunner(
             // ungrouped bucket even though the workflow carried a projectId.
             projectId = projectId
         )
+    }
+
+    /**
+     * Resolves the default system prompt for [projectId], if the project has one configured.
+     * Returns null when the project has no default instruction or the prompt cannot be found.
+     */
+    private suspend fun resolveProjectSystemPrompt(projectId: String): String? {
+        val dao = chatDao ?: return null
+        val project = dao.getProject(projectId) ?: return null
+        val promptId = project.systemPromptId ?: return null
+        val entry = settingsRepository?.systemPrompts?.value
+            ?.firstOrNull { it.id == promptId } ?: return null
+        return buildString {
+            entry.resolvedSystemItems.forEach { appendLine(it.value) }
+        }.trim().ifBlank { null }
+    }
+
+    /**
+     * Builds a markdown block from the project's saved memory files (global + project-private).
+     * Mirrors the project-memory injection in [com.orangeisland.app.viewmodel.GenerationRequestBuilder].
+     */
+    private fun buildProjectMemoryBlock(projectId: String): String? {
+        val manager = memoryManager ?: return null
+        return try {
+            val files = manager.listFilesMerged(projectId).filter { it.name.isNotBlank() }
+            if (files.isEmpty()) return null
+            val parts = mutableListOf<String>()
+            for (info in files) {
+                val content = runCatching {
+                    manager.readFile(info.name, info.projectId)
+                }.getOrElse { e ->
+                    DebugLog.w("WorkflowLLM", "Failed to read memory ${info.name} (${info.projectId})", e)
+                    null
+                }
+                if (!content.isNullOrBlank()) {
+                    parts.add("### ${info.name}\n${content.trim()}")
+                }
+            }
+            if (parts.isEmpty()) return null
+            "## 项目长期记忆\n\n" + parts.joinToString("\n\n")
+        } catch (e: Exception) {
+            DebugLog.w("WorkflowLLM", "Failed to build project memory block for $projectId", e)
+            null
+        }
     }
 
     private fun failedResult(workflowId: String, message: String) = RunResult(

@@ -95,6 +95,7 @@ class WorkflowIntentReceiver : BroadcastReceiver() {
         val settings = SettingsManager(appContext)
         val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
         val settingsRepository = com.orangeisland.app.data.repository.SettingsRepository(settings, scope)
+        val memoryManager = com.orangeisland.app.data.MemoryManager(appContext)
         val llmProviders = WorkflowWorker.buildLlmProviders()
         // Sync custom providers into a registry so LLM nodes bound to a user-defined provider
         // resolve in background runs (see WorkflowWorker for rationale).
@@ -108,7 +109,7 @@ class WorkflowIntentReceiver : BroadcastReceiver() {
         val dispatcher = ToolDispatcher(
             app = appContext as android.app.Application,
             conversations = com.orangeisland.app.data.repository.ConversationRepository(db.chatDao(), appContext),
-            memoryManager = com.orangeisland.app.data.MemoryManager(appContext),
+            memoryManager = memoryManager,
             llmProviders = llmProviders,
             appContext = appContext,
             sandboxFactory = null,
@@ -130,6 +131,7 @@ class WorkflowIntentReceiver : BroadcastReceiver() {
             llmProviders = llmProviders,
             providerRegistry = providerRegistry,
             chatDao = db.chatDao(),
+            memoryManager = memoryManager,
             appContext = appContext
         )
     }
