@@ -219,3 +219,4 @@ internal fun ChatTopBar(
             }
     }
 }
+

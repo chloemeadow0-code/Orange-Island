@@ -89,7 +89,7 @@ fun VoiceCallScreen(
     // The user already answered the incoming call to get here, so start the loop automatically as
     // soon as the mic permission is in place (no manual "start" button in this entry path).
     LaunchedEffect(permissionGranted) {
-        if (permissionGranted && state == VoiceCallManager.CallState.IDLE) {
+        if (permissionGranted) {
             voiceViewModel.startCall()
         }
     }
@@ -114,7 +114,7 @@ fun VoiceCallScreen(
                 )
                 return@Column
             }
-            if (!sttConfigured && state == VoiceCallManager.CallState.IDLE) {
+            if (!sttConfigured) {
                 ConfigGate(
                     message = stringResource(R.string.voice_call_stt_not_configured),
                     onClose = onBack

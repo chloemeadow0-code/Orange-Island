@@ -7,6 +7,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,10 +30,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Compress
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -77,6 +80,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.orangeisland.app.R
 import com.orangeisland.app.data.local.ProjectEntity
@@ -111,6 +115,8 @@ internal fun ChatDrawerContent(
     onOpenSettings: () -> Unit,
     onOpenMiniApp: () -> Unit = {},
     onOpenMusicStudio: () -> Unit = {},
+    onOpenHealth: () -> Unit = {},
+    onRequestManageImages: (String) -> Unit = {},
     onRequestRename: (String, String) -> Unit,
     onRequestDelete: (String) -> Unit,
     onPendingDrawerHaptic: (String?) -> Unit,
@@ -140,6 +146,7 @@ internal fun ChatDrawerContent(
 
     // Per-project expand/collapse. Persisted across drawer open/close; new projects
     // default to expanded, "ungrouped" (null) starts expanded too.
+    var showToolsPopup by remember { mutableStateOf(false) }
     val expandedProjects = rememberSaveable(saver = ProjectExpandSaver) { mutableStateMapOf<String?, Boolean>() }
     fun isExpanded(pid: String?): Boolean = expandedProjects[pid] ?: true
     fun toggleExpanded(pid: String?) { expandedProjects[pid] = !isExpanded(pid) }
@@ -200,7 +207,56 @@ internal fun ChatDrawerContent(
                 .padding(horizontal = 16.dp, vertical = 20.dp)
                 .clearFocusOnTap()
         ) {
-            Text(stringResource(R.string.conversations), style = ChatType.conversationsTitle)
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.conversations), style = ChatType.conversationsTitle)
+                Spacer(modifier = Modifier.weight(1f))
+                Box {
+                    IconButton(onClick = { showToolsPopup = true }, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.Apps, contentDescription = stringResource(R.string.mini_app_title), modifier = Modifier.size(22.dp))
+                    }
+                    DropdownMenu(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        tonalElevation = 0.dp,
+                        shape = RoundedCornerShape(20.dp),
+                        expanded = showToolsPopup,
+                        onDismissRequest = { showToolsPopup = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.mini_app_title)) },
+                            leadingIcon = { Icon(Icons.Default.Apps, contentDescription = null) },
+                            onClick = {
+                                showToolsPopup = false
+                                haptics.action()
+                                focusManager.clearFocus()
+                                onOpenMiniApp()
+                                scope.launch { drawerState.close() }
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.music_studio_title)) },
+                            leadingIcon = { Icon(Icons.Default.LibraryMusic, contentDescription = null) },
+                            onClick = {
+                                showToolsPopup = false
+                                haptics.action()
+                                focusManager.clearFocus()
+                                onOpenMusicStudio()
+                                scope.launch { drawerState.close() }
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("健康") },
+                            leadingIcon = { Icon(Icons.Default.Favorite, contentDescription = null) },
+                            onClick = {
+                                showToolsPopup = false
+                                haptics.action()
+                                focusManager.clearFocus()
+                                onOpenHealth()
+                                scope.launch { drawerState.close() }
+                            }
+                        )
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(12.dp))
 
             val search = rememberDrawerSearchState(viewModel)
@@ -358,6 +414,10 @@ internal fun ChatDrawerContent(
                                         onCompress = {
                                             haptics.action()
                                             viewModel.compressHistory(conversation.id)
+                                        },
+                                        onManageImages = {
+                                            haptics.action()
+                                            onRequestManageImages(conversation.id)
                                         }
                                     )
                                 }
@@ -366,46 +426,6 @@ internal fun ChatDrawerContent(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            FilledTonalButton(
-                onClick = {
-                    haptics.action()
-                    focusManager.clearFocus()
-                    onOpenMiniApp()
-                    scope.launch { drawerState.close() }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 42.dp),
-                shape = CircleShape
-            ) {
-                Icon(Icons.Default.Apps, null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.mini_app_title), style = ChatType.drawerButton)
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            FilledTonalButton(
-                onClick = {
-                    haptics.action()
-                    focusManager.clearFocus()
-                    onOpenMusicStudio()
-                    scope.launch { drawerState.close() }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 42.dp),
-                shape = CircleShape
-            ) {
-                Icon(Icons.Default.LibraryMusic, null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.music_studio_title), style = ChatType.drawerButton)
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             FilledTonalButton(
                 onClick = {
@@ -559,7 +579,8 @@ private fun ConversationRow(
     onRename: () -> Unit,
     onDelete: () -> Unit,
     onMove: (String?) -> Unit,
-    onCompress: () -> Unit = {}
+    onCompress: () -> Unit = {},
+    onManageImages: () -> Unit = {}
 ) {
     val density = LocalDensity.current
     val haptics = LocalOrangeIslandHaptics.current
@@ -655,6 +676,14 @@ private fun ConversationRow(
                     haptics.action()
                     showMenu = false
                     showMoveMenu = true
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("管理图片") },
+                leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) },
+                onClick = {
+                    showMenu = false
+                    onManageImages()
                 }
             )
             DropdownMenuItem(

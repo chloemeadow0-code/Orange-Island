@@ -904,6 +904,9 @@ fun MainNavigation(
                 onOpenMusicStudio = {
                     showMusicStudio = true
                 },
+                onOpenHealth = {
+                    showHealthPage = true
+                },
                 onMediaClick = { urls, index ->
                     focusManager.clearFocus()
                     fullScreenMediaUrls = urls

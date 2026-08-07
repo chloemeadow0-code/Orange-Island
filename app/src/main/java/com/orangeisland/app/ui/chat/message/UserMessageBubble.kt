@@ -354,7 +354,7 @@ private fun UserMessageBubbleContent(
                 ) {
                     itemsIndexed(
                         items = displayItems,
-                        key = { _, (_, imagePath, _) -> imagePath }
+                        key = { idx, _ -> idx }
                     ) { itemIdx, (index, imagePath, metaItem) ->
                         val type = remember(imagePath, metaItem?.type) {
                             resolveAttachmentType(imagePath, metaItem, ctx)

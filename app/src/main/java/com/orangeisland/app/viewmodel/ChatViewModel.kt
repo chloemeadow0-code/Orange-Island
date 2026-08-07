@@ -1826,6 +1826,35 @@ class ChatViewModel(
      *  from the conversation's long-press menu. */
     fun compressHistory(conversationId: String) = generationController.compressHistory(conversationId, isManual = true)
 
+    /** Flattens every image across [conversationId]'s messages into (messageId, imagePath,
+     *  timestamp) triples, in message order. Used by [com.orangeisland.app.ui.chat.ConversationImagesPage]. */
+    suspend fun getConversationImages(conversationId: String): List<Triple<String, String, Long>> =
+        convRepo.getMessagesForConversationSnapshot(conversationId).flatMap { msg ->
+            msg.images.map { path -> Triple(msg.id, path, msg.timestamp) }
+        }
+
+    /**
+     * Removes the given (messageId, imagePath) pairs from their owning messages' `images`
+     * list. Does NOT delete the on-disk files — only detaches the reference, so the image
+     * is never sent as context on future turns while the file itself is left alone (per
+     * user's explicit choice: strip references only, keep the files).
+     */
+    suspend fun deleteConversationImages(conversationId: String, targets: Set<Pair<String, String>>) {
+        if (targets.isEmpty()) return
+        withContext(Dispatchers.IO) {
+            val messageIds = targets.map { it.first }.distinct()
+            val toRemoveByMessage = targets.groupBy({ it.first }, { it.second })
+            val messages = convRepo.getMessagesByIds(messageIds)
+            messages.forEach { msg ->
+                val pathsToRemove = toRemoveByMessage[msg.id]?.toSet() ?: return@forEach
+                val newImages = msg.images.filterNot { it in pathsToRemove }
+                if (newImages.size != msg.images.size) {
+                    convRepo.upsertMessage(msg.copy(images = newImages))
+                }
+            }
+        }
+    }
+
     fun setConversationSystemPrompt(id: String, promptId: String?) {
         viewModelScope.launch {
             val existing = convRepo.getConversation(id)

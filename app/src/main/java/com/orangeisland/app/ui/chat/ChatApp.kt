@@ -86,6 +86,7 @@ fun ChatApp(
     onOpenSettings: () -> Unit,
     onOpenMiniApp: () -> Unit = {},
     onOpenMusicStudio: () -> Unit = {},
+    onOpenHealth: () -> Unit = {},
     onMediaClick: (List<String>, Int) -> Unit,
     onFileContentClick: ((String, String) -> Unit)? = null,
     onPdfPagesClick: ((List<String>, Int) -> Unit)? = null,
@@ -118,6 +119,7 @@ fun ChatApp(
     var showRenameDialog by remember { mutableStateOf<String?>(null) }
     var conversationToRename by remember { mutableStateOf("") }
     var showDeleteConfirmDialog by remember { mutableStateOf<String?>(null) }
+    var conversationImagesManageId by remember { mutableStateOf<String?>(null) }
     var showPromptDialog by remember { mutableStateOf(false) }
     var showAdvancedDialog by remember { mutableStateOf(false) }
     var showMcpSheet by remember { mutableStateOf(false) }
@@ -524,6 +526,7 @@ fun ChatApp(
                 onOpenSettings = onOpenSettings,
                 onOpenMiniApp = onOpenMiniApp,
                 onOpenMusicStudio = onOpenMusicStudio,
+                onOpenHealth = onOpenHealth,
                 onRequestRename = { id, title -> showRenameDialog = id; conversationToRename = title },
                 onRequestDelete = { id -> showDeleteConfirmDialog = id },
                 onPendingDrawerHaptic = { pendingDrawerConversationHaptic = it },
@@ -531,7 +534,8 @@ fun ChatApp(
                 onRequestRenameProject = { id, name -> projectToRename = id to name },
                 onRequestProjectSettings = { id -> projectToSettings = id },
                 onRequestDeleteProject = { id, name -> projectToDelete = id to name },
-                onRequestMoveConversation = { convId, targetPid -> viewModel.moveConversation(convId, targetPid) }
+                onRequestMoveConversation = { convId, targetPid -> viewModel.moveConversation(convId, targetPid) },
+                onRequestManageImages = { id -> conversationImagesManageId = id }
             )
         }
     ) {
@@ -1132,6 +1136,28 @@ val projectModelOptions = remember(uiState.enabledModels, uiState.modelAliases) 
                     projectToSettings = null
                 },
                 onBack = { projectToSettings = null }
+            )
+        }
+    }
+
+    val manageImagesVisible = conversationImagesManageId != null
+    androidx.compose.animation.AnimatedVisibility(
+        visible = manageImagesVisible,
+        enter = androidx.compose.animation.slideInHorizontally(
+            animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            initialOffsetX = { it }
+        ) + androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(200)),
+        exit = androidx.compose.animation.slideOutHorizontally(
+            animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            targetOffsetX = { it }
+        ) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(200))
+    ) {
+        val id = conversationImagesManageId
+        if (id != null) {
+            ConversationImagesPage(
+                conversationId = id,
+                viewModel = viewModel,
+                onBack = { conversationImagesManageId = null }
             )
         }
     }
