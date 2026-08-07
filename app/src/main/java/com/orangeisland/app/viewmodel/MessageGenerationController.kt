@@ -204,6 +204,10 @@ class MessageGenerationController(
         val modelMessageId = if (isErrorOrStopped && isLatest) messageId else UUID.randomUUID().toString()
         val startTime = System.currentTimeMillis() + 1
 
+        DebugLog.d("MsgOrder", "regenerate: target=${messageId.take(12)} " +
+            "parent=${parentId.take(12)} isErrOrStopped=$isErrorOrStopped isLatest=$isLatest " +
+            "newModelId=${modelMessageId.take(12)} ts=$startTime")
+
         // Insert placeholder into allMessages and update selectedChildren on the calling
         // thread BEFORE setting streamingMessage. This ensures the combine function sees a
         // consistent state where the new ID is both present and selected, avoiding a frame
@@ -324,6 +328,9 @@ class MessageGenerationController(
         callerTag: String,
         onTitleTriggerReady: ((String, String) -> Unit)? = null
     ) {
+        DebugLog.w("MsgOrder", "launchGeneration ENTER callerTag=$callerTag " +
+            "modelMsgId=${modelMessageId.take(12)} isRegen=$isRegenerate " +
+            "renderedTail=${allMessages.value.lastOrNull { !it.id.startsWith(Constants.TOOL_MSG_PREFIX) && !it.id.startsWith(Constants.RESULT_MSG_PREFIX) && !it.id.startsWith("compacted_") }?.id?.take(12)}")
         val t0 = System.currentTimeMillis()
         val resolved = requestBuilder.buildEffectiveSystemPrompt(currentId)
         DebugLog.d("GenPerf", "buildSystemPrompt: ${System.currentTimeMillis() - t0}ms")
@@ -395,6 +402,10 @@ class MessageGenerationController(
             val myPersistId = session.nextPersistId()
             try {
             val messageToEdit = allMessages.value.find { it.id == messageId } ?: return@launch
+            DebugLog.w("MsgOrder", "editMessage ENTER: editTarget=${messageId.take(12)} " +
+                "editTargetParent=${messageToEdit.parentId?.take(12) ?: "null"} " +
+                "editTargetInRenderedPath=${allMessages.value.any { it.id == messageId}} " +
+                "renderedTail=${allMessages.value.lastOrNull { !it.id.startsWith(Constants.TOOL_MSG_PREFIX) && !it.id.startsWith(Constants.RESULT_MSG_PREFIX) && !it.id.startsWith("compacted_") }?.id?.take(12)}")
             val newUserMessageId = UUID.randomUUID().toString()
             convRepo.upsertMessage(MessageEntity(
                 id = newUserMessageId, conversationId = currentId, parentId = messageToEdit.parentId,
@@ -563,7 +574,11 @@ class MessageGenerationController(
     // ════════════════════════════════════════════════════════════════════
 
     fun sendMessage(text: String, images: List<String> = emptyList(), attachments: List<SelectedAttachment> = emptyList()): Boolean {
-        if (!session.sendGate.compareAndSet(false, true)) return false
+        DebugLog.w("MsgOrder", "MGC.sendMessage ENTRY: textLen=${text.length} sendGate=${session.sendGate.get()}")
+        if (!session.sendGate.compareAndSet(false, true)) {
+            DebugLog.w("MsgOrder", "MGC.sendMessage REJECTED by sendGate (generation already in progress)")
+            return false
+        }
         var committed = false
         try {
         val modelId = currentActiveModel.value
@@ -630,9 +645,29 @@ class MessageGenerationController(
             // regenerate (the newest branch won by timestamp, not by user selection).
             val dbMessages = convRepo.getMessagesForConversationSnapshot(currentId)
             val selChildren = selectedChildren.value
-            var tail: String? = null
+            // CRITICAL: prefer the tail of the CURRENTLY RENDERED path ([allMessages] already
+            // holds the resolvePath() result) over re-walking from root here. This send-side
+            // walk used to DIVERGE from resolvePath when selectedChildren pointed at an orphan
+            // branch (a leftover from a prior compressHistory corruption): resolvePath splices
+            // orphans back in, this walk does not, so the new message got parented onto a
+            // branch that wasn't being rendered -> "message doesn't show up / can't send".
+            // Using the rendered path's tail guarantees the new message attaches exactly where
+            // the user is looking.
+            val renderedTailId = allMessages.value.lastOrNull {
+                !it.id.startsWith(Constants.TOOL_MSG_PREFIX) &&
+                !it.id.startsWith(Constants.RESULT_MSG_PREFIX) &&
+                !it.id.startsWith("compacted_")
+            }?.id
+            DebugLog.w("MsgOrder", "sendMessage RENDERED_TAIL: allMsgSize=${allMessages.value.size} " +
+                "renderedTailId=${renderedTailId?.take(12) ?: "null"} " +
+                "lastId=${allMessages.value.lastOrNull()?.id?.take(12) ?: "empty"}")
+            var tail: String? = renderedTailId
             var cursor: String? = null
             val msgWalked = mutableSetOf<String>()
+            // Only fall back to the from-root walk when we don't already have a rendered tail
+            // (e.g. brand-new conversation, or path not yet computed). This keeps the walk as a
+            // safety net without letting a stale selectedChildren derail the parentId.
+            if (tail == null) {
             while (true) {
                 val siblings = dbMessages.filter { it.id !in msgWalked && it.parentId == cursor }
                     .sortedBy { it.timestamp }
@@ -654,17 +689,33 @@ class MessageGenerationController(
                     tail = selected.id
                 }
             }
+            }
             val lastMessageId = tail
                 ?: dbMessages.filter {
                     it.participant == Participant.USER || it.participant == Participant.MODEL
                 }.maxByOrNull { it.timestamp }?.id
 
+            // [MsgOrder] Diagnostic: capture why the new user message got the parentId it
+            // got. If parentId is wrong here, the message will render in the wrong place
+            // (e.g. jump to the top as a second root).
+            DebugLog.d("MsgOrder", "sendMessage PARENT_ASSIGN: conv=${currentId?.take(12)} " +
+                "wasNewChat=$wasNewChat dbMsgCount=${dbMessages.size} " +
+                "tail=${tail?.take(12) ?: "null"} lastMessageId=${lastMessageId?.take(12) ?: "null"} " +
+                "selChildren=${selChildren.entries.joinToString(";") { (k, v) -> "${k?.take(12) ?: "null"}->${v.take(12)}" }}")
+            dbMessages.sortedBy { it.timestamp }.forEach { e ->
+                DebugLog.d("MsgOrder", "  dbMsg ${e.id.take(12)} parent=${e.parentId?.take(12) ?: "null"} " +
+                    "role=${e.participant} ts=${e.timestamp}")
+            }
+
             val userMessageId = UUID.randomUUID().toString()
+            val userMsgTs = System.currentTimeMillis()
             convRepo.upsertMessage(MessageEntity(
                 id = userMessageId, conversationId = currentId, parentId = lastMessageId,
-                text = text, images = allImages, thoughts = null, status = MessageStatus.SUCCESS, participant = Participant.USER, timestamp = System.currentTimeMillis(),
+                text = text, images = allImages, thoughts = null, status = MessageStatus.SUCCESS, participant = Participant.USER, timestamp = userMsgTs,
                 attachmentMeta = attachmentMeta?.let { kotlinx.serialization.json.Json.encodeToString(it) }
             ))
+            DebugLog.d("MsgOrder", "sendMessage USER_PERSIST: id=${userMessageId.take(12)} " +
+                "parentId=${lastMessageId?.take(12) ?: "null"} ts=$userMsgTs")
             settings.incrementMessagesSent()
             val modelMessageId = UUID.randomUUID().toString()
             val startTime = System.currentTimeMillis() + 1
@@ -673,6 +724,8 @@ class MessageGenerationController(
                 text = "", thoughts = null, status = MessageStatus.SENDING, participant = Participant.MODEL, timestamp = startTime,
                 modelName = currentActiveModel.value
             ))
+            DebugLog.d("MsgOrder", "sendMessage MODEL_PERSIST: id=${modelMessageId.take(12)} " +
+                "parentId=${userMessageId.take(12)} ts=$startTime")
             convRepo.getConversation(currentId)?.let { c ->
                 convRepo.upsertConversation(c.copy(lastUpdated = System.currentTimeMillis()))
             }
@@ -683,6 +736,10 @@ class MessageGenerationController(
             if (lastMessageId != null) newChildren[lastMessageId] = userMessageId
             newChildren[userMessageId] = modelMessageId
             selectedChildren.value = newChildren
+            DebugLog.d("MsgOrder", "sendMessage SELCHILDREN_UPDATE: " +
+                "set[${lastMessageId?.take(12) ?: "null"}]=${userMessageId.take(12)} " +
+                "set[${userMessageId.take(12)}]=${modelMessageId.take(12)} -> " +
+                "newMap=${newChildren.entries.joinToString(";") { (k, v) -> "${k?.take(12) ?: "null"}->${v.take(12)}" }}")
             // Set streamingMessage BEFORE allMessages, so when the combine
             // re-evaluates on the allMessages change, streamingMessage is already
             // visible — eliminating the single-frame gap.
@@ -1244,15 +1301,44 @@ class MessageGenerationController(
                         }
                         // The retain boundary's own parent may have been deleted in this or an
                         // earlier batch. Keep the visible tail reachable from root by reparenting
-                        // it to null; otherwise resolvePath()/sendMessage() cannot walk to the
+                        // it; otherwise resolvePath()/sendMessage() cannot walk to the
                         // continuation and the chat appears empty after re-entering.
+                        //
+                        // INVARIANT: a conversation root must always be a USER message. If the
+                        // boundary is a MODEL message (common — visibleMsgs is USER+MODEL mixed
+                        // and the boundary index can land on either), reparenting it straight to
+                        // null would make that MODEL the new root and render it at the TOP of the
+                        // chat (the "message jumped to first" bug). So:
+                        //  - USER boundary  -> reparent to null (legitimate root), OR to its
+                        //    nearest surviving USER ancestor if one exists.
+                        //  - MODEL boundary -> NEVER null. Walk up the parentId chain (over
+                        //    surviving rows) to the nearest living USER ancestor and reparent
+                        //    the boundary onto THAT user. If no USER ancestor survives, leave
+                        //    the boundary's parentId untouched rather than create a MODEL root.
+                        val liveById = liveEntities.associateBy { it.id }
                         val retainBoundaryEntity = liveEntities.find { it.id == retainBoundaryMsg.id }
                         val shouldReparentBoundary = retainBoundaryEntity != null &&
                             retainBoundaryEntity.parentId != null &&
                             retainBoundaryEntity.parentId !in liveIds
                         if (shouldReparentBoundary) {
-                            DebugLog.d("CompressHistory", "reparenting retainBoundary ${retainBoundaryMsg.id} to root (old parent=${retainBoundaryEntity.parentId})")
-                            convRepo.upsertMessage(retainBoundaryEntity.copy(parentId = null))
+                            // Walk up the ancestor chain over surviving rows only.
+                            var ancestorUser: String? = null
+                            var pid = retainBoundaryEntity.parentId
+                            while (pid != null && pid in liveById) {
+                                val anc = liveById[pid]!!
+                                if (anc.participant == Participant.USER) { ancestorUser = pid; break }
+                                pid = anc.parentId
+                            }
+                            val newParentId = when {
+                                // MODEL boundary: must not become a root.
+                                retainBoundaryEntity.participant == Participant.MODEL -> ancestorUser ?: retainBoundaryEntity.parentId
+                                // USER boundary: prefer a surviving USER ancestor, else null (legitimate root).
+                                else -> ancestorUser
+                            }
+                            DebugLog.d("CompressHistory", "reparenting retainBoundary ${retainBoundaryMsg.id} " +
+                                "(role=${retainBoundaryEntity.participant}) oldParent=${retainBoundaryEntity.parentId} " +
+                                "newParent=${newParentId ?: "null"} ancestorUser=${ancestorUser ?: "none"}")
+                            convRepo.upsertMessage(retainBoundaryEntity.copy(parentId = newParentId))
                         }
                         DebugLog.d("CompressHistory", "batch deleted=${idsToDelete.size} orphaned=${orphaned.size} reparentBoundary=$shouldReparentBoundary")
                         totalDeletedCount += idsToDelete.size

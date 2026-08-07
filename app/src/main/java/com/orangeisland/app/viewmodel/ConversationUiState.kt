@@ -81,6 +81,16 @@ data class ConversationUiState(
                 val visibleSiblings = siblings.filter {
                     !it.id.startsWith(Constants.TOOL_MSG_PREFIX) && !it.id.startsWith(Constants.RESULT_MSG_PREFIX)
                 }
+                // [MsgOrder] Always log the ROOT layer: which messages claim parentId=null,
+                // their timestamps, and which one gets picked. This is the #1 place a message
+                // can "jump to the top" — when it wrongly becomes a root sibling and wins the
+                // `.last()` pick by timestamp. Logging every resolve lets us catch it even when
+                // the user just opens a conversation (no send involved).
+                if (cursor == null) {
+                    DebugLog.w("MsgOrder", "ROOT siblings=${siblings.size} (ts-sorted): " +
+                        siblings.joinToString(",") { "${it.id.take(12)}(${it.participant},ts=${it.timestamp})" } +
+                        " | selectedChildren[null]=${selectedId?.take(20)}")
+                }
                 var selected = if (visibleSiblings.isNotEmpty()) {
                     visibleSiblings.find { it.id == selectedId } ?: visibleSiblings.last()
                 } else {
@@ -95,7 +105,36 @@ data class ConversationUiState(
                 // be reached only as siblings/branches, never as the entry point.
                 if (cursor == null && selected.participant != Participant.USER) {
                     val userRoot = visibleSiblings.firstOrNull { it.participant == Participant.USER }
-                    if (userRoot != null) selected = userRoot
+                    if (userRoot != null) {
+                        selected = userRoot
+                    } else if (siblings.size <= 1) {
+                        // RECOVERY: the root layer has NO USER message at all — the
+                        // conversation tree is corrupt (e.g. a prior compressHistory bug
+                        // reparented a MODEL message to parentId=null, orphaning the real
+                        // first USER message underneath it). Instead of rendering that stray
+                        // MODEL at the top, jump the walk to the earliest USER message in the
+                        // whole conversation by timestamp and use IT as the root. This keeps
+                        // the chat readable for already-corrupted data; the root invariant is
+                        // re-enforced for new data by compressHistory's MODEL-root guard.
+                        val earliestUser = allMessages
+                            .filter { it.participant == Participant.USER &&
+                                !it.id.startsWith(Constants.TOOL_MSG_PREFIX) &&
+                                !it.id.startsWith(Constants.RESULT_MSG_PREFIX) }
+                            .minByOrNull { it.timestamp }
+                        if (earliestUser != null) {
+                            DebugLog.w("MsgOrder", "ROOT RECOVERY: root layer had no USER " +
+                                "(picked=${selected.id.take(12)}(${selected.participant})); " +
+                                "re-rooting to earliest USER ${earliestUser.id.take(12)} ts=${earliestUser.timestamp}")
+                            selected = earliestUser
+                        }
+                    }
+                }
+                // [MsgOrder] Record which message becomes the conversation ROOT (the first
+                // thing rendered). If this is ever a MODEL message or a recently-sent USER
+                // message that isn't the true first message, that's the "jumped to top" bug.
+                if (cursor == null) {
+                    DebugLog.w("MsgOrder", "ROOT PICKED=${selected.id.take(12)}(${selected.participant},ts=${selected.timestamp}) " +
+                        "forcedToUser=${selected.participant == Participant.USER && visibleSiblings.firstOrNull { it.participant == Participant.USER }?.id == selected.id}")
                 }
                 DebugLog.d("MsgDisappear", "walk cursor=${cursor?.take(12) ?: "null"} " +
                     "siblings=${siblings.size} visible=${visibleSiblings.size} " +
