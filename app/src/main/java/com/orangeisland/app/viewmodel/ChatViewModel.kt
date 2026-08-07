@@ -644,6 +644,10 @@ class ChatViewModel(
     private val _allMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val allMessages: StateFlow<List<ChatMessage>> = _allMessages.asStateFlow()
 
+    // [MsgOrder] Remembers the head id of the last rendered list so the messages flow can
+    // log only when the first visible message changes (the "jumped to top" symptom).
+    @Volatile private var lastRenderedHeadId: String? = null
+
     private val _isSyncingModels = MutableStateFlow(false)
     val isSyncingModels: StateFlow<Boolean> = _isSyncingModels.asStateFlow()
 
@@ -750,6 +754,16 @@ class ChatViewModel(
             DebugLog.d("MsgRender", "messages TRUNCATED: path=${path.size} fullPath=${fullPath.size} " +
                 "windowed=${windowed.size} limit=$limit summary=${summary != null} " +
                 "convId=${_currentConversationId.value?.take(12)}")
+        }
+        // [MsgOrder] Log the FINAL render order whenever the first visible message changes —
+        // this is the direct evidence of "message jumped to the top". Only log when the head
+        // of the list differs from the previous emission to avoid spamming.
+        val headId = windowed.firstOrNull()?.id
+        if (headId != lastRenderedHeadId) {
+            DebugLog.w("MsgOrder", "RENDER head changed -> ${headId?.take(12) ?: "empty"} " +
+                "(total=${windowed.size}) order=" +
+                windowed.joinToString(",", limit = 8) { "${it.id.take(12)}(${it.participant})" })
+            lastRenderedHeadId = headId
         }
         windowed
     }.distinctUntilChanged()
@@ -1152,6 +1166,17 @@ class ChatViewModel(
                         DebugLog.d("MsgDisappear", "  no saved branches -> empty selectedChildren")
                     }
 
+                    // SELF-HEAL: detect and re-chain orphan branches left behind by the old
+                    // compressHistory bug (MODEL reparented to null). This re-attaches any
+                    // invisible orphan chains to the rendered path's tail and fixes
+                    // selectedChildren, so subsequent sends attach to the visible branch
+                    // instead of a dead one. Idempotent on healthy conversations.
+                    try {
+                        selfHealOrphanBranches(id)
+                    } catch (he: Exception) {
+                        DebugLog.e("MsgOrder", "self-heal failed for conv=${id.take(12)}", he)
+                    }
+
                                         convRepo.getMessagesForConversation(id).collect { entities ->
                         val mapped = entities.map { mapMessageEntity(it) }
                         DebugLog.d("MsgDisappear", "DB LOAD conv=${id.take(12)}: dbEntities=${entities.size} mapped=${mapped.size}")
@@ -1225,6 +1250,94 @@ class ChatViewModel(
 
     private suspend fun persistSelectedChildren(conversationId: String, childrenMap: Map<String?, String>) {
         convRepo.saveBranchSelections(conversationId, childrenMap)
+    }
+
+    /**
+     * Self-heal a conversation's message tree when corruption (originating from the old
+     * compressHistory bug that reparented MODEL messages to parentId=null) has left behind
+     * "orphan branches": chains of messages whose root is unreachable from any parentId=null
+     * entry, OR reachable only via a stray MODEL root that resolvePath's RECOVERY re-routes
+     * away from. Such orphan branches are invisible in the chat, yet sendMessage's walk can
+     * still attach new messages to them (via stale selectedChildren), producing the
+     * "messages don't show up / can't send in this conversation" symptom.
+     *
+     * Fix: compute the actually-rendered path (mirroring resolvePath, including the
+     * MODEL-root RECOVERY), then take any USER/MODEL messages NOT on that path and re-chain
+     * them onto the tail of the rendered path in timestamp order. This makes every message
+     * reachable and updates selectedChildren to point along the healed chain. Idempotent:
+     * a healthy conversation has no orphans and is left untouched.
+     */
+    private suspend fun selfHealOrphanBranches(conversationId: String) {
+        val entities = convRepo.getMessagesForConversationSnapshot(conversationId)
+        if (entities.size < 2) return
+        val byId = entities.associateBy { it.id }
+        val visible = entities.filter {
+            it.participant == Participant.USER || it.participant == Participant.MODEL
+        }
+
+        // 1. Compute reachable set: start from the rendered root (earliest USER if the only
+        //    root is a MODEL — mirrors resolvePath's RECOVERY), walk parentId links.
+        val roots = visible.filter { it.parentId == null || it.parentId !in byId }
+        val renderedRoot = roots.minByOrNull {
+            if (it.participant == Participant.USER) it.timestamp else Long.MAX_VALUE
+        } ?: roots.minByOrNull { it.timestamp } ?: return
+
+        val reachable = mutableSetOf<String>()
+        val stack = ArrayDeque<String>()
+        stack.addLast(renderedRoot.id)
+        while (stack.isNotEmpty()) {
+            val cur = stack.removeLast()
+            if (cur in reachable) continue
+            reachable.add(cur)
+            // children = messages whose parentId == cur
+            visible.filter { it.parentId == cur }.forEach { stack.addLast(it.id) }
+        }
+
+        // 2. Find orphan USER/MODEL messages not reachable from the rendered root.
+        val orphans = visible
+            .filter { it.id !in reachable }
+            .sortedBy { it.timestamp }
+
+        if (orphans.isEmpty()) return  // healthy tree, nothing to do
+
+        // 3. Re-chain orphans onto the tail of the rendered path, in timestamp order.
+        //    Find current tail (deepest reachable leaf by following first-child links).
+        var tailId: String = renderedRoot.id
+        // walk down the reachable chain to its tail
+        while (true) {
+            val child = visible.firstOrNull { it.parentId == tailId && it.id in reachable }
+            if (child == null) break
+            tailId = child.id
+        }
+
+        val reparented = mutableListOf<Pair<String, String?>>()  // id -> newParentId
+        val newSelections = mutableMapOf<String?, String>()
+        // seed newSelections with existing reachable chain selections
+        reachable.forEach { rid ->
+            val child = visible.firstOrNull { it.parentId == rid && it.id in reachable }
+            if (child != null) newSelections[rid] = child.id
+        }
+
+        for (orphan in orphans) {
+            reparented.add(orphan.id to tailId)
+            newSelections[tailId] = orphan.id
+            tailId = orphan.id
+        }
+
+        DebugLog.w("MsgOrder", "SELF-HEAL conv=${conversationId.take(12)}: " +
+            "reachable=${reachable.size} orphans=${orphans.size} " +
+            "renderedRoot=${renderedRoot.id.take(12)} tailAfterHeal=${tailId.take(12)}")
+
+        // 4. Persist reparented entities.
+        for ((oid, newParent) in reparented) {
+            val e = byId[oid] ?: continue
+            convRepo.upsertMessage(e.copy(parentId = newParent))
+        }
+        // 5. Persist healed selectedChildren.
+        _selectedChildren.value = _selectedChildren.value.toMap()  // trigger re-emission; the
+        // actual selections are rebuilt when the DB re-emit arrives. Persist now to survive reload.
+        persistSelectedChildren(conversationId, newSelections)
+        _selectedChildren.value = newSelections
     }
 
     // 鈹€鈹€ Custom providers 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
@@ -1922,6 +2035,7 @@ class ChatViewModel(
     }
 
     fun sendMessage(text: String, images: List<String> = emptyList(), attachments: List<SelectedAttachment> = emptyList()): Boolean {
+        DebugLog.w("MsgOrder", "viewModel.sendMessage ENTRY: conv=${_currentConversationId.value?.take(12)} textLen=${text.length}")
         UsageLogManager.log(
             UsageLogManager.Type.CONVERSATION,
             "send_message",
