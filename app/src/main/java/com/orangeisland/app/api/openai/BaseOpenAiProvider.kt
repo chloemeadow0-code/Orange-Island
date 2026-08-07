@@ -37,7 +37,7 @@ abstract class BaseOpenAiProvider : LlmProvider {
     /**
      * Extra HTTP headers to include in the POST to /chat/completions.
      */
-    protected open fun getExtraHeaders(config: ProviderConfig): Map<String, String> = emptyMap()
+    protected open fun getExtraHeaders(config: ProviderConfig): Map<String, String> = config.customHeaders
 
     /**
      * Transform the system prompt before it is sent. Default: pass-through.

@@ -97,6 +97,10 @@ fun SettingsProviderDetailPage(
     var connectionStatus by remember { mutableStateOf<String?>(null) }
     var showAddManualModel by remember { mutableStateOf(false) }
     var manualModelToDelete by remember { mutableStateOf<String?>(null) }
+    var showHeaderDialog by remember { mutableStateOf(false) }
+    var editingHeaderKey by remember { mutableStateOf<String?>(null) }
+    var headerKeyInput by remember { mutableStateOf("") }
+    var headerValueInput by remember { mutableStateOf("") }
 
     val filePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -241,6 +245,57 @@ fun SettingsProviderDetailPage(
                                             }
                                         }
                                     }
+                                }
+                            }
+                        }
+                    }
+                )
+
+                // Custom HTTP Headers — for gateways/proxies that require extra auth headers
+                // beyond the standard Authorization/x-api-key.
+                val customHeadersMap by viewModel.settings.providerCustomHeaders.collectAsState()
+                val currentHeaders = customHeadersMap[providerName].orEmpty()
+                SettingsGroup(
+                    title = "自定义请求头",
+                    items = buildList {
+                        if (currentHeaders.isEmpty()) {
+                            add {
+                                SettingsItem(
+                                    headlineContent = { Text("尚未添加自定义请求头", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                    supportingContent = { Text("适用于需要额外鉴权头的自建网关/中转服务", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                                    leadingContent = { Icon(painterResource(R.drawable.link_24), null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
+                                    modifier = Modifier.heightIn(min = 64.dp)
+                                )
+                            }
+                        }
+                        currentHeaders.forEach { (key, value) ->
+                            var showMenu by remember(key) { mutableStateOf(false) }
+                            add {
+                                SettingsItem(
+                                    headlineContent = { Text(key, fontWeight = FontWeight.Medium) },
+                                    supportingContent = { Text(value, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                    trailingContent = {
+                                        Box {
+                                            IconButton(onClick = { showMenu = true }, modifier = Modifier.size(24.dp)) { Icon(Icons.Default.MoreVert, stringResource(R.string.options), modifier = Modifier.size(18.dp)) }
+                                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 16.dp, shape = RoundedCornerShape(12.dp)) {
+                                                DropdownMenuItem(text = { Text(stringResource(R.string.edit)) }, leadingIcon = { Icon(Icons.Default.Edit, null) }, onClick = { showMenu = false; editingHeaderKey = key; headerKeyInput = key; headerValueInput = value; showHeaderDialog = true })
+                                                DropdownMenuItem(text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }, onClick = {
+                                                    showMenu = false
+                                                    viewModel.settings.setProviderCustomHeaders(providerName, currentHeaders - key)
+                                                })
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.clickable { editingHeaderKey = key; headerKeyInput = key; headerValueInput = value; showHeaderDialog = true }
+                                )
+                            }
+                        }
+                        add {
+                            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { editingHeaderKey = null; headerKeyInput = ""; headerValueInput = ""; showHeaderDialog = true }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("添加请求头", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                                 }
                             }
                         }
@@ -826,6 +881,55 @@ fun SettingsProviderDetailPage(
             text = { Text(stringResource(R.string.manual_model_delete_text, modelId)) },
             confirmButton = { TextButton(onClick = { viewModel.removeManualModel(providerName, prefixedId); manualModelToDelete = null }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text(stringResource(R.string.delete)) } },
             dismissButton = { TextButton(onClick = { manualModelToDelete = null }) { Text(stringResource(R.string.cancel)) } }
+        )
+    }
+
+    // Add/edit custom header dialog
+    if (showHeaderDialog) {
+        val existingHeaders = viewModel.settings.providerCustomHeaders.value[providerName].orEmpty()
+        var keyError by remember { mutableStateOf<String?>(null) }
+        AlertDialog(
+            modifier = Modifier.clearFocusOnTap(),
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            onDismissRequest = { showHeaderDialog = false },
+            title = { Text(if (editingHeaderKey != null) "编辑请求头" else "添加请求头", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = headerKeyInput,
+                        onValueChange = { headerKeyInput = it; keyError = null },
+                        label = { Text("Header 名称") },
+                        placeholder = { Text("例如 X-Gateway-Token") },
+                        isError = keyError != null,
+                        supportingText = if (keyError != null) {{ Text(keyError!!, color = MaterialTheme.colorScheme.error) }} else null,
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth().noOpBringIntoView()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = headerValueInput,
+                        onValueChange = { headerValueInput = it },
+                        label = { Text("Header 值") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth().noOpBringIntoView()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val key = headerKeyInput.trim()
+                    if (key.isBlank()) { keyError = "名称不能为空"; return@TextButton }
+                    if (key != editingHeaderKey && existingHeaders.containsKey(key)) { keyError = "已存在同名 Header"; return@TextButton }
+                    val updated = existingHeaders.toMutableMap()
+                    if (editingHeaderKey != null && editingHeaderKey != key) updated.remove(editingHeaderKey)
+                    updated[key] = headerValueInput
+                    viewModel.settings.setProviderCustomHeaders(providerName, updated)
+                    showHeaderDialog = false
+                }) { Text(stringResource(R.string.save)) }
+            },
+            dismissButton = { TextButton(onClick = { showHeaderDialog = false }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 }

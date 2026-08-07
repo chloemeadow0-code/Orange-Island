@@ -240,10 +240,24 @@
     <string name="device_access_media_desc">通过 MediaSession 读取和控制其他应用的音乐（如网易云音乐），需开启通知访问权限。</string>
     <string name="device_access_usage_title">屏幕使用</string>
     <string name="device_access_usage_desc">各应用使用时长与最近打开时间</string>
+    <string name="device_access_navigation_title">导航</string>
+    <string name="device_access_navigation_desc">打开链接、启动应用、跳转系统设置、分享文本</string>
+    <string name="device_access_app_lock_title">应用锁</string>
+    <string name="device_access_app_lock_desc">AI 可以锁定/解锁应用，并附带一条用户必须遵守的提示消息</string>
+    <string name="device_access_toast_title">Toast 提示</string>
+    <string name="device_access_toast_desc">AI 可以弹出原生 Toast 短提示，用于不打断操作的即时反馈</string>
+    <string name="device_access_user_interaction_title">卡片询问</string>
+    <string name="device_access_user_interaction_desc">允许 AI 通过卡片弹窗向你提出多选一的问题，也支持自定义输入</string>
+    <string name="device_access_ui_automation_title">UI 自动化</string>
+    <string name="device_access_ui_automation_desc">AI 可以点击、滑动、滚动屏幕并读取当前界面结构（需要开启"UI 自动化"无障碍服务）</string>
     <string name="device_access_env_awareness_title">动态感知</string>
     <string name="device_access_env_awareness_desc">在系统提示词中通过 {app_context} 注入最近的环境变化（前台应用、模型、主题、电量、WiFi 等）</string>
     <string name="device_access_alarm_title">闹钟与计时器</string>
     <string name="device_access_alarm_desc">允许 AI 通过系统时钟 App 帮你设置闹钟和倒计时。</string>
+    <string name="device_access_auto_approve_title">自动批准敏感读取</string>
+    <string name="device_access_auto_approve_desc">允许 AI 和工作流在无需确认的情况下读取位置、通知、屏幕使用数据。后台自动执行的工作流没有界面可以弹窗确认，必须开启此项才能正常运行。</string>
+    <string name="device_access_overlay_title">显示在其他应用上层</string>
+    <string name="device_access_overlay_desc">Android 10 及以上系统，后台触发的工作流要跳转到别的应用或网页（open_app / open_url）必须要有此权限，否则系统会静默拦截跳转。</string>
     <!-- 桌面宠物（蜜柑橘子 Mikan） -->
     <string name="device_access_pet_title">桌面宠物</string>
     <string name="device_access_pet_desc">在屏幕上悬浮一只蜜柑小橘子，可以拖动、双击打招呼。需要先开启上面的「显示在其他应用上层」权限。</string>

@@ -74,6 +74,7 @@ class SettingsRepository(
     val thinkingBudgetEnabled: StateFlow<Boolean> = hot(settingsManager.thinkingBudgetEnabled, false)
     val thinkingBudgetTokens: StateFlow<Int> = hot(settingsManager.thinkingBudgetTokens, 4096)
     val providerBaseUrls: StateFlow<Map<String, String>> = hot(settingsManager.providerBaseUrls, emptyMap())
+    val providerCustomHeaders: StateFlow<Map<String, Map<String, String>>> = hot(settingsManager.providerCustomHeaders, emptyMap())
     val trustedHttpHosts: StateFlow<Set<String>> = hot(settingsManager.trustedHttpHosts, emptySet())
     val httpReminderSilencedHosts: StateFlow<Set<String>> = hot(settingsManager.httpReminderSilencedHosts, emptySet())
     val titleGenerationEnabled: StateFlow<Boolean> = hot(settingsManager.titleGenerationEnabled, true)
@@ -214,6 +215,7 @@ class SettingsRepository(
     val autoApproveSensitiveTools: StateFlow<Boolean> = hot(settingsManager.autoApproveSensitiveTools, true)
     val environmentAwarenessEnabled: StateFlow<Boolean> = hot(settingsManager.environmentAwarenessEnabled, false)
     val miniAppEntries: StateFlow<List<com.orangeisland.app.data.MiniAppEntry>> = hot(settingsManager.miniAppEntries, emptyList())
+    val anniversaries: StateFlow<List<com.orangeisland.app.data.AnniversaryEntry>> = hot(settingsManager.anniversaries, emptyList())
     // ── Plugin device id ──────────────────────────────────────
     // Auto-injected per-install UUID (read-only — no UI, no setter).
     val appUserId: StateFlow<String> = hot(settingsManager.appUserId, "")
@@ -589,6 +591,7 @@ class SettingsRepository(
     fun setLastActiveConversationId(id: String?) = scope.launch { settingsManager.saveLastActiveConversationId(id) }
     fun setPrivacyPolicyAccepted(accepted: Boolean) = scope.launch { settingsManager.savePrivacyPolicyAccepted(accepted) }
     fun setProviderBaseUrl(provider: String, url: String) = scope.launch { settingsManager.saveProviderBaseUrl(provider, url) }
+    fun setProviderCustomHeaders(provider: String, headers: Map<String, String>) = scope.launch { settingsManager.saveProviderCustomHeaders(provider, headers) }
     fun trustHttpHost(host: String) = scope.launch { settingsManager.addTrustedHttpHost(host) }
     fun untrustHttpHost(host: String) = scope.launch { settingsManager.removeTrustedHttpHost(host) }
     fun silenceHttpReminder(host: String) = scope.launch { settingsManager.setHttpReminderSilenced(host, true) }
@@ -694,6 +697,7 @@ class SettingsRepository(
     fun setDefaultFrequencyPenalty(v: Float?) = scope.launch { settingsManager.saveDefaultFrequencyPenalty(v) }
     fun setDefaultPresencePenalty(v: Float?) = scope.launch { settingsManager.saveDefaultPresencePenalty(v) }
     fun setMiniAppEntries(entries: List<com.orangeisland.app.data.MiniAppEntry>) = scope.launch { settingsManager.saveMiniAppEntries(entries) }
+    fun setAnniversaries(entries: List<com.orangeisland.app.data.AnniversaryEntry>) = scope.launch { settingsManager.saveAnniversaries(entries) }
     fun setThemeMode(mode: String) = scope.launch { settingsManager.saveThemeMode(mode) }
     fun setColorScheme(scheme: String) = scope.launch { settingsManager.saveColorScheme(scheme) }
     fun setDynamicColor(enabled: Boolean) = scope.launch { settingsManager.saveDynamicColor(enabled) }

@@ -45,7 +45,10 @@ data class ProviderConfig(
     val frequencyPenalty: Float? = null,
     val presencePenalty: Float? = null,
     val cancellationToken: Long? = null,
-    val stream: Boolean = true
+    val stream: Boolean = true,
+    /** Extra HTTP headers merged into the outgoing request. For gateways/proxies that
+     *  require auth headers beyond the standard Authorization/x-api-key. */
+    val customHeaders: Map<String, String> = emptyMap()
 )
 
 @Serializable

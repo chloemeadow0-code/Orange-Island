@@ -54,7 +54,8 @@ data class GenerationConfig(
     val topP: Float? = null,
     val frequencyPenalty: Float? = null,
     val presencePenalty: Float? = null,
-    val stream: Boolean = true
+    val stream: Boolean = true,
+    val customHeaders: Map<String, String> = emptyMap()
 )
 
 data class GenerationContext(
@@ -626,7 +627,8 @@ class GenerationManager(
             frequencyPenalty = config.frequencyPenalty,
             presencePenalty = config.presencePenalty,
             cancellationToken = cancellationToken,
-            stream = config.stream
+            stream = config.stream,
+            customHeaders = config.customHeaders
         )
         // ── Auto-compressed history injection ───────────────────────────
         // If this conversation has a running summary (compactedSummary) up to a

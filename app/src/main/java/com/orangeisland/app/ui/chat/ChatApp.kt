@@ -120,6 +120,7 @@ fun ChatApp(
     var conversationToRename by remember { mutableStateOf("") }
     var showDeleteConfirmDialog by remember { mutableStateOf<String?>(null) }
     var conversationImagesManageId by remember { mutableStateOf<String?>(null) }
+    var showAnniversaryPage by remember { mutableStateOf(false) }
     var showPromptDialog by remember { mutableStateOf(false) }
     var showAdvancedDialog by remember { mutableStateOf(false) }
     var showMcpSheet by remember { mutableStateOf(false) }
@@ -527,6 +528,7 @@ fun ChatApp(
                 onOpenMiniApp = onOpenMiniApp,
                 onOpenMusicStudio = onOpenMusicStudio,
                 onOpenHealth = onOpenHealth,
+                onOpenAnniversary = { showAnniversaryPage = true },
                 onRequestRename = { id, title -> showRenameDialog = id; conversationToRename = title },
                 onRequestDelete = { id -> showDeleteConfirmDialog = id },
                 onPendingDrawerHaptic = { pendingDrawerConversationHaptic = it },
@@ -1138,6 +1140,23 @@ val projectModelOptions = remember(uiState.enabledModels, uiState.modelAliases) 
                 onBack = { projectToSettings = null }
             )
         }
+    }
+
+    androidx.compose.animation.AnimatedVisibility(
+        visible = showAnniversaryPage,
+        enter = androidx.compose.animation.slideInHorizontally(
+            animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            initialOffsetX = { it }
+        ) + androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(200)),
+        exit = androidx.compose.animation.slideOutHorizontally(
+            animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            targetOffsetX = { it }
+        ) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(200))
+    ) {
+        com.orangeisland.app.ui.chat.AnniversaryPage(
+            viewModel = viewModel,
+            onBack = { showAnniversaryPage = false }
+        )
     }
 
     val manageImagesVisible = conversationImagesManageId != null

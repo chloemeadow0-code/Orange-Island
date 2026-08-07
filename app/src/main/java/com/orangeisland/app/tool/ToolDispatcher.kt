@@ -117,6 +117,7 @@ class ToolDispatcher(
     private val cameraToolProvider = cameraToolGate?.let {
         com.orangeisland.app.tool.device.CameraToolProvider(app, it, llmProviders)
     }
+    private val anniversaryToolProvider = AnniversaryToolProvider(app)
 
     /** Every active provider, in dispatch order. [handles] is queried in this order, so earlier
      *  providers win on name collisions. Names are namespaced (plugin__/mcp__) to avoid this in
@@ -144,6 +145,7 @@ class ToolDispatcher(
         add(voiceCallToolProvider)
         add(userInteractionToolProvider)
         cameraToolProvider?.let { add(it) }
+        add(anniversaryToolProvider)
     }
 
     // ── Confirmation hooks ──────────────────────────────────────────────────
@@ -281,6 +283,7 @@ class ToolDispatcher(
         notificationToolProvider?.let { addAll(it.definitions(ctx)) }
         mediaToolProvider?.let { addAll(it.definitions(ctx)) }
         usageStatsToolProvider?.let { addAll(it.definitions(ctx)) }
+        addAll(anniversaryToolProvider.definitions(ctx))
     }
 
     /** User-interaction tools (ask_user_choice). Exposed when the UI gate is installed and

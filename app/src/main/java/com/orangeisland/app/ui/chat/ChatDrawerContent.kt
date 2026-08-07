@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Compress
 import androidx.compose.material.icons.filled.Delete
@@ -116,6 +117,7 @@ internal fun ChatDrawerContent(
     onOpenMiniApp: () -> Unit = {},
     onOpenMusicStudio: () -> Unit = {},
     onOpenHealth: () -> Unit = {},
+    onOpenAnniversary: () -> Unit = {},
     onRequestManageImages: (String) -> Unit = {},
     onRequestRename: (String, String) -> Unit,
     onRequestDelete: (String) -> Unit,
@@ -251,6 +253,17 @@ internal fun ChatDrawerContent(
                                 haptics.action()
                                 focusManager.clearFocus()
                                 onOpenHealth()
+                                scope.launch { drawerState.close() }
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("纪念日") },
+                            leadingIcon = { Icon(Icons.Default.Event, contentDescription = null) },
+                            onClick = {
+                                showToolsPopup = false
+                                haptics.action()
+                                focusManager.clearFocus()
+                                onOpenAnniversary()
                                 scope.launch { drawerState.close() }
                             }
                         )

@@ -351,7 +351,7 @@ class GeminiProvider : LlmProvider {
             val headers = mapOf(
                 "Content-Type" to "application/json",
                 "x-goog-api-key" to config.apiKey
-            )
+            ) + config.customHeaders
             val requestJson = json.encodeToString(ApiGenerateContentRequest.serializer(), requestBody)
             DebugLog.d("OrangeIslandAPI", "[Gemini] REQ → $finalUrlString | model=$cleanModelName | msgs=${apiContents.size} | thinking=${config.thinkingEnabled} | tools=${tools.size}")
             DebugLog.d("OrangeIslandAPI", "[Gemini] BODY: ${requestJson.take(4000)}")

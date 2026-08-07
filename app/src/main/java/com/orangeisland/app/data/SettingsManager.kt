@@ -148,6 +148,7 @@ class SettingsManager(private val context: Context) {
         val THINKING_BUDGET_ENABLED = booleanPreferencesKey("thinking_budget_enabled")
         val THINKING_BUDGET_TOKENS = intPreferencesKey("thinking_budget_tokens")
         val PROVIDER_BASE_URLS = stringPreferencesKey("provider_base_urls")
+        val PROVIDER_CUSTOM_HEADERS_JSON = stringPreferencesKey("provider_custom_headers_json")
         val TRUSTED_HTTP_HOSTS = stringSetPreferencesKey("trusted_http_hosts")
         val HTTP_REMINDER_SILENCED_HOSTS = stringSetPreferencesKey("http_reminder_silenced_hosts")
         val TITLE_GENERATION_ENABLED = booleanPreferencesKey("title_generation_enabled")
@@ -327,6 +328,7 @@ class SettingsManager(private val context: Context) {
         val ENVIRONMENT_AWARENESS_ENABLED = booleanPreferencesKey("environment_awareness_enabled")
         // ── Mini App ──────────────────────────────────────────────
         val MINI_APP_ENTRIES_JSON = stringPreferencesKey("mini_app_entries_json")
+        val ANNIVERSARIES_JSON = stringPreferencesKey("anniversaries_json")
         // ── Plugin device id ──────────────────────────────────────
         // A stable per-install UUID auto-injected into every plugin sandbox / WebView as
         // __OI_USER_ID so plugins can attribute actions to this device without learning
@@ -370,6 +372,14 @@ class SettingsManager(private val context: Context) {
     val providerBaseUrls: Flow<Map<String, String>> = context.dataStore.data.map { pref ->
         val jsonStr = pref[PROVIDER_BASE_URLS] ?: "{}"
         try { json.decodeFromString<Map<String, String>>(jsonStr) } catch (e: Exception) { DebugLog.e("SettingsManager", "Failed to decode providerBaseUrls", e); emptyMap() }
+    }
+
+    /** Per-provider custom HTTP headers (provider name -> {header key -> value}), for gateways/
+     *  proxies that require extra auth headers beyond the standard Authorization/x-api-key.
+     *  Encrypted like [shellDevices]/[mcpServers] since header values often carry tokens. */
+    val providerCustomHeaders: Flow<Map<String, Map<String, String>>> = context.dataStore.data.map { pref ->
+        val jsonStr = com.orangeisland.app.util.SecretCrypto.decrypt(pref[PROVIDER_CUSTOM_HEADERS_JSON] ?: "{}")
+        try { json.decodeFromString<Map<String, Map<String, String>>>(jsonStr) } catch (e: Exception) { DebugLog.e("SettingsManager", "Failed to decode providerCustomHeaders", e); emptyMap() }
     }
 
     /** Hosts the user has explicitly confirmed are OK to reach over cleartext HTTP,
@@ -651,6 +661,11 @@ class SettingsManager(private val context: Context) {
         try { Json.decodeFromString(jsonStr) } catch (_: Exception) { emptyList() }
     }
 
+    val anniversaries: Flow<List<AnniversaryEntry>> = context.dataStore.data.map { pref ->
+        val jsonStr = pref[ANNIVERSARIES_JSON] ?: "[]"
+        try { json.decodeFromString<List<AnniversaryEntry>>(jsonStr) } catch (e: Exception) { DebugLog.e("SettingsManager", "Failed to decode anniversaries", e); emptyList() }
+    }
+
     // ── Text-to-Speech ──────────────────────────────────────────
     val ttsEnabled: Flow<Boolean> = context.dataStore.data.map { it[TTS_ENABLED] ?: false }
     val ttsProvider: Flow<String> = context.dataStore.data.map { it[TTS_PROVIDER] ?: "elevenlabs" }
@@ -710,6 +725,16 @@ class SettingsManager(private val context: Context) {
             val map = try { json.decodeFromString<MutableMap<String, String>>(current) } catch (e: Exception) { mutableMapOf() }
             map[provider] = url
             prefs[PROVIDER_BASE_URLS] = json.encodeToString(map)
+        }
+    }
+
+    /** Replaces the full custom-header set for [provider] (empty map removes the entry entirely). */
+    suspend fun saveProviderCustomHeaders(provider: String, headers: Map<String, String>) {
+        context.dataStore.edit { prefs ->
+            val current = com.orangeisland.app.util.SecretCrypto.decrypt(prefs[PROVIDER_CUSTOM_HEADERS_JSON] ?: "{}")
+            val map = try { json.decodeFromString<MutableMap<String, Map<String, String>>>(current) } catch (e: Exception) { mutableMapOf() }
+            if (headers.isEmpty()) map.remove(provider) else map[provider] = headers
+            prefs[PROVIDER_CUSTOM_HEADERS_JSON] = com.orangeisland.app.util.SecretCrypto.encrypt(json.encodeToString(map))
         }
     }
 
@@ -1363,6 +1388,10 @@ class SettingsManager(private val context: Context) {
     suspend fun saveEnvironmentAwarenessEnabled(enabled: Boolean) { context.dataStore.edit { it[ENVIRONMENT_AWARENESS_ENABLED] = enabled } }
     suspend fun saveMiniAppEntries(entries: List<com.orangeisland.app.data.MiniAppEntry>) {
         context.dataStore.edit { it[MINI_APP_ENTRIES_JSON] = json.encodeToString(entries) }
+    }
+
+    suspend fun saveAnniversaries(entries: List<AnniversaryEntry>) {
+        context.dataStore.edit { it[ANNIVERSARIES_JSON] = json.encodeToString(entries) }
     }
 
     /**

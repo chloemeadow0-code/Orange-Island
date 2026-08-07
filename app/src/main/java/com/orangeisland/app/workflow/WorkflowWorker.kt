@@ -138,6 +138,20 @@ class WorkflowWorker(
                 startNodeId = startNodeId,
                 triggerPayload = "{}"
             )
+            val willRetry = !(result.message == "Cancelled" || result.success ||
+                result.message.contains("Limit exceeded", ignoreCase = true)) && runAttemptCount < MAX_ATTEMPTS
+            if (!willRetry) {
+                // This cycle has truly concluded (success / cancelled / given-up failure). Re-arm
+                // the self-loop's next fire here, since GraphScheduleSignalSource intentionally
+                // skips reacting to workflow_set_schedule's DB write while this unique work is
+                // RUNNING (to avoid cancelling itself mid-run — see that class's comment). On
+                // Result.retry() below we must NOT reschedule here: WorkManager itself re-enqueues
+                // this same unique work via backoff, and an explicit schedule() call would cancel
+                // that pending retry (REPLACE policy).
+                runCatching {
+                    repository.get(workflowId)?.let { fresh -> schedule(appContext, fresh) }
+                }.onFailure { DebugLog.w(TAG, "post-run reschedule failed for $workflowId", it) }
+            }
             // Retry on failure so a transient tool error gets a second chance; give up on
             // cancellation or guard-limit violations (retrying those wastes battery).
             when {
@@ -178,7 +192,7 @@ class WorkflowWorker(
         const val KEY_WORKFLOW_ID = "workflow_id"
         const val KEY_START_NODE_ID = "start_node_id"
 
-        private fun workName(workflowId: String) = "workflow_$workflowId"
+        internal fun workName(workflowId: String) = "workflow_$workflowId"
 
         /**
          * Enqueue (or replace) the WorkManager request that fires [workflow] according to its

@@ -170,7 +170,8 @@ class GenerationRequestBuilder(
             topP = effectiveSettings.topP,
             frequencyPenalty = effectiveSettings.frequencyPenalty,
             presencePenalty = effectiveSettings.presencePenalty,
-            stream = !settings.nonStreamOutputEnabled.value
+            stream = !settings.nonStreamOutputEnabled.value,
+            customHeaders = settings.providerCustomHeaders.value[providerName] ?: emptyMap()
         )
         val genCtx = GenerationContext(
             conversationId = currentId,
@@ -305,6 +306,9 @@ class GenerationRequestBuilder(
         val projectMemoryBlock = if (includeSavedMemories && projectId != null) {
             buildProjectMemoryBlock(projectId)
         } else null
+        // Suffix only — never prepended, so it never touches the stable cacheable prefix of the
+        // compiled system prompt above.
+        val anniversarySuffix = buildAnniversarySuffix()
 
         if (entry != null) {
             val systemItems = entry.resolvedSystemItems
@@ -318,8 +322,15 @@ class GenerationRequestBuilder(
             } else {
                 compiled
             }
+            val withAnniversaries = if (anniversarySuffix != null && withMemory != null) {
+                "$withMemory\n\n$anniversarySuffix"
+            } else if (anniversarySuffix != null) {
+                anniversarySuffix
+            } else {
+                withMemory
+            }
             return ResolvedPrompt(
-                systemPrompt = withMemory,
+                systemPrompt = withAnniversaries,
                 userPrepend = PredefinedVariables.compile(entry.userPrependItems, perMsgValues, emptyMap()).ifBlank { null },
                 userPostpend = PredefinedVariables.compile(entry.userPostpendItems, perMsgValues, emptyMap()).ifBlank { null },
                 projectId = projectId,
@@ -327,13 +338,46 @@ class GenerationRequestBuilder(
             )
         }
 
+        val fallbackWithAnniversaries = if (anniversarySuffix != null && projectMemoryBlock != null) {
+            "$projectMemoryBlock\n\n$anniversarySuffix"
+        } else anniversarySuffix ?: projectMemoryBlock
+
         return ResolvedPrompt(
-            systemPrompt = projectMemoryBlock,
+            systemPrompt = fallbackWithAnniversaries,
             userPrepend = null,
             userPostpend = null,
             projectId = projectId,
             systemPromptId = targetPromptId
         )
+    }
+
+    /**
+     * Builds a short suffix block listing anniversaries due soon (within 14 days, includes
+     * today and just-passed one-time dates within the last day) so the model can naturally
+     * bring one up without the user asking. Always appended at the TAIL of the system prompt —
+     * never the front — so it doesn't disturb the stable cacheable prefix. Returns null when
+     * there are no anniversaries saved or none are near.
+     */
+    private fun buildAnniversarySuffix(): String? {
+        val all = settings.anniversaries.value
+        if (all.isEmpty()) return null
+        val today = java.time.LocalDate.now()
+        val near = all
+            .map { it to com.orangeisland.app.data.AnniversaryUtils.daysUntilNext(it, today) }
+            .filter { (_, days) -> days in -1..14 }
+            .sortedBy { (_, days) -> days }
+        if (near.isEmpty()) return null
+        val lines = near.joinToString("\n") { (e, days) ->
+            val when_ = when {
+                days == 0L -> "就是今天"
+                days == 1L -> "明天"
+                days > 0L -> "还有${days}天"
+                else -> "刚过去"
+            }
+            val yearNote = if (e.recurring) "（第${com.orangeisland.app.data.AnniversaryUtils.yearsSince(e, today)}年）" else ""
+            "- ${e.name}：${com.orangeisland.app.data.AnniversaryUtils.formatDate(e)}$yearNote，$when_"
+        }
+        return "## 近期纪念日\n\n$lines\n\n（如果合适，可以自然地提一句，不用刻意生硬地念出来。）"
     }
 
     private fun formatConversationGap(millis: Long): String {

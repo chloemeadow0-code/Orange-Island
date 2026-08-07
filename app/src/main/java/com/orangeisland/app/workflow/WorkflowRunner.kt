@@ -522,7 +522,15 @@ class WorkflowRunner(
             } else {
                 dao.getGlobalConversationsList()
             }
-            val conversation = conversations.firstOrNull()
+            // Prefer the conversation whose title matches this workflow's name — that's exactly
+            // the title the fallback branch below gives a freshly auto-created conversation, so
+            // on every subsequent run this reliably finds the SAME conversation instead of
+            // whichever one in scope happens to have the newest lastUpdated. Without this, an
+            // unrelated conversation the user is actively chatting in at trigger time (which
+            // bumps its own lastUpdated) could silently steal the "most recently updated" slot
+            // and receive the workflow's message instead of the intended conversation.
+            val conversation = conversations.firstOrNull { it.title == workflow.name }
+                ?: conversations.firstOrNull()
                 ?: ChatEntity(
                     id = java.util.UUID.randomUUID().toString(),
                     title = workflow.name.ifBlank { "Workflow" },

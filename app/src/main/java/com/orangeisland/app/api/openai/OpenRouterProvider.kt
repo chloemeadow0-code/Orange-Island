@@ -33,7 +33,7 @@ class OpenRouterProvider : BaseOpenAiProvider() {
     override fun getExtraHeaders(config: ProviderConfig): Map<String, String> = mapOf(
         "HTTP-Referer" to "https://github.com/orangeisland/app",
         "X-Title" to "Orange Island"
-    )
+    ) + config.customHeaders
 
     override suspend fun parseDeltaContent(
         delta: OpenAiDelta,

@@ -263,6 +263,7 @@ class AnthropicProvider : LlmProvider {
             val headers = mutableMapOf("Content-Type" to "application/json")
             headers["x-api-key"] = config.apiKey
             headers["anthropic-version"] = "2023-06-01"
+            headers.putAll(config.customHeaders)
             val requestBodyJson = json.encodeToString(AnthropicRequest.serializer(), requestBody)
             DebugLog.d("OrangeIslandAPI", "[Anthropic] REQ → $baseUrl/messages | model=$modelName | msgs=${apiMessages.size} | thinking=${thinking != null} | tools=${anthropicTools?.size ?: 0}")
             DebugLog.d("OrangeIslandAPI", "[Anthropic] BODY: ${requestBodyJson.take(4000)}")

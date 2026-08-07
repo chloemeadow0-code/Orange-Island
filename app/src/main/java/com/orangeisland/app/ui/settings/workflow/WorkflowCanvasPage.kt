@@ -4,11 +4,17 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CenterFocusStrong
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -132,7 +138,36 @@ private fun WorkflowCanvas(
     }
 
     val outlineColor = MaterialTheme.colorScheme.outline
-    Box(modifier = modifier.background(MaterialTheme.colorScheme.background)) {
+
+    // ── Zoom / pan state ────────────────────────────────────
+    // scale/offset live at the outer Box (raw screen px), applied to the inner content Box via
+    // graphicsLayer so both the edge Canvas and the node cards scale/pan together as one unit.
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
+
+    Box(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.background)
+            .pointerInput(Unit) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    scale = (scale * zoom).coerceIn(0.2f, 2.5f)
+                    offsetX += pan.x
+                    offsetY += pan.y
+                }
+            }
+    ) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationX = offsetX
+                translationY = offsetY
+                transformOrigin = TransformOrigin(0f, 0f)
+            }
+    ) {
         // ── Edges (drawn first, behind nodes) ─────────────────
         Canvas(modifier = Modifier.fillMaxSize()) {
             edges.forEach { edge ->
@@ -197,13 +232,40 @@ private fun WorkflowCanvas(
                 node = node,
                 state = state,
                 onMove = { deltaX, deltaY ->
-                    val newX = node.pos.x + with(density) { deltaX.toDp().value }
-                    val newY = node.pos.y + with(density) { deltaY.toDp().value }
+                    // Divide by scale: dragAmount arrives in raw screen px, but the card lives in
+                    // the graphicsLayer-scaled content space, so a screen px doesn't map 1:1 to a
+                    // content dp once zoomed — without this, dragging a node while zoomed in/out
+                    // moves it faster/slower than the finger.
+                    val newX = node.pos.x + with(density) { (deltaX / scale).toDp().value }
+                    val newY = node.pos.y + with(density) { (deltaY / scale).toDp().value }
                     onNodeMove(node.id, FlowNode.Vec2(newX, newY))
                 },
                 modifier = Modifier.offset(x = xDp, y = yDp)
             )
         }
+    }
+
+    // ── Zoom controls (pinch works too, but a visible affordance + precise steps help) ──
+    Row(
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(16.dp)
+            .shadow(4.dp, RoundedCornerShape(100))
+            .clip(RoundedCornerShape(100))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = { scale = (scale - 0.2f).coerceIn(0.2f, 2.5f) }) {
+            Icon(Icons.Default.Remove, contentDescription = "缩小")
+        }
+        IconButton(onClick = { scale = 1f; offsetX = 0f; offsetY = 0f }) {
+            Icon(Icons.Default.CenterFocusStrong, contentDescription = "重置视图")
+        }
+        IconButton(onClick = { scale = (scale + 0.2f).coerceIn(0.2f, 2.5f) }) {
+            Icon(Icons.Default.Add, contentDescription = "放大")
+        }
+    }
     }
 }
 

@@ -171,6 +171,7 @@ class OllamaProvider : LlmProvider {
             if (config.apiKey.isNotEmpty()) {
                 headers["Authorization"] = "Bearer ${config.apiKey}"
             }
+            headers.putAll(config.customHeaders)
             val requestBodyJson = json.encodeToString(OllamaChatRequest.serializer(), requestBody)
             DebugLog.d("OrangeIslandAPI", "[Ollama] REQ → $baseUrl/api/chat | model=${config.modelId} | msgs=${apiMessages.size} | tools=${config.tools?.size ?: 0}")
             DebugLog.d("OrangeIslandAPI", "[Ollama] BODY: ${requestBodyJson.take(4000)}")
