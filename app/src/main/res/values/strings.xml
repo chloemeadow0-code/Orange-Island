@@ -808,6 +808,13 @@
     <string name="music_studio_generating">正在生成</string>
     <string name="music_library">Music Library</string>
     <string name="music_library_empty">No songs yet. Generate one first!</string>
+    <string name="music_original_version">原版</string>
+    <string name="music_voice_version_title">音色版本</string>
+    <string name="music_voice_version_empty">还没有音色版本，点上方按钮生成一个</string>
+    <string name="music_voice_versions_count">%d 个音色版本</string>
+    <string name="music_voice_replace_action">替换音色生成</string>
+    <string name="music_voice_replace_desc">用 RVC 音色模型把这首歌重新唱一遍，生成一个挂在本歌下的音色版本。原版保留。</string>
+    <string name="music_voice_replacing">正在进行音色替换…</string>
     <string name="stop">Stop</string>
     <string name="close">Close</string>
     <string name="error">Error</string>
@@ -871,8 +878,8 @@
     <string name="custom_color_global_text">Global text color</string>
     <string name="custom_color_user_bubble">User bubble color</string>
     <string name="custom_color_assistant_bubble">Assistant bubble color</string>
-    <string name="split_assistant_bubble_by_line">Split assistant reply by line</string>
-    <string name="split_assistant_bubble_by_line_desc">When on, a finished assistant reply is split at the model\'s own line breaks into multiple stacked bubbles. Fenced code blocks and tables are kept intact. Streaming replies settle into bubbles once complete; off renders the reply as a single bubble.</string>
+    <string name="split_assistant_bubble_by_line">Split reply by line</string>
+    <string name="split_assistant_bubble_by_line_desc">When on, a finished reply is split at its line breaks into multiple stacked bubbles. Fenced code blocks and tables are kept intact. Streaming replies settle into bubbles once complete; off renders the reply as a single bubble. Also applies to multi-line messages you send.</string>
     <string name="custom_color_reasoning_panel">Reasoning panel color</string>
     <string name="custom_color_chat_background">Chat background color</string>
     <string name="custom_color_accent">Accent color</string>

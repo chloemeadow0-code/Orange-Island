@@ -237,6 +237,7 @@ fun MessageItem(
                 onShowDelete = { showDeleteConfirm = true },
                 bubbleBackgroundImagePath = userBubbleBackgroundImagePath,
                 bubbleCornerRadiusOverride = userBubbleCornerRadiusOverride,
+                splitBubbleByLine = splitBubbleByLine,
             )
         } else {
             // Provide the streaming flag to the markdown subtree so custom blocks

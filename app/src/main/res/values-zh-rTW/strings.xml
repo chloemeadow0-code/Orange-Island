@@ -555,8 +555,8 @@
     <string name="custom_color_global_text">全域文字顏色</string>
     <string name="custom_color_user_bubble">使用者氣泡顏色</string>
     <string name="custom_color_assistant_bubble">AI氣泡顏色</string>
-    <string name="split_assistant_bubble_by_line">按行拆分AI回覆</string>
-    <string name="split_assistant_bubble_by_line_desc">開啟後，已完成的AI回覆會依模型自己寫的換行拆成多個堆疊氣泡；圍欄程式碼區塊與表格保持完整。串流回覆在生成完成後才結算為多個氣泡；關閉則整段回覆渲染為單一氣泡。</string>
+    <string name="split_assistant_bubble_by_line">按行拆分回覆</string>
+    <string name="split_assistant_bubble_by_line_desc">開啟後，已完成的回覆會依換行拆成多個堆疊氣泡；圍欄程式碼區塊與表格保持完整。串流回覆在生成完成後才結算為多個氣泡；關閉則整段回覆渲染為單一氣泡。同時作用於你傳送的多行訊息。</string>
     <string name="custom_color_reasoning_panel">推理面板顏色</string>
     <string name="custom_color_chat_background">聊天背景色</string>
     <string name="custom_color_accent">主色調</string>

@@ -33,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Shape
 import com.orangeisland.app.R
 import com.orangeisland.app.util.noOpBringIntoView
+import com.orangeisland.app.util.splitIntoBubbleSegments
 import com.orangeisland.app.model.ChatMessage
 import com.orangeisland.app.ui.chat.AttachmentThumbnailItem
 import com.orangeisland.app.ui.chat.ThumbnailClickHandlers
@@ -72,6 +73,7 @@ internal fun UserMessageBubble(
     bubbleBackgroundImagePath: String = "",
     bubbleCornerRadiusOverride: Float? = null,
     bubbleMaskColor: Color = Color.Unspecified,
+    splitBubbleByLine: Boolean = false,
 ) {
     @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
@@ -83,6 +85,51 @@ internal fun UserMessageBubble(
     } ?: shape
 
     Column(horizontalAlignment = Alignment.End) {
+        // Split a multi-line user message into stacked bubbles at \n boundaries, mirroring
+        // the assistant bubble's splitBubbleByLine. Only applies to plain-text messages
+        // (no attachments) and only outside the editing state; messages with attachments
+        // stay in a single bubble so the attachment grid stays anchored to the text.
+        val segments = if (splitBubbleByLine && !isEditing && message.images.isEmpty() &&
+            message.attachmentMeta?.items?.isEmpty() != false) {
+            message.text.splitIntoBubbleSegments()
+        } else {
+            null
+        }
+        if (segments != null && segments.size > 1) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.then(contextAlpha)
+            ) {
+                segments.forEachIndexed { index, segment ->
+                    Surface(
+                        shape = effectiveShape,
+                        color = if (bubbleBackgroundImagePath.isNotBlank()) Color.Transparent else backgroundColor,
+                        modifier = Modifier
+                            .widthIn(max = 300.dp)
+                            .then(if (shouldAnimate) Modifier.animateContentSize(animationSpec = tween(500)) else Modifier)
+                    ) {
+                        // Background-image bubbles keep their image + scrim; the segment text
+                        // sits on top. The first segment carries the image (mirroring single-bubble mode).
+                        if (bubbleBackgroundImagePath.isNotBlank() && index == 0) {
+                            Box {
+                                coil.compose.AsyncImage(
+                                    model = bubbleBackgroundImagePath,
+                                    contentDescription = null,
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                    modifier = Modifier.matchParentSize(),
+                                )
+                                Box(modifier = Modifier.matchParentSize().background(bubbleMaskColor)) {
+                                    SegmentText(segment = segment, textColor = textColor)
+                                }
+                            }
+                        } else {
+                            SegmentText(segment = segment, textColor = textColor)
+                        }
+                    }
+                }
+            }
+        } else {
         Surface(
             shape = effectiveShape,
             color = if (bubbleBackgroundImagePath.isNotBlank()) Color.Transparent else backgroundColor,
@@ -131,6 +178,7 @@ internal fun UserMessageBubble(
                     onPdfPagesClick = onPdfPagesClick,
                 )
             }
+        }
         }
 
         if (totalBranches > 1 && !isEditing) {
@@ -190,6 +238,22 @@ internal fun UserMessageBubble(
                 }
             }
         }
+    }
+}
+
+/**
+ * Renders a single text segment inside a split user bubble. Mirrors the text styling used
+ * by [UserMessageBubbleContent] (ChatType.userBody) but without the attachment grid.
+ */
+@Composable
+private fun SegmentText(segment: String, textColor: Color) {
+    SelectionContainer {
+        Text(
+            text = segment,
+            style = ChatType.userBody,
+            color = textColor,
+            modifier = Modifier.padding(16.dp).noOpBringIntoView()
+        )
     }
 }
 
