@@ -156,19 +156,7 @@ class ChatViewModel(
      *  a major hot-path cost. Key covers the fields that affect the mapped output. */
     private val chatMessageCache = android.util.LruCache<String, ChatMessage>(200)
 
-    private fun messageCacheKey(entity: MessageEntity): String = buildString {
-        append(entity.id)
-        append('|')
-        append(entity.status.name)
-        append('|')
-        append(entity.text.hashCode())
-        append('|')
-        append(entity.thoughts.hashCode())
-        append('|')
-        append(entity.toolCallJson.hashCode())
-        append('|')
-        append(entity.attachmentMeta.hashCode())
-    }
+    private fun messageCacheKey(entity: MessageEntity): String = entity.cacheKey()
 
     private fun mapMessageEntity(entity: MessageEntity): ChatMessage {
         val key = messageCacheKey(entity)

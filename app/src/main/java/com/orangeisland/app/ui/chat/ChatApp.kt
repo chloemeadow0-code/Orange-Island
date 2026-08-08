@@ -223,6 +223,17 @@ fun ChatApp(
     // Guards the settle detector so it ignores scroll sessions WE started.
     val programmaticScroll = remember { mutableStateOf(false) }
 
+    // Gate for MessageList's "load older when near the top" trigger. While a
+    // conversation is being opened the list can sit at index 0 until the
+    // open-scroll lands — and scrollToBottom now WAITS for the Room load, so
+    // that park-at-top window is real. Without this gate, firstVisibleItemIndex
+    // <= 1 would fire onLoadOlderMessages during the wait and ratchet the
+    // render window upward (each load bumps the limit, which re-emits messages,
+    // which re-fires the trigger — all the way to FULL_LOAD). The gate closes
+    // when a conversation open begins and opens once its scroll has completed
+    // (or been skipped), so normal user scroll-to-top loading is unaffected.
+    val loadOlderEnabled = remember { mutableStateOf(true) }
+
     // When a scroll session ends and we did NOT start it, look at where it landed:
     // off-bottom -> the user scrolled up -> suspend follow. This is the only place
     // that ever clears the pin, and it can't react to our own scrolls.
@@ -274,15 +285,33 @@ fun ChatApp(
      *  knows this scroll came from us and doesn't mistake it for the user scrolling
      *  (which would wrongly suspend follow). */
     suspend fun scrollToBottom(animate: Boolean = true) {
-        if (uiState.messages.isEmpty()) return
+        // WAIT for the conversation's messages to actually arrive instead of checking
+        // once and giving up. The old one-shot `isEmpty()` return raced the Room load
+        // on cold start (restore-last-conversation doesn't raise isSwitching, so the
+        // open-scroll effect reached here before the first DB emission): the scroll
+        // was skipped with no retry and the list stayed parked at index 0 (the top).
+        // snapshotFlow re-observes on every state change, so the warm path (messages
+        // already in memory) returns immediately with zero added delay / no flicker.
+        val loadedMessages = try {
+            withTimeout(4000) {
+                snapshotFlow { uiState.messages }.filter { it.isNotEmpty() }.first()
+            }
+        } catch (e: Exception) {
+            // Timed out — e.g. a genuinely empty conversation; nothing to scroll to.
+            return
+        }
         // scrollToItem(index, offset) aligns the item's TOP to the contentPadding.top line,
         // then scrolls DOWN by `offset` px. A huge offset (Int.MAX_VALUE) was pushing the
         // last message UP and out of the viewport, leaving the tail spacer as a blank
-        // screen �� that's the "blank screen, scroll up to see uiState.messages" bug. offset 0 just
+        // screen — that's the "blank screen, scroll up to see uiState.messages" bug. offset 0 just
         // parks the last message at the top padding line, which for any conversation taller
         // than the viewport is exactly the bottom; for short ones the list can't scroll past
         // its content anyway, so it lands at max scroll (uiState.messages visible, no blank).
-        val lastIndex = uiState.messages.lastIndex
+        //
+        // lastIndex is read AFTER the wait, off the awaited list: the tail may move while
+        // we suspend (older-message window growth, streaming appends), so a snapshot taken
+        // before the wait could point at a stale index.
+        val lastIndex = loadedMessages.lastIndex
         try {
             withTimeout(2000) {
                 snapshotFlow { listState.layoutInfo.totalItemsCount }
@@ -363,17 +392,26 @@ fun ChatApp(
         if (viewModel.suppressNextOpenScroll) {
             viewModel.suppressNextOpenScroll = false
             viewModel.setSwitching(false)
+            // No open-scroll will run for this conversation, so the load-older gate
+            // opens right away (the list is already wherever the send scroll put it).
+            loadOlderEnabled.value = true
             return@LaunchedEffect
         }
         if (uiState.currentConversationId != null) {
+            // Close the load-older gate until the open-scroll has landed: while this
+            // effect waits (switching overlay, then the message-load wait inside
+            // scrollToBottom), the list is parked at index 0 and would otherwise
+            // mis-trigger "load older messages".
+            loadOlderEnabled.value = false
             // IMPORTANT timing: while the switching overlay is up, MessageList is fed an
             // EMPTY list (see the switchingToExisting guard at the MessageList call site),
             // so the LazyColumn hasn't laid out any real items yet. We must NOT scroll
-            // before the overlay drops �� scrolling against an empty/just-inflating list is
+            // before the overlay drops — scrolling against an empty/just-inflating list is
             // exactly the "freezes for a beat, then jumps to the last message" symptom.
             // So: wait for the overlay to clear (isSwitching == false), which means the real
             // message list has been switched in, THEN give the LazyColumn a frame to measure,
-            // THEN jump to the bottom. scrollToBottom also waits for totalItemsCount itself.
+            // THEN jump to the bottom. scrollToBottom also waits for the messages to load
+            // and for totalItemsCount itself.
             try {
                 withTimeout(4000) {
                     snapshotFlow { uiState.isSwitching }.filter { !it }.first()
@@ -388,6 +426,7 @@ fun ChatApp(
             } catch (_: Exception) {
                 // best-effort
             }
+            loadOlderEnabled.value = true
         }
     }
 
@@ -712,6 +751,7 @@ fun ChatApp(
                                 onFileContentClick = onFileContentClick,
                                 onPdfPagesClick = { pages, idx -> haptics.action(); onPdfPagesClick?.invoke(pages, idx) },
                                 onLoadOlderMessages = { viewModel.loadOlderMessages() },
+                                loadOlderEnabled = loadOlderEnabled.value,
                                 thoughtExpandedStates = thoughtExpandedStates,
                                 codeBlockWrapEnabled = uiState.codeBlockWrapEnabled,
                                 splitBubbleByLine = uiState.splitBubbleByLine,

@@ -1,11 +1,14 @@
 package com.orangeisland.app.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.orangeisland.app.R
 
@@ -154,9 +157,15 @@ val Typography = Typography(
 // Hierarchy is carried by SIZE + WEIGHT + COLOR together: e.g. the collapsed
 // "thought for Ns" eyebrow is meta(12) but Bold + primary, so it out-ranks the
 // 13sp thought body it introduces despite being smaller. Call sites supply color.
-/** Mutable font family for ChatType styles. Set from Theme.kt when font preference changes. */
-internal var chatFontFamily: FontFamily = OutfitFamily
-internal var chatFontScale: Float = 1.0f
+//
+// Font family / scale are provided by OrangeIslandTheme via these CompositionLocals
+// (compositionLocalOf, NOT staticCompositionLocalOf: a font-size-tier change must
+// invalidate every reading composable). They replace the old module-level mutable
+// vars, which had no snapshot tracking — a recomposition that read ChatType without
+// re-running OrangeIslandTheme could observe a stale or mid-write value (the
+// "font size is suddenly wrong after returning from background" bug).
+val LocalChatFontFamily = compositionLocalOf<FontFamily> { OutfitFamily }
+val LocalChatFontScale = compositionLocalOf { 1.0f }
 
 object FontSizeTiers {
     const val SMALL = "small"
@@ -176,64 +185,98 @@ object FontSizeTiers {
 
 object ChatType {
 
+    // Every style is a @Composable getter reading LocalChatFontFamily /
+    // LocalChatFontScale, so reads are tracked by the snapshot system and any
+    // reader recomposes when the theme's font choice changes — the same pattern
+    // as MaterialTheme.colorScheme / MaterialTheme.typography. All call sites
+    // already sit in @Composable context, so `ChatType.xxx` syntax is unchanged.
+
+    @Composable
+    private fun chatStyle(
+        fontWeight: FontWeight,
+        sizeSp: Int,
+        lineSp: Int,
+        letterSpacing: TextUnit = TextUnit.Unspecified
+    ): TextStyle {
+        val s = LocalChatFontScale.current
+        return TextStyle(
+            fontFamily = LocalChatFontFamily.current,
+            fontWeight = fontWeight,
+            fontSize = (sizeSp * s).sp,
+            lineHeight = (lineSp * s).sp,
+            letterSpacing = letterSpacing
+        )
+    }
+
+    @Composable
+    private fun monoStyle(fontWeight: FontWeight, sizeSp: Int, lineSp: Int): TextStyle {
+        val s = LocalChatFontScale.current
+        return TextStyle(
+            fontFamily = MonoFamily,
+            fontWeight = fontWeight,
+            fontSize = (sizeSp * s).sp,
+            lineHeight = (lineSp * s).sp
+        )
+    }
+
     // Title tier
     // Brand wordmark in the new-chat capsule: prominent in the empty state, one
     // clean step above the active-conversation title (20 → 15).
-    val brandTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (20 * chatFontScale).sp, lineHeight = (26 * chatFontScale).sp)
-    val sheetTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (19 * chatFontScale).sp, lineHeight = (25 * chatFontScale).sp)
+    val brandTitle: TextStyle @Composable get() = chatStyle(FontWeight.Bold, 20, 26)
+    val sheetTitle: TextStyle @Composable get() = chatStyle(FontWeight.Bold, 19, 25)
     // Active-conversation title: one step below the brand wordmark (16 → 15),
     // Bold so it still reads as a title against the 15sp Normal body.
-    val conversationTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (15 * chatFontScale).sp, lineHeight = (20 * chatFontScale).sp)
+    val conversationTitle: TextStyle @Composable get() = chatStyle(FontWeight.Bold, 15, 20)
 
     // Active-conversation title when it stands alone (no token subtitle): a touch
     // smaller than the 20sp brand wordmark so a lone title doesn't read as loud.
-    val conversationTitleSolo get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (17 * chatFontScale).sp, lineHeight = (22 * chatFontScale).sp)
+    val conversationTitleSolo: TextStyle @Composable get() = chatStyle(FontWeight.Bold, 17, 22)
 
     // Input tier
-    val input get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = (16 * chatFontScale).sp, lineHeight = (23 * chatFontScale).sp, letterSpacing = 0.5.sp)
+    val input: TextStyle @Composable get() = chatStyle(FontWeight.Normal, 16, 23, letterSpacing = 0.5.sp)
 
     // Body tier
-    val body get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = (16 * chatFontScale).sp, lineHeight = (24 * chatFontScale).sp)
-    val userBody get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = (14 * chatFontScale).sp, lineHeight = (22 * chatFontScale).sp)
-    val thoughtBody get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = (13 * chatFontScale).sp, lineHeight = (19 * chatFontScale).sp)
-    val thoughtTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (13 * chatFontScale).sp, lineHeight = (19 * chatFontScale).sp)
-    val errorBody get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (13 * chatFontScale).sp, lineHeight = (18 * chatFontScale).sp)
+    val body: TextStyle @Composable get() = chatStyle(FontWeight.Normal, 16, 24)
+    val userBody: TextStyle @Composable get() = chatStyle(FontWeight.Normal, 14, 22)
+    val thoughtBody: TextStyle @Composable get() = chatStyle(FontWeight.Normal, 13, 19)
+    val thoughtTitle: TextStyle @Composable get() = chatStyle(FontWeight.Medium, 13, 19)
+    val errorBody: TextStyle @Composable get() = chatStyle(FontWeight.Medium, 13, 18)
 
     // Meta tier
-    val meta get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (12 * chatFontScale).sp, lineHeight = (17 * chatFontScale).sp)
-    val metaNormal get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = (12 * chatFontScale).sp, lineHeight = (17 * chatFontScale).sp)
-    val micro get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (11 * chatFontScale).sp, lineHeight = (15 * chatFontScale).sp)
+    val meta: TextStyle @Composable get() = chatStyle(FontWeight.Medium, 12, 17)
+    val metaNormal: TextStyle @Composable get() = chatStyle(FontWeight.Normal, 12, 17)
+    val micro: TextStyle @Composable get() = chatStyle(FontWeight.Medium, 11, 15)
 
     // Code / mono
-    val code get() = TextStyle(fontFamily = MonoFamily, fontWeight = FontWeight.Normal, fontSize = (14 * chatFontScale).sp, lineHeight = (20 * chatFontScale).sp)
-    val thoughtCode get() = TextStyle(fontFamily = MonoFamily, fontWeight = FontWeight.Normal, fontSize = (12 * chatFontScale).sp, lineHeight = (17 * chatFontScale).sp)
-    val thoughtCodeLarge get() = TextStyle(fontFamily = MonoFamily, fontWeight = FontWeight.Normal, fontSize = (13 * chatFontScale).sp, lineHeight = (19 * chatFontScale).sp)
+    val code: TextStyle @Composable get() = monoStyle(FontWeight.Normal, 14, 20)
+    val thoughtCode: TextStyle @Composable get() = monoStyle(FontWeight.Normal, 12, 17)
+    val thoughtCodeLarge: TextStyle @Composable get() = monoStyle(FontWeight.Normal, 13, 19)
 
     // Sheet
-    val detailTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (22 * chatFontScale).sp, lineHeight = (28 * chatFontScale).sp)
+    val detailTitle: TextStyle @Composable get() = chatStyle(FontWeight.Bold, 22, 28)
 
     // Rating
-    val ratingTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (28 * chatFontScale).sp, lineHeight = (35 * chatFontScale).sp)
+    val ratingTitle: TextStyle @Composable get() = chatStyle(FontWeight.Bold, 28, 35)
 
     // Drawer
-    val conversationsTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (25 * chatFontScale).sp, lineHeight = (32 * chatFontScale).sp)
-    val drawerButton get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (14 * chatFontScale).sp, lineHeight = (20 * chatFontScale).sp)
-    val drawerSearch get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = (16 * chatFontScale).sp, lineHeight = (23 * chatFontScale).sp)
+    val conversationsTitle: TextStyle @Composable get() = chatStyle(FontWeight.Bold, 25, 32)
+    val drawerButton: TextStyle @Composable get() = chatStyle(FontWeight.Medium, 14, 20)
+    val drawerSearch: TextStyle @Composable get() = chatStyle(FontWeight.Normal, 16, 23)
 
     // Assistant markdown headings — even ~1.15 steps; h1 reined in (22, not 24)
     // so the jump from h2 stays proportional and h1 doesn't shout over 15sp body.
-    val mdH1 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (22 * chatFontScale).sp, lineHeight = (28 * chatFontScale).sp)
-    val mdH2 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (19 * chatFontScale).sp, lineHeight = (25 * chatFontScale).sp)
-    val mdH3 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.SemiBold, fontSize = (17 * chatFontScale).sp, lineHeight = (23 * chatFontScale).sp)
-    val mdH4 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.SemiBold, fontSize = (16 * chatFontScale).sp, lineHeight = (22 * chatFontScale).sp)
-    val mdH5 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (15 * chatFontScale).sp, lineHeight = (22 * chatFontScale).sp)
-    val mdH6 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (15 * chatFontScale).sp, lineHeight = (22 * chatFontScale).sp)
+    val mdH1: TextStyle @Composable get() = chatStyle(FontWeight.Bold, 22, 28)
+    val mdH2: TextStyle @Composable get() = chatStyle(FontWeight.Bold, 19, 25)
+    val mdH3: TextStyle @Composable get() = chatStyle(FontWeight.SemiBold, 17, 23)
+    val mdH4: TextStyle @Composable get() = chatStyle(FontWeight.SemiBold, 16, 22)
+    val mdH5: TextStyle @Composable get() = chatStyle(FontWeight.Medium, 15, 22)
+    val mdH6: TextStyle @Composable get() = chatStyle(FontWeight.Medium, 15, 22)
 
     // Thought-block headings — one tier below assistant markdown.
-    val thH1 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (18 * chatFontScale).sp, lineHeight = (23 * chatFontScale).sp)
-    val thH2 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = (16 * chatFontScale).sp, lineHeight = (21 * chatFontScale).sp)
-    val thH3 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.SemiBold, fontSize = (15 * chatFontScale).sp, lineHeight = (20 * chatFontScale).sp)
-    val thH4 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.SemiBold, fontSize = (14 * chatFontScale).sp, lineHeight = (19 * chatFontScale).sp)
-    val thH5 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = (13 * chatFontScale).sp, lineHeight = (19 * chatFontScale).sp)
-    val thH6 get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = (13 * chatFontScale).sp, lineHeight = (19 * chatFontScale).sp)
+    val thH1: TextStyle @Composable get() = chatStyle(FontWeight.Bold, 18, 23)
+    val thH2: TextStyle @Composable get() = chatStyle(FontWeight.Bold, 16, 21)
+    val thH3: TextStyle @Composable get() = chatStyle(FontWeight.SemiBold, 15, 20)
+    val thH4: TextStyle @Composable get() = chatStyle(FontWeight.SemiBold, 14, 19)
+    val thH5: TextStyle @Composable get() = chatStyle(FontWeight.Medium, 13, 19)
+    val thH6: TextStyle @Composable get() = chatStyle(FontWeight.Normal, 13, 19)
 }

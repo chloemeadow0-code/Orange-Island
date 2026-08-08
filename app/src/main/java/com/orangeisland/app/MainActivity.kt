@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -140,13 +141,23 @@ class MainActivity : ComponentActivity() {
 
         val memoryManager = MemoryManager(applicationContext)
         val settingsManager = SettingsManager(applicationContext)
+        // 这两步只碰本地 DataStore（attachBaseContext 已把 store 读热，开销在毫秒级），
+        // 且是后续逻辑的同步前提，保留同步等待：
+        //  - initializeFirstInstallDefaults：全新安装时播种默认 prompt / 首启时间；
+        //  - runForceLogoutIfNeeded：一次性强制登出。它是登录门禁的正确性前提——若异步
+        //    执行，被踢用户会凭旧会话先闪进主界面再被拉回。修改 SettingsManager 里
+        //    FORCE_LOGOUT_AT_VERSION 的值并发新版即可触发。
         runBlocking(Dispatchers.IO) {
             settingsManager.initializeFirstInstallDefaults(locale = java.util.Locale.getDefault())
-            // 一次性强制登出：用于把旧版本（已登录）用户全部踢回登录页。
-            // 修改 SettingsManager 里 FORCE_LOGOUT_AT_VERSION 的值并发新版即可触发。
             settingsManager.runForceLogoutIfNeeded()
-            // 远程封禁检查：查 Supabase 的 banned_users 表，命中就清空本地会话。
-            // 以后要针对某个 username 封禁，只需在 Dashboard 的 banned_users 表加一行。
+        }
+        // 远程封禁检查（查 Supabase 的 banned_users 表）是真实网络请求，冷启动时可能
+        // 耗数秒，绝不许阻塞 setContent 之前的主线程，挪到异步。命中后 checkBannedAndKick
+        // 内部会 clearAuthSession()：loggedIn flow 翻 false → authRepo.isLoggedIn(StateFlow)
+        // 翻 false → 下面 when 分支自动切回 AuthScreen。这条反应式链路不依赖"检查先于界面
+        // 完成"，即使结果返回时用户已进入主界面也会被当场踢回登录页（与手动 logout 同路径）。
+        // 以后要针对某个 username 封禁，只需在 Dashboard 的 banned_users 表加一行。
+        lifecycleScope.launch(Dispatchers.IO) {
             authRepo.checkBannedAndKick()
         }
 

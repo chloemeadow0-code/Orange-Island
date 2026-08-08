@@ -67,6 +67,10 @@ fun MessageList(
     onFileContentClick: ((fileName: String, content: String) -> Unit)? = null,
     onPdfPagesClick: ((pages: List<String>, startIndex: Int) -> Unit)? = null,
     onLoadOlderMessages: () -> Unit = {},
+    // Host-driven gate: while a conversation open-scroll is still pending, the list sits
+    // at index 0 and "near the top" would be a false positive. The host (ChatApp) closes
+    // this gate on conversation open and re-opens it once the scroll-to-bottom has landed.
+    loadOlderEnabled: Boolean = true,
     thoughtExpandedStates: SnapshotStateMap<String, Boolean> = remember { mutableStateMapOf() },
     codeBlockWrapEnabled: Boolean = false,
     splitBubbleByLine: Boolean = false,
@@ -129,7 +133,11 @@ fun MessageList(
     }
 
     // Auto-load older messages when the user scrolls near the top of the windowed list.
-    LaunchedEffect(state, messages) {
+    // Suppressed while loadOlderEnabled is false (conversation open-scroll pending):
+    // the list is then parked at index 0 by construction, not by the user, so firing
+    // would ratchet the render window upward for no reason.
+    LaunchedEffect(state, loadOlderEnabled, messages) {
+        if (!loadOlderEnabled) return@LaunchedEffect
         snapshotFlow { state.firstVisibleItemIndex }
             .filter { it <= 1 && messages.isNotEmpty() }
             .collect { onLoadOlderMessages() }
