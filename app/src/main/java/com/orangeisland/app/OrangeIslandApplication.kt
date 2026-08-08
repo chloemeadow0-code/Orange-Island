@@ -86,6 +86,11 @@ class OrangeIslandApplication : Application(), ImageLoaderFactory {
             // trigger-host start above.
             runCatching { container.startPetController() }
                 .onFailure { com.orangeisland.app.util.DebugLog.e("OrangeIslandApp", "pet controller start failed", it) }
+            // Start MCP pool maintenance (foreground refresh + stale-server cleanup). Idempotent;
+            // mirrors the other three start calls above. Must run so the shared mcpClientPool
+            // (used by both chat and the workflow engine) actually stays in sync with settings.
+            runCatching { container.startMcpMaintenance() }
+                .onFailure { com.orangeisland.app.util.DebugLog.e("OrangeIslandApp", "MCP maintenance start failed", it) }
         }
     }
 }
