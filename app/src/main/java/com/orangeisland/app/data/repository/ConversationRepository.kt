@@ -31,19 +31,7 @@ class ConversationRepository(
      */
     private val decodedMessageCache = LruCache<String, MessageEntity>(200)
 
-    private fun MessageEntity.decodedCacheKey(): String = buildString {
-        append(id)
-        append('|')
-        append(status.name)
-        append('|')
-        append(text.hashCode())
-        append('|')
-        append(thoughts.hashCode())
-        append('|')
-        append(toolCallJson.hashCode())
-        append('|')
-        append(attachmentMeta.hashCode())
-    }
+    private fun MessageEntity.decodedCacheKey(): String = cacheKey()
 
     private fun MessageEntity.decodeLargeTextCached(context: Context): MessageEntity {
         val key = decodedCacheKey()

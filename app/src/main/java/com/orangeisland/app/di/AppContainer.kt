@@ -190,11 +190,20 @@ class AppContainer(private val appContext: Context) {
                 // GenerationContext() (all flags false) made gated providers return empty lists, so
                 // every workflow definition using e.g. show_toast/ui_global_action was rejected as
                 // unknown_tool → every workflow_create call failed with "validation failed".
+                //
+                // sandboxEnabled / shellDevices are read from real settings (not hardcoded) because
+                // ShellToolProvider.definitions() — which also gates file_read/file_write/file_edit/
+                // file_glob/file_grep — returns emptyList() unless at least one of them is truthy.
+                // Without this, those tool names NEVER appear here regardless of the user's actual
+                // sandbox/shell-device configuration, and every workflow action referencing them is
+                // rejected as unknown_tool.
                 val allEnabled = com.orangeisland.app.viewmodel.GenerationContext(
                     shellEnabled = true, deviceInfoEnabled = true, locationEnabled = true,
                     calendarEnabled = true, notificationEnabled = true, usageStatsEnabled = true,
                     navigationEnabled = true, appLockEnabled = true, toastEnabled = true,
-                    uiAutomationEnabled = true, webSearchEnabled = true, imageGenEnabled = true
+                    uiAutomationEnabled = true, webSearchEnabled = true, imageGenEnabled = true,
+                    sandboxEnabled = settingsRepository.sandboxEnabled.value,
+                    shellDevices = settingsRepository.shellDevices.value
                 )
                 toolDispatcher.allDefinitions(allEnabled).map { it.function.name }.toSet()
             },
@@ -290,6 +299,46 @@ class AppContainer(private val appContext: Context) {
         registry
     }
 
+    // ── MCP (Model Context Protocol) ─────────────────────────────────────────
+    // App-lifetime, shared between the live chat path (via ChatViewModel) and the workflow
+    // engine's toolDispatcher below. Previously each owned a separate pool: ChatViewModel built
+    // its own (viewModelScope-bound, died with the ViewModel), and toolDispatcher was wired with
+    // mcpPool = null — MCP tools were simply invisible to workflows. Lifting the pool here fixes
+    // both: connections now survive ViewModel recreation, and AI-authored workflows can reference
+    // MCP tools since toolDispatcher (used both at authoring-time validation and at run-time by
+    // WorkflowRunner) now sees the same connections chat does.
+
+    /** Shared MCP client pool. Lazily created on first access (first MCP tool request from either
+     *  chat or a workflow), never explicitly closed (app-lifetime; OS reclaims on process death). */
+    val mcpClientPool: com.orangeisland.app.mcp.McpClientPool by lazy {
+        com.orangeisland.app.mcp.McpClientPool(ioScope = appScope).also { pool ->
+            pool.startMonitoring(settingsRepository.mcpServers)
+        }
+    }
+
+    /** Foreground refresh: re-probe every enabled MCP server whenever the app returns to
+     *  foreground, so the settings page's three-state icon doesn't wait for the next heartbeat
+     *  tick. Mirrors what ChatViewModel used to do per-instance; now app-wide and started once. */
+    private val mcpForegroundListener: (Boolean) -> Unit = { inForeground ->
+        if (inForeground) {
+            appScope.launch {
+                mcpClientPool.refreshAll(settingsRepository.mcpServers.value.filter { it.enabled })
+            }
+        }
+    }
+
+    /** Starts MCP pool maintenance: foreground-refresh listener + a collector that drops pool
+     *  connections for servers the user has deleted. Idempotent; call once from
+     *  [com.orangeisland.app.OrangeIslandApplication.onCreate]. */
+    fun startMcpMaintenance() {
+        com.orangeisland.app.service.AppForegroundTracker.addListener(mcpForegroundListener)
+        appScope.launch {
+            settingsRepository.mcpServers.collect { servers ->
+                mcpClientPool.retainOnly(servers.map { it.id }.toSet())
+            }
+        }
+    }
+
     val toolDispatcher: com.orangeisland.app.tool.ToolDispatcher by lazy {
         com.orangeisland.app.tool.ToolDispatcher(
             app = application,
@@ -298,7 +347,7 @@ class AppContainer(private val appContext: Context) {
             llmProviders = llmProviders,
             appContext = appContext,
             sandboxFactory = sandboxManagerFactory,
-            mcpPool = null,
+            mcpPool = mcpClientPool,
             pluginToolProvider = pluginToolProvider,
             permissionController = com.orangeisland.app.viewmodel.PermissionController(appContext),
             workflowToolProvider = workflowAiToolProvider,
@@ -421,7 +470,7 @@ class AppContainer(private val appContext: Context) {
             autoBackupManager, conversationRepository, settingsRepository, workflowRepository,
             workflowApprovalGate, pluginToolProvider, pluginLoader, pluginSandbox,
             workflowAiToolProvider, userInteractionGate, voiceCallGate, cameraToolGate,
-            appContextCollector, pluginMemoryProvider, musicStudioRepository
+            appContextCollector, pluginMemoryProvider, musicStudioRepository, mcpClientPool
         )
 
     fun healthViewModelFactory(): com.orangeisland.app.viewmodel.HealthViewModelFactory =

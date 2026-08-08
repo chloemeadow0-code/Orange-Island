@@ -146,6 +146,46 @@ data class MessageEntity(
         text = LargeTextStore.decode(context, text) ?: text,
         thoughts = LargeTextStore.decode(context, thoughts) ?: thoughts
     )
+
+    /**
+     * Cache key covering every field that may be modified independently and affects
+     * the decoded entity or its mapped UI form. This is the single source of truth
+     * for both [ConversationRepository.decodedMessageCache] and
+     * [ChatViewModel.chatMessageCache] so the two caches never drift apart.
+     */
+    fun cacheKey(): String = buildString {
+        append(id)
+        append('|')
+        append(parentId)
+        append('|')
+        append(status.name)
+        append('|')
+        append(text.hashCode())
+        append('|')
+        append(images.hashCode())
+        append('|')
+        append(audio.hashCode())
+        append('|')
+        append(thoughts.hashCode())
+        append('|')
+        append(thoughtTitle)
+        append('|')
+        append(tokenCount)
+        append('|')
+        append(cachedTokenCount)
+        append('|')
+        append(contextMessageCount)
+        append('|')
+        append(thoughtTimeMs)
+        append('|')
+        append(generationDurationMs)
+        append('|')
+        append(modelName)
+        append('|')
+        append(toolCallJson.hashCode())
+        append('|')
+        append(attachmentMeta.hashCode())
+    }
 }
 
 @Dao

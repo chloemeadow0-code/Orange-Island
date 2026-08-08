@@ -7,6 +7,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
@@ -117,13 +118,22 @@ fun OrangeIslandTheme(
     }
 
     val fontFamily = effectiveFontFamily(fontPreference, customFontPath)
-    chatFontFamily = fontFamily
-    chatFontScale = fontScale
     val typography = remember(fontFamily, fontScale) { typographyWithFont(fontFamily, fontScale) }
 
-    MaterialTheme(
-        colorScheme = finalColorScheme,
-        typography = typography,
-        content = content
-    )
+    // Provide the chat-surface font choices through CompositionLocals instead of the old
+    // module-level mutable vars (which were written imperatively here during composition,
+    // with no snapshot tracking). ChatType's @Composable getters read these locals, so any
+    // chat-typography reader recomposes iff the family/scale actually changes — and a
+    // partial recomposition that never re-runs this theme can no longer observe a stale
+    // or mid-write value.
+    CompositionLocalProvider(
+        LocalChatFontFamily provides fontFamily,
+        LocalChatFontScale provides fontScale
+    ) {
+        MaterialTheme(
+            colorScheme = finalColorScheme,
+            typography = typography,
+            content = content
+        )
+    }
 }

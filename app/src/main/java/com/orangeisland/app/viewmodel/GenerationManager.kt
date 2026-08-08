@@ -725,7 +725,6 @@ class GenerationManager(
         try {
             var transcriptionPerformed = false
             if (ctx.imageTranscriptionEnabled && ctx.transcriptionModelId.isNotEmpty()) {
-                kotlinx.coroutines.delay(500)
                 val targets = transcriptionManager.collectTargets(conversationId, parentId)
                 DebugLog.d("ImageTranscription", "transcription gate: imageTranscriptionEnabled=${ctx.imageTranscriptionEnabled} modelId='${ctx.transcriptionModelId}' provider='${ctx.transcriptionProviderName}' targets=${targets.size}")
                 if (targets.isNotEmpty()) {
@@ -733,7 +732,7 @@ class GenerationManager(
                         targets, conversationId,
                         ctx.transcriptionProviderName, ctx.transcriptionModelId,
                         ctx.transcriptionApiKey, ctx.transcriptionBaseUrl,
-                        ctx.imageTranscriptionPrompt,
+                        ctx.imageTranscriptionPrompt, ctx.imageTranscriptionBatchSize,
                         generationJob, modelMessageId, startTime, onStreamUpdate
                     )
                     if (transcriptionError != null) {
@@ -754,7 +753,6 @@ class GenerationManager(
             }
 
             if (state.currentStatus != MessageStatus.ERROR && ctx.videoNarrationEnabled && ctx.videoNarrationModelId.isNotEmpty()) {
-                kotlinx.coroutines.delay(500)
                 val videoTargets = videoNarrationManager.collectTargets(conversationId, parentId)
                 DebugLog.d("VideoNarration", "narration gate: videoNarrationEnabled=${ctx.videoNarrationEnabled} modelId='${ctx.videoNarrationModelId}' provider='${ctx.videoNarrationProviderName}' targets=${videoTargets.size}")
                 if (videoTargets.isNotEmpty()) {

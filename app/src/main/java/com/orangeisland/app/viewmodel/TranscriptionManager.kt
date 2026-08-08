@@ -17,7 +17,6 @@ import com.orangeisland.app.model.MessageStatus
 import com.orangeisland.app.model.Participant
 import com.orangeisland.app.service.OrangeIslandForegroundService
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
@@ -151,6 +150,7 @@ class TranscriptionManager(
         apiKey: String,
         baseUrl: String?,
         prompt: String,
+        batchSize: Int,
         generationJob: Job?,
         modelMessageId: String,
         startTime: Long,
@@ -168,67 +168,130 @@ class TranscriptionManager(
         val parentId = placeholder?.parentId
         val results = mutableMapOf<String, MutableList<Pair<Int, String>>>()
         val transcriptionSegments = mutableListOf<MessageSegment>()
-        var processed = 0
         val total = targets.size
+        var processed = 0
+        val effectiveBatchSize = batchSize.coerceIn(1, 10)
+        val chunks = targets.chunked(effectiveBatchSize)
 
-        for (target in targets) {
-            if (generationJob?.isCancelled == true) throw CancellationException("Transcription cancelled")
-            if (!currentCoroutineContext().isActive) throw CancellationException("Transcription cancelled")
-
-            withContext(Dispatchers.Main) {
-                OrangeIslandForegroundService.updateText(context.getString(R.string.transcription_progress, processed + 1, total))
-            }
-
-            val currentSegment = MessageSegment(type = "transcription", content = "Transcribing...")
-            transcriptionSegments.add(currentSegment)
-            onProgress(ChatMessage(
-                id = modelMessageId, parentId = parentId, text = "",
-                participant = Participant.MODEL, status = MessageStatus.TRANSCRIBING, timestamp = startTime,
-                retryText = "${processed + 1}/$total",
-                thoughtTitle = "Image Transcription",
-                // Trailing empty answer segment keeps the timeline renderer active during
-                // transcription (it keys on the presence of an "answer" segment), so the
-                // block morphs in place into the thought block instead of disappearing.
-                segments = transcriptionSegments.toList() + MessageSegment(type = "answer"),
-            ))
-
+        suspend fun runSingle(target: TranscriptionTarget, errorSetter: (String) -> Unit): String {
             val promptMessages = listOf(ChatMessage(
                 text = prompt.ifBlank { BuiltInPrompts.IMAGE_TRANSCRIPTION_USER },
                 images = listOf(target.imagePath),
                 participant = Participant.USER,
                 status = MessageStatus.SUCCESS
             ))
-            val transcription = StringBuilder()
-            var streamError: String? = null
+            val sb = StringBuilder()
             provider.generateResponse(promptMessages, transcriptionConfig).collect { event ->
                 when (event) {
-                    is StreamEvent.TextChunk -> {
-                        transcription.append(event.text)
-                        transcriptionSegments[transcriptionSegments.lastIndex] = currentSegment.copy(content = transcription.toString())
-                        onProgress(ChatMessage(
-                            id = modelMessageId, parentId = parentId, text = "",
-                            participant = Participant.MODEL, status = MessageStatus.TRANSCRIBING, timestamp = startTime,
-                            retryText = "${processed + 1}/$total",
-                            thoughtTitle = "Image Transcription",
-                            // Trailing empty answer segment keeps the timeline renderer active during
-                // transcription (it keys on the presence of an "answer" segment), so the
-                // block morphs in place into the thought block instead of disappearing.
-                segments = transcriptionSegments.toList() + MessageSegment(type = "answer"),
-                        ))
-                    }
-                    is StreamEvent.Error -> { streamError = event.message }
+                    is StreamEvent.TextChunk -> sb.append(event.text)
+                    is StreamEvent.Error -> errorSetter(event.message)
                     else -> {}
                 }
             }
-            if (streamError != null) return Pair(transcriptionSegments, streamError)
-            val text = transcription.toString().trim()
-            transcriptionSegments[transcriptionSegments.lastIndex] = currentSegment.copy(content = text)
-            results.getOrPut(target.messageId) { mutableListOf() }
-                .add(target.metaItemIndex to text)
-            processed++
+            return sb.toString().trim()
         }
 
-        // Persist results back to message attachment metadata
+        for (chunk in chunks) {
+            if (generationJob?.isCancelled == true) throw CancellationException("Transcription cancelled")
+            if (!currentCoroutineContext().isActive) throw CancellationException("Transcription cancelled")
+
+            withContext(Dispatchers.Main) {
+                OrangeIslandForegroundService.updateText(
+                    context.getString(R.string.transcription_progress, processed + 1, total)
+                )
+            }
+
+            val currentSegment = MessageSegment(type = "transcription", content = "Transcribing...")
+            transcriptionSegments.add(currentSegment)
+
+            fun emitProgress(content: String) {
+                transcriptionSegments[transcriptionSegments.lastIndex] = currentSegment.copy(content = content)
+                onProgress(ChatMessage(
+                    id = modelMessageId, parentId = parentId, text = "",
+                    participant = Participant.MODEL, status = MessageStatus.TRANSCRIBING, timestamp = startTime,
+                    retryText = "${(processed + chunk.size).coerceAtMost(total)}/$total",
+                    thoughtTitle = "Image Transcription",
+                    segments = transcriptionSegments.toList() + MessageSegment(type = "answer"),
+                ))
+            }
+            emitProgress(currentSegment.content)
+
+            var streamError: String? = null
+            val texts: List<String>
+
+            if (chunk.size == 1) {
+                val target = chunk[0]
+                val promptMessages = listOf(ChatMessage(
+                    text = prompt.ifBlank { BuiltInPrompts.IMAGE_TRANSCRIPTION_USER },
+                    images = listOf(target.imagePath),
+                    participant = Participant.USER,
+                    status = MessageStatus.SUCCESS
+                ))
+                val sb = StringBuilder()
+                provider.generateResponse(promptMessages, transcriptionConfig).collect { event ->
+                    when (event) {
+                        is StreamEvent.TextChunk -> {
+                            sb.append(event.text)
+                            emitProgress(sb.toString())
+                        }
+                        is StreamEvent.Error -> { streamError = event.message }
+                        else -> {}
+                    }
+                }
+                texts = listOf(sb.toString().trim())
+            } else {
+                val batchPrompt = buildString {
+                    append(prompt.ifBlank { BuiltInPrompts.IMAGE_TRANSCRIPTION_USER })
+                    append("\n\n")
+                    append(BuiltInPrompts.imageTranscriptionBatchInstruction(chunk.size))
+                }
+                val promptMessages = listOf(ChatMessage(
+                    text = batchPrompt,
+                    images = chunk.map { it.imagePath },
+                    participant = Participant.USER,
+                    status = MessageStatus.SUCCESS
+                ))
+                val sb = StringBuilder()
+                provider.generateResponse(promptMessages, transcriptionConfig).collect { event ->
+                    when (event) {
+                        is StreamEvent.TextChunk -> {
+                            sb.append(event.text)
+                            emitProgress(sb.toString())
+                        }
+                        is StreamEvent.Error -> { streamError = event.message }
+                        else -> {}
+                    }
+                }
+                val parsed = if (streamError == null) BuiltInPrompts.parseImageTranscriptionBatch(sb.toString(), chunk.size) else null
+                texts = if (parsed != null) {
+                    parsed
+                } else if (streamError == null) {
+                    DebugLog.e("ImageTranscription", "batch parse failed for chunk size=${chunk.size}, falling back to per-image calls")
+                    val fallback = mutableListOf<String>()
+                    for (target in chunk) {
+                        if (streamError != null) break
+                        val text = runSingle(target) { streamError = it }
+                        fallback.add(text)
+                    }
+                    fallback
+                } else emptyList()
+            }
+
+            if (streamError != null) return Pair(transcriptionSegments, streamError)
+
+            transcriptionSegments[transcriptionSegments.lastIndex] = currentSegment.copy(
+                content = if (chunk.size == 1) texts.first()
+                    else texts.mapIndexed { i, t -> "[${i + 1}/${chunk.size}]\n$t" }.joinToString("\n\n")
+            )
+
+            chunk.forEachIndexed { i, target ->
+                val text = texts.getOrElse(i) { "" }
+                results.getOrPut(target.messageId) { mutableListOf() }
+                    .add(target.metaItemIndex to text)
+            }
+            processed += chunk.size
+        }
+
         for ((messageId, updates) in results) {
             val entity = conversations.getMessagesForConversationSnapshot(conversationId).find { it.id == messageId }
             if (entity != null) {

@@ -48,7 +48,6 @@ import com.orangeisland.app.model.SelectedAttachment
 import com.orangeisland.app.model.ToolCallData
 import com.orangeisland.app.sandbox.SandboxManager
 import com.orangeisland.app.sandbox.SandboxManagerFactory
-import com.orangeisland.app.service.AppForegroundTracker
 import com.orangeisland.app.service.OrangeIslandForegroundService
 import com.orangeisland.app.service.AutoBackupWorker
 import com.orangeisland.app.service.HealthSyncWorker
@@ -122,7 +121,11 @@ class ChatViewModel(
     /** Receives plugin-sent messages and triggers AI generation for them. */
     private val pluginMemoryProvider: com.orangeisland.app.plugin.AppPluginMemoryProvider? = null,
     /** Music Studio repository. When present, music generation/list/delete tools are exposed to the LLM. */
-    private val musicStudioRepository: com.orangeisland.app.data.music.MusicStudioRepository? = null
+    private val musicStudioRepository: com.orangeisland.app.data.music.MusicStudioRepository? = null,
+    /** App-wide MCP client pool, injected from [com.orangeisland.app.di.AppContainer]. Shared with
+     *  the workflow engine's tool dispatcher — see the property doc further down for why this
+     *  moved from a ViewModel-owned lazy to an injected dependency. */
+    val mcpClientPool: com.orangeisland.app.mcp.McpClientPool
 ) : AndroidViewModel(application) {
 
 
@@ -156,19 +159,7 @@ class ChatViewModel(
      *  a major hot-path cost. Key covers the fields that affect the mapped output. */
     private val chatMessageCache = android.util.LruCache<String, ChatMessage>(200)
 
-    private fun messageCacheKey(entity: MessageEntity): String = buildString {
-        append(entity.id)
-        append('|')
-        append(entity.status.name)
-        append('|')
-        append(entity.text.hashCode())
-        append('|')
-        append(entity.thoughts.hashCode())
-        append('|')
-        append(entity.toolCallJson.hashCode())
-        append('|')
-        append(entity.attachmentMeta.hashCode())
-    }
+    private fun messageCacheKey(entity: MessageEntity): String = entity.cacheKey()
 
     private fun mapMessageEntity(entity: MessageEntity): ChatMessage {
         val key = messageCacheKey(entity)
@@ -410,14 +401,6 @@ class ChatViewModel(
         }
         // Keep the provider map and cached model lists consistent with settings.
         providerRegistry.launchSyncJobs()
-        // Drop MCP pool connections for servers that were deleted.
-        viewModelScope.launch {
-            settings.mcpServers.collect { servers ->
-                if (mcpClientPoolLazy.isInitialized()) {
-                    mcpClientPool.retainOnly(servers.map { it.id }.toSet())
-                }
-            }
-        }
     }
 
     // Generation lifecycle (IO scope, current job, send gate, race-free stop/persist
@@ -450,25 +433,9 @@ class ChatViewModel(
         }
     }
 
-    /** MCP (Model Context Protocol) client pool 鈥?one connection per configured server.
-     *  Lazily created (only when first MCP tool is requested), eagerly closed in [onCleared].
-     *  Lives on viewModelScope so the background reconnect coroutines die with the ViewModel.
-     *  On first access it also starts the heartbeat guardian (see [McpClientPool.startMonitoring])
-     *  so the MCP settings UI's three-state icon stays live between generations. */
-    private val foregroundListener: (Boolean) -> Unit = { inForeground ->
-        if (inForeground) {
-            viewModelScope.launch {
-                mcpClientPool.refreshAll(settings.mcpServers.value.filter { it.enabled })
-            }
-        }
-    }
-    private val mcpClientPoolLazy = lazy {
-        com.orangeisland.app.mcp.McpClientPool(ioScope = viewModelScope).also { pool ->
-            pool.startMonitoring(settings.mcpServers)
-            AppForegroundTracker.addListener(foregroundListener)
-        }
-    }
-    val mcpClientPool: com.orangeisland.app.mcp.McpClientPool get() = mcpClientPoolLazy.value
+    // mcpClientPool is now injected via the constructor (see param doc above) — app-lifetime,
+    // owned by AppContainer. Monitoring / foreground-refresh / stale-server cleanup are started
+    // once by AppContainer.startMcpMaintenance(), not per-ViewModel.
 
     /** Per-server MCP connection status, observed by the MCP settings UI to render the three-state
      *  leading icon (spinner / error / ok). Forces the pool lazy so monitoring is running. */
@@ -486,10 +453,8 @@ class ChatViewModel(
         localProvider.close()
         session.cancelScope()
         autoBackupManager.destroy()
-        if (mcpClientPoolLazy.isInitialized()) {
-            mcpClientPool.closeAll()
-            AppForegroundTracker.removeListener(foregroundListener)
-        }
+        // mcpClientPool is app-lifetime (owned by AppContainer) — do NOT close it here. The
+        // workflow engine (or another ChatViewModel instance) may still be using it.
         pluginSandbox?.closeAll()
     }
 
