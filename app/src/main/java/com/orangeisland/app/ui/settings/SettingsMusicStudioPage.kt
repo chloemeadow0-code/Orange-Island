@@ -1,20 +1,13 @@
 package com.orangeisland.app.ui.settings
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -26,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -46,24 +38,12 @@ fun SettingsMusicStudioPage(
     onBack: () -> Unit
 ) {
     val enabled by viewModel.settings.musicStudioEnabled.collectAsStateWithLifecycle()
-    val provider by viewModel.settings.musicStudioProvider.collectAsStateWithLifecycle()
     val sunoUrl by viewModel.settings.musicStudioSunoApiUrl.collectAsStateWithLifecycle()
     val sunoKey by viewModel.settings.musicStudioSunoApiKey.collectAsStateWithLifecycle()
-    val replicateKey by viewModel.settings.musicStudioReplicateApiKey.collectAsStateWithLifecycle()
-    val replicateModelVersion by viewModel.settings.musicStudioReplicateModelVersion.collectAsStateWithLifecycle()
-    val rvcModelUrl by viewModel.settings.musicStudioRvcModelUrl.collectAsStateWithLifecycle()
-    val voiceReplacementEnabled by viewModel.settings.musicStudioVoiceReplacementEnabled.collectAsStateWithLifecycle()
 
     var sunoUrlDraft by remember { mutableStateOf(sunoUrl) }
     var sunoKeyDraft by remember { mutableStateOf(sunoKey) }
-    var replicateKeyDraft by remember { mutableStateOf(replicateKey) }
-    var replicateModelDraft by remember { mutableStateOf(replicateModelVersion) }
-    var rvcModelUrlDraft by remember { mutableStateOf(rvcModelUrl) }
     var showSunoKey by remember { mutableStateOf(false) }
-    var showReplicateKey by remember { mutableStateOf(false) }
-    var providerExpanded by remember { mutableStateOf(false) }
-
-    val providers = listOf("suno" to "Suno", "replicate" to "Replicate")
 
     CollapsingSettingsScaffold(
         title = stringResource(R.string.music_studio_title),
@@ -90,156 +70,47 @@ fun SettingsMusicStudioPage(
             )
 
             if (enabled) {
+                // Suno is the only generation provider.
                 SettingsGroup(
-                    title = stringResource(R.string.music_studio_group_provider),
+                    title = "Suno",
                     items = listOf({
-                        ExposedDropdownMenuBox(
-                            expanded = providerExpanded,
-                            onExpandedChange = { providerExpanded = it }
-                        ) {
-                            OutlinedTextField(
-                                value = providers.find { it.first == provider }?.second ?: provider,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text(stringResource(R.string.music_studio_provider)) },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = providerExpanded) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .menuAnchor()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                            DropdownMenu(
-                                expanded = providerExpanded,
-                                onDismissRequest = { providerExpanded = false }
-                            ) {
-                                providers.forEach { (id, label) ->
-                                    DropdownMenuItem(
-                                        text = { Text(label) },
-                                        onClick = {
-                                            viewModel.settings.setMusicStudioProvider(id)
-                                            providerExpanded = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    })
-                )
-
-                if (provider == "suno") {
-                    SettingsGroup(
-                        title = "Suno",
-                        items = listOf({
-                            OutlinedTextField(
-                                value = sunoUrlDraft,
-                                onValueChange = {
-                                    sunoUrlDraft = it
-                                    viewModel.settings.setMusicStudioSunoApiUrl(it)
-                                },
-                                label = { Text(stringResource(R.string.music_studio_suno_url)) },
-                                leadingIcon = { Icon(Icons.Default.Link, null) },
-                                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Uri),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        }, {
-                            OutlinedTextField(
-                                value = sunoKeyDraft,
-                                onValueChange = {
-                                    sunoKeyDraft = it
-                                    viewModel.settings.setMusicStudioSunoApiKey(it)
-                                },
-                                label = { Text(stringResource(R.string.music_studio_suno_key)) },
-                                leadingIcon = { Icon(Icons.Default.Key, null) },
-                                visualTransformation = if (showSunoKey) VisualTransformation.None else PasswordVisualTransformation(),
-                                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Password),
-                                trailingIcon = {
-                                    TextButton(onClick = { showSunoKey = !showSunoKey }) {
-                                        Text(stringResource(if (showSunoKey) R.string.hide else R.string.show))
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        })
-                    )
-                }
-
-                SettingsGroup(
-                    title = stringResource(R.string.music_studio_group_voice_replacement),
-                    items = listOf({
-                        Row(
+                        OutlinedTextField(
+                            value = sunoUrlDraft,
+                            onValueChange = {
+                                sunoUrlDraft = it
+                                viewModel.settings.setMusicStudioSunoApiUrl(it)
+                            },
+                            label = { Text(stringResource(R.string.music_studio_suno_url)) },
+                            leadingIcon = { Icon(Icons.Default.Link, null) },
+                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Uri),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { viewModel.settings.setMusicStudioVoiceReplacementEnabled(!voiceReplacementEnabled) }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.music_studio_voice_replacement),
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                                Text(
-                                    text = stringResource(R.string.music_studio_voice_replacement_desc),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Switch(
-                                checked = voiceReplacementEnabled,
-                                onCheckedChange = { viewModel.settings.setMusicStudioVoiceReplacementEnabled(it) }
-                            )
-                        }
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
                     }, {
                         OutlinedTextField(
-                            value = replicateKeyDraft,
+                            value = sunoKeyDraft,
                             onValueChange = {
-                                replicateKeyDraft = it
-                                viewModel.settings.setMusicStudioReplicateApiKey(it)
+                                sunoKeyDraft = it
+                                viewModel.settings.setMusicStudioSunoApiKey(it)
                             },
-                            label = { Text(stringResource(R.string.music_studio_replicate_key)) },
+                            label = { Text(stringResource(R.string.music_studio_suno_key)) },
                             leadingIcon = { Icon(Icons.Default.Key, null) },
-                            visualTransformation = if (showReplicateKey) VisualTransformation.None else PasswordVisualTransformation(),
+                            visualTransformation = if (showSunoKey) VisualTransformation.None else PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Password),
                             trailingIcon = {
-                                TextButton(onClick = { showReplicateKey = !showReplicateKey }) {
-                                    Text(stringResource(if (showReplicateKey) R.string.hide else R.string.show))
+                                TextButton(onClick = { showSunoKey = !showSunoKey }) {
+                                    Text(stringResource(if (showSunoKey) R.string.hide else R.string.show))
                                 }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
                         )
-                    }, {
-                        OutlinedTextField(
-                            value = replicateModelDraft,
-                            onValueChange = {
-                                replicateModelDraft = it
-                                viewModel.settings.setMusicStudioReplicateModelVersion(it)
-                            },
-                            label = { Text(stringResource(R.string.music_studio_replicate_model_version)) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
-                    }, {
-                        OutlinedTextField(
-                            value = rvcModelUrlDraft,
-                            onValueChange = {
-                                rvcModelUrlDraft = it
-                                viewModel.settings.setMusicStudioRvcModelUrl(it)
-                            },
-                            label = { Text(stringResource(R.string.music_studio_rvc_model_url)) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
                     })
                 )
+
+                // Voice replacement (RVC) config lives on the per-track detail page now, not here.
             }
         }
     }

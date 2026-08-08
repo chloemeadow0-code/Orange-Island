@@ -1083,6 +1083,9 @@ val projectModelOptions = remember(uiState.enabledModels, uiState.modelAliases) 
         val id = projectToSettings
         val project = id?.let { uiState.projects.find { p -> p.id == it } }
         if (id != null && project != null) {
+            // Intercept back so the predictive-back / edge-swipe gesture closes this overlay
+            // instead of leaving the app. Must live inside AnimatedVisibility's content.
+            androidx.activity.compose.BackHandler(enabled = true) { projectToSettings = null }
             // Refresh project memory files whenever the dialog is open for this project.
             // Simplest correct hook: re-fetch on (re)composition boundary via remember +
             // LaunchedEffect keyed on the project id, so create/edit/delete callbacks can refresh
@@ -1152,7 +1155,10 @@ val projectModelOptions = remember(uiState.enabledModels, uiState.modelAliases) 
             animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
             targetOffsetX = { it }
         ) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(200))
-    ) {
+        ) {
+        // Intercept back so the predictive-back / edge-swipe gesture closes this overlay
+        // instead of leaving the app. Must live inside AnimatedVisibility's content.
+        androidx.activity.compose.BackHandler(enabled = showAnniversaryPage) { showAnniversaryPage = false }
         com.orangeisland.app.ui.chat.AnniversaryPage(
             viewModel = viewModel,
             onBack = { showAnniversaryPage = false }
@@ -1173,6 +1179,9 @@ val projectModelOptions = remember(uiState.enabledModels, uiState.modelAliases) 
     ) {
         val id = conversationImagesManageId
         if (id != null) {
+            // Intercept back so the predictive-back / edge-swipe gesture closes this overlay
+            // instead of leaving the app. Must live inside AnimatedVisibility's content.
+            androidx.activity.compose.BackHandler(enabled = true) { conversationImagesManageId = null }
             ConversationImagesPage(
                 conversationId = id,
                 viewModel = viewModel,

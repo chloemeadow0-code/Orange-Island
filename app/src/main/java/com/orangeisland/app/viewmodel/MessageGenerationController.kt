@@ -1360,7 +1360,75 @@ class MessageGenerationController(
             } finally {
                 compressingConversationIds.remove(conversationId)
                 DebugLog.d("CompressHistory", "compressHistory finished for conv=$conversationId")
+                // Compression deletes messages, which can leave orphan branches (messages whose
+                // parentId now points at a deleted row). resolvePath's orphan-splicing appends
+                // those to the wrong end of the path, causing the "old messages jump after new
+                // ones"乱序 right after a compress. Re-chain any orphans onto the rendered path
+                // tail immediately, so the post-compress state is clean without needing a re-entry.
+                // selfHealOrphanBranches is idempotent (returns early when there are no orphans).
+                try { selfHealOrphanBranches(conversationId) } catch (he: Exception) {
+                    DebugLog.e("CompressHistory", "post-compress self-heal failed for conv=${conversationId.take(12)}", he)
+                }
             }
         }
+    }
+
+    /**
+     * Re-chain unreachable orphan branches onto the rendered path tail. Mirrors the same-named
+     * method in ChatViewModel (which runs it on conversation open); this copy runs it after each
+     * compressHistory so newly-created orphans are healed immediately. Idempotent.
+     */
+    private suspend fun selfHealOrphanBranches(conversationId: String) {
+        val entities = convRepo.getMessagesForConversationSnapshot(conversationId)
+        if (entities.size < 2) return
+        val byId = entities.associateBy { it.id }
+        val visible = entities.filter {
+            it.participant == Participant.USER || it.participant == Participant.MODEL
+        }
+        val roots = visible.filter { it.parentId == null || it.parentId !in byId }
+        val renderedRoot = roots.minByOrNull {
+            if (it.participant == Participant.USER) it.timestamp else Long.MAX_VALUE
+        } ?: roots.minByOrNull { it.timestamp } ?: return
+
+        val reachable = mutableSetOf<String>()
+        val stack = ArrayDeque<String>()
+        stack.addLast(renderedRoot.id)
+        while (stack.isNotEmpty()) {
+            val cur = stack.removeLast()
+            if (cur in reachable) continue
+            reachable.add(cur)
+            visible.filter { it.parentId == cur }.forEach { stack.addLast(it.id) }
+        }
+        val orphans = visible.filter { it.id !in reachable }.sortedBy { it.timestamp }
+        if (orphans.isEmpty()) return
+
+        var tailId: String = renderedRoot.id
+        while (true) {
+            val child = visible.firstOrNull { it.parentId == tailId && it.id in reachable }
+            if (child == null) break
+            tailId = child.id
+        }
+        val reparented = mutableListOf<Pair<String, String?>>()
+        val newSelections = mutableMapOf<String?, String>()
+        reachable.forEach { rid ->
+            val child = visible.firstOrNull { it.parentId == rid && it.id in reachable }
+            if (child != null) newSelections[rid] = child.id
+        }
+        for (orphan in orphans) {
+            reparented.add(orphan.id to tailId)
+            newSelections[tailId] = orphan.id
+            tailId = orphan.id
+        }
+        DebugLog.w("MsgOrder", "SELF-HEAL(post-compress) conv=${conversationId.take(12)}: " +
+            "reachable=${reachable.size} orphans=${orphans.size} " +
+            "renderedRoot=${renderedRoot.id.take(12)} tailAfterHeal=${tailId.take(12)}")
+        for ((oid, newParent) in reparented) {
+            val e = byId[oid] ?: continue
+            convRepo.upsertMessage(e.copy(parentId = newParent))
+        }
+        val existing = selectedChildren.value.toMutableMap()
+        existing.putAll(newSelections)
+        selectedChildren.value = existing.toMap()
+        onPersistSelectedChildren(conversationId, existing.toMap())
     }
 }

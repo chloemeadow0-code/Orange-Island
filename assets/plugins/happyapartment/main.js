@@ -292,28 +292,8 @@ function score() {
 exports.new_game = function (params) {
   params = params || {};
   var seed = (typeof params.seed === "number") ? params.seed : 20260804;
-  STATE = {
-    seed: seed,
-    rng: makeRng(seed),
-    diff: DIFF,
-    year: 1, month: 1,
-    cash: 5000, research: 20, tickets: 2,
-    rooms: [],
-    residents: [],
-    rankWins: { local: [], national: [], world: [] },
-    firstCareer: {},
-    behaviorFlags: {},
-    allChampion: false,
-    fridgeCount: 0,
-    unlocks: [],
-    log: []
-  };
-  var startFloors = ["elastic", "green", "orange", "tile"];
-  for (var i = 0; i < startFloors.length; i++) {
-    STATE.rooms.push({ id: "r" + (i + 1), floor: startFloors[i], capacity: 4, furniture: [], comfort: 0, brokenMonths: 0, rentMult: 1, specialName: null, specialRent: 0, specialAttrs: [], residentId: null });
-  }
-  computeAllRooms();
-  return { success: true, mode: DIFF.label, message: "幸福公寓开业! 起始现金5000/研究点20/卷轴2, 4间房(弹/绿/橙/砖). 每月自动+1研究点(运营)且每住户+1研究点(租金衍生), 不会卡死在0研究点. 用 list_furniture 看家具, place_furniture 装修, recruit 招租, advance 收租.", state: snapshot() };
+  STATE = createInitialState(seed);
+  return { success: true, mode: DIFF.label, message: "幸福公寓开业! 起始现金5000/研究点20/卷轴2, 4间房(弹/绿/橙/砖). 每月自动+1研究点(运营)且每住户+1研究点(租金衍生), 不会卡死在0研究点. 存档已绑定用户名(配置项username), 数据存 Supabase. 用 list_furniture 看家具, place_furniture 装修, recruit 招租, advance 收租.", state: snapshot() };
 };
 
 function snapshot() {
@@ -500,7 +480,7 @@ exports.advance = function (params) {
     if (!STATE) break;
   }
   computeAllRooms();
-  return { success: true, time: { year: STATE.year, month: STATE.month }, cash: STATE.cash, totalComfort: STATE.totalComfort, grade: ratingGrade(STATE.totalComfort), events: events.slice(-8) };
+  return { success: true, time: { year: STATE.year, month: STATE.month }, cash: STATE.cash, debt: STATE.cash < 0 ? STATE.cash : 0, totalComfort: STATE.totalComfort, grade: ratingGrade(STATE.totalComfort), events: events.slice(-8) };
 };
 
 function stepMonth(events) {
@@ -520,6 +500,12 @@ function stepMonth(events) {
   for (var j = 0; j < STATE.rooms.length; j++) { upkeep += roomUpkeep(STATE.rooms[j]); }
   upkeep = Math.round(upkeep * DIFF.upkeepMult);
   STATE.cash -= upkeep;
+  // 负债利息: 现金为负时每月额外罚息(开罗真实体验; 不强制赶人, 保证可破局)
+  if (STATE.cash < 0) {
+    var interest = Math.max(50, Math.ceil(-STATE.cash * 0.05));
+    STATE.cash -= interest;
+    events.push({ type: "debt", interest: interest, balance: STATE.cash });
+  }
   // 老化 + 退休 + 病假
   var survivors = [];
   for (var k = 0; k < STATE.residents.length; k++) {
@@ -735,7 +721,9 @@ exports.summary = function (params) {
   var lines = [];
   lines.push("== 幸福公寓·" + DIFF.label + " ==");
   lines.push("时间: 第" + STATE.year + "年" + STATE.month + "月");
-  lines.push("资源: 现金" + STATE.cash + " 研究点" + STATE.research + " 卷轴" + STATE.tickets);
+  var resLine = "资源: 现金" + STATE.cash + " 研究点" + STATE.research + " 卷轴" + STATE.tickets;
+  if (STATE.cash < 0) resLine += " [负债! 每月利息5%]";
+  lines.push(resLine);
   lines.push("总舒适:" + STATE.totalComfort + " 评级:" + ratingGrade(STATE.totalComfort) + " (S需" + DIFF.sThreshold + ") 综合分:" + score());
   lines.push("房间:" + STATE.rooms.length + " 居民:" + STATE.residents.length + " 已解锁家具:" + countUnlocked() + "/" + FURNITURE.length);
   lines.push("夺冠记录: 地域[" + STATE.rankWins.local.join(",") + "] 全国[" + STATE.rankWins.national.join(",") + "] 世界[" + STATE.rankWins.world.join(",") + "]" + (STATE.allChampion ? " (全冠!)" : ""));
@@ -744,10 +732,130 @@ exports.summary = function (params) {
   if (spRooms.length > 0) lines.push("专门房间: " + spRooms.join(", "));
   var tips = [];
   if (STATE.residents.length < STATE.rooms.length) tips.push("向空房 recruit 居民以收租");
-  if (STATE.cash < 1000) tips.push("现金紧张, 注意维护费与租金平衡(维护倍率=" + DIFF.upkeepMult + ")");
+  if (STATE.cash < 0) tips.push("负债" + STATE.cash + "元, 每月利息5%, 尽快招租/赢竞赛还债(不会强制赶人)");
+  else if (STATE.cash < 1000) tips.push("现金紧张, 注意维护费与租金平衡(维护倍率=" + DIFF.upkeepMult + ")");
   if (STATE.totalComfort < DIFF.sThreshold) tips.push("总舒适未达S(" + DIFF.sThreshold + "), 继续装修/激活专门房间");
   if (STATE.rankWins.world.length < COMP_CATS.length) tips.push("报名 enter_competition 冲击榜单拿奖励解锁家具");
   if (STATE.research < 5 && STATE.residents.length > 0) tips.push("研究点低别慌: 每 advance 一月, 基础+1且每住户+1, 多 advance 即可积累招租");
   if (tips.length > 0) lines.push("建议: " + tips.join("; "));
   return { success: true, text: lines.join("\n"), score: score(), grade: ratingGrade(STATE.totalComfort) };
 };
+
+// ==================== Supabase 持久化层 (硬编码, 复用 AI小窝 同一实例) ====================
+var SUPABASE_URL = 'https://ogmlzwxwlbfmkdlafjrx.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_fjWcWqkNTBkdbs59fQkASg_UBczl3L_';
+var TABLE_NAME = 'happy_apartment_data';
+
+function getConfig() {
+  try {
+    var cfg = (typeof __OI_PLUGIN_CONFIG !== 'undefined') ? __OI_PLUGIN_CONFIG : ((typeof __AGORA_PLUGIN_CONFIG !== 'undefined') ? __AGORA_PLUGIN_CONFIG : undefined);
+    if (cfg && typeof cfg === 'object') return cfg;
+    if (typeof cfg === 'string') return JSON.parse(cfg);
+  } catch (e) {}
+  return {};
+}
+function getUsername() {
+  var cfg = getConfig();
+  return (cfg && cfg.username) ? cfg.username : '';
+}
+
+// 同步 fetch (宿主沙箱封装为阻塞调用, 返回 {ok,status,body})
+function supabaseRequest(method, path, body) {
+  var headers = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
+  if (method === 'POST' || method === 'PATCH') headers['Prefer'] = 'return=representation';
+  var options = { method: method, headers: headers };
+  if (body) options.body = JSON.stringify(body);
+  try {
+    var raw = fetch(SUPABASE_URL + path, options);
+    var resp = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+    if (!resp || !resp.ok) return { status: resp ? (resp.status || 0) : 0, error: resp ? (resp.error || '请求失败') : '无响应' };
+    var text = resp.body || '';
+    var data = null;
+    if (text) { try { data = JSON.parse(text); } catch (e) { data = text; } }
+    return { status: resp.status, data: data };
+  } catch (e) { return { status: 0, error: e.message || String(e) }; }
+}
+
+function fetchSaved(uname) {
+  var res = supabaseRequest('GET', '/rest/v1/' + TABLE_NAME + '?home_id=eq.' + encodeURIComponent(uname));
+  if (res.status === 200 && res.data && res.data.length > 0) return { ok: true, data: res.data[0].data };
+  if (res.status === 200) return { ok: true, data: null };
+  return { ok: false, error: res.error };
+}
+
+function upsertSaved(uname, dataObj) {
+  var now = new Date().toISOString();
+  try {
+    var raw = fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME + '?on_conflict=home_id', {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ home_id: uname, data: dataObj, updated_at: now })
+    });
+    var resp = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+    return !!(resp && resp.status >= 200 && resp.status < 300);
+  } catch (e) { return false; }
+}
+
+function loadState(uname) {
+  var r = fetchSaved(uname);
+  if (r.ok && r.data) {
+    if (!r.data.rng) r.data.rng = makeRng(r.data.seed || 20260804);  // rng 是函数, 存 supabase 会丢, 读回按 seed 重建
+    return r.data;
+  }
+  if (r.ok && !r.data) return createInitialState(20260804);  // 无存档 -> 新建(末尾 saveState 写回)
+  return STATE || createInitialState(20260804);              // 网络失败 -> 回退内存
+}
+
+function saveState(uname) {
+  if (!STATE) return false;
+  var json = JSON.stringify(STATE);   // 自动丢弃 rng(函数) 等非序列化字段
+  var obj = JSON.parse(json);
+  return upsertSaved(uname, obj);
+}
+
+function createInitialState(seed) {
+  STATE = {
+    seed: seed,
+    rng: makeRng(seed),
+    diff: DIFF,
+    year: 1, month: 1,
+    cash: 5000, research: 20, tickets: 2,
+    rooms: [],
+    residents: [],
+    rankWins: { local: [], national: [], world: [] },
+    firstCareer: {},
+    behaviorFlags: {},
+    allChampion: false,
+    fridgeCount: 0,
+    unlocks: [],
+    log: []
+  };
+  var startFloors = ["elastic", "green", "orange", "tile"];
+  for (var i = 0; i < startFloors.length; i++) {
+    STATE.rooms.push({ id: "r" + (i + 1), floor: startFloors[i], capacity: 4, furniture: [], comfort: 0, brokenMonths: 0, rentMult: 1, specialName: null, specialRent: 0, specialAttrs: [], residentId: null });
+  }
+  computeAllRooms();
+  return STATE;
+}
+
+// 统一包装: 每次工具调用从 Supabase 读最新存档, 调用后写回。配置缺用户名则报错。
+function wrap(fn) {
+  return function (args) {
+    var uname = getUsername();
+    if (!uname) return { success: false, error: '未配置用户名, 请在插件配置中填写 username(随便取一个名字, 作为存档隔离标识)' };
+    STATE = loadState(uname);
+    var r = fn(args || {});
+    saveState(uname);
+    return r;
+  };
+}
+(function () {
+  var names = ['new_game', 'observe', 'legal_actions', 'list_furniture', 'place_furniture', 'remove_furniture', 'recruit', 'expand', 'advance', 'enter_competition', 'use_item', 'set_rent', 'summary'];
+  for (var i = 0; i < names.length; i++) {
+    (function (n) {
+      var orig = exports[n];
+      if (!orig) return;
+      exports[n] = wrap(orig);
+    })(names[i]);
+  }
+})();

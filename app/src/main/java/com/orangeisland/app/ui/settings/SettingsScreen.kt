@@ -212,7 +212,6 @@ fun SettingsScreen(
     workflowViewModel: com.orangeisland.app.viewmodel.WorkflowViewModel,
     initialCategory: String? = null,
     onEditWorkflowInChat: (prefilledPrompt: String) -> Unit = {},
-    onOpenHealthPage: () -> Unit = {},
     memoryProvider: PluginMemoryProvider? = null,
 ) {
     var selectedCategory by rememberSaveable { mutableStateOf<String?>(initialCategory) }
@@ -264,7 +263,6 @@ fun SettingsScreen(
                 "device_access" -> SettingsDeviceAccessPage(
                     viewModel = viewModel,
                     onBack = { selectedCategory = null },
-                    onOpenHealthPage = onOpenHealthPage
                 )
                 "proxy" -> SettingsProxyPage(viewModel, onBack = { selectedCategory = null })
                 "language" -> SettingsLanguagePage(viewModel, onBack = { selectedCategory = null })

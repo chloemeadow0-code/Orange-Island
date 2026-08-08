@@ -60,9 +60,15 @@ data class ConversationUiState(
                     // Dead end via the normal parentId chain. Before giving up, check for
                     // an unvisited message whose declared parentId doesn't resolve to ANY
                     // message in this conversation at all (e.g. a data bug left it pointing
-                    // at a message from a different conversation). If found, splice the
-                    // earliest such orphan in as a continuation of the current path instead
-                    // of silently dropping it — and everything hanging off it — from view.
+                    // at a message from a different conversation). If found, splice such an
+                    // orphan in as a continuation of the current path instead of silently
+                    // dropping it — and everything hanging off it — from view.
+                    //
+                    // ORDER SAFETY: only splice an orphan whose timestamp is NOT older than
+                    // the path's current tail. Splicing an older orphan onto the tail would
+                    // place an old message after newer ones (the "old messages jump after new
+                    // ones"乱序). Older orphans are left for selfHealOrphanBranches to re-chain
+                    // into their correct position; they are NOT appended here.
                     //
                     // SAFETY: only consider orphans that don't themselves belong to a
                     // different conversation (the cross-conversation leakage bug can place a
@@ -70,8 +76,10 @@ data class ConversationUiState(
                     // names its real owner — which is NOT this conversation). Splicing such
                     // a foreign row in here is what let leaked messages hijack the visible
                     // path. Skip them: they will be cleaned up at their real owner.
+                    val tailTimestamp = path.lastOrNull()?.timestamp ?: 0L
                     val orphan = allMessages
-                        .filter { it.id !in visited && it.parentId != null && it.parentId !in allIds }
+                        .filter { it.id !in visited && it.parentId != null && it.parentId !in allIds &&
+                            it.timestamp >= tailTimestamp }
                         .minByOrNull { it.timestamp }
                     if (orphan == null) break
                     siblings = listOf(orphan)

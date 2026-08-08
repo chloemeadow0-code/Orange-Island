@@ -1275,8 +1275,13 @@ class ChatViewModel(
             it.participant == Participant.USER || it.participant == Participant.MODEL
         }
 
-        // 1. Compute reachable set: start from the rendered root (earliest USER if the only
-        //    root is a MODEL — mirrors resolvePath's RECOVERY), walk parentId links.
+        // 1. Compute reachable set: start from the SAME root resolvePath would pick — the
+        //    earliest USER among parent-missing messages (mirrors resolvePath's MODEL-root
+        //    RECOVERY), NOT from every parent-missing message. The previous version treated
+        //    every orphan-chain head as a root and walked from each, so messages living under
+        //    a stray MODEL root were counted as "reachable" and never re-chained — leaving
+        //    them as invisible orphans that resolvePath's orphan-splicing then appended to
+        //    the wrong end of the path (causing the "old messages jump after new ones"乱序).
         val roots = visible.filter { it.parentId == null || it.parentId !in byId }
         val renderedRoot = roots.minByOrNull {
             if (it.participant == Participant.USER) it.timestamp else Long.MAX_VALUE

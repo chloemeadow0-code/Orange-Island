@@ -60,7 +60,6 @@ import com.orangeisland.app.viewmodel.PermissionController
 fun SettingsDeviceAccessPage(
     viewModel: ChatViewModel,
     onBack: () -> Unit,
-    onOpenHealthPage: () -> Unit = {}
 ) {
     val settings = viewModel.settings
     val deviceInfoEnabled by settings.deviceInfoEnabled.collectAsState()
@@ -506,7 +505,6 @@ fun SettingsDeviceAccessPage(
                                     onClick = { settings.setGadgetbridgeDbPath(gadgetbridgeDbPathDraft.trim()) },
                                     enabled = gadgetbridgeDbPathDraft.trim() != gadgetbridgeDbPath,
                                 ) { Text(stringResource(R.string.save)) }
-                                Button(onClick = onOpenHealthPage) { Text("查看健康数据") }
                             }
                         }
 

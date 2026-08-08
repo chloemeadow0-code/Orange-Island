@@ -196,10 +196,12 @@ class AppContextCollector(
             val rms = sqrt(sumSquares / totalSamples)
             if (rms == 0.0) return@withContext ""
 
-            // Empirical mapping: phone-microphone RMS in a quiet room is ~50–200;
-            // on a noisy street it can reach 1 000–5 000. Adding an offset of 90
-            // brings the result into a roughly realistic 20–120 dB range.
-            val dbSpl = (20 * log10(rms) + 90).toInt().coerceIn(20, 120)
+            // Convert RMS to dB SPL via dBFS relative to full-scale (32767 for 16-bit),
+            // then add a calibration offset. dBFS is always <= 0 (0 = loudest possible
+            // sample); adding ~94 maps a quiet room (~-60 dBFS) to ~34 dB and a loud one
+            // (~-20 dBFS) to ~74 dB, which is realistic for phone-mic levels.
+            val dbFs = 20 * log10(rms / 32767.0)
+            val dbSpl = (dbFs + 94).toInt().coerceIn(20, 120)
             val level = when (dbSpl) {
                 in 0..35 -> "极静"
                 in 36..50 -> "安静"

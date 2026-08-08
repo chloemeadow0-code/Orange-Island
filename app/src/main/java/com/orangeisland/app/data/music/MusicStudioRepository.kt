@@ -31,8 +31,11 @@ data class Failed(override val message: String = "生成失败") : MusicGenerati
 
 /**
  * Orchestrates cloud music generation providers and persists the resulting
- * tracks in the app's private storage. Optionally applies a voice-conversion
- * step (e.g. Replicate RVC) after the base audio is generated.
+ * tracks in the app's private storage.
+ *
+ * Generation no longer applies voice conversion automatically; [generate] always yields the bare
+ * cloud-produced track. Voice replacement (RVC) is run on demand per track via [convertVoice],
+ * with each result stored as a [VoiceVersion] attached to the original track.
  */
 class MusicStudioRepository(
     private val context: Context,
@@ -97,6 +100,84 @@ class MusicStudioRepository(
     }
 
     fun resolveProvider(id: String): MusicGenerationProvider? = providers[id]
+
+    /**
+     * Run RVC voice conversion over the original audio of [trackId] using [voiceModelUrl], and
+     * attach the result as a new [VoiceVersion] under that track. Emits progress states so the UI
+     * (and worker) can surface "正在进行音色替换…".
+     *
+     * The original [MusicStudioTrack.audioUrl] is always used as the source, so a track can carry
+     * several voice variants and re-running RVC never degrades quality by stacking conversions.
+     * Requires [voiceConversionProvider] to be configured; otherwise emits [Failed].
+     */
+    fun convertVoice(
+        trackId: String,
+        voiceModelUrl: String,
+        config: VoiceConversionConfig
+    ): Flow<MusicGenerationState> = flow {
+        val converter = voiceConversionProvider
+            ?: run { emit(Failed("未配置音色替换 provider")); return@flow }
+
+        val source = loadTracks().find { it.id == trackId }
+            ?: run { emit(Failed("未找到原歌曲")); return@flow }
+        if (source.audioUrl.isBlank()) {
+            emit(Failed("原歌曲没有音频链接"))
+            return@flow
+        }
+
+        emit(ConvertingVoice())
+        val versionId = UUID.randomUUID().toString()
+        val convertedUrl = try {
+            converter.convert(config, source.audioUrl)
+        } catch (e: Exception) {
+            DebugLog.e(TAG, "Voice conversion failed", e)
+            emit(Failed("音色替换失败: ${e.message}"))
+            return@flow
+        }
+
+        val convertedFile = File(musicDir, "${source.id}_rvc_$versionId.mp3")
+        try {
+            converter.download(convertedUrl, convertedFile)
+        } catch (e: Exception) {
+            DebugLog.e(TAG, "Voice conversion download failed", e)
+            emit(Failed("下载音色替换结果失败: ${e.message}"))
+            return@flow
+        }
+
+        val version = VoiceVersion(
+            id = versionId,
+            modelUrl = voiceModelUrl,
+            audioUrl = convertedUrl,
+            localPath = convertedFile.absolutePath
+        )
+
+        val updated = source.copy(
+            voiceVersions = source.voiceVersions + version,
+            // Keep the legacy flag in sync for any code still reading it.
+            hasVoiceReplacement = true
+        )
+        if (!replaceTrack(updated)) {
+            emit(Failed("保存音色版本失败：原歌曲已不存在"))
+            return@flow
+        }
+        emit(Completed(track = updated))
+    }
+
+    /**
+     * Remove a single [VoiceVersion] from a track and delete its local file. Does not touch the
+     * original audio or other variants.
+     */
+    fun deleteVoiceVersion(trackId: String, versionId: String): Boolean {
+        val tracks = loadTracks().toMutableList()
+        val index = tracks.indexOfFirst { it.id == trackId }
+        if (index == -1) return false
+        val track = tracks[index]
+        val version = track.voiceVersions.find { it.id == versionId } ?: return false
+        if (version.localPath.isNotBlank()) File(version.localPath).delete()
+        tracks[index] = track.copy(voiceVersions = track.voiceVersions.filterNot { it.id == versionId })
+        saveTracks(tracks)
+        return true
+    }
 
     /**
      * Run a full generation: submit, poll, download, optionally voice-convert, and persist.

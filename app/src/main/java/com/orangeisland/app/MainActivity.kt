@@ -554,6 +554,7 @@ fun MainNavigation(
     var selectedMiniApp by remember { mutableStateOf<com.orangeisland.app.data.MiniAppEntry?>(null) }
     var showHealthPage by rememberSaveable { mutableStateOf(false) }
     var showMusicStudio by rememberSaveable { mutableStateOf(false) }
+    var showMusicTrackDetail by rememberSaveable { mutableStateOf(false) }
     var showVoiceCall by rememberSaveable { mutableStateOf(false) }
     var fullScreenMediaUrls by remember { mutableStateOf<List<String>?>(null) }
     var fullScreenMediaIndex by remember { mutableIntStateOf(0) }
@@ -981,13 +982,6 @@ fun MainNavigation(
                         settingsInitialCategory = null
                         showSettings = false
                     },
-                    onOpenHealthPage = {
-                        // Stack the health page ABOVE settings (the AnimatedVisibility is declared
-                        // after SettingsOverlayHost, so it draws on top). Don't hide settings here —
-                        // otherwise the health back button (which only flips showHealthPage) would
-                        // reveal the chat instead of returning the user to this settings page.
-                        showHealthPage = true
-                    },
                     memoryProvider = memoryProvider
                 )
             }
@@ -1023,6 +1017,16 @@ fun MainNavigation(
                 )
             }
 
+            // Shared Music Studio ViewModel — reused by both the list page and the track detail
+            // page so playback/progress/selection state stays consistent across them.
+            val musicCtx = LocalContext.current
+            val musicContainer = remember {
+                (musicCtx.applicationContext as com.orangeisland.app.OrangeIslandApplication).container
+            }
+            val musicFactory = remember { musicContainer.musicStudioViewModelFactory() }
+            val musicStudioViewModel: com.orangeisland.app.ui.music.MusicStudioViewModel =
+                viewModel(factory = musicFactory)
+
             // Music Studio page
             AnimatedVisibility(
                 visible = showMusicStudio,
@@ -1032,15 +1036,28 @@ fun MainNavigation(
                 BackHandler(enabled = showMusicStudio) {
                     showMusicStudio = false
                 }
-                val ctx = LocalContext.current
-                val container = remember {
-                    (ctx.applicationContext as com.orangeisland.app.OrangeIslandApplication).container
-                }
-                val factory = remember { container.musicStudioViewModelFactory() }
-                val musicStudioViewModel: com.orangeisland.app.ui.music.MusicStudioViewModel = viewModel(factory = factory)
                 com.orangeisland.app.ui.music.MusicStudioPage(
                     viewModel = musicStudioViewModel,
-                    onBack = { showMusicStudio = false }
+                    onBack = { showMusicStudio = false },
+                    onOpenTrack = { showMusicTrackDetail = true }
+                )
+            }
+
+            // Music Studio track detail page (full screen, opened from a track card)
+            AnimatedVisibility(
+                visible = showMusicTrackDetail,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                BackHandler(enabled = showMusicTrackDetail) {
+                    showMusicTrackDetail = false
+                }
+                com.orangeisland.app.ui.music.MusicTrackDetailPage(
+                    viewModel = musicStudioViewModel,
+                    onBack = {
+                        musicStudioViewModel.closeTrackDetail()
+                        showMusicTrackDetail = false
+                    }
                 )
             }
 

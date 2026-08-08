@@ -39,8 +39,19 @@ class SunoMusicGenerationProvider : MusicGenerationProvider {
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         )
 
+        val gptDescriptionPrompt = buildString {
+            append("A song")
+            if (request.title.isNotBlank()) {
+                append(" titled \"${request.title}\"")
+            }
+            append(", lyrics: ${request.lyrics}")
+            if (!request.style.isNullOrBlank()) {
+                append(", style: ${request.style}")
+            }
+        }
+
         val body = buildJsonObject {
-            put("gpt_description_prompt", "A song, style: ${request.style ?: "pop"}")
+            put("gpt_description_prompt", gptDescriptionPrompt)
             put("prompt", request.lyrics.take(400) + "\n[Outro]\n[End]")
             put("make_instrumental", request.makeInstrumental)
             put("mv", request.model?.trim() ?: "chirp-v4")
