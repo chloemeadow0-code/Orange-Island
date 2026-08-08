@@ -32,16 +32,32 @@ class NodeExecutor(
     private val notificationRunner: NotificationRunner? = null,
     private val chatMessageRunner: ChatMessageRunner? = null,
     private val logger: RunLogger,
-    private val onState: (String, NodeState) -> Unit
+    private val onState: (String, NodeState) -> Unit,
+    /** Resolves a list of tool names into [ToolDefinition]s for LLM nodes. Null when the runner
+     *  does not support tool-calling (e.g. unit tests without a ToolDispatcher). */
+    private val toolDefinitionsProvider: ((List<String>) -> List<com.orangeisland.app.api.ToolDefinition>)? = null
 ) {
     /** Functional interface for dispatching a tool call. Returns the tool's result string. */
     fun interface ToolRunner {
         suspend fun run(toolName: String, argsJson: String): String
     }
 
-    /** Functional interface for dispatching an LLM inference call. Returns the model's text output. */
-    fun interface LLMRunner {
-        suspend fun run(provider: String, modelId: String, systemPrompt: String?, prompt: String): String
+    /**
+     * Interface for dispatching an LLM inference call.
+     *
+     * When [tools] is non-null and [maxToolCalls] > 0, the implementation is expected to drive the
+     * full tool-call loop (generate → tool_calls → execute → re-generate) and return the final
+     * assistant text after all rounds complete.
+     */
+    interface LLMRunner {
+        suspend fun run(
+            provider: String,
+            modelId: String,
+            systemPrompt: String?,
+            prompt: String,
+            tools: List<com.orangeisland.app.api.ToolDefinition>?,
+            maxToolCalls: Int
+        ): String
     }
 
     /** Functional interface for posting a system notification from a workflow node. */
@@ -169,14 +185,23 @@ class NodeExecutor(
         val runner = llmRunner ?: return fail(node, "LLM not available in this runner")
         mark(node, NodeState.Running)
         val prompt = resolver.resolve(node.prompt, triggerPayload)
-        logger.debug("LLM prompt length=${prompt.length}", node.id, node.label)
+        val tools = if (node.toolNames.isNotEmpty()) {
+            toolDefinitionsProvider?.invoke(node.toolNames)
+        } else null
+        val maxCalls = node.maxToolCalls.coerceIn(0, 20)
+        logger.debug(
+            "LLM prompt length=${prompt.length} tools=${tools?.size ?: 0} maxCalls=$maxCalls",
+            node.id, node.label
+        )
         currentCoroutineContext().ensureActive()
         val result = withTimeoutOrNull(LLM_TIMEOUT_MS) {
             runner.run(
                 provider = node.provider,
                 modelId = node.modelId,
                 systemPrompt = node.systemPrompt.takeIf { it.isNotBlank() },
-                prompt = prompt
+                prompt = prompt,
+                tools = tools,
+                maxToolCalls = maxCalls
             )
         } ?: return fail(node, "LLM timed out after ${LLM_TIMEOUT_MS}ms")
         mark(node, NodeState.Done(result))

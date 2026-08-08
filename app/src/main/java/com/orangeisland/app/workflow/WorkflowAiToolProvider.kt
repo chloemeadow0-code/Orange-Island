@@ -639,7 +639,7 @@ NODE KINDS:
   branch - Compares two values, emits boolean. Fields: lhs (NodeValue), cmp (EQ/NE/LT/LE/GT/GE/CONTAINS/NOT_CONTAINS/IN/NOT_IN), rhs (NodeValue).
   merge - Reduces multiple incoming booleans. Field: reducer (ALL_TRUE or ANY_TRUE).
   transform - Shapes a string. Field: op (one of the below).
-  llm - Runs an LLM inference. Fields: prompt (NodeValue), provider (default OpenAI), model_id (default gpt-4o-mini), system_prompt, temperature (default 0.7).
+  llm - Runs an LLM inference, optionally with tools. Fields: prompt (NodeValue), provider (default OpenAI), model_id (default gpt-4o-mini), system_prompt, temperature (default 0.7), tool_names (string[]?, names of tools the LLM may call; empty/null = no tools), max_tool_calls (int?, default 5, max 20).
   notify - Posts a system notification. Fields: title (NodeValue), content (NodeValue), priority (string, default "default").
   chat_message - Inserts a message into the bound project's chat. Fields: text (NodeValue), participant ("MODEL" or "USER", default "MODEL").
 

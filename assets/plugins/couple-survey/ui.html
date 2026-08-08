@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>💕 情侣问卷</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --pink: #ff6b9d; --pink-light: #ffd6e7; --pink-deep: #e84393;
+    --bg: #fff5f9; --card: #ffffff; --text: #4a3540; --muted: #9b8a93;
+    --green: #2ecc71; --lock: #a18cd1;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(160deg, #ffe3ef 0%, #fff5f9 40%, #f0e9ff 100%);
+    color: var(--text); min-height: 100vh; padding: 16px; padding-bottom: 60px;
+  }
+  .header {
+    text-align: center; margin-bottom: 16px; padding: 18px 12px;
+    background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
+    border-radius: 20px; color: white; box-shadow: 0 8px 24px rgba(232,67,147,.25);
+  }
+  .header h1 { font-size: 22px; letter-spacing: 1px; }
+  .header .me { font-size: 13px; opacity: .92; margin-top: 6px; }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .toolbar button {
+    flex: 1; min-width: 90px; border: none; border-radius: 14px; padding: 10px 8px;
+    background: white; color: var(--pink-deep); font-size: 13px; font-weight: 600;
+    cursor: pointer; box-shadow: 0 3px 10px rgba(232,67,147,.12); transition: transform .1s;
+  }
+  .toolbar button.active { background: var(--pink); color: white; }
+  .toolbar button:active { transform: scale(.96); }
+  .survey-card {
+    background: var(--card); border-radius: 18px; padding: 16px; margin-bottom: 14px;
+    box-shadow: 0 4px 16px rgba(180,120,150,.12); border: 1px solid #ffe3ef;
+  }
+  .survey-card h3 { font-size: 17px; margin-bottom: 6px; }
+  .survey-card .desc { font-size: 13px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; margin-bottom: 10px; }
+  .badge { padding: 3px 9px; border-radius: 20px; font-weight: 600; }
+  .b-public { background: #e8f8f0; color: var(--green); }
+  .b-private { background: #f0eaff; color: var(--lock); }
+  .b-draft { background: #fff3e0; color: #e67e22; }
+  .meta .info { color: var(--muted); padding: 3px 0; }
+  .actions { display: flex; gap: 8px; }
+  .actions button {
+    flex: 1; border: none; border-radius: 12px; padding: 9px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: transform .1s;
+  }
+  .actions button:active { transform: scale(.96); }
+  .btn-fill { background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%); color: white; }
+  .btn-result { background: #f3eaff; color: var(--lock); }
+  .panel {
+    margin-top: 12px; padding-top: 12px; border-top: 1px dashed #ffd6e7; display: none;
+  }
+  .panel.show { display: block; }
+  .q { margin-bottom: 14px; }
+  .q .qt { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .q .qt .qi { color: var(--pink-deep); margin-right: 4px; }
+  .opt { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg);
+    border-radius: 10px; margin-bottom: 6px; cursor: pointer; font-size: 14px; }
+  .opt:hover { background: var(--pink-light); }
+  .opt input { accent-color: var(--pink-deep); width: 16px; height: 16px; }
+  .q textarea {
+    width: 100%; border: 1px solid #ffd6e7; border-radius: 10px; padding: 10px;
+    font-size: 14px; resize: vertical; min-height: 60px; font-family: inherit; background: var(--bg);
+  }
+  .q textarea:focus { outline: none; border-color: var(--pink); background: white; }
+  .submit-row { margin-top: 6px; }
+  .submit-row button {
+    width: 100%; border: none; border-radius: 14px; padding: 12px; font-size: 15px; font-weight: 700;
+    background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%); color: white; cursor: pointer;
+  }
+  .submit-row button:active { transform: scale(.98); }
+  .stat { font-size: 13px; margin-bottom: 10px; }
+  .stat .sq { font-weight: 600; margin-bottom: 4px; }
+  .stat .bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; margin: 3px 0; }
+  .stat .bar { flex: 1; height: 18px; background: var(--bg); border-radius: 9px; overflow: hidden; }
+  .stat .bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--pink) , var(--lock)); }
+  .stat .ans { font-size: 12px; color: var(--muted); margin: 2px 0 8px 2px; line-height: 1.5; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 20px; font-size: 14px; }
+  .toast {
+    position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%) translateY(20px);
+    background: #4a3540; color: white; padding: 12px 22px; border-radius: 30px; font-size: 14px;
+    opacity: 0; transition: all .3s; pointer-events: none; z-index: 99; max-width: 90%;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .loading { text-align: center; color: var(--muted); padding: 30px; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>💕 情侣问卷</h1>
+    <div class="me" id="meLabel">加载中…</div>
+  </div>
+  <div class="wrap">
+    <div class="toolbar">
+      <button data-scope="visible" class="active" onclick="switchScope('visible')">我能看的</button>
+      <button data-scope="mine" onclick="switchScope('mine')">我发布的</button>
+      <button data-scope="all" onclick="switchScope('all')">全部</button>
+      <button onclick="openTemplates()">📋 模板</button>
+      <button onclick="loadSurveys(true)">🔄 刷新</button>
+    </div>
+    <div id="list"><div class="loading">加载问卷中…</div></div>
+    <div id="tplPanel" class="survey-card" style="display:none;">
+      <h3 style="margin-bottom:10px;">📋 内置问卷模板</h3>
+      <div id="tplList"><div class="loading">读取模板中…</div></div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://nvkcztwjlbszvwkvbetf.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_UEd2Pn0kR2sau1Xsfk2TQw_oHC8pRhS';
+const SURVEY_T = 'couple_surveys';
+const RESP_T = 'couple_survey_responses';
+
+let ME = { id: '', name: '' };
+let CURRENT_SCOPE = 'visible';
+let SURVEYS = [];
+let OPEN_PANEL = null; // { type:'result'|'fill', id } 记录当前打开的面板, 避免轮询刷新把它冲掉
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+async function sbFetch(path, opts) {
+  opts = opts || {};
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    ...opts,
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', ...(opts.headers||{}) }
+  });
+  const text = await res.text();
+  let data = null; try { data = text ? JSON.parse(text) : null; } catch(e) { data = text; }
+  return { ok: res.ok, status: res.status, data };
+}
+function canView(s) {
+  if (!s) return false;
+  if (s.visibility === 'public') return true;
+  if (s.visibility === 'draft') return s.owner_id === ME.id;
+  if (s.visibility === 'private') return (s.owner_id === ME.id) || (s.target_user === ME.id) || (s.target_user === ME.name);
+  return false;
+}
+function visBadge(v) {
+  if (v === 'public') return '<span class="badge b-public">🌐 公开</span>';
+  if (v === 'private') return '<span class="badge b-private">🔒 私密</span>';
+  return '<span class="badge b-draft">📝 草稿</span>';
+}
+
+// ---- 初始化: 兼容多种宿主桥接方式拿 config ----
+function parsePluginConfig(raw) {
+  if (!raw) return {};
+  if (typeof raw === 'object') return raw;
+  try { return JSON.parse(raw); } catch (e) { return {}; }
+}
+// 从 Bridge / orangeisland / 全局配置 中拿到插件配置
+async function getPluginConfig() {
+  // 1) Bridge.getPluginConfig()
+  try {
+    if (typeof Bridge !== 'undefined' && Bridge && typeof Bridge.getPluginConfig === 'function') {
+      const raw = await Bridge.getPluginConfig();
+      const cfg = parsePluginConfig(raw);
+      if (cfg && (cfg.username || cfg.owner_id)) return cfg;
+    }
+  } catch (e) {}
+  // 2) orangeisland.config（参考网易云一起听插件）
+  try {
+    if (typeof orangeisland !== 'undefined' && orangeisland && orangeisland.config) {
+      const cfg = parsePluginConfig(orangeisland.config);
+      if (cfg && (cfg.username || cfg.owner_id)) return cfg;
+    }
+  } catch (e) {}
+  // 3) 全局注入的 __OI_PLUGIN_CONFIG / __AGORA_PLUGIN_CONFIG
+  try {
+    if (typeof __OI_PLUGIN_CONFIG !== 'undefined' && __OI_PLUGIN_CONFIG) {
+      const cfg = parsePluginConfig(__OI_PLUGIN_CONFIG);
+      if (cfg && (cfg.username || cfg.owner_id)) return cfg;
+    }
+    if (typeof __AGORA_PLUGIN_CONFIG !== 'undefined' && __AGORA_PLUGIN_CONFIG) {
+      const cfg = parsePluginConfig(__AGORA_PLUGIN_CONFIG);
+      if (cfg && (cfg.username || cfg.owner_id)) return cfg;
+    }
+  } catch (e) {}
+  return {};
+}
+function waitForBridge() {
+  let attempts = 0;
+  (function tick() {
+    attempts++;
+    if (typeof Bridge !== 'undefined' || typeof orangeisland !== 'undefined') { init(); }
+    else if (attempts < 80) { setTimeout(tick, 50); }
+    else { init(); } // 没有桥也照样尝试读全局配置
+  })();
+}
+async function init() {
+  const cfg = await getPluginConfig();
+  ME.name = cfg.username || '';
+  ME.id = cfg.owner_id || cfg.username || '';
+  if (!ME.id) {
+    document.getElementById('meLabel').textContent = '未配置用户名/专属ID, 请在插件设置填写';
+    return;
+  }
+  document.getElementById('meLabel').textContent = '我是 ' + ME.name + '（' + ME.id + '）';
+  loadSurveys(true);
+  setInterval(() => { if (!OPEN_PANEL) loadSurveys(false); }, 15000); // 15s 轮询(面板开着时暂停)
+}
+
+// ---- 调用插件工具 (兼容 orangeisland / Bridge 两种桥) ----
+function callTool(name, args, cb) {
+  let h = null;
+  try { if (typeof orangeisland !== 'undefined' && orangeisland && typeof orangeisland.call === 'function') h = orangeisland; } catch (e) {}
+  if (!h) { try { if (typeof Bridge !== 'undefined' && Bridge && typeof Bridge.call === 'function') h = Bridge; } catch (e) {} }
+  if (!h || typeof h.call !== 'function') { cb({ ok: false, message: '插件桥不可用, 请用 AI 工具 create_template_survey 生成' }); return; }
+  try {
+    h.call(name, args || {}, function (r) {
+      try { cb(typeof r === 'string' ? JSON.parse(r) : r); } catch (e) { cb({ ok: false, message: '工具返回无效' }); }
+    });
+  } catch (e) { cb({ ok: false, message: String(e) }); }
+}
+
+// ---- 模板面板 ----
+function openTemplates() {
+  const p = document.getElementById('tplPanel');
+  if (p.style.display !== 'none') { p.style.display = 'none'; return; }
+  p.style.display = 'block';
+  loadTemplates();
+}
+function loadTemplates() {
+  const box = document.getElementById('tplList');
+  box.innerHTML = '<div class="loading">读取模板中…</div>';
+  callTool('list_templates', {}, function (res) {
+    if (!res || !res.success) { box.innerHTML = '<div class="loading">模板读取失败: ' + ((res && res.message) || '未知') + '</div>'; return; }
+    const ts = res.templates || [];
+    if (!ts.length) { box.innerHTML = '<div class="loading">暂无内置模板</div>'; return; }
+    box.innerHTML = ts.map(t => (
+      '<div class="survey-card" style="margin-bottom:10px;">' +
+        '<h3 style="font-size:15px;margin-bottom:4px;">' + esc(t.name) + '</h3>' +
+        '<div class="desc">' + esc(t.description || '') + ' · 共 ' + t.questionCount + ' 题</div>' +
+        '<div class="actions"><button class="btn-fill" onclick="genFromTemplate(\'' + esc(t.id) + '\')">➕ 生成问卷</button></div>' +
+      '</div>'
+    )).join('');
+  });
+}
+function genFromTemplate(id) {
+  toast('正在用模板生成问卷…');
+  callTool('create_template_survey', { template_id: id }, function (res) {
+    if (!res || !res.success) { toast('生成失败: ' + ((res && res.error) || (res && res.message) || '未知')); return; }
+    toast('✅ ' + (res.message || '已生成'));
+    loadSurveys(true);
+    document.getElementById('tplPanel').style.display = 'none';
+  });
+}
+
+async function loadSurveys(showLoading) {
+  if (showLoading) document.getElementById('list').innerHTML = '<div class="loading">加载问卷中…</div>';
+  try {
+    const sres = await sbFetch(SURVEY_T + '?select=*&order=created_at.desc');
+    const rres = await sbFetch(RESP_T + '?select=survey_id,is_submitted');
+    const all = (sres.ok && sres.data) ? sres.data : [];
+    const respAll = (rres.ok && rres.data) ? rres.data : [];
+    let list = [];
+    for (const s of all) {
+      const visible = canView(s);
+      if (CURRENT_SCOPE === 'mine') { if (s.owner_id !== ME.id) continue; }
+      else if (CURRENT_SCOPE === 'visible') { if (!visible) continue; }
+      // 'all' 全量, 但私密且不可见标 can_view=false
+      let cnt = 0;
+      for (const r of respAll) { if (r.survey_id === s.id && r.is_submitted) cnt++; }
+      list.push({
+        survey_id: s.id, title: s.title, description: s.description || '',
+        questions: s.questions || [], visibility: s.visibility, target_user: s.target_user || '',
+        owner_name: s.owner_name, submitted_count: cnt, can_view: visible
+      });
+    }
+    SURVEYS = list;
+    renderList();
+  } catch (e) {
+    document.getElementById('list').innerHTML = '<div class="empty">加载失败: ' + (e.message || e) + '</div>';
+  }
+}
+
+function switchScope(scope) {
+  CURRENT_SCOPE = scope;
+  document.querySelectorAll('.toolbar button[data-scope]').forEach(b => b.classList.remove('active'));
+  document.querySelector('.toolbar button[data-scope="' + scope + '"]').classList.add('active');
+  loadSurveys(true);
+}
+
+function renderList() {
+  const box = document.getElementById('list');
+  if (SURVEYS.length === 0) { box.innerHTML = '<div class="empty">还没有能看的问卷~<br/>让 AI 用 create_survey + publish_survey 发一份吧💕</div>'; return; }
+  let html = '';
+  for (const s of SURVEYS) {
+    const locked = !s.can_view;
+    html += '<div class="survey-card">';
+    html += '<h3>' + esc(s.title) + '</h3>';
+    if (s.description) html += '<div class="desc">' + esc(s.description) + '</div>';
+    html += '<div class="meta">' + visBadge(s.visibility);
+    html += '<span class="info">作者 ' + esc(s.owner_name) + '</span>';
+    html += '<span class="info">· ' + s.questions.length + ' 题</span>';
+    html += '<span class="info">· 已填 ' + s.submitted_count + ' 人</span>';
+    if (s.visibility === 'private' && s.target_user) html += '<span class="info">· 授权 ' + esc(s.target_user) + '</span>';
+    html += '</div>';
+    if (locked) {
+      html += '<div class="empty" style="padding:14px">🔒 这是私密问卷, 你没有查看权限</div>';
+    } else {
+      const mine = s.owner_id === ME.id;
+      html += '<div class="actions">';
+      if (!mine || s.visibility !== 'draft') html += '<button class="btn-fill" onclick="openFill(\'' + s.survey_id + '\')">✏️ 填写</button>';
+      html += '<button class="btn-result" onclick="openResult(\'' + s.survey_id + '\')">📊 结果</button>';
+      html += '</div>';
+      html += '<div class="panel" id="fill-' + s.survey_id + '"></div>';
+      html += '<div class="panel" id="result-' + s.survey_id + '"></div>';
+    }
+    html += '</div>';
+  }
+  box.innerHTML = html;
+  // 重建后, 若之前有打开的面板且问卷仍在, 自动重新打开
+  if (OPEN_PANEL) {
+    const ex = SURVEYS.find(x => x.survey_id === OPEN_PANEL.id);
+    if (ex) {
+      if (OPEN_PANEL.type === 'result') openResult(OPEN_PANEL.id);
+      else openFill(OPEN_PANEL.id);
+    } else { OPEN_PANEL = null; }
+  }
+}
+
+function esc(t) { return (t || '').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function openFill(id) {
+  const panel = document.getElementById('fill-' + id);
+  if (panel.classList.contains('show')) { panel.classList.remove('show'); OPEN_PANEL = null; return; }
+  // 关闭其他
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
+  OPEN_PANEL = { type: 'fill', id: id };
+  const s = SURVEYS.find(x => x.survey_id === id);
+  if (!s) { OPEN_PANEL = null; return; }
+  let html = '';
+  s.questions.forEach((q, i) => {
+    html += '<div class="q"><div class="qt"><span class="qi">' + (i+1) + '.</span>' + esc(q.title) + '</div>';
+    if (q.type === 'text') {
+      html += '<textarea data-qid="' + q.id + '" placeholder="写下你的答案…"></textarea>';
+    } else {
+      const type = q.type === 'multiple' ? 'checkbox' : 'radio';
+      const opts = q.options || [];
+      opts.forEach((o, oi) => {
+        html += '<label class="opt"><input type="' + type + '" name="q_' + q.id + '" value="' + esc(o) + '">' + esc(o) + '</label>';
+      });
+    }
+    html += '</div>';
+  });
+  html += '<div class="submit-row"><button onclick="submitFill(\'' + id + '\')">提交问卷 💕</button></div>';
+  panel.innerHTML = html;
+  panel.classList.add('show');
+}
+
+function collectAnswers(id) {
+  const s = SURVEYS.find(x => x.survey_id === id);
+  const panel = document.getElementById('fill-' + id);
+  const answers = {};
+  s.questions.forEach(q => {
+    if (q.type === 'text') {
+      const ta = panel.querySelector('textarea[data-qid="' + q.id + '"]');
+      answers[q.id] = ta ? ta.value.trim() : '';
+    } else if (q.type === 'multiple') {
+      const checked = panel.querySelectorAll('input[name="q_' + q.id + '"]:checked');
+      const arr = []; checked.forEach(c => arr.push(c.value)); answers[q.id] = arr;
+    } else {
+      const checked = panel.querySelector('input[name="q_' + q.id + '"]:checked');
+      answers[q.id] = checked ? checked.value : '';
+    }
+  });
+  return answers;
+}
+
+async function submitFill(id) {
+  const answers = collectAnswers(id);
+  // 校验必填
+  const s = SURVEYS.find(x => x.survey_id === id);
+  for (const q of s.questions) {
+    const v = answers[q.id];
+    if (q.type === 'text') { if (!v) { toast('请填写: ' + q.title); return; } }
+    else if (q.type === 'multiple') { if (!v || v.length === 0) { toast('请选择: ' + q.title); return; } }
+    else { if (!v) { toast('请选择: ' + q.title); return; } }
+  }
+  try {
+    const res = await sbFetch(RESP_T, {
+      method: 'POST',
+      body: JSON.stringify({
+        id: 'rs_' + Date.now().toString(36) + Math.floor(Math.random()*1e6).toString(36),
+        survey_id: id, respondent_id: ME.id, respondent_name: ME.name,
+        answers: answers, is_submitted: true, created_at: new Date().toISOString()
+      })
+    });
+    if (res.ok || res.status === 201) {
+      toast('提交成功! 💕 感谢填写《' + s.title + '》');
+      document.getElementById('fill-' + id).classList.remove('show');
+      OPEN_PANEL = null;
+      loadSurveys(false);
+    } else {
+      toast('提交失败: ' + (res.status || '网络错误'));
+    }
+  } catch (e) { toast('提交失败: ' + (e.message || e)); }
+}
+
+async function openResult(id) {
+  const panel = document.getElementById('result-' + id);
+  if (panel.classList.contains('show')) { panel.classList.remove('show'); OPEN_PANEL = null; return; }
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
+  OPEN_PANEL = { type: 'result', id: id };
+  const s = SURVEYS.find(x => x.survey_id === id);
+  panel.innerHTML = '<div class="loading">统计中…</div>';
+  panel.classList.add('show');
+  try {
+    const res = await sbFetch(RESP_T + '?survey_id=eq.' + encodeURIComponent(id) + '&select=*');
+    const rs = (res.ok && res.data) ? res.data : [];
+    const submitted = rs.filter(r => r.is_submitted).map(r => {
+      let ans = r.answers;
+      if (typeof ans === 'string') { try { ans = JSON.parse(ans); } catch (e) { ans = {}; } }
+      return Object.assign({}, r, { answers: ans });
+    });
+    let html = '<div class="stat" style="margin-bottom:8px">共 ' + submitted.length + ' 人填写</div>';
+    s.questions.forEach((q, i) => {
+      html += '<div class="stat"><div class="sq">' + (i+1) + '. ' + esc(q.title) + '</div>';
+      if (q.type === 'text') {
+        submitted.forEach(r => {
+          const v = r.answers ? r.answers[q.id] : '';
+          if (v) html += '<div class="ans">· ' + esc(r.respondent_name) + '：' + esc(v) + '</div>';
+        });
+      } else {
+        const counter = {};
+        submitted.forEach(r => {
+          let av = r.answers ? r.answers[q.id] : undefined;
+          if (av === undefined || av === null || av === '') return;
+          if (typeof av === 'string') counter[av] = (counter[av] || 0) + 1;
+          else if (Array.isArray(av)) av.forEach(x => counter[x] = (counter[x] || 0) + 1);
+        });
+        const keys = Object.keys(counter);
+        const max = keys.reduce((m, k) => Math.max(m, counter[k]), 1);
+        if (keys.length === 0) html += '<div class="ans">暂无选择</div>';
+        keys.forEach(k => {
+          const pct = Math.round(counter[k] / max * 100);
+          html += '<div class="bar-row"><span style="width:80px">' + esc(k) + '</span><span class="bar"><span style="width:' + pct + '%"></span></span><span>' + counter[k] + '</span></div>';
+        });
+      }
+      html += '</div>';
+    });
+    panel.innerHTML = html;
+  } catch (e) {
+    panel.innerHTML = '<div class="empty">统计失败: ' + (e.message || e) + '</div>';
+  }
+}
+
+waitForBridge();
+</script>
+</body>
+</html>

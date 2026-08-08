@@ -145,7 +145,11 @@ data class LLMNode(
     val provider: String = "OpenAI",
     val modelId: String = "gpt-4o-mini",
     val systemPrompt: String = "",
-    val temperature: Float = 0.7f
+    val temperature: Float = 0.7f,
+    /** Names of tools this LLM node may call. Empty = no tools are exposed. */
+    val toolNames: List<String> = emptyList(),
+    /** Maximum tool-call rounds for this node. 0 disables tool calling even if [toolNames] is non-empty. */
+    val maxToolCalls: Int = 5
 ) : FlowNode() {
     override val kind: String = "llm"
 }

@@ -105,10 +105,15 @@ class WorkflowRunner(
 
         val guard = buildGuard(mode, startedAt)
         val ctx = buildContext(mode, workflow.projectId)
+        val runLogger = RunLogger()
         val toolRunner = NodeExecutor.ToolRunner { name, args -> dispatcher.execute(name, args, ctx) }
-        val llmRunner = buildLLMRunner(workflow)
+        val llmRunner = buildLLMRunner(workflow, ctx, toolRunner, guard, runLogger)
         val notificationRunner = buildNotificationRunner()
         val chatMessageRunner = buildChatMessageRunner(workflow)
+        val toolDefinitionsProvider: (List<String>) -> List<com.orangeisland.app.api.ToolDefinition> = { names ->
+            val all = dispatcher.allDefinitions(ctx)
+            if (names.isEmpty()) emptyList() else all.filter { it.function.name in names }
+        }
 
         val result = withTimeoutOrNull(runHardTimeoutMs) {
             engine.execute(
@@ -120,7 +125,9 @@ class WorkflowRunner(
                 llmRunner = llmRunner,
                 notificationRunner = notificationRunner,
                 chatMessageRunner = chatMessageRunner,
-                onState = { id, state -> onNodeState?.invoke(id, state) }
+                onState = { id, state -> onNodeState?.invoke(id, state) },
+                toolDefinitionsProvider = toolDefinitionsProvider,
+                logger = runLogger
             )
         } ?: RunResult(
             workflowId = workflowId, runId = runId, success = false,
@@ -227,11 +234,25 @@ class WorkflowRunner(
      * might touch; background runs do the same but the guard's whitelist still blocks the
      * dangerous ones before dispatch. Sensitive credentials (API keys) are read from settings.
      */
-    private fun buildLLMRunner(workflow: Workflow): NodeExecutor.LLMRunner? {
+    private fun buildLLMRunner(
+        workflow: Workflow,
+        ctx: GenerationContext,
+        toolRunner: NodeExecutor.ToolRunner,
+        guard: WorkflowGuard?,
+        logger: RunLogger
+    ): NodeExecutor.LLMRunner? {
         // Prefer the dynamic ProviderRegistry (built-in + user custom providers); fall back to
         // the static llmProviders map in background workers that rebuild deps from scratch.
         if ((providerRegistry == null && llmProviders.isEmpty()) || settingsRepository == null) return null
-        return NodeExecutor.LLMRunner { nodeProvider, nodeModelId, nodeSystemPrompt, prompt ->
+        return object : NodeExecutor.LLMRunner {
+            override suspend fun run(
+                nodeProvider: String,
+                nodeModelId: String,
+                nodeSystemPrompt: String?,
+                prompt: String,
+                tools: List<com.orangeisland.app.api.ToolDefinition>?,
+                maxToolCalls: Int
+            ): String {
             // ── Resolve overrides from workflow bindings ─────────────────────────
             val effectiveProvider: String
             val effectiveModelId: String
@@ -341,7 +362,7 @@ class WorkflowRunner(
             // call 404s — even though the same provider works in chat. .first() suspends until the
             // real persisted value is available.
             val baseUrl = settingsRepository.providerBaseUrls.first()[effectiveProvider]
-            val config = com.orangeisland.app.api.ProviderConfig(
+            val baseConfig = com.orangeisland.app.api.ProviderConfig(
                 apiKey = apiKey,
                 modelId = effectiveModelId,
                 systemPrompt = effectiveSystemPrompt,
@@ -352,17 +373,124 @@ class WorkflowRunner(
                 name = "workflow / $effectiveProvider / $effectiveModelId",
                 details = "workflowId=${workflow.id} projectId=${workflow.projectId} " +
                     "history=${history.size - 1} prompt=${prompt.length} " +
-                    "system=${effectiveSystemPrompt?.length ?: 0}"
+                    "system=${effectiveSystemPrompt?.length ?: 0} tools=${tools?.size ?: 0} maxCalls=$maxToolCalls"
             )
+
+            val messages = history.toMutableList()
+            var toolCallCount = 0
+            val t0 = System.currentTimeMillis()
+
+            if (!tools.isNullOrEmpty() && maxToolCalls > 0) {
+                logger.debug("LLM tool-call loop starting: tools=${tools.size} maxCalls=$maxToolCalls")
+                val configWithTools = baseConfig.copy(tools = tools)
+                while (toolCallCount < maxToolCalls) {
+                    logger.debug("Tool-call round ${toolCallCount + 1}/$maxToolCalls")
+                    val roundSb = StringBuilder()
+                    var roundError: String? = null
+                    val pendingToolCalls = mutableListOf<com.orangeisland.app.api.StreamEvent.ToolCallRequest>()
+                    llmProvider.generateResponse(messages, configWithTools).collect { ev ->
+                        when (ev) {
+                            is com.orangeisland.app.api.StreamEvent.TextChunk -> roundSb.append(ev.text)
+                            is com.orangeisland.app.api.StreamEvent.ToolCallRequest -> pendingToolCalls.add(ev)
+                            is com.orangeisland.app.api.StreamEvent.ToolCallsRequest -> pendingToolCalls.addAll(ev.calls)
+                            is com.orangeisland.app.api.StreamEvent.Error -> if (roundError == null) roundError = ev.message
+                            else -> {}
+                        }
+                    }
+                    if (roundError != null) {
+                        logger.error("LLM round error: $roundError")
+                        error("$roundError [provider=$effectiveProvider model=$effectiveModelId baseUrl=${baseUrl ?: "<default>"}]")
+                    }
+                    if (pendingToolCalls.isEmpty()) {
+                        logger.debug("LLM produced no tool calls — finishing after $toolCallCount round(s)")
+                        val elapsed = System.currentTimeMillis() - t0
+                        UsageLogManager.logModel(
+                            name = "workflow / $effectiveProvider / $effectiveModelId ✓",
+                            details = "${elapsed}ms | output=${roundSb.length} chars | rounds=$toolCallCount"
+                        )
+                        return roundSb.toString().trim()
+                    }
+                    toolCallCount++
+                    logger.debug("LLM requested ${pendingToolCalls.size} tool(s): ${pendingToolCalls.joinToString { it.name }}")
+                    val toolMsgId = "tool_${java.util.UUID.randomUUID()}"
+                    val toolSegments = pendingToolCalls.map { call ->
+                        com.orangeisland.app.model.MessageSegment(
+                            type = "tool",
+                            toolName = call.name,
+                            toolArgs = call.arguments,
+                            toolResult = null,
+                            toolCallId = call.id,
+                            signature = call.signature
+                        )
+                    }
+                    messages += com.orangeisland.app.model.ChatMessage(
+                        id = toolMsgId,
+                        text = "",
+                        participant = com.orangeisland.app.model.Participant.MODEL,
+                        status = com.orangeisland.app.model.MessageStatus.SUCCESS,
+                        segments = toolSegments
+                    )
+                    for (call in pendingToolCalls) {
+                        val guardVerdict = guard?.checkToolCall(call.name, call.arguments)
+                        if (guardVerdict is com.orangeisland.app.workflow.WorkflowGuard.Verdict.Deny) {
+                            val err = "Tool '${call.name}' blocked: ${guardVerdict.message}"
+                            logger.warn(err)
+                            messages += com.orangeisland.app.model.ChatMessage(
+                                id = "result_${java.util.UUID.randomUUID()}",
+                                parentId = toolMsgId,
+                                text = err,
+                                participant = com.orangeisland.app.model.Participant.USER,
+                                status = com.orangeisland.app.model.MessageStatus.SUCCESS,
+                                toolCall = com.orangeisland.app.model.ToolCallData(
+                                    call.name, call.arguments, err, call.signature, call.id
+                                )
+                            )
+                            continue
+                        }
+                        logger.debug("Executing tool '${call.name}' args=${call.arguments.take(200)}")
+                        val result = toolRunner.run(call.name, call.arguments)
+                        logger.debug("Tool '${call.name}' returned ${result.length} chars")
+                        val clipped = result.take(com.orangeisland.app.util.Constants.MAX_TOOL_RESULT_LENGTH)
+                        messages += com.orangeisland.app.model.ChatMessage(
+                            id = "result_${java.util.UUID.randomUUID()}",
+                            parentId = toolMsgId,
+                            text = clipped,
+                            participant = com.orangeisland.app.model.Participant.USER,
+                            status = com.orangeisland.app.model.MessageStatus.SUCCESS,
+                            toolCall = com.orangeisland.app.model.ToolCallData(
+                                call.name, call.arguments, clipped, call.signature, call.id
+                            )
+                        )
+                    }
+                }
+                // maxToolCalls reached — return whatever text was produced in the last round
+                logger.warn("LLM maxToolCalls ($maxToolCalls) reached, running final summarisation")
+                val elapsed = System.currentTimeMillis() - t0
+                UsageLogManager.logModel(
+                    name = "workflow / $effectiveProvider / $effectiveModelId ✓",
+                    details = "${elapsed}ms | output=${messages.lastOrNull { it.participant == com.orangeisland.app.model.Participant.MODEL && !it.id.startsWith("tool_") }?.text?.length ?: 0} chars | rounds=$toolCallCount (max reached)"
+                )
+                // Re-run one final non-tool generation so the model can summarise after hitting the cap.
+                val finalSb = StringBuilder()
+                var finalError: String? = null
+                llmProvider.generateResponse(messages, baseConfig).collect { ev ->
+                    when (ev) {
+                        is com.orangeisland.app.api.StreamEvent.TextChunk -> finalSb.append(ev.text)
+                        is com.orangeisland.app.api.StreamEvent.Error -> if (finalError == null) finalError = ev.message
+                        else -> {}
+                    }
+                }
+                if (finalError != null) error("$finalError [provider=$effectiveProvider model=$effectiveModelId]")
+                return finalSb.toString().trim()
+            }
+
+            // ── No-tool path (original behaviour) ────────────────────────────────
             val sb = StringBuilder()
             var firstError: String? = null
-            val t0 = System.currentTimeMillis()
-            llmProvider.generateResponse(history, config).collect { ev ->
+            llmProvider.generateResponse(messages, baseConfig).collect { ev ->
                 when (ev) {
                     is com.orangeisland.app.api.StreamEvent.TextChunk -> sb.append(ev.text)
-                    is com.orangeisland.app.api.StreamEvent.Error -> {
-                        if (firstError == null) firstError = ev.message
-                    }
+                    is com.orangeisland.app.api.StreamEvent.Error -> if (firstError == null) firstError = ev.message
                     else -> {}
                 }
             }
@@ -373,10 +501,10 @@ class WorkflowRunner(
                     (firstError?.let { " | error=$it" } ?: "")
             )
             firstError?.let {
-                // Enrich the error so the workflow run log shows what was actually requested.
                 error("$it [provider=$effectiveProvider model=$effectiveModelId baseUrl=${baseUrl ?: "<default>"}]")
             }
-            sb.toString().trim()
+            return sb.toString().trim()
+            }
         }
     }
 

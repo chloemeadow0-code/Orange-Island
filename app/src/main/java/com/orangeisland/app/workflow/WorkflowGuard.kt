@@ -67,12 +67,20 @@ class WorkflowGuard(
     suspend fun preflightForLinear(action: com.orangeisland.app.model.LinearAction): Verdict =
         preflightTool(action.tool, action.args.toString())
 
+    /**
+     * Guard entry for tool calls triggered from inside an LLM node (workflow graph).
+     * Applies the same budget, background-safe whitelist, and destructive-tool checks
+     * as [preflight] / [preflightForLinear].
+     */
+    suspend fun checkToolCall(toolName: String, resolvedArgs: String): Verdict =
+        preflightTool(toolName, resolvedArgs)
+
     /** Shared core of both preflight entry points. */
     private suspend fun preflightTool(tool: String, resolvedArgs: String): Verdict {
         currentCoroutineContext().ensureActive()
         checkBudget()
 
-        if (backgroundMode && backgroundSafeOnly && tool !in BACKGROUND_SAFE_TOOLS) {
+        if (backgroundMode && backgroundSafeOnly && !isBackgroundSafe(tool)) {
             return Verdict.Deny("Tool '$tool' is not allowed in background-triggered workflows")
         }
         if (tool in DESTRUCTIVE_TOOLS) {
@@ -142,5 +150,10 @@ class WorkflowGuard(
             "app_lock",
             "workflow_set_schedule"
         )
+
+        /** Plugins and MCP tools are user-installed / user-configured; they run in a sandbox or
+         *  over a local socket and are therefore treated as background-safe by default.  */
+        private fun isBackgroundSafe(tool: String): Boolean =
+            tool in BACKGROUND_SAFE_TOOLS || tool.startsWith("plugin__") || tool.startsWith("mcp__")
     }
 }

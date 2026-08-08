@@ -222,8 +222,13 @@ object GraphDefinitionParser {
                 val modelId = obj.str("model_id") ?: obj.str("modelId") ?: "gpt-4o-mini"
                 val systemPrompt = obj.str("system_prompt") ?: obj.str("systemPrompt") ?: ""
                 val temperature = obj.num("temperature")?.toFloat() ?: 0.7f
+                val toolNames = (obj.arrayRaw("tool_names") ?: emptyList()).mapNotNull {
+                    (it as? JsonPrimitive)?.contentOrNull
+                }
+                val maxToolCalls = (obj.int("max_tool_calls") ?: 5).coerceIn(0, 20)
                 LLMNode(id = id, label = label, pos = pos, prompt = prompt,
-                    provider = provider, modelId = modelId, systemPrompt = systemPrompt, temperature = temperature)
+                    provider = provider, modelId = modelId, systemPrompt = systemPrompt, temperature = temperature,
+                    toolNames = toolNames, maxToolCalls = maxToolCalls)
             }
             "notify" -> {
                 val title = parseNodeValue(obj.obj("title"), nodeIds) ?: NodeValue.Literal("Orange Island")

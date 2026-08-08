@@ -1,0 +1,117 @@
+{
+  "id": "com.orangechat.plugin.couple-survey",
+  "name": "情侣问卷",
+  "description": "AI 帮你们制定/发布/填写/提交/转发问卷，前端像问卷星一样展示并填答。支持私密(仅发布者与指定用户可见)与公开(所有人可见)两种范围。数据存于硬编码的 Supabase。",
+  "version": "1.0.0",
+  "author": "diant",
+  "icon": "💕",
+  "entry": "main.js",
+  "allowedHosts": ["supabase.co"],
+  "ui": "ui.html",
+  "config": [
+    {
+      "name": "username",
+      "type": "string",
+      "label": "用户名",
+      "description": "你的昵称/名字，用于标识问卷作者与填写者",
+      "required": true,
+      "placeholder": "例如: 小聚"
+    },
+    {
+      "name": "owner_id",
+      "type": "string",
+      "label": "专属ID",
+      "description": "你的专属标识，用于私密问卷授权(对方填你的 owner_id 才能看到私密问卷)",
+      "required": true,
+      "placeholder": "例如: xiaoju_001"
+    }
+  ],
+  "tools": [
+    {
+      "name": "list_templates",
+      "description": "列出插件内置的问卷模板(如「情侣必答 71 问」)。返回每套的 id/名称/题量, 用于 create_template_survey 生成。",
+      "parameters": []
+    },
+    {
+      "name": "create_template_survey",
+      "description": "用内置模板一键生成问卷。参数 template_id(默认 'couple_71' 情侣必答71问)、title(可选覆盖标题)、description(可选)、visibility(可选 'public'/'private' 直接发布, 不填则存草稿)、target_user(私密时必填)。生成后可用 publish_survey 再改范围或 forward_survey 转发。",
+      "parameters": [
+        { "name": "template_id", "type": "string", "required": false, "description": "模板ID, 默认 couple_71" },
+        { "name": "title", "type": "string", "required": false, "description": "问卷标题, 不填用模板名" },
+        { "name": "visibility", "type": "string", "required": false, "description": "public 公开 / private 私密 / 留空草稿" },
+        { "name": "target_user", "type": "string", "required": false, "description": "私密时授权可见的对方ID/用户名" }
+      ]
+    },
+    {
+      "name": "create_survey",
+      "description": "制定问卷(存为草稿,仅自己可见)。参数 title(标题)、description(说明可选)、questions(问题数组,每项 {type:'single'|'multiple'|'text', title:题面, options?:选项数组})。返回 survey_id。发布请用 publish_survey。",
+      "parameters": [
+        { "name": "title", "type": "string", "required": true, "description": "问卷标题" },
+        { "name": "description", "type": "string", "required": false, "description": "问卷说明" },
+        { "name": "questions", "type": "array", "required": true, "description": "问题数组, 每项 {type:'single'|'multiple'|'text', title:题面, options?:[选项字符串]}" }
+      ]
+    },
+    {
+      "name": "publish_survey",
+      "description": "发布问卷,设置可见范围。参数 survey_id、visibility('public'公开所有人可见 / 'private'私密)、target_user(私密时必填:授权可见的对方ID/用户名)。",
+      "parameters": [
+        { "name": "survey_id", "type": "string", "required": true, "description": "问卷ID" },
+        { "name": "visibility", "type": "string", "required": true, "description": "public 或 private" },
+        { "name": "target_user", "type": "string", "required": false, "description": "私密时必填, 授权可见的对方ID/用户名" }
+      ]
+    },
+    {
+      "name": "fill_survey",
+      "description": "填写问卷(暂存草稿,不正式提交)。参数 survey_id、answers({questionId:答案})。返回 response_id, 之后用 submit_survey 正式提交。",
+      "parameters": [
+        { "name": "survey_id", "type": "string", "required": true, "description": "问卷ID" },
+        { "name": "answers", "type": "object", "required": true, "description": "{问题id: 答案}, 单选为字符串, 多选为数组, 文本为字符串" }
+      ]
+    },
+    {
+      "name": "submit_survey",
+      "description": "正式提交问卷。参数 survey_id, 可选 response_id(提交之前 fill 的草稿) 或 answers(直接提交)。",
+      "parameters": [
+        { "name": "survey_id", "type": "string", "required": true, "description": "问卷ID" },
+        { "name": "response_id", "type": "string", "required": false, "description": "之前 fill 的草稿ID, 置为已提交" },
+        { "name": "answers", "type": "object", "required": false, "description": "直接提交的答案 {问题id:答案}" }
+      ]
+    },
+    {
+      "name": "forward_survey",
+      "description": "转发问卷邀请。参数 survey_id、to(转发给谁,用户名/ID/会话标识可选)。返回可发给对方的转发文案。仅已发布的公开/私密问卷可转发。",
+      "parameters": [
+        { "name": "survey_id", "type": "string", "required": true, "description": "问卷ID" },
+        { "name": "to", "type": "string", "required": false, "description": "转发目标(用户名/ID/会话), 不填则泛指'你'" }
+      ]
+    },
+    {
+      "name": "list_surveys",
+      "description": "列出问卷。参数 scope('visible'默认:我能看的公开+私密授权+我的草稿 / 'mine':我发布的 / 'all':全部含不可见的标记)。返回带 submitted_count 的列表。",
+      "parameters": [
+        { "name": "scope", "type": "string", "required": false, "description": "visible / mine / all" }
+      ]
+    },
+    {
+      "name": "get_survey",
+      "description": "获取单份问卷完整内容(含问题)。参数 survey_id。无权查看的私密问卷会拒绝。",
+      "parameters": [
+        { "name": "survey_id", "type": "string", "required": true, "description": "问卷ID" }
+      ]
+    },
+    {
+      "name": "get_results",
+      "description": "获取问卷结果与统计。参数 survey_id。返回每题答案分布(单选/多选计数、文本答案明细)。发布者可见全部, 公开问卷所有人看统计, 私密仅授权者看。",
+      "parameters": [
+        { "name": "survey_id", "type": "string", "required": true, "description": "问卷ID" }
+      ]
+    },
+    {
+      "name": "delete_survey",
+      "description": "删除问卷(仅发布者)。参数 survey_id。会连带删除关联回答与转发记录。",
+      "parameters": [
+        { "name": "survey_id", "type": "string", "required": true, "description": "问卷ID" }
+      ]
+    }
+  ]
+}

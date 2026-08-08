@@ -46,11 +46,13 @@ class WorkflowEngine {
         llmRunner: NodeExecutor.LLMRunner? = null,
         notificationRunner: NodeExecutor.NotificationRunner? = null,
         chatMessageRunner: NodeExecutor.ChatMessageRunner? = null,
-        onState: (String, NodeState) -> Unit = { _, _ -> }
+        onState: (String, NodeState) -> Unit = { _, _ -> },
+        toolDefinitionsProvider: ((List<String>) -> List<com.orangeisland.app.api.ToolDefinition>)? = null,
+        logger: RunLogger? = null
     ): RunResult {
         val startedAt = System.currentTimeMillis()
         val runId = UUID.randomUUID().toString()
-        val logger = RunLogger()
+        val runLogger = logger ?: RunLogger()
         val states = mutableMapOf<String, NodeState>()
 
         fun buildResult(success: Boolean, message: String): RunResult {
@@ -59,27 +61,27 @@ class WorkflowEngine {
                 workflowId = workflow.id, runId = runId,
                 success = success, message = message,
                 startedAt = startedAt, finishedAt = finishedAt,
-                states = states.toMap(), logs = logger.entries
+                states = states.toMap(), logs = runLogger.entries
             )
         }
 
-        logger.debug("Starting workflow '${workflow.name}' (${workflow.id}) [run=$runId]")
+        runLogger.debug("Starting workflow '${workflow.name}' (${workflow.id}) [run=$runId]")
 
         return withContext(Dispatchers.Default) {
             try {
                 // 1. Resolve entry nodes.
                 val entries = resolveEntries(workflow, triggerSource)
                 if (entries.isEmpty()) {
-                    logger.warn("No matching start node for trigger $triggerSource")
+                    runLogger.warn("No matching start node for trigger $triggerSource")
                     return@withContext buildResult(false, "No matching start node")
                 }
-                entries.forEach { logger.debug("Entry: '${it.label.ifBlank { it.id }}' (${it.trigger})", it.id, it.label) }
+                entries.forEach { runLogger.debug("Entry: '${it.label.ifBlank { it.id }}' (${it.trigger})", it.id, it.label) }
                 currentCoroutineContext().ensureActive()
 
                 // 2. Compile + cycle check.
                 val graph = GraphBuilder.compile(workflow)
                 if (GraphBuilder.hasCycle(graph)) {
-                    logger.error("Workflow has a cycle; aborting")
+                    runLogger.error("Workflow has a cycle; aborting")
                     return@withContext buildResult(false, "Workflow contains a cycle")
                 }
 
@@ -93,26 +95,30 @@ class WorkflowEngine {
                 }
 
                 // 5. Topological walk.
-                val executor = NodeExecutor(states, ValueResolver(states), guard, toolRunner, llmRunner, notificationRunner, chatMessageRunner, logger, onState)
-                walk(executor, workflow, graph, reachable, entries, states, logger, onState, triggerPayload)
+                val executor = NodeExecutor(
+                    states, ValueResolver(states), guard, toolRunner, llmRunner,
+                    notificationRunner, chatMessageRunner, runLogger, onState,
+                    toolDefinitionsProvider
+                )
+                walk(executor, workflow, graph, reachable, entries, states, runLogger, onState, triggerPayload)
 
-                // 6. Final judgement: any Errored node without a satisfied OnFailure exit â†?run failed.
+                // 6. Final judgement: any Errored node without a satisfied OnFailure exit ¡ú run failed.
                 val unhandled = hasUnhandledFailure(graph, workflow, states, entries)
                 if (unhandled == null) {
-                    logger.debug("Workflow '${workflow.name}' completed")
+                    runLogger.debug("Workflow '${workflow.name}' completed")
                     buildResult(true, "Completed")
                 } else {
-                    logger.error("Unhandled failure at '${unhandled.label.ifBlank { unhandled.id }}'", unhandled.id, unhandled.label)
+                    runLogger.error("Unhandled failure at '${unhandled.label.ifBlank { unhandled.id }}'", unhandled.id, unhandled.label)
                     buildResult(false, "Node '${unhandled.label.ifBlank { unhandled.id }}' failed without an error handler")
                 }
             } catch (e: CancellationException) {
-                logger.warn("Run cancelled")
+                runLogger.warn("Run cancelled")
                 buildResult(false, "Cancelled")
             } catch (e: WorkflowLimitExceeded) {
-                logger.error("Run exceeded a guard limit: ${e.message}")
+                runLogger.error("Run exceeded a guard limit: ${e.message}")
                 buildResult(false, e.message ?: "Limit exceeded")
             } catch (e: Exception) {
-                logger.error("Run crashed: ${e.message ?: e::class.simpleName}")
+                runLogger.error("Run crashed: ${e.message ?: e::class.simpleName}")
                 buildResult(false, "Crash: ${e.message ?: e::class.simpleName}")
             }
         }
