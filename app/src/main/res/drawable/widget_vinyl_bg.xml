@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 音乐卡片背景：温暖深棕渐变，比纯黑柔和，衬托黑胶 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="135"
+                android:startColor="#FF2A1F1A"
+                android:centerColor="#FF1F1814"
+                android:endColor="#FF15110E"
+                android:type="linear" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+</layer-list>

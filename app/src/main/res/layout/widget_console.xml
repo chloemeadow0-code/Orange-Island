@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 注意：RemoteViews 严格限制可 inflate 的 View 类。
+     android.view.View 基类不在白名单内（会导致 InflateException → VIEW_MODE_ERROR 黑框）。
+     所以本布局里所有占位/色块一律用 TextView，绝不使用 <View>。 -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_console_bg"
+    android:padding="16dp">
+
+    <!-- ── 顶部标题栏 ── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="橘子岛"
+            android:textSize="16dp"
+            android:textStyle="bold"
+            android:textColor="#FF3D2F27" />
+
+        <!-- 弹性占位 — TextView 替代 View -->
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+    <!-- ── 中间两张卡片 ── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+
+        <!-- GPT 风格三入口：视频 / 图片 / 文件 -->
+        <LinearLayout
+            android:id="@+id/card_video"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginRight="6dp"
+            android:background="@drawable/widget_card_bg"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="10dp">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/widget_ic_video"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="视频"
+                android:textSize="11dp"
+                android:textColor="#FF3D2F27" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_image"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginLeft="3dp"
+            android:layout_marginRight="3dp"
+            android:background="@drawable/widget_card_bg"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="10dp">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/widget_ic_image"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="图片"
+                android:textSize="11dp"
+                android:textColor="#FF3D2F27" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_file"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginLeft="6dp"
+            android:background="@drawable/widget_card_bg"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="10dp">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/widget_ic_file"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="文件"
+                android:textSize="11dp"
+                android:textColor="#FF3D2F27" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ── 底部快捷输入 ── -->
+    <LinearLayout
+        android:id="@+id/bottom_input"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/widget_input_bg"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingLeft="14dp"
+        android:paddingRight="6dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="想问点什么…"
+            android:textSize="13dp"
+            android:textColor="#FF917F72" />
+
+        <!-- 发送按钮：圆形品牌橙 + 白色箭头 -->
+        <TextView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/widget_send_btn_bg"
+            android:gravity="center"
+            android:text="→"
+            android:textSize="16dp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFFFF" />
+    </LinearLayout>
+</LinearLayout>

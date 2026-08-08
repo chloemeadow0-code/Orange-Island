@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 图片图标 — 简洁线性 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFF28A34">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M4,3 C2.9,3 2,3.9 2,5 L2,19 C2,20.1 2.9,21 4,21 L20,21 C21.1,21 22,20.1 22,19 L22,5 C22,3.9 21.1,3 20,3 L4,3 Z M4,5 L20,5 L20,15 L17,12 L13,16 L9,12 L4,17 L4,5 Z M9,9 C7.9,9 7,9.9 7,11 C7,12.1 7.9,13 9,13 C10.1,13 11,12.1 11,11 C11,9.9 10.1,9 9,9 Z" />
+</vector>

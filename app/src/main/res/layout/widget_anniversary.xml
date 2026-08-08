@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 橘子岛纪念日小组件（2×2）。
+     严格遵守 RemoteViews 白名单：只用 LinearLayout / TextView，不用 <View>。 -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/anniv_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_console_bg"
+    android:padding="14dp">
+
+    <!-- ── 顶部：标签 + 页码 ── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/anniv_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="纪念日"
+            android:textSize="11dp"
+            android:textColor="#FFF28A34" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/anniv_pager"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="10dp"
+            android:textColor="#FF917F72" />
+    </LinearLayout>
+
+    <!-- ── 中间：倒计时大数字 + 后缀 ── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <!-- 名称 -->
+        <TextView
+            android:id="@+id/anniv_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="纪念日"
+            android:textSize="14dp"
+            android:textStyle="bold"
+            android:textColor="#FF3D2F27" />
+
+        <!-- 倒计时数字 + 后缀 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal"
+            android:gravity="bottom">
+
+            <TextView
+                android:id="@+id/anniv_days"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="--"
+                android:textSize="34dp"
+                android:textStyle="bold"
+                android:textColor="#FFF28A34" />
+
+            <TextView
+                android:id="@+id/anniv_suffix"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:layout_marginBottom="6dp"
+                android:text="天后"
+                android:textSize="13dp"
+                android:textColor="#FF917F72" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ── 底部：具体日期 ── -->
+    <TextView
+        android:id="@+id/anniv_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="—"
+        android:textSize="11dp"
+        android:textColor="#FF917F72" />
+</LinearLayout>

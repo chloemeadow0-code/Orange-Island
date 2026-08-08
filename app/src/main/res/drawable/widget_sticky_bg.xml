@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 便签纸背景：暖黄渐变 + 顶部胶带感深色条 + 大圆角 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 主体便签纸：暖黄渐变 -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="90"
+                android:startColor="#FFFFF3B0"
+                android:centerColor="#FFFEEC8A"
+                android:endColor="#FFFEE871"
+                android:type="linear" />
+            <corners android:radius="20dp" />
+            <stroke android:width="0.5dp" android:color="#33B85825" />
+        </shape>
+    </item>
+</layer-list>

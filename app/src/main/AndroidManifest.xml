@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
@@ -263,6 +264,95 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
+        </receiver>
+
+        <!-- 橘子岛控制台 — 桌面小组件
+             exported="true" 必需：系统 Launcher 通过 AppWidgetManager 与 Provider 交互，
+             且系统在选择列表里扫描可用小组件时需要它是 exported 的。 -->
+        <receiver
+            android:name=".widget.ConsoleWidgetProvider"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/console_widget_info" />
+        </receiver>
+
+        <!-- 橘子岛使用统计 — 桌面小组件 -->
+        <receiver
+            android:name=".widget.StatsWidgetProvider"
+            android:exported="true"
+            android:label="橘子岛 · 使用统计">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.orangeisland.app.STATS_CYCLE_RANGE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/stats_widget_info" />
+        </receiver>
+
+        <!-- 橘子岛纪念日 — 桌面小组件 -->
+        <receiver
+            android:name=".widget.AnniversaryWidgetProvider"
+            android:exported="true"
+            android:label="橘子岛 · 纪念日">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.orangeisland.app.ANNIV_CYCLE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/anniversary_widget_info" />
+        </receiver>
+
+        <!-- 橘子岛音乐 — 桌面小组件 -->
+        <receiver
+            android:name=".widget.MusicWidgetProvider"
+            android:exported="true"
+            android:label="橘子岛 · 音乐">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.orangeisland.app.music.STATE" />
+                <action android:name="com.orangeisland.app.MUSIC_CYCLE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/music_widget_info" />
+        </receiver>
+
+        <!-- 后台音乐播放服务（MediaSession + ExoPlayer）。
+             桌面小组件 / 通知 / 锁屏控件统一通过它控制。
+             foregroundServiceType=mediaPlayback，需 POST_NOTIFICATIONS（已声明）。 -->
+        <service
+            android:name=".service.MusicPlaybackService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
+
+        <!-- 橘子岛便签 — 桌面小组件（随机展示一条便签） -->
+        <receiver
+            android:name=".widget.StickyNoteWidgetProvider"
+            android:exported="true"
+            android:label="橘子岛 · 便签">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/sticky_widget_info" />
         </receiver>
     </application>
 

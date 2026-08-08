@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Timeline
@@ -84,6 +85,9 @@ fun SettingsDeviceAccessPage(
     val overlayEnabled by pc.overlayEnabledFlow.collectAsState()
     val petEnabled by settings.petEnabled.collectAsState()
     var amapKeyDraft by remember(amapApiKey) { mutableStateOf(amapApiKey) }
+
+    // 组件信息：便签条数（只读展示）
+    val stickyNotes by settings.stickyNotes.collectAsState()
 
     // Health / Gadgetbridge / Sync state
     val gadgetbridgeEnabled by settings.gadgetbridgeEnabled.collectAsState()
@@ -441,6 +445,63 @@ fun SettingsDeviceAccessPage(
                         onClick = { settings.setAmapApiKey(amapKeyDraft.trim()) },
                         enabled = amapKeyDraft.trim() != amapApiKey,
                     ) { Text(stringResource(R.string.save)) }
+                }
+            }
+
+            // ── 组件信息：桌面小组件相关能力（便签等，后续可扩展） ────────
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    stringResource(R.string.device_access_group_widget),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                )
+                Text(
+                    stringResource(R.string.device_access_widget_info_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 1.dp,
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Notes,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    stringResource(R.string.device_access_sticky_note_title),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
+                                Text(
+                                    stringResource(R.string.device_access_sticky_note_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        Text(
+                            stringResource(R.string.device_access_sticky_note_count, stickyNotes.size),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(start = 34.dp, top = 2.dp),
+                        )
+                    }
                 }
             }
 

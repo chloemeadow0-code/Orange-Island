@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 橘子岛便签小组件（2×2，便签纸风格）。
+     严格遵守 RemoteViews 白名单：不用 <View>。 -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/sticky_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_sticky_bg"
+    android:padding="16dp">
+
+    <!-- 顶部：标题 + 计数 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📌 便签"
+            android:textSize="12dp"
+            android:textStyle="bold"
+            android:textColor="#FFB85825" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/sticky_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="10dp"
+            android:textColor="#993D2F27" />
+    </LinearLayout>
+
+    <!-- 标题（可空） -->
+    <TextView
+        android:id="@+id/sticky_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text=""
+        android:textSize="14dp"
+        android:textStyle="bold"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:textColor="#FF3D2F27" />
+
+    <!-- 正文 -->
+    <TextView
+        android:id="@+id/sticky_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="6dp"
+        android:gravity="center_vertical"
+        android:text="还没有便签，让 AI 帮你写一句"
+        android:textSize="13dp"
+        android:lineSpacingExtra="3dp"
+        android:textColor="#E63D2F27" />
+
+    <!-- 底部：时间 -->
+    <TextView
+        android:id="@+id/sticky_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="right"
+        android:text=""
+        android:textSize="10dp"
+        android:textColor="#803D2F27" />
+</LinearLayout>

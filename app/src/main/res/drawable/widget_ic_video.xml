@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 视频图标 — 简洁线性，RemoteViews 安全的 vector drawable -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFF28A34">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M4,5 C2.9,5 2,5.9 2,7 L2,17 C2,18.1 2.9,19 4,19 L14,19 C15.1,19 16,18.1 16,17 L16,7 C16,5.9 15.1,5 14,5 L4,5 Z M17.5,9 L21,6.5 C21.6,6.1 22,6.4 22,7 L22,17 C22,17.6 21.6,17.9 21,17.5 L17.5,15 L17.5,9 Z" />
+</vector>

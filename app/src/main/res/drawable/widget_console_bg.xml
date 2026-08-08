@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 底层弥散阴影：略深的橙色偏移 -->
+    <item android:left="2dp" android:top="3dp" android:right="2dp" android:bottom="6dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#1AF28A34" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+
+    <!-- 主背景：暖色渐变，从奶油橘到纯白 -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="135"
+                android:startColor="#FFFFF5EE"
+                android:centerColor="#FFFFF8F0"
+                android:endColor="#FFFFFBF5"
+                android:type="linear" />
+            <corners android:radius="28dp" />
+            <stroke android:width="0.8dp" android:color="#33F28A34" />
+        </shape>
+    </item>
+</layer-list>

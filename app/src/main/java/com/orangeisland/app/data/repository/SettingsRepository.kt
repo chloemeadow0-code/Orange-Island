@@ -138,6 +138,7 @@ class SettingsRepository(
         hot(settingsManager.appLockEntries, emptyMap())
     val toastEnabled: StateFlow<Boolean> = hot(settingsManager.toastEnabled, false)
     val petEnabled: StateFlow<Boolean> = hot(settingsManager.petEnabled, false)
+    val stickyNoteToolEnabled: StateFlow<Boolean> = hot(settingsManager.stickyNoteToolEnabled, false)
     val petPosX: StateFlow<Int> = hot(settingsManager.petPosX, Int.MIN_VALUE)
     val petPosY: StateFlow<Int> = hot(settingsManager.petPosY, Int.MIN_VALUE)
     val alarmEnabled: StateFlow<Boolean> = hot(settingsManager.alarmEnabled, false)
@@ -216,6 +217,7 @@ class SettingsRepository(
     val environmentAwarenessEnabled: StateFlow<Boolean> = hot(settingsManager.environmentAwarenessEnabled, false)
     val miniAppEntries: StateFlow<List<com.orangeisland.app.data.MiniAppEntry>> = hot(settingsManager.miniAppEntries, emptyList())
     val anniversaries: StateFlow<List<com.orangeisland.app.data.AnniversaryEntry>> = hot(settingsManager.anniversaries, emptyList())
+    val stickyNotes: StateFlow<List<com.orangeisland.app.data.StickyNoteEntry>> = hot(settingsManager.stickyNotes, emptyList())
     // ── Plugin device id ──────────────────────────────────────
     // Auto-injected per-install UUID (read-only — no UI, no setter).
     val appUserId: StateFlow<String> = hot(settingsManager.appUserId, "")
@@ -653,6 +655,7 @@ class SettingsRepository(
         scope.launch { settingsManager.saveAppLockEntries(entries) }
     fun setToastEnabled(enabled: Boolean) = scope.launch { settingsManager.saveToastEnabled(enabled) }
     fun setPetEnabled(enabled: Boolean) = scope.launch { settingsManager.savePetEnabled(enabled) }
+    fun setStickyNoteToolEnabled(enabled: Boolean) = scope.launch { settingsManager.saveStickyNoteToolEnabled(enabled) }
     fun setPetPos(x: Int, y: Int) = scope.launch { settingsManager.savePetPos(x, y) }
     fun setAlarmEnabled(enabled: Boolean) = scope.launch { settingsManager.saveAlarmEnabled(enabled) }
     fun setHealthToolEnabled(v: Boolean) = scope.launch { settingsManager.saveHealthToolEnabled(v) }

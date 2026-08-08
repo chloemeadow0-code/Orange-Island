@@ -228,6 +228,8 @@ class SettingsManager(private val context: Context) {
         // service draws the pet character over other apps. Position keys persist the
         // last user-dragged location so the pet reappears where it was left.
         val PET_ENABLED = booleanPreferencesKey("pet_enabled")
+        // ── Widget info tools (sticky note, etc.) ─────────────────
+        val STICKY_NOTE_TOOL_ENABLED = booleanPreferencesKey("sticky_note_tool_enabled")
         val PET_POS_X = intPreferencesKey("pet_pos_x")
         val PET_POS_Y = intPreferencesKey("pet_pos_y")
         val ALARM_ENABLED = booleanPreferencesKey("alarm_enabled")
@@ -329,6 +331,7 @@ class SettingsManager(private val context: Context) {
         // ── Mini App ──────────────────────────────────────────────
         val MINI_APP_ENTRIES_JSON = stringPreferencesKey("mini_app_entries_json")
         val ANNIVERSARIES_JSON = stringPreferencesKey("anniversaries_json")
+        val STICKY_NOTES_JSON = stringPreferencesKey("sticky_notes_json")
         // ── Plugin device id ──────────────────────────────────────
         // A stable per-install UUID auto-injected into every plugin sandbox / WebView as
         // __OI_USER_ID so plugins can attribute actions to this device without learning
@@ -565,6 +568,7 @@ class SettingsManager(private val context: Context) {
     }
     val toastEnabled: Flow<Boolean> = context.dataStore.data.map { it[TOAST_ENABLED] ?: false }
     val petEnabled: Flow<Boolean> = context.dataStore.data.map { it[PET_ENABLED] ?: false }
+    val stickyNoteToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[STICKY_NOTE_TOOL_ENABLED] ?: false }
     val petPosX: Flow<Int> = context.dataStore.data.map { it[PET_POS_X] ?: Int.MIN_VALUE }
     val petPosY: Flow<Int> = context.dataStore.data.map { it[PET_POS_Y] ?: Int.MIN_VALUE }
     val alarmEnabled: Flow<Boolean> = context.dataStore.data.map { it[ALARM_ENABLED] ?: false }
@@ -664,6 +668,11 @@ class SettingsManager(private val context: Context) {
     val anniversaries: Flow<List<AnniversaryEntry>> = context.dataStore.data.map { pref ->
         val jsonStr = pref[ANNIVERSARIES_JSON] ?: "[]"
         try { json.decodeFromString<List<AnniversaryEntry>>(jsonStr) } catch (e: Exception) { DebugLog.e("SettingsManager", "Failed to decode anniversaries", e); emptyList() }
+    }
+
+    val stickyNotes: Flow<List<StickyNoteEntry>> = context.dataStore.data.map { pref ->
+        val jsonStr = pref[STICKY_NOTES_JSON] ?: "[]"
+        try { json.decodeFromString<List<StickyNoteEntry>>(jsonStr) } catch (e: Exception) { DebugLog.e("SettingsManager", "Failed to decode sticky notes", e); emptyList() }
     }
 
     // ── Text-to-Speech ──────────────────────────────────────────
@@ -1202,6 +1211,7 @@ class SettingsManager(private val context: Context) {
     }
     suspend fun saveToastEnabled(enabled: Boolean) { context.dataStore.edit { it[TOAST_ENABLED] = enabled } }
     suspend fun savePetEnabled(enabled: Boolean) { context.dataStore.edit { it[PET_ENABLED] = enabled } }
+    suspend fun saveStickyNoteToolEnabled(enabled: Boolean) { context.dataStore.edit { it[STICKY_NOTE_TOOL_ENABLED] = enabled } }
     suspend fun savePetPos(x: Int, y: Int) {
         context.dataStore.edit { it[PET_POS_X] = x; it[PET_POS_Y] = y }
     }
@@ -1392,6 +1402,10 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveAnniversaries(entries: List<AnniversaryEntry>) {
         context.dataStore.edit { it[ANNIVERSARIES_JSON] = json.encodeToString(entries) }
+    }
+
+    suspend fun saveStickyNotes(entries: List<StickyNoteEntry>) {
+        context.dataStore.edit { it[STICKY_NOTES_JSON] = json.encodeToString(entries) }
     }
 
     /**

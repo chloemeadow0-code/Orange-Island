@@ -387,6 +387,13 @@
     <!-- Desktop Pet (Mikan the orange) -->
     <string name="device_access_pet_title">Desktop Pet</string>
     <string name="device_access_pet_desc">Show Mikan, a floating companion that sits over other apps. Drag it around, double-tap to wave. Needs the \"Display over other apps\" permission above.</string>
+
+    <!-- 组件信息：桌面小组件相关能力（便签等） -->
+    <string name="device_access_group_widget">组件信息</string>
+    <string name="device_access_widget_info_desc">橘子岛桌面小组件（控制台、统计、纪念日、音乐、便签）。在这里管理小组件用到的数据。</string>
+    <string name="device_access_sticky_note_title">便签</string>
+    <string name="device_access_sticky_note_desc">让 AI 在桌面便签小组件上写字。每次开屏随机展示一条，最多保留 50 条，可增删改。</string>
+    <string name="device_access_sticky_note_count">当前 %1$d 条便签</string>
     <string name="pet_name">Mikan</string>
     <string name="pet_channel_name">Desktop Pet</string>
     <string name="pet_notification_text">Desktop pet is active</string>
@@ -1532,4 +1539,10 @@
     <string name="video_narration_max_long_side_desc">Longest edge in pixels for each sampled frame</string>
     <string name="video_narration_prompt">Narration Prompt</string>
     <string name="video_narration_prompt_desc">Instruction sent with each video narration request</string>
+
+    <!-- Widget -->
+    <string name="widget_console_description">橘子岛控制台 — 快捷查看 Workflow 状态并启动 AI 对话</string>
+    <string name="widget_status_online">在线</string>
+    <string name="widget_chat_label">AI 对话</string>
+    <string name="widget_input_hint">✎  想问点什么…</string>
 </resources>

@@ -309,6 +309,7 @@ class GenerationRequestBuilder(
         // Suffix only — never prepended, so it never touches the stable cacheable prefix of the
         // compiled system prompt above.
         val anniversarySuffix = buildAnniversarySuffix()
+        val stickySuffix = buildStickyNoteSuffix()
 
         if (entry != null) {
             val systemItems = entry.resolvedSystemItems
@@ -329,8 +330,11 @@ class GenerationRequestBuilder(
             } else {
                 withMemory
             }
+            val withSticky = if (stickySuffix != null) {
+                if (withAnniversaries != null) "$withAnniversaries\n\n$stickySuffix" else stickySuffix
+            } else withAnniversaries
             return ResolvedPrompt(
-                systemPrompt = withAnniversaries,
+                systemPrompt = withSticky,
                 userPrepend = PredefinedVariables.compile(entry.userPrependItems, perMsgValues, emptyMap()).ifBlank { null },
                 userPostpend = PredefinedVariables.compile(entry.userPostpendItems, perMsgValues, emptyMap()).ifBlank { null },
                 projectId = projectId,
@@ -342,8 +346,12 @@ class GenerationRequestBuilder(
             "$projectMemoryBlock\n\n$anniversarySuffix"
         } else anniversarySuffix ?: projectMemoryBlock
 
+        val fallbackWithSticky = if (stickySuffix != null) {
+            if (fallbackWithAnniversaries != null) "$fallbackWithAnniversaries\n\n$stickySuffix" else stickySuffix
+        } else fallbackWithAnniversaries
+
         return ResolvedPrompt(
-            systemPrompt = fallbackWithAnniversaries,
+            systemPrompt = fallbackWithSticky,
             userPrepend = null,
             userPostpend = null,
             projectId = projectId,
@@ -378,6 +386,20 @@ class GenerationRequestBuilder(
             "- ${e.name}：${com.orangeisland.app.data.AnniversaryUtils.formatDate(e)}$yearNote，$when_"
         }
         return "## 近期纪念日\n\n$lines\n\n（如果合适，可以自然地提一句，不用刻意生硬地念出来。）"
+    }
+
+    /**
+     * 便签能力提示。即使用户当前没有便签，也告诉 AI 这项能力存在，这样用户说"写个便签"
+     * 时 AI 会主动调用 create_sticky_note。有便签时附上当前条数。
+     */
+    private fun buildStickyNoteSuffix(): String {
+        val count = settings.stickyNotes.value.size
+        val possession = if (count > 0) "用户当前有 $count 条便签。" else "用户还没有便签。"
+        return "## 桌面便签\n\n" +
+            "$possession 你可以用 create_sticky_note 写便签（会显示在桌面便签小组件上，" +
+            "每次开屏随机展示一条，最多保留 50 条），用 list_sticky_notes 查看，" +
+            "update_sticky_note 修改，delete_sticky_note 删除。" +
+            "（用户提到\"记一下/便签/贴个便条/留句话\"等意图时主动用，不用等用户明确说工具名。）"
     }
 
     private fun formatConversationGap(millis: Long): String {

@@ -322,6 +322,26 @@ interface ChatDao {
     @Query("SELECT MAX(timestamp) FROM messages")
     suspend fun getLatestMessageTimestamp(): Long?
 
+    // ── 使用统计查询（供桌面统计小组件使用）──────────────────────────────
+    // 所有统计都过滤掉 tool_/result_ 工具行，只统计真实 USER/MODEL 消息。
+    // tokenCount 只写在 MODEL 消息上（整轮 prompt+completion 合计）。
+
+    /** 指定角色、指定时间点之后的真实消息条数。 */
+    @Query("SELECT COUNT(*) FROM messages WHERE participant = :role AND timestamp >= :since AND id NOT LIKE 'tool_%' AND id NOT LIKE 'result_%'")
+    suspend fun countMessagesByRoleSince(role: String, since: Long): Int
+
+    /** 指定时间点之后的总 token 数（全部记在 MODEL 行上）。 */
+    @Query("SELECT COALESCE(SUM(tokenCount), 0) FROM messages WHERE participant = 'MODEL' AND timestamp >= :since")
+    suspend fun sumTokensSince(since: Long): Long
+
+    /** 指定时间点之后的总使用时长（毫秒，仅 MODEL 行有值）。 */
+    @Query("SELECT COALESCE(SUM(generationDurationMs), 0) FROM messages WHERE participant = 'MODEL' AND timestamp >= :since")
+    suspend fun sumDurationSince(since: Long): Long
+
+    /** 拉取指定角色、指定时间点之后的所有消息文本（字数需在 Kotlin 里算，因为有 overflow 指针）。 */
+    @Query("SELECT * FROM messages WHERE participant = :role AND timestamp >= :since AND id NOT LIKE 'tool_%' AND id NOT LIKE 'result_%'")
+    suspend fun getMessagesByRoleSince(role: String, since: Long): List<MessageEntity>
+
     @Query("SELECT * FROM messages WHERE id IN (:ids)")
     suspend fun getMessagesByIds(ids: List<String>): List<MessageEntity>
 

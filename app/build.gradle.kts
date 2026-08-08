@@ -28,8 +28,8 @@ android {
         applicationId = "com.orangeisland.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 52
-        versionName = "2.0.2"
+        versionCode = 53
+        versionName = "2.1.0"
 
         // Supabase credentials — read from local.properties (gitignored) so they
         // never enter version control. anon key is public by design (RLS enforces
@@ -190,6 +190,7 @@ dependencies {
     implementation(libs.jlatexmath.android)
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
+    implementation(libs.media3.session)
     implementation(libs.okhttp)
     implementation(libs.material.color.utilities)
     implementation(libs.work.runtime.ktx)

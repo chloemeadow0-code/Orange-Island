@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 黑胶唱片：外圈深黑带细纹（用同心圆 stroke 模拟），中心品牌橙标签 + 小孔 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 最外层：黑色圆 -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#FF0A0A0A" />
+        </shape>
+    </item>
+    <!-- 第一道纹路 -->
+    <item android:left="6dp" android:top="6dp" android:right="6dp" android:bottom="6dp">
+        <shape android:shape="oval">
+            <solid android:color="#FF000000" />
+            <stroke android:width="0.5dp" android:color="#33FFFFFF" />
+        </shape>
+    </item>
+    <!-- 第二道纹路 -->
+    <item android:left="12dp" android:top="12dp" android:right="12dp" android:bottom="12dp">
+        <shape android:shape="oval">
+            <solid android:color="#FF000000" />
+            <stroke android:width="0.5dp" android:color="#26FFFFFF" />
+        </shape>
+    </item>
+    <!-- 第三道纹路 -->
+    <item android:left="18dp" android:top="18dp" android:right="18dp" android:bottom="18dp">
+        <shape android:shape="oval">
+            <solid android:color="#FF000000" />
+            <stroke android:width="0.5dp" android:color="#1AFFFFFF" />
+        </shape>
+    </item>
+    <!-- 中心标签：品牌橙渐变圆 -->
+    <item android:left="28dp" android:top="28dp" android:right="28dp" android:bottom="28dp">
+        <shape android:shape="oval">
+            <gradient
+                android:angle="135"
+                android:startColor="#FFF28A34"
+                android:centerColor="#FFE07A2A"
+                android:endColor="#FFB85825"
+                android:type="linear" />
+        </shape>
+    </item>
+    <!-- 中心小孔 -->
+    <item android:left="44dp" android:top="44dp" android:right="44dp" android:bottom="44dp">
+        <shape android:shape="oval">
+            <solid android:color="#FF1A1A1A" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 橘子岛音乐卡片小组件（2×2，黑胶唱片机风格）。
+     顶部控制栏（上一首/播放/下一首），下方左唱片右歌名。
+     严格遵守 RemoteViews 白名单：不用 <View>。 -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/music_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_vinyl_bg"
+    android:padding="12dp">
+
+    <!-- ── 顶部控制栏：上一首 / 播放 / 下一首 ── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/music_btn_prev"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:src="@drawable/widget_ic_prev"
+            android:scaleType="centerInside" />
+
+        <ImageView
+            android:id="@+id/music_btn_play"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:background="@drawable/widget_send_btn_bg"
+            android:src="@drawable/widget_ic_play"
+            android:padding="8dp"
+            android:scaleType="centerInside" />
+
+        <ImageView
+            android:id="@+id/music_btn_next"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:src="@drawable/widget_ic_next"
+            android:scaleType="centerInside" />
+    </LinearLayout>
+
+    <!-- ── 下方：左唱片 + 右歌名 ── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <!-- 黑胶唱片（固定正方形 80×80dp 居中，避免被拉伸成椭圆） -->
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
+            <ImageView
+                android:id="@+id/music_disc"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_gravity="center"
+                android:src="@drawable/widget_vinyl_disc"
+                android:scaleType="fitCenter" />
+        </FrameLayout>
+
+        <!-- 歌名 -->
+        <TextView
+            android:id="@+id/music_title"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginLeft="8dp"
+            android:gravity="center"
+            android:text="--"
+            android:textSize="15dp"
+            android:maxLines="3"
+            android:ellipsize="end"
+            android:textStyle="bold"
+            android:textColor="#FFFFFFFF" />
+    </LinearLayout>
+
+    <!-- 保留 ID 供 Provider 引用，隐藏不显示 -->
+    <TextView
+        android:id="@+id/music_pager"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/music_artist"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/music_lyric"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:visibility="gone" />
+</LinearLayout>

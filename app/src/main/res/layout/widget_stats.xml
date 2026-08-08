@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 橘子岛使用统计小组件（2×2 紧凑版）。
+     严格遵守 RemoteViews 白名单：只用 LinearLayout / TextView，不用 <View>。 -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/stats_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_console_bg"
+    android:padding="12dp">
+
+    <!-- ── 顶部：标题 + 可点击的范围切换 ── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="使用统计"
+            android:textSize="13dp"
+            android:textStyle="bold"
+            android:textColor="#FF3D2F27" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/stats_range"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:background="@drawable/widget_send_btn_bg"
+            android:text="今日"
+            android:textSize="10dp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFFFF" />
+    </LinearLayout>
+
+    <!-- ── 数据区：2×2 网格 ── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical"
+        android:weightSum="2">
+
+        <!-- 第 1 行：消息总数 / Token 消耗 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="消息"
+                    android:textSize="9dp"
+                    android:textColor="#FF917F72" />
+
+                <TextView
+                    android:id="@+id/stats_msg_total"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text="--"
+                    android:textSize="15dp"
+                    android:textStyle="bold"
+                    android:textColor="#FFF28A34" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Token"
+                    android:textSize="9dp"
+                    android:textColor="#FF917F72" />
+
+                <TextView
+                    android:id="@+id/stats_tokens"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text="--"
+                    android:textSize="15dp"
+                    android:textStyle="bold"
+                    android:textColor="#FFF28A34" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 第 2 行：AI 字数 / 我的字数 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="AI 字数"
+                    android:textSize="9dp"
+                    android:textColor="#FF917F72" />
+
+                <TextView
+                    android:id="@+id/stats_ai_chars"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text="--"
+                    android:textSize="15dp"
+                    android:textStyle="bold"
+                    android:textColor="#FF3D2F27" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="我的字数"
+                    android:textSize="9dp"
+                    android:textColor="#FF917F72" />
+
+                <TextView
+                    android:id="@+id/stats_user_chars"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text="--"
+                    android:textSize="15dp"
+                    android:textStyle="bold"
+                    android:textColor="#FF3D2F27" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

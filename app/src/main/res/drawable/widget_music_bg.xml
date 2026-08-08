@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 音乐卡片深色背景：渐变深紫到深蓝，模拟黑胶/夜曲氛围 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="135"
+                android:startColor="#FF2A1B3D"
+                android:centerColor="#FF1E2A47"
+                android:endColor="#FF0F1626"
+                android:type="linear" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+</layer-list>

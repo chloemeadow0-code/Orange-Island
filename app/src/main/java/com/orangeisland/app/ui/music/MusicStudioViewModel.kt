@@ -1,17 +1,19 @@
 package com.orangeisland.app.ui.music
 
 import android.app.Application
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.orangeisland.app.data.music.MusicStudioRepository
 import com.orangeisland.app.data.music.MusicStudioTrack
 import com.orangeisland.app.data.music.VoiceVersion
 import com.orangeisland.app.data.repository.SettingsRepository
+import com.orangeisland.app.service.MusicPlaybackService
 import com.orangeisland.app.util.DebugLog
 import com.orangeisland.app.worker.MusicGenerationWorker
 import com.orangeisland.app.worker.VoiceConversionWorker
@@ -54,16 +56,26 @@ class MusicStudioViewModel(
 
     private val workManager: WorkManager by lazy { WorkManager.getInstance(application) }
 
-    private val exoPlayer: ExoPlayer by lazy {
-        ExoPlayer.Builder(application).build().apply {
-            repeatMode = Player.REPEAT_MODE_OFF
-            addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == Player.STATE_ENDED) {
-                        _state.value = _state.value.copy(currentPlayingTrackId = null)
-                    }
-                }
-            })
+    /**
+     * 监听 [MusicPlaybackService] 推送的播放状态广播，把当前播放 trackId 反映到 UI。
+     * 这样 App 内和桌面小组件共用同一个 Service，UI 状态由 Service 单向驱动。
+     */
+    private val stateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action != MusicPlaybackService.ACTION_STATE) return
+            val idx = intent.getIntExtra(MusicPlaybackService.EXTRA_INDEX, -1)
+            val total = intent.getIntExtra(MusicPlaybackService.EXTRA_TOTAL, 0)
+            val isPlaying = intent.getBooleanExtra(MusicPlaybackService.EXTRA_IS_PLAYING, false)
+            val title = intent.getStringExtra(MusicPlaybackService.EXTRA_TITLE) ?: ""
+            // title 空说明 Service 没在播放列表里（比如刚启动）→ 清掉高亮
+            val currentId = if (isPlaying && title.isNotBlank() && idx in 0 until total) {
+                _state.value.tracks.getOrNull(idx)?.id
+            } else if (!isPlaying) {
+                null
+            } else {
+                _state.value.currentPlayingTrackId
+            }
+            _state.value = _state.value.copy(currentPlayingTrackId = currentId)
         }
     }
 
@@ -71,6 +83,12 @@ class MusicStudioViewModel(
         loadTracks()
         observeGenerations()
         observeRvcConfig()
+        // 注册状态广播接收器
+        getApplication<Application>().registerReceiver(
+            stateReceiver,
+            IntentFilter(MusicPlaybackService.ACTION_STATE),
+            Context.RECEIVER_NOT_EXPORTED
+        )
     }
 
     /** Keep the in-page RVC config fields in sync with the persisted settings. */
@@ -144,7 +162,13 @@ class MusicStudioViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             repository.deleteVoiceVersion(trackId, version.id)
             if (_state.value.currentPlayingTrackId == "v_${version.id}") {
-                withContext(Dispatchers.Main) { exoPlayer.stop() }
+                withContext(Dispatchers.Main) {
+                    getApplication<Application>().startService(
+                        Intent(getApplication(), MusicPlaybackService::class.java).apply {
+                            action = MusicPlaybackService.ACTION_PAUSE
+                        }
+                    )
+                }
             }
             loadTracks()
         }
@@ -157,17 +181,15 @@ class MusicStudioViewModel(
             _state.value = _state.value.copy(errorMessage = "音频文件不存在")
             return
         }
-        try {
-            exoPlayer.setMediaItem(MediaItem.fromUri(android.net.Uri.fromFile(file)))
-            exoPlayer.prepare()
-            exoPlayer.play()
-            // Version playback is tracked with a distinct marker so the original track's play state
-            // is left untouched.
-            _state.value = _state.value.copy(currentPlayingTrackId = "v_${version.id}")
-        } catch (e: Exception) {
-            DebugLog.e(TAG, "Play voice version failed", e)
-            _state.value = _state.value.copy(errorMessage = e.message)
-        }
+        // 通过 Service 播放独立音频（不进列表），保证单一播放源
+        getApplication<Application>().startService(
+            Intent(getApplication(), MusicPlaybackService::class.java).apply {
+                action = MusicPlaybackService.ACTION_PLAY_PATH
+                putExtra(MusicPlaybackService.EXTRA_PATH, version.localPath)
+                putExtra(MusicPlaybackService.EXTRA_TITLE, "音色版本")
+            }
+        )
+        _state.value = _state.value.copy(currentPlayingTrackId = "v_${version.id}")
     }
 
     /**
@@ -268,7 +290,13 @@ class MusicStudioViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             repository.deleteTrack(track)
             if (_state.value.currentPlayingTrackId == track.id) {
-                withContext(Dispatchers.Main) { exoPlayer.stop() }
+                withContext(Dispatchers.Main) {
+                    getApplication<Application>().startService(
+                        Intent(getApplication(), MusicPlaybackService::class.java).apply {
+                            action = MusicPlaybackService.ACTION_PAUSE
+                        }
+                    )
+                }
             }
             loadTracks()
         }
@@ -281,25 +309,28 @@ class MusicStudioViewModel(
             _state.value = _state.value.copy(errorMessage = "音频文件不存在")
             return
         }
-        try {
-            exoPlayer.setMediaItem(MediaItem.fromUri(android.net.Uri.fromFile(file)))
-            exoPlayer.prepare()
-            exoPlayer.play()
-            _state.value = _state.value.copy(currentPlayingTrackId = track.id)
-        } catch (e: Exception) {
-            DebugLog.e(TAG, "Play failed", e)
-            _state.value = _state.value.copy(errorMessage = e.message)
-        }
+        // 通过 Service 按 trackId 播放，保证 App 内 / 桌面小组件 / 锁屏共用同一播放源
+        getApplication<Application>().startService(
+            Intent(getApplication(), MusicPlaybackService::class.java).apply {
+                action = MusicPlaybackService.ACTION_PLAY_TRACK
+                putExtra(MusicPlaybackService.EXTRA_TRACK_ID, track.id)
+            }
+        )
+        _state.value = _state.value.copy(currentPlayingTrackId = track.id)
     }
 
     fun stopPlayback() {
-        exoPlayer.stop()
+        getApplication<Application>().startService(
+            Intent(getApplication(), MusicPlaybackService::class.java).apply {
+                action = MusicPlaybackService.ACTION_PAUSE
+            }
+        )
         _state.value = _state.value.copy(currentPlayingTrackId = null)
     }
 
     override fun onCleared() {
         super.onCleared()
-        exoPlayer.release()
+        getApplication<Application>().unregisterReceiver(stateReceiver)
     }
 
     companion object {
