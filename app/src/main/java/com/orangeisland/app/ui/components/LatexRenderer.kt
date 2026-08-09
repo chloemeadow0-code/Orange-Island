@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
@@ -38,15 +37,13 @@ import androidx.compose.ui.text.PlaceholderVerticalAlign
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import ru.noties.jlatexmath.JLatexMathDrawable
-import coil.imageLoader
-import coil.request.ImageRequest
-import coil.request.SuccessResult
+import coil.compose.AsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
 import kotlin.io.encoding.Base64
 import kotlin.math.roundToInt
 
@@ -690,46 +687,44 @@ class LatexImageTransformer(
     /**
      * Builds an [ImageData] for a non-latex (network/local) image link.
      *
-     * The markdown library renders this with a bare `Image(painter)`. Coil's
-     * `rememberAsyncImagePainter` does not reliably trigger the library's `Image` to
-     * re-measure/redraw once the fetch resolves, so the image stays at 0x0. Instead we
-     * drive the load ourselves via [produceState] and hand back a [BitmapPainter] once
-     * the bitmap is ready — that painter reports a concrete [intrinsicSize] and draws
-     * immediately. The `fillMaxWidth().aspectRatio()` modifier gives a non-zero box
-     * during loading too, so the layout never collapses.
+     * The markdown library renders this with a bare `Image(painter)` and
+     * `ContentScale.Fit`, sizing it from `painter.intrinsicSize`. Coil's
+     * `rememberAsyncImagePainter` reports `Size.Unspecified` while loading, which
+     * would measure 0x0 and collapse the layout. We therefore apply a non-zero
+     * placeholder modifier (max 120.dp, 16:9 fallback) during loading, and switch
+     * to the real aspect ratio from the painter's intrinsicSize once the fetch
+     * succeeds. GIF and animated images are supported natively because we return
+     * the Coil painter directly instead of manually extracting a bitmap.
      */
     @Composable
     private fun networkImageData(link: String): ImageData {
-        val context = androidx.compose.ui.platform.LocalContext.current
-        val bitmap by androidx.compose.runtime.produceState<ImageBitmap?>(initialValue = null, link) {
-            value = withContext(Dispatchers.IO) {
-                try {
-                    val loader = context.imageLoader
-                    val request = ImageRequest.Builder(context).data(link).build()
-                    val result = loader.execute(request)
-                    (result as? SuccessResult)?.drawable?.let { drawable ->
-                        (drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap?.asImageBitmap()
-                    }
-                } catch (_: Throwable) {
-                    null
+        val painter = rememberAsyncImagePainter(model = link)
+        val modifier = when (val state = painter.state) {
+            is AsyncImagePainter.State.Success -> {
+                val intrinsicSize = state.painter.intrinsicSize
+                val ratio = if (intrinsicSize.isUnspecified || intrinsicSize.width <= 0 || intrinsicSize.height <= 0) {
+                    16f / 9f
+                } else {
+                    intrinsicSize.width / intrinsicSize.height
                 }
+                Modifier
+                    .widthIn(max = 120.dp)
+                    .aspectRatio(ratio)
+            }
+            else -> {
+                // Loading / Empty / Error — keep a non-zero placeholder so the layout does not collapse.
+                Modifier
+                    .widthIn(max = 120.dp)
+                    .aspectRatio(16f / 9f)
             }
         }
-        val ratio = if (bitmap != null && bitmap!!.width > 0 && bitmap!!.height > 0) {
-            bitmap!!.width.toFloat() / bitmap!!.height.toFloat()
-        } else {
-            16f / 9f
-        }
-        val painter = bitmap?.let { BitmapPainter(it) } ?: ColorPainter(Color.Transparent)
         return ImageData(
             painter = painter,
             contentDescription = null,
             // Cap the image at ~half the bubble width so stickers/emoji images don't
             // fill the whole row. widthIn keeps small images at their natural size and
             // only constrains the upper bound; aspectRatio preserves the proportions.
-            modifier = Modifier
-                .widthIn(max = 120.dp)
-                .aspectRatio(ratio),
+            modifier = modifier,
             alignment = Alignment.Center,
             contentScale = ContentScale.Fit,
         )
