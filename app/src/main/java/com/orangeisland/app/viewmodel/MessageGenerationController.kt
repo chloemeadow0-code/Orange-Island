@@ -330,7 +330,7 @@ class MessageGenerationController(
     ) {
         DebugLog.w("MsgOrder", "launchGeneration ENTER callerTag=$callerTag " +
             "modelMsgId=${modelMessageId.take(12)} isRegen=$isRegenerate " +
-            "renderedTail=${allMessages.value.lastOrNull { !it.id.startsWith(Constants.TOOL_MSG_PREFIX) && !it.id.startsWith(Constants.RESULT_MSG_PREFIX) && !it.id.startsWith("compacted_") }?.id?.take(12)}")
+            "renderedTail=${messages.value.lastOrNull { !it.id.startsWith(Constants.TOOL_MSG_PREFIX) && !it.id.startsWith(Constants.RESULT_MSG_PREFIX) && !it.id.startsWith("compacted_") }?.id?.take(12)}")
         val t0 = System.currentTimeMillis()
         val resolved = requestBuilder.buildEffectiveSystemPrompt(currentId)
         DebugLog.d("GenPerf", "buildSystemPrompt: ${System.currentTimeMillis() - t0}ms")
@@ -404,18 +404,29 @@ class MessageGenerationController(
             val messageToEdit = allMessages.value.find { it.id == messageId } ?: return@launch
             DebugLog.w("MsgOrder", "editMessage ENTER: editTarget=${messageId.take(12)} " +
                 "editTargetParent=${messageToEdit.parentId?.take(12) ?: "null"} " +
-                "editTargetInRenderedPath=${allMessages.value.any { it.id == messageId}} " +
-                "renderedTail=${allMessages.value.lastOrNull { !it.id.startsWith(Constants.TOOL_MSG_PREFIX) && !it.id.startsWith(Constants.RESULT_MSG_PREFIX) && !it.id.startsWith("compacted_") }?.id?.take(12)}")
+                "editTargetInRenderedPath=${messages.value.any { it.id == messageId}} " +
+                "renderedTail=${messages.value.lastOrNull { !it.id.startsWith(Constants.TOOL_MSG_PREFIX) && !it.id.startsWith(Constants.RESULT_MSG_PREFIX) && !it.id.startsWith("compacted_") }?.id?.take(12)}")
             val newUserMessageId = UUID.randomUUID().toString()
+            val newUserTimestamp = System.currentTimeMillis()
             convRepo.upsertMessage(MessageEntity(
                 id = newUserMessageId, conversationId = currentId, parentId = messageToEdit.parentId,
-                text = newText, thoughts = null, status = MessageStatus.SUCCESS, participant = Participant.USER, timestamp = System.currentTimeMillis()
+                text = newText, thoughts = null, status = MessageStatus.SUCCESS, participant = Participant.USER, timestamp = newUserTimestamp
             ))
+            // Insert the new user message synchronously into the in-memory list BEFORE
+            // selectedChildren points to it. Otherwise resolvePath() sees the selection
+            // lead to a message that is not yet in allMessages and falls back to the old
+            // branch until Room's Flow catches up.
+            val newUserChatMessage = ChatMessage(
+                id = newUserMessageId, parentId = messageToEdit.parentId, text = newText,
+                participant = Participant.USER, status = MessageStatus.SUCCESS, timestamp = newUserTimestamp
+            )
+            allMessages.update { it.filter { m -> m.id != newUserMessageId } + newUserChatMessage }
             val newMap = selectedChildren.value.toMutableMap()
             newMap[messageToEdit.parentId] = newUserMessageId
             val selectedAfterUserEdit = newMap.toMap()
             selectedChildren.value = selectedAfterUserEdit
             onPersistSelectedChildren(currentId, selectedAfterUserEdit)
+            onScrollToMessage(newUserMessageId)
             val modelMessageId = UUID.randomUUID().toString()
             val startTime = System.currentTimeMillis() + 1
             convRepo.upsertMessage(MessageEntity(
@@ -538,10 +549,52 @@ class MessageGenerationController(
         // No placeholder/streaming phase needed — this isn't a generation, so the
         // branch can just appear as a finished SUCCESS message immediately.
         allMessages.update { it + newBranch }
+
+        // Deep-clone the entire subtree under the original message so the new
+        // branch carries an independent copy of the downstream conversation.
+        val oldToNew = mutableMapOf<String, String>()
+        val oldToNewParent = mutableMapOf<String, String>()
+        val clonedMessages = mutableListOf<ChatMessage>()
+
+        fun cloneSubtree(rootOldId: String, newParentId: String) {
+            val children = allMessages.value.filter { it.parentId == rootOldId }
+            for (child in children) {
+                val newId = UUID.randomUUID().toString()
+                oldToNew[child.id] = newId
+                oldToNewParent[child.id] = newParentId
+                val cloned = child.copy(
+                    id = newId,
+                    parentId = newParentId
+                )
+                clonedMessages.add(cloned)
+                cloneSubtree(child.id, newId)
+            }
+        }
+        cloneSubtree(messageId, newBranchId)
+
+        if (clonedMessages.isNotEmpty()) {
+            allMessages.update { it + clonedMessages }
+        }
+
         val newMap = selectedChildren.value.toMutableMap()
         newMap[parentId] = newBranchId
+        // Mirror branch-selection state from the old subtree into the new one.
+        for ((oldParentId, oldChildId) in selectedChildren.value) {
+            val newParent = oldToNew[oldParentId]
+            val newChild = oldToNew[oldChildId]
+            if (newParent != null && newChild != null) {
+                newMap[newParent] = newChild
+            }
+        }
+        // Seed the first-level selection for the new branch.
+        selectedChildren.value[messageId]?.let { oldChildId ->
+            oldToNew[oldChildId]?.let { newChildId ->
+                newMap[newBranchId] = newChildId
+            }
+        }
         val selectedAfterEdit = newMap.toMap()
         selectedChildren.value = selectedAfterEdit
+        onScrollToMessage(newBranchId)
 
         viewModelScope.launch(Dispatchers.IO) {
             convRepo.upsertMessage(MessageEntity(
@@ -562,6 +615,17 @@ class MessageGenerationController(
                 modelName = messageToEdit.modelName,
                 toolCallJson = newSegments?.let { Json.encodeToString(it) }
             ))
+            // Persist the cloned subtree with re-mapped ids and parent references.
+            val snapshot = convRepo.getMessagesForConversationSnapshot(currentId)
+            val entityMap = snapshot.associateBy { it.id }
+            for ((oldId, newId) in oldToNew) {
+                val entity = entityMap[oldId] ?: continue
+                convRepo.upsertMessage(entity.copy(
+                    id = newId,
+                    parentId = oldToNewParent[oldId]!!,
+                    conversationId = currentId
+                ))
+            }
             onPersistSelectedChildren(currentId, selectedAfterEdit)
             convRepo.getConversation(currentId)?.let { conv ->
                 convRepo.upsertConversation(conv.copy(lastUpdated = System.currentTimeMillis()))
@@ -645,22 +709,21 @@ class MessageGenerationController(
             // regenerate (the newest branch won by timestamp, not by user selection).
             val dbMessages = convRepo.getMessagesForConversationSnapshot(currentId)
             val selChildren = selectedChildren.value
-            // CRITICAL: prefer the tail of the CURRENTLY RENDERED path ([allMessages] already
-            // holds the resolvePath() result) over re-walking from root here. This send-side
-            // walk used to DIVERGE from resolvePath when selectedChildren pointed at an orphan
-            // branch (a leftover from a prior compressHistory corruption): resolvePath splices
-            // orphans back in, this walk does not, so the new message got parented onto a
-            // branch that wasn't being rendered -> "message doesn't show up / can't send".
+            // CRITICAL: prefer the tail of the CURRENTLY RENDERED path ([messages] holds the
+            // ConversationUiState.resolvePath() result, which obeys [selectedChildren]) over
+            // re-walking from root here. [allMessages] is the FLATTENED set of every branch in
+            // the conversation, NOT the rendered path — using it here picked the newest message
+            // across all branches instead of the one the user is looking at.
             // Using the rendered path's tail guarantees the new message attaches exactly where
             // the user is looking.
-            val renderedTailId = allMessages.value.lastOrNull {
+            val renderedTailId = messages.value.lastOrNull {
                 !it.id.startsWith(Constants.TOOL_MSG_PREFIX) &&
                 !it.id.startsWith(Constants.RESULT_MSG_PREFIX) &&
                 !it.id.startsWith("compacted_")
             }?.id
-            DebugLog.w("MsgOrder", "sendMessage RENDERED_TAIL: allMsgSize=${allMessages.value.size} " +
+            DebugLog.w("MsgOrder", "sendMessage RENDERED_TAIL: renderedSize=${messages.value.size} " +
                 "renderedTailId=${renderedTailId?.take(12) ?: "null"} " +
-                "lastId=${allMessages.value.lastOrNull()?.id?.take(12) ?: "empty"}")
+                "lastId=${messages.value.lastOrNull()?.id?.take(12) ?: "empty"}")
             var tail: String? = renderedTailId
             var cursor: String? = null
             val msgWalked = mutableSetOf<String>()
@@ -668,6 +731,9 @@ class MessageGenerationController(
             // (e.g. brand-new conversation, or path not yet computed). This keeps the walk as a
             // safety net without letting a stale selectedChildren derail the parentId.
             if (tail == null) {
+            // NOTE: This is the third independent implementation of "pick child by timestamp".
+            // Future refactor should unify this with resolvePath/selectChild once sendMessage
+            // is migrated to use the shared tree-walk helpers.
             while (true) {
                 val siblings = dbMessages.filter { it.id !in msgWalked && it.parentId == cursor }
                     .sortedBy { it.timestamp }
@@ -1276,7 +1342,7 @@ class MessageGenerationController(
 
                     if (idsToDelete.isNotEmpty()) {
                         convRepo.deleteMessagesByIds(idsToDelete.toList())
-                        val deletedSet = idsToDelete
+                        val deletedSet = idsToDelete.toHashSet()
                         // Real orphans: surviving messages whose parent was just deleted. Since
                         // idsToDelete now only ever contains this batch's own path messages plus
                         // their tool_/result_ children, the only things that can show up here are
@@ -1290,7 +1356,9 @@ class MessageGenerationController(
                         // retainBoundaryMsg (the exact point the live conversation continues
                         // from) keeps a single root and makes these old branches reachable via
                         // normal branch-switching at that point instead of floating disconnected.
-                        val liveIds = liveEntities.map { it.id }.toHashSet()
+                        val liveIds = liveEntities.map { it.id }
+                            .filter { it !in deletedSet }
+                            .toHashSet()
                         val orphaned = liveEntities.filter {
                             it.id != retainBoundaryMsg.id &&
                             it.id !in deletedSet &&
@@ -1385,10 +1453,15 @@ class MessageGenerationController(
         val visible = entities.filter {
             it.participant == Participant.USER || it.participant == Participant.MODEL
         }
+        val visibleNodes = visible.map { it.toTreeNode() }
+
         val roots = visible.filter { it.parentId == null || it.parentId !in byId }
-        val renderedRoot = roots.minByOrNull {
-            if (it.participant == Participant.USER) it.timestamp else Long.MAX_VALUE
-        } ?: roots.minByOrNull { it.timestamp } ?: return
+        val renderedRootTree = selectRoot(
+            roots.map { it.toTreeNode() },
+            selectedChildren.value[null],
+            visibleNodes
+        )
+        val renderedRoot = byId[renderedRootTree.id] ?: return
 
         val reachable = mutableSetOf<String>()
         val stack = ArrayDeque<String>()
@@ -1402,18 +1475,21 @@ class MessageGenerationController(
         val orphans = visible.filter { it.id !in reachable }.sortedBy { it.timestamp }
         if (orphans.isEmpty()) return
 
+        // Walk the DEFAULT path (matching resolvePath) to find tail and rebuild
+        // selectedChildren. Using selectChild guarantees the rebuilt map points to
+        // the SAME child resolvePath would render by default.
+        val newSelections = mutableMapOf<String?, String>()
         var tailId: String = renderedRoot.id
         while (true) {
-            val child = visible.firstOrNull { it.parentId == tailId && it.id in reachable }
-            if (child == null) break
-            tailId = child.id
+            val children = visible.filter { it.parentId == tailId && it.id in reachable }
+            if (children.isEmpty()) break
+            val selectedTree = selectChild(children.map { it.toTreeNode() }, null)
+            val selectedId = selectedTree.id
+            newSelections[tailId] = selectedId
+            tailId = selectedId
         }
+
         val reparented = mutableListOf<Pair<String, String?>>()
-        val newSelections = mutableMapOf<String?, String>()
-        reachable.forEach { rid ->
-            val child = visible.firstOrNull { it.parentId == rid && it.id in reachable }
-            if (child != null) newSelections[rid] = child.id
-        }
         for (orphan in orphans) {
             reparented.add(orphan.id to tailId)
             newSelections[tailId] = orphan.id

@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.filter
 fun MessageList(
     messages: List<ChatMessage>,
     allMessages: List<ChatMessage> = emptyList(),
+    siblingsByParent: Map<String?, List<ChatMessage>> = emptyMap(),
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(8.dp),
     state: LazyListState = rememberLazyListState(),
@@ -92,16 +93,6 @@ fun MessageList(
     val inContextIds = currentPath.drop(contextStartIndex).map { it.id }.toSet()
 
     val lastUserMessageIndex = messages.indexOfLast { it.participant == Participant.USER }
-
-    // Precompute branch siblings grouped by parent once per allMessages change.
-    // Previously this filter+sort ran per visible item (O(n²) and re-run on every
-    // streaming-token recomposition of the active message).
-    val siblingsByParent = remember(allMessages) {
-        allMessages
-            .filter { !it.id.startsWith(Constants.TOOL_MSG_PREFIX) && !it.id.startsWith(Constants.RESULT_MSG_PREFIX) }
-            .groupBy { it.parentId }
-            .mapValues { (_, v) -> v.sortedBy { it.timestamp } }
-    }
 
     val extraPadding = if (lastUserMessageIndex == -1 || viewportHeight == 0) {
         0.dp

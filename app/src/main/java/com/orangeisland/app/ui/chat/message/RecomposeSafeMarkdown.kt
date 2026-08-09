@@ -32,25 +32,39 @@ internal fun RecomposeSafeMarkdown(
     var buf1 by remember { mutableStateOf("") }
     var front by remember { mutableIntStateOf(0) }
     var fadeAlpha by remember { mutableFloatStateOf(0f) }
+    var wasStreaming by remember { mutableStateOf(isStreaming) }
 
     val currentContent by rememberUpdatedState(content)
     val currentIsStreaming by rememberUpdatedState(isStreaming)
     val fadeChannel = remember { Channel<Unit>(Channel.CONFLATED) }
 
-    // Detect content changes and enqueue a fade.  Non-streaming content is
-    // written straight into the front buffer so settled messages render
-    // immediately without any cross-fade overhead.
+    // Detect content changes and enqueue a fade.
+    // When streaming ends, run a final crossfade over the height change so
+    // parent scrollable containers (e.g. SegmentDetailSheet) do not clamp the
+    // scroll offset instantly — the old buffer stays visible while the new
+    // one fades in, giving the layout 180ms to adjust smoothly.
+    // Ordinary non-streaming updates still snap immediately.
     LaunchedEffect(content, isStreaming) {
         if (!currentIsStreaming) {
-            // Non-streaming: always render from buf0, clear buf1, reset fade.
-            // Also drain any pending fade signal so the fade effect does not
-            // flip front after we have already settled on buf0.
-            buf0 = currentContent
-            buf1 = ""
-            front = 0
-            fadeAlpha = 0f
-            fadeChannel.tryReceive()
+            if (wasStreaming) {
+                // Transition from streaming → settled: crossfade if content changed.
+                val cur = if (front == 0) buf0 else buf1
+                if (currentContent != cur) {
+                    fadeChannel.trySend(Unit)
+                } else {
+                    fadeChannel.tryReceive()
+                }
+            } else {
+                // Ordinary non-streaming update: snap immediately, no fade overhead.
+                buf0 = currentContent
+                buf1 = ""
+                front = 0
+                fadeAlpha = 0f
+                fadeChannel.tryReceive()
+            }
+            wasStreaming = false
         } else {
+            wasStreaming = true
             val cur = if (front == 0) buf0 else buf1
             if (currentContent != cur) {
                 fadeChannel.trySend(Unit)
@@ -61,14 +75,11 @@ internal fun RecomposeSafeMarkdown(
     // Consume the fade queue.  Because the channel is CONFLATED, multiple
     // rapid updates collapse to a single pending signal; the loop simply
     // catches up with the latest content once the current fade ends.
+    // The non-streaming abort is removed so that the streaming→settled
+    // transition fade (which arrives while currentIsStreaming is already
+    // false) is allowed to finish normally instead of being skipped.
     LaunchedEffect(Unit) {
         for (_signal in fadeChannel) {
-            // If we have already switched to non-streaming, abort immediately.
-            if (!currentIsStreaming) {
-                fadeAlpha = 0f
-                continue
-            }
-
             val incoming = 1 - front
             if (front == 0) buf1 = currentContent else buf0 = currentContent
 
@@ -79,15 +90,10 @@ internal fun RecomposeSafeMarkdown(
                 val p = ((nowNs - startNs).toFloat() / durationNs).coerceAtMost(1f)
                 fadeAlpha = p
                 if (p >= 1f) break
-                // Abort early if streaming ended mid-fade.
-                if (!currentIsStreaming) {
-                    fadeAlpha = 0f
-                    break
-                }
+                // If streaming ends mid-fade, let the fade continue — the final
+                // settled transition is handled by the next queued signal.
             }
-            if (currentIsStreaming) {
-                front = incoming
-            }
+            front = incoming
             fadeAlpha = 0f
         }
     }

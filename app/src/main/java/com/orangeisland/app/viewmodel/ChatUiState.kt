@@ -24,6 +24,10 @@ data class ChatUiState(
     val conversations: List<ChatConversation> = emptyList(),
     val messages: List<ChatMessage> = emptyList(),
     val allMessages: List<ChatMessage> = emptyList(),
+    /** Pre-computed branch siblings grouped by parentId, built once in the ViewModel
+     *  combine so the UI (MessageList) does not re-run filter+groupBy+sortBy on every
+     *  streaming-token recomposition. */
+    val siblingsByParent: Map<String?, List<ChatMessage>> = emptyMap(),
     val isLoading: Boolean = false,
     val currentConversationId: String? = null,
     val generatingInConversationId: String? = null,

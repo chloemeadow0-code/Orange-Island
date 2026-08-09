@@ -23,6 +23,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,6 +62,7 @@ import com.orangeisland.app.ui.components.TypewriterText
 import com.orangeisland.app.ui.common.DecorativeImage
 import com.orangeisland.app.ui.common.LocalOrangeIslandHaptics
 import com.orangeisland.app.ui.common.rememberOrangeIslandHaptics
+import com.orangeisland.app.model.ChatMessage
 import com.orangeisland.app.model.MessageStatus
 import com.orangeisland.app.viewmodel.ChatViewModel
 import kotlinx.coroutines.cancel
@@ -174,7 +176,8 @@ fun ChatApp(
     var drawerProgress by remember { mutableFloatStateOf(0f) }
     // Bottom offset to clear the Settings button in the drawer.
     var settingsButtonTopDp by remember { mutableFloatStateOf(80f) }
-    val imeBottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+    val imeInsets = WindowInsets.ime
+    val imeBottom = imeInsets.asPaddingValues().calculateBottomPadding()
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     // When expanded, the Surface fills the screen and the model-selector capsule sits
     // at the very bottom. Snackbar must clear: nav bar + IME + Surface outer padding + Box
@@ -221,7 +224,9 @@ fun ChatApp(
     // the streaming-follower itself, so there's no self-triggered toggling.
     val stickToBottom = remember { mutableStateOf(true) }
     // Guards the settle detector so it ignores scroll sessions WE started.
-    val programmaticScroll = remember { mutableStateOf(false) }
+    // Incremented (not bool-flipped) because multiple programmatic scrolls can
+    // overlap (e.g. sendMessage collector racing with onEditMessage local).
+    val programmaticScroll = remember { mutableIntStateOf(0) }
 
     // Gate for MessageList's "load older when near the top" trigger. While a
     // conversation is being opened the list can sit at index 0 until the
@@ -242,7 +247,7 @@ fun ChatApp(
             .distinctUntilChanged()
             .filter { !it }                                   // scroll just came to rest
             .collect {
-                if (!programmaticScroll.value && !isAtBottom) {
+                if (programmaticScroll.value == 0 && !isAtBottom) {
                     stickToBottom.value = false
                 }
             }
@@ -278,25 +283,83 @@ fun ChatApp(
     // back up" jerks. LazyListState already knows the true positions once laid
     // out, so we defer to it.
 
+    /**
+     *  Scroll so that the target item's BOTTOM is visible, not just its top.
+     *  Step 1: bring the item into the viewport with scrollToItem(index, 0).
+     *  Step 2: if the item is taller than the remaining viewport, its tail will
+     *  still be off-screen — read the live layoutInfo, compute the overshoot, and
+     *  scroll down by that amount to reveal the bottom.
+     */
+    suspend fun scrollToItemAndRevealBottom(
+        state: LazyListState,
+        index: Int,
+        messages: List<ChatMessage>,
+        animate: Boolean = true
+    ) {
+        if (index < 0) return
+        if (animate) state.animateScrollToItem(index, 0) else state.scrollToItem(index, 0)
+
+        val targetMessage = messages.getOrNull(index)
+        val isStillGenerating = targetMessage?.status in setOf(
+            MessageStatus.TRANSCRIBING,
+            MessageStatus.SENDING,
+            MessageStatus.THINKING,
+            MessageStatus.TOOL_CALLING
+        )
+        if (isStillGenerating) {
+            com.orangeisland.app.util.DebugLog.d(
+                "ChatScroll",
+                "scrollToItemAndRevealBottom: index=$index isStillGenerating=true — skipping overshoot, layout unstable"
+            )
+            return
+        }
+
+        kotlinx.coroutines.delay(16)
+        val layoutInfo = state.layoutInfo
+        val item = layoutInfo.visibleItemsInfo.find { it.index == index }
+        if (item != null) {
+            val overshoot = (item.offset + item.size) - layoutInfo.viewportEndOffset
+            com.orangeisland.app.util.DebugLog.d(
+                "ChatScroll",
+                "scrollToItemAndRevealBottom: index=$index itemOffset=${item.offset} itemSize=${item.size} viewportEnd=${layoutInfo.viewportEndOffset} overshoot=$overshoot"
+            )
+            if (overshoot > 0) {
+                if (animate) state.animateScrollBy(overshoot.toFloat())
+                else state.scroll { scrollBy(overshoot.toFloat()) }
+            }
+        } else {
+            com.orangeisland.app.util.DebugLog.w(
+                "ChatScroll",
+                "scrollToItemAndRevealBottom: item index=$index not in visibleItemsInfo after initial scroll"
+            )
+        }
+    }
+
     /** Scroll to the bottom of the conversation. ChatGPT-style "stick to bottom":
      *  we land on the last item and expose its BOTTOM so a streaming reply that
      *  keeps growing stays anchored at the lower edge of the viewport. Wraps the
-     *  actual scroll in the programmaticScroll guard so the settle detector above
+     *  actual scroll in a programmaticScroll counter so the settle detector above
      *  knows this scroll came from us and doesn't mistake it for the user scrolling
-     *  (which would wrongly suspend follow). */
+     *  (which would wrongly suspend follow). The counter is incremented on entry and
+     *  decremented in finally so overlapping concurrent scrolls do not leak the flag. */
     suspend fun scrollToBottom(animate: Boolean = true) {
         // WAIT for the conversation's messages to actually arrive instead of checking
         // once and giving up. The old one-shot `isEmpty()` return raced the Room load
-        // on cold start (restore-last-conversation doesn't raise isSwitching, so the
-        // open-scroll effect reached here before the first DB emission): the scroll
-        // was skipped with no retry and the list stayed parked at index 0 (the top).
+        // on cold start: the open-scroll effect reached here before the first DB emission,
+        // the scroll was skipped with no retry and the list stayed parked at index 0.
+        // That race is now closed by routing cold-start restore through selectConversation(),
+        // which raises isSwitching and lets LaunchedEffect(currentConversationId) wait
+        // for the overlay to drop before scrolling.
         // snapshotFlow re-observes on every state change, so the warm path (messages
         // already in memory) returns immediately with zero added delay / no flicker.
-        val loadedMessages = try {
+        // Use allMessages (raw DB data) instead of messages (rendered path) so that a
+        // virtual compacted_card_ does not falsely satisfy the "non-empty" check before
+        // real messages have loaded.
+        try {
             withTimeout(4000) {
-                snapshotFlow { uiState.messages }.filter { it.isNotEmpty() }.first()
+                snapshotFlow { uiState.allMessages }.filter { it.isNotEmpty() }.first()
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Timed out — e.g. a genuinely empty conversation; nothing to scroll to.
             return
         }
@@ -308,25 +371,34 @@ fun ChatApp(
         // than the viewport is exactly the bottom; for short ones the list can't scroll past
         // its content anyway, so it lands at max scroll (uiState.messages visible, no blank).
         //
-        // lastIndex is read AFTER the wait, off the awaited list: the tail may move while
-        // we suspend (older-message window growth, streaming appends), so a snapshot taken
-        // before the wait could point at a stale index.
-        val lastIndex = loadedMessages.lastIndex
+        // lastIndex is read AFTER the wait, off the current rendered list: the tail may move
+        // while we suspend (older-message window growth, streaming appends), so a snapshot
+        // taken before the wait could point at a stale index.
+        val lastIndex = uiState.messages.lastIndex
         try {
             withTimeout(2000) {
                 snapshotFlow { listState.layoutInfo.totalItemsCount }
                     .filter { it > lastIndex }
                     .first()
             }
-        } catch (e: Exception) {
-            // Layout never caught up in time; fall through and try anyway.
+        } catch (_: Exception) {
+            // Layout may already be ready; proceed to scroll anyway.
         }
-        programmaticScroll.value = true
+        programmaticScroll.value += 1
         try {
-            if (animate) listState.animateScrollToItem(lastIndex, 0)
-            else listState.scrollToItem(lastIndex, 0)
+            scrollToItemAndRevealBottom(listState, lastIndex, uiState.messages, animate)
+        } catch (e: Exception) {
+            com.orangeisland.app.util.DebugLog.w("ChatScroll",
+                "scrollToBottom: first scroll attempt failed at index=$lastIndex, retrying after 100ms", e)
+            kotlinx.coroutines.delay(100)
+            try {
+                scrollToItemAndRevealBottom(listState, lastIndex, uiState.messages, animate)
+            } catch (retryEx: Exception) {
+                com.orangeisland.app.util.DebugLog.e("ChatScroll",
+                    "scrollToBottom: retry also failed at index=$lastIndex, giving up", retryEx)
+            }
         } finally {
-            programmaticScroll.value = false
+            programmaticScroll.value -= 1
         }
     }
 
@@ -343,8 +415,13 @@ fun ChatApp(
             uiState.messages.indexOfFirst { it.id == targetMessageId }
         }
         if (targetIndex == -1) return
-        if (animate) listState.animateScrollToItem(targetIndex, 0)
-        else listState.scrollToItem(targetIndex, 0)
+        programmaticScroll.value += 1
+        try {
+            if (animate) listState.animateScrollToItem(targetIndex, 0)
+            else listState.scrollToItem(targetIndex, 0)
+        } finally {
+            programmaticScroll.value -= 1
+        }
     }
 
     val branchSwitchTrigger = uiState.branchSwitchTrigger
@@ -377,7 +454,12 @@ fun ChatApp(
             if (currentTargetIndex != -1) {
                 com.orangeisland.app.util.DebugLog.d("MsgRender", "scrollToItem index=$currentTargetIndex " +
                     "layoutInfo.totalItemsCount=${listState.layoutInfo.totalItemsCount}")
-                listState.scrollToItem(currentTargetIndex, 0)
+                programmaticScroll.value += 1
+                try {
+                    listState.scrollToItem(currentTargetIndex, 0)
+                } finally {
+                    programmaticScroll.value -= 1
+                }
             }
         } catch (e: Exception) {
             // Timeout or intended cancellation
@@ -412,19 +494,20 @@ fun ChatApp(
             // message list has been switched in, THEN give the LazyColumn a frame to measure,
             // THEN jump to the bottom. scrollToBottom also waits for the messages to load
             // and for totalItemsCount itself.
+            var switchingTimedOut = false
             try {
                 withTimeout(4000) {
                     snapshotFlow { uiState.isSwitching }.filter { !it }.first()
                 }
-            } catch (e: Exception) {
-                // Timeout
+            } catch (_: Exception) {
+                switchingTimedOut = true
             }
             // One frame of grace so the LazyColumn measures the real items before we jump.
             kotlinx.coroutines.delay(16)
             try {
                 scrollToBottom(animate = false)
             } catch (_: Exception) {
-                // best-effort
+                // Ignore — scroll will be retried on next composition or user interaction.
             }
             loadOlderEnabled.value = true
         }
@@ -437,7 +520,7 @@ fun ChatApp(
     //    our own scrolls. NEVER stickToBottom inside the snapshot either: that
     //    would re-fire on every pin flip. We read it plain (outside snapshotFlow)
     //    in the collector instead, so a pin change can't itself trigger a scroll.
-    //  - The actual scrollToItem is wrapped in the programmaticScroll guard so the
+    //  - The actual scrollToItem is wrapped in the programmaticScroll counter so the
     //    settle detector treats it as ours, not the user's.
     //  - conflate() caps work to one scroll per frame; per-token micro-jumps are
     //    smoothed out instead of queueing into visible jitter.
@@ -454,14 +537,11 @@ fun ChatApp(
                         "ChatScroll",
                         "stream-follow: lastId=${last?.id?.take(8)} len=${last?.text?.length} hasDetails=${last?.text?.contains("<details", ignoreCase = true) == true} firstIdx=${listState.firstVisibleItemIndex} firstOff=${listState.firstVisibleItemScrollOffset} total=${listState.layoutInfo.totalItemsCount}"
                     )
-                    programmaticScroll.value = true
+                    programmaticScroll.value += 1
                     try {
-                        // offset 0 parks the last message at the top padding line (= the
-                        // bottom of a tall list). See scrollToBottom for why Int.MAX_VALUE
-                        // was wrong (blank screen).
-                        listState.scrollToItem(uiState.messages.lastIndex, 0)
+                        scrollToItemAndRevealBottom(listState, uiState.messages.lastIndex, uiState.messages, animate = false)
                     } finally {
-                        programmaticScroll.value = false
+                        programmaticScroll.value -= 1
                     }
                 }
             }
@@ -469,19 +549,34 @@ fun ChatApp(
 
     LaunchedEffect(Unit) {
         viewModel.scrollToMessage.collect { messageId ->
-            // The only producer of this flow today is MessageGenerationController,
-            // which fires onScrollToMessage(userMessageId) right after a send. The
-            // old behaviour scrolled TO that user message, leaving the just-created
-            // assistant reply below the fold �� i.e. "it jumps to my message". For
-            // ChatGPT-style we want the send to pin to the BOTTOM (the live reply),
-            // so both null and non-null ids route through scrollToBottom here.
-            // scrollToMessage(targetId) is kept for explicit "bring this message to
-            // the top" callers (branch switch via branchSwitchTrigger, etc.).
+            // Producers: MessageGenerationController (sendMessage / regenerate /
+            // editMessage / editAssistantMessage). The old behaviour scrolled TO the
+            // user message, leaving the just-created assistant reply below the fold.
+            // For ChatGPT-style we want the send to pin to the BOTTOM (the live
+            // reply), so ids at the end of the list still route through scrollToBottom.
+            // For mid-list edits (editAssistantMessage of a non-tail message) we
+            // scroll to the edited message itself so the user sees the new branch.
             stickToBottom.value = true
             // Wait a tick for the new MODEL placeholder to be inserted + measured
             // before we jump, otherwise scrollToItem lands on the pre-send layout.
             delay(50)
-            scrollToBottom(animate = true)
+            if (messageId != null) {
+                val msg = uiState.messages.find { it.id == messageId } ?: return@collect
+                val targetIndex = if (msg.participant == Participant.MODEL && msg.parentId != null) {
+                    val parentIndex = uiState.messages.indexOfFirst { it.id == msg.parentId }
+                    if (parentIndex != -1) parentIndex else uiState.messages.indexOfFirst { it.id == messageId }
+                } else {
+                    uiState.messages.indexOfFirst { it.id == messageId }
+                }
+                val lastIdx = uiState.messages.lastIndex
+                if (targetIndex != -1 && targetIndex >= lastIdx - 2) {
+                    scrollToBottom(animate = true)
+                } else {
+                    scrollToMessage(messageId, animate = true)
+                }
+            } else {
+                scrollToBottom(animate = true)
+            }
         }
     }
 
@@ -690,6 +785,7 @@ fun ChatApp(
                             MessageList(
                                 messages = if (switchingToExisting) emptyList() else uiState.messages,
                                 allMessages = if (switchingToExisting) emptyList() else uiState.allMessages,
+                                siblingsByParent = if (switchingToExisting) emptyMap() else uiState.siblingsByParent,
                                 modifier = messageListModifier,
                                 state = listState,
                                 // Global generation gate: while ANY generation is in
@@ -719,11 +815,11 @@ fun ChatApp(
                                 viewportHeight = viewportHeightPx,
                                 messageHeights = messageHeights,
                                 onEditMessage = { id, text ->
-                                    val isFirstMessage = uiState.messages.isEmpty()
+                                    val isConversationEmpty = uiState.messages.isEmpty()
                                     viewModel.editMessage(id, text)
                                     scope.launch {
-                                        if (!isFirstMessage) {
-                                            // An edit kicks off a fresh reply �� follow it to the bottom.
+                                        if (!isConversationEmpty) {
+                                            // An edit kicks off a fresh reply — follow it to the bottom.
                                             stickToBottom.value = true
                                             delay(50)
                                             scrollToBottom(animate = true)
@@ -1026,7 +1122,22 @@ fun ChatApp(
                             if (focused && isAtBottom && !uiState.isNewChatMode) {
                                 scope.launch {
                                     if (uiState.messages.isNotEmpty()) {
-                                        listState.animateScrollToItem(uiState.messages.lastIndex, 0)
+                                        try {
+                                            withTimeout(300) {
+                                                snapshotFlow { imeInsets.getBottom(density) }
+                                                    .filter { it > 0 }
+                                                    .first()
+                                                delay(50)
+                                            }
+                                        } catch (_: Exception) {
+                                            // IME didn't show or already visible — proceed anyway.
+                                        }
+                                        programmaticScroll.value += 1
+                                        try {
+                                            scrollToItemAndRevealBottom(listState, uiState.messages.lastIndex, uiState.messages, animate = true)
+                                        } finally {
+                                            programmaticScroll.value -= 1
+                                        }
                                     }
                                 }
                             }

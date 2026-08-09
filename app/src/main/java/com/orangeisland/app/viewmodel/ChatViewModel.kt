@@ -132,6 +132,10 @@ class ChatViewModel(
     companion object {
         /** Overlay fade duration for conversation-switch transitions. */
         private const val SWITCH_OVERLAY_FADE_MS = 200L
+        /** Grace period before dropping the switching overlay so LazyColumn has time
+         *  to measure real items. Decoupled from [SWITCH_OVERLAY_FADE_MS] because the
+         *  functional layout wait is much shorter than the visual fade animation. */
+        private const val LAYOUT_GRACE_MS = 80L
         /** Auto-delete period tiers in hours: 7 days, 30 days, 365 days. */
         private val AUTO_DELETE_TIERS_HOURS = listOf(168, 720, 8760)
         /** Desktop-pet speech bubble length cap (characters). */
@@ -884,6 +888,12 @@ class ChatViewModel(
         val settings = values[21] as ChatSettingsSnapshot
 
         val activeProjectName = activeProjectId?.let { id -> projects.find { it.id == id }?.name }
+        // Pre-compute branch siblings once here so MessageList doesn't re-run the
+        // filter+groupBy+sortBy on every streaming-token recomposition.
+        val siblingsByParent = allMessages
+            .filter { !it.id.startsWith(Constants.TOOL_MSG_PREFIX) && !it.id.startsWith(Constants.RESULT_MSG_PREFIX) }
+            .groupBy { it.parentId }
+            .mapValues { (_, v) -> v.sortedBy { it.timestamp } }
         val convOverride = if (currentConversationId != null) {
             settings.conversationSettings[currentConversationId]
         } else {
@@ -897,6 +907,7 @@ class ChatViewModel(
             conversations = conversations,
             messages = messages,
             allMessages = allMessages,
+            siblingsByParent = siblingsByParent,
             isLoading = isLoading,
             currentConversationId = currentConversationId,
             generatingInConversationId = generatingInConversationId,
@@ -1087,20 +1098,20 @@ class ChatViewModel(
         // Restore the last active conversation on cold start when the setting is enabled.
         // Must use suspend await to read the persisted value, not the eagerly-shared
         // StateFlow default — otherwise the toggle appears to be ignored at startup.
+        // Route through selectConversation() so the cold-start path gets the SAME
+        // _isSwitching + triggerScrollToMessage treatment as a manual tap, eliminating
+        // the "restore-last-conversation doesn't raise isSwitching" race that left the
+        // list parked at the first message.
         viewModelScope.launch {
             if (settings.awaitRememberLastConversation()) {
                 val lastId = settings.awaitLastActiveConversationId()
                 if (lastId != null && convRepo.getConversation(lastId) != null) {
-                    _isNewChatMode.value = false
-                    _currentConversationId.value = lastId
-                    val conversation = convRepo.getConversation(lastId)
-                    _currentActiveModel.value = conversation?.modelId
-                    _activeProjectId.value = conversation?.projectId
+                    selectConversation(lastId)
                 }
             }
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Default) {
             _currentConversationId.collectLatest { id ->
                 if (id != null) {
                     // Fix stuck sending states when loading conversation 鈥?skip if currently generating
@@ -1120,8 +1131,8 @@ class ChatViewModel(
                             val map = Json.decodeFromString<Map<String, String>>(conversation.selectedBranchesJson)
                             val decodedMap = map.mapKeys { if (it.key == "null") null else it.key }
                             _selectedChildren.value = decodedMap
-                            DebugLog.d("MsgDisappear", "  RESTORE selectedChildren=" +
-                                decodedMap.entries.joinToString("; ") { (k, v) -> "${k?.take(12) ?: "null"}->${v.take(12)}" })
+                            val preview = decodedMap.entries.take(5).joinToString("; ") { (k, v) -> "${k?.take(12) ?: "null"}->${v.take(12)}" }
+                            DebugLog.d("MsgDisappear", "  RESTORE selectedChildren count=${decodedMap.size} preview=$preview")
                         } catch (e: Exception) {
                             _selectedChildren.value = emptyMap()
                             DebugLog.d("MsgDisappear", "  RESTORE FAILED -> empty selectedChildren")
@@ -1145,12 +1156,6 @@ class ChatViewModel(
                                         convRepo.getMessagesForConversation(id).collect { entities ->
                         val mapped = entities.map { mapMessageEntity(it) }
                         DebugLog.d("MsgDisappear", "DB LOAD conv=${id.take(12)}: dbEntities=${entities.size} mapped=${mapped.size}")
-                        entities.forEach { e ->
-                            if (e.participant == Participant.USER || e.participant == Participant.MODEL) {
-                                DebugLog.d("MsgDisappear", "  DB msg ${e.id.take(12)} parent=${e.parentId?.take(12) ?: "null"} " +
-                                    "role=${e.participant} status=${e.status} ts=${e.timestamp} convId=${e.conversationId.take(12)}")
-                            }
-                        }
                         // Backfill toolCall for old result_ messages persisted without toolCallJson.
                         // They inherit the parent tool_ message's ToolCallData so the provider can
                         // format them as proper "tool" role messages with matching tool_call_id.
@@ -1186,12 +1191,12 @@ class ChatViewModel(
                 }
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _selectedChildren.collect { childrenMap ->
                 val id = _currentConversationId.value
                 if (id != null) {
-                    DebugLog.d("MsgDisappear", "PERSIST selectedChildren conv=${id.take(12)}: " +
-                        childrenMap.entries.joinToString("; ") { (k, v) -> "${k?.take(12) ?: "null"}->${v.take(12)}" })
+                    val preview = childrenMap.entries.take(5).joinToString("; ") { (k, v) -> "${k?.take(12) ?: "null"}->${v.take(12)}" }
+                    DebugLog.d("MsgDisappear", "PERSIST selectedChildren conv=${id.take(12)} count=${childrenMap.size} preview=$preview")
                     persistSelectedChildren(id, childrenMap)
                 }
             }
@@ -1202,11 +1207,9 @@ class ChatViewModel(
             viewModelScope.launch {
                 val originalId = _currentConversationId.value
                 if (originalId != conversationId) {
-                    _currentConversationId.value = conversationId
-                    // Clear new-chat mode so MessageGenerationController does not spawn
-                    // a brand-new conversation and strand the AI reply there.
-                    _isNewChatMode.value = false
-                    _isTransitioningToNewChat.value = false
+                    // Route through selectConversation() so the plugin-driven switch
+                    // gets the same _isSwitching + scroll treatment as a manual tap.
+                    selectConversation(conversationId)
                 }
                 sendMessage(text)
             }
@@ -1239,18 +1242,17 @@ class ChatViewModel(
         val visible = entities.filter {
             it.participant == Participant.USER || it.participant == Participant.MODEL
         }
+        val visibleNodes = visible.map { it.toTreeNode() }
 
-        // 1. Compute reachable set: start from the SAME root resolvePath would pick — the
-        //    earliest USER among parent-missing messages (mirrors resolvePath's MODEL-root
-        //    RECOVERY), NOT from every parent-missing message. The previous version treated
-        //    every orphan-chain head as a root and walked from each, so messages living under
-        //    a stray MODEL root were counted as "reachable" and never re-chained — leaving
-        //    them as invisible orphans that resolvePath's orphan-splicing then appended to
-        //    the wrong end of the path (causing the "old messages jump after new ones"乱序).
+        // 1. Compute reachable set: start from the SAME root resolvePath would pick,
+        //    using the shared selectRoot so the two never diverge.
         val roots = visible.filter { it.parentId == null || it.parentId !in byId }
-        val renderedRoot = roots.minByOrNull {
-            if (it.participant == Participant.USER) it.timestamp else Long.MAX_VALUE
-        } ?: roots.minByOrNull { it.timestamp } ?: return
+        val renderedRootTree = selectRoot(
+            roots.map { it.toTreeNode() },
+            _selectedChildren.value[null],
+            visibleNodes
+        )
+        val renderedRoot = byId[renderedRootTree.id] ?: return
 
         val reachable = mutableSetOf<String>()
         val stack = ArrayDeque<String>()
@@ -1259,7 +1261,6 @@ class ChatViewModel(
             val cur = stack.removeLast()
             if (cur in reachable) continue
             reachable.add(cur)
-            // children = messages whose parentId == cur
             visible.filter { it.parentId == cur }.forEach { stack.addLast(it.id) }
         }
 
@@ -1270,24 +1271,22 @@ class ChatViewModel(
 
         if (orphans.isEmpty()) return  // healthy tree, nothing to do
 
-        // 3. Re-chain orphans onto the tail of the rendered path, in timestamp order.
-        //    Find current tail (deepest reachable leaf by following first-child links).
+        // 3. Walk the DEFAULT path (matching resolvePath) to find tail and rebuild
+        //    selectedChildren. Using selectChild guarantees the rebuilt map points to
+        //    the SAME child resolvePath would render by default, eliminating the
+        //    old "firstOrNull picks the oldest branch" divergence.
+        val newSelections = mutableMapOf<String?, String>()
         var tailId: String = renderedRoot.id
-        // walk down the reachable chain to its tail
         while (true) {
-            val child = visible.firstOrNull { it.parentId == tailId && it.id in reachable }
-            if (child == null) break
-            tailId = child.id
+            val children = visible.filter { it.parentId == tailId && it.id in reachable }
+            if (children.isEmpty()) break
+            val selectedTree = selectChild(children.map { it.toTreeNode() }, null)
+            val selectedId = selectedTree.id
+            newSelections[tailId] = selectedId
+            tailId = selectedId
         }
 
         val reparented = mutableListOf<Pair<String, String?>>()  // id -> newParentId
-        val newSelections = mutableMapOf<String?, String>()
-        // seed newSelections with existing reachable chain selections
-        reachable.forEach { rid ->
-            val child = visible.firstOrNull { it.parentId == rid && it.id in reachable }
-            if (child != null) newSelections[rid] = child.id
-        }
-
         for (orphan in orphans) {
             reparented.add(orphan.id to tailId)
             newSelections[tailId] = orphan.id
@@ -1753,18 +1752,24 @@ class ChatViewModel(
             // Opening a conversation inside a project makes that project the active context,
             // so the top-bar "+" continues to file new chats under the same project.
             _activeProjectId.value = conversation?.projectId
-            triggerScrollToMessage()
+            // Scroll-to-bottom is intentionally NOT triggered here.
+            // LaunchedEffect(uiState.currentConversationId) in ChatApp.kt already handles
+            // scrolling for every conversation-open event (including this one). Keeping
+            // triggerScrollToMessage() here created a second parallel coroutine that raced
+            // against the LaunchedEffect path, producing jitter and uncertain ordering.
+            // The scrollToMessage SharedFlow remains the single channel for
+            // sendMessage / regenerate / editMessage / branch-switch scrolls.
             // Hold the switching overlay until BOTH conditions hold: the conversation's
             // messages have actually loaded (so we don't drop the overlay onto a
             // half-rendered list — the "freeze for a beat" on chat open) AND a minimum
             // visible duration has elapsed (so the spinner is actually seen for cached
             // conversations that load in a few ms — without this it flashed too briefly
             // for the AnimatedVisibility fadeIn to even render).
-            val minShowMs = 280L
+            val minShowMs = 80L
             val startMs = System.currentTimeMillis()
             try {
                 withTimeout(SWITCH_OVERLAY_FADE_MS * 10) { // 2s cap
-                    messages.first { it.isNotEmpty() }
+                    _allMessages.first { it.isNotEmpty() }
                 }
             } catch (_: Exception) {
                 // Timeout (empty or slow conversation) — proceed anyway.
@@ -1775,7 +1780,7 @@ class ChatViewModel(
             }
             // A short grace period so the LazyColumn has a frame to lay out before
             // the overlay fades, avoiding a single-frame flash of unpositioned items.
-            kotlinx.coroutines.delay(SWITCH_OVERLAY_FADE_MS)
+            kotlinx.coroutines.delay(LAYOUT_GRACE_MS)
             _isSwitching.value = false
         }
     }
