@@ -368,6 +368,7 @@ class SettingsManager(private val context: Context) {
         val MUSIC_STUDIO_REPLICATE_MODEL_VERSION = stringPreferencesKey("music_studio_replicate_model_version")
         val MUSIC_STUDIO_RVC_MODEL_URL = stringPreferencesKey("music_studio_rvc_model_url")
         val MUSIC_STUDIO_VOICE_REPLACEMENT_ENABLED = booleanPreferencesKey("music_studio_voice_replacement_enabled")
+        val LOCAL_MUSIC_ENABLED = booleanPreferencesKey("local_music_enabled")
     }
 
     val selectedModel: Flow<String> = context.dataStore.data.map { it[SELECTED_MODEL] ?: Constants.EXAMPLE_MODEL_ID }
@@ -712,6 +713,7 @@ class SettingsManager(private val context: Context) {
     val musicStudioReplicateModelVersion: Flow<String> = context.dataStore.data.map { it[MUSIC_STUDIO_REPLICATE_MODEL_VERSION] ?: "" }
     val musicStudioRvcModelUrl: Flow<String> = context.dataStore.data.map { it[MUSIC_STUDIO_RVC_MODEL_URL] ?: "" }
     val musicStudioVoiceReplacementEnabled: Flow<Boolean> = context.dataStore.data.map { it[MUSIC_STUDIO_VOICE_REPLACEMENT_ENABLED] ?: false }
+    val localMusicEnabled: Flow<Boolean> = context.dataStore.data.map { it[LOCAL_MUSIC_ENABLED] ?: false }
 
     // ── Plugin device id ──────────────────────────────────────
     // Lazily minted per-install UUID, exposed to plugins as __OI_USER_ID. No setter: it is
@@ -1484,4 +1486,5 @@ class SettingsManager(private val context: Context) {
     suspend fun saveMusicStudioReplicateModelVersion(version: String) { context.dataStore.edit { it[MUSIC_STUDIO_REPLICATE_MODEL_VERSION] = version } }
     suspend fun saveMusicStudioRvcModelUrl(url: String) { context.dataStore.edit { it[MUSIC_STUDIO_RVC_MODEL_URL] = url } }
     suspend fun saveMusicStudioVoiceReplacementEnabled(enabled: Boolean) { context.dataStore.edit { it[MUSIC_STUDIO_VOICE_REPLACEMENT_ENABLED] = enabled } }
+    suspend fun saveLocalMusicEnabled(enabled: Boolean) { context.dataStore.edit { it[LOCAL_MUSIC_ENABLED] = enabled } }
 }

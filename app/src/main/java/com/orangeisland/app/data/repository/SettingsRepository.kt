@@ -255,6 +255,7 @@ class SettingsRepository(
     val musicStudioReplicateModelVersion: StateFlow<String> = hot(settingsManager.musicStudioReplicateModelVersion, "")
     val musicStudioRvcModelUrl: StateFlow<String> = hot(settingsManager.musicStudioRvcModelUrl, "")
     val musicStudioVoiceReplacementEnabled: StateFlow<Boolean> = hot(settingsManager.musicStudioVoiceReplacementEnabled, false)
+    val localMusicEnabled: StateFlow<Boolean> = hot(settingsManager.localMusicEnabled, false)
 
     init {
         // Keep HttpClient's in-memory trusted-host set in sync with what's persisted —
@@ -868,4 +869,5 @@ class SettingsRepository(
     fun setMusicStudioReplicateModelVersion(version: String) = scope.launch { settingsManager.saveMusicStudioReplicateModelVersion(version) }
     fun setMusicStudioRvcModelUrl(url: String) = scope.launch { settingsManager.saveMusicStudioRvcModelUrl(url) }
     fun setMusicStudioVoiceReplacementEnabled(enabled: Boolean) = scope.launch { settingsManager.saveMusicStudioVoiceReplacementEnabled(enabled) }
+    fun setLocalMusicEnabled(enabled: Boolean) = scope.launch { settingsManager.saveLocalMusicEnabled(enabled) }
 }

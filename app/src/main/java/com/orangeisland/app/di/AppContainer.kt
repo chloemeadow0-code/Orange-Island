@@ -60,6 +60,9 @@ class AppContainer(private val appContext: Context) {
     val settingsRepository: SettingsRepository by lazy {
         SettingsRepository(settingsManager, appScope)
     }
+    val localMusicRepository: com.orangeisland.app.data.music.LocalMusicRepository by lazy {
+        com.orangeisland.app.data.music.LocalMusicRepository(appContext)
+    }
     val authRepository: com.orangeisland.app.data.repository.AuthRepository by lazy {
         com.orangeisland.app.data.repository.AuthRepository(settingsManager, appScope)
     }
@@ -352,6 +355,7 @@ class AppContainer(private val appContext: Context) {
             permissionController = com.orangeisland.app.viewmodel.PermissionController(appContext),
             workflowToolProvider = workflowAiToolProvider,
             musicStudioRepository = musicStudioRepository,
+            localMusicRepository = localMusicRepository,
             sensitiveToolApproval = sensitiveToolApprovalGate,
             chatDao = chatDao,
             userInteractionGate = userInteractionGate,
@@ -470,7 +474,7 @@ class AppContainer(private val appContext: Context) {
             autoBackupManager, conversationRepository, settingsRepository, workflowRepository,
             workflowApprovalGate, pluginToolProvider, pluginLoader, pluginSandbox,
             workflowAiToolProvider, userInteractionGate, voiceCallGate, cameraToolGate,
-            appContextCollector, pluginMemoryProvider, musicStudioRepository, mcpClientPool
+            appContextCollector, pluginMemoryProvider, musicStudioRepository, localMusicRepository, mcpClientPool
         )
 
     fun healthViewModelFactory(): com.orangeisland.app.viewmodel.HealthViewModelFactory =
@@ -487,6 +491,9 @@ class AppContainer(private val appContext: Context) {
 
     fun musicStudioViewModelFactory(): com.orangeisland.app.ui.music.MusicStudioViewModelFactory =
         com.orangeisland.app.ui.music.MusicStudioViewModelFactory(application, settingsRepository, musicStudioRepository)
+
+    fun localMusicViewModelFactory(): com.orangeisland.app.ui.music.LocalMusicViewModelFactory =
+        com.orangeisland.app.ui.music.LocalMusicViewModelFactory(application, localMusicRepository)
 
     /**
      * Factory for the Voice Call ViewModel. Takes the shared [ChatViewModel] so the call loop can

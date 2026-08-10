@@ -185,6 +185,7 @@ private val settingsGroups = listOf(
         SettingsCategory("plugins", R.string.plugin_title, R.string.plugin_desc, IslandIcons.Plugin.res),
         SettingsCategory("device_access", R.string.device_access_title, R.string.device_access_desc, IslandIcons.DeviceAccess.res),
         SettingsCategory("workflows", R.string.settings_workflows, R.string.settings_workflows_desc, IslandIcons.Workflow.res),
+        SettingsCategory("musicstudio", R.string.settings_musicstudio, R.string.settings_musicstudio_desc, IslandIcons.VoiceSynthesis.res),
     )),
     SettingsGroupData(titleRes = R.string.settings_group_network, items = listOf(
         SettingsCategory("proxy", R.string.settings_proxy, R.string.settings_proxy_desc, IslandIcons.Proxy.res),
@@ -283,6 +284,7 @@ fun SettingsScreen(
                     onBack = { selectedCategory = null },
                     onEditInChat = onEditWorkflowInChat
                 )
+                "musicstudio" -> SettingsMusicStudioPage(viewModel, onBack = { selectedCategory = null })
                 else -> {
                     CollapsingSettingsLazyScaffold(
                         title = stringResource(R.string.settings_title),

@@ -34,6 +34,7 @@ class ChatViewModelFactory(
     private val appContextCollector: com.orangeisland.app.data.environment.AppContextCollector? = null,
     private val pluginMemoryProvider: com.orangeisland.app.plugin.AppPluginMemoryProvider? = null,
     private val musicStudioRepository: com.orangeisland.app.data.music.MusicStudioRepository? = null,
+    private val localMusicRepository: com.orangeisland.app.data.music.LocalMusicRepository? = null,
     private val mcpClientPool: com.orangeisland.app.mcp.McpClientPool
 ) : ViewModelProvider.Factory {
 
@@ -45,7 +46,7 @@ class ChatViewModelFactory(
                 autoBackupManager, conversationRepository, settingsRepository, workflowRepository,
                 workflowApprovalGate, pluginToolProvider, pluginLoader, pluginSandbox,
                 workflowToolProvider, userInteractionGate, voiceCallGate, cameraToolGate,
-                appContextCollector, pluginMemoryProvider, musicStudioRepository, mcpClientPool
+                appContextCollector, pluginMemoryProvider, musicStudioRepository, localMusicRepository, mcpClientPool
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

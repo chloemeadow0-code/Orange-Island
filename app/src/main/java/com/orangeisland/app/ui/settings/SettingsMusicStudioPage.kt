@@ -38,6 +38,7 @@ fun SettingsMusicStudioPage(
     onBack: () -> Unit
 ) {
     val enabled by viewModel.settings.musicStudioEnabled.collectAsStateWithLifecycle()
+    val localMusicEnabled by viewModel.settings.localMusicEnabled.collectAsStateWithLifecycle()
     val sunoUrl by viewModel.settings.musicStudioSunoApiUrl.collectAsStateWithLifecycle()
     val sunoKey by viewModel.settings.musicStudioSunoApiKey.collectAsStateWithLifecycle()
 
@@ -65,6 +66,19 @@ fun SettingsMusicStudioPage(
                             )
                         },
                         modifier = Modifier.clickable { viewModel.settings.setMusicStudioEnabled(!enabled) }
+                    )
+                }, {
+                    SettingsItem(
+                        headlineContent = { Text("允许 AI 控制音乐播放") },
+                        supportingContent = { Text("开启后，AI 可以通过工具控制本地和 AI 生成音乐的播放、暂停、切歌和搜索") },
+                        leadingContent = { IslandIcon(IslandIcons.VoiceSynthesis, size = 38.dp) },
+                        trailingContent = {
+                            Switch(
+                                checked = localMusicEnabled,
+                                onCheckedChange = { viewModel.settings.setLocalMusicEnabled(it) }
+                            )
+                        },
+                        modifier = Modifier.clickable { viewModel.settings.setLocalMusicEnabled(!localMusicEnabled) }
                     )
                 })
             )

@@ -11,31 +11,50 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.orangeisland.app.MainActivity
+import com.orangeisland.app.data.music.LocalMusicRepository
 import com.orangeisland.app.data.music.MusicStudioRepository
 import com.orangeisland.app.data.music.MusicStudioTrack
+import com.orangeisland.app.util.DebugLog
 import com.orangeisland.app.widget.MusicWidgetProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
  * 后台音乐播放服务。
  *
- * 单一播放源：App 内的音乐页面、桌面小组件、通知/锁屏控件全部通过这个 Service 控制。
- *  - 启动时从 library.json 加载播放列表
- *  - 通过 [MusicWidgetProvider] 的广播指令接收：PLAY / PAUSE / NEXT / PREV / PLAY_INDEX
- *  - 状态变化（切歌/播放/暂停）→ 广播 ACTION_STATE 广播给小组件刷新
- *
- * 复用 MusicStudioRepository 读取本地歌曲列表（只读，传空 providers）。
+ * 统一播放源：App 内的 AI 生成音乐、用户上传音乐、桌面小组件、通知/锁屏控件
+ * 全部通过这个 Service 控制。
+ *  - 启动时从 MusicStudioRepository + LocalMusicRepository 加载合并播放列表
+ *  - 通过广播指令接收：PLAY / PAUSE / NEXT / PREV / PLAY_INDEX / RELOAD_LIBRARY
+ *  - 状态变化 → 广播 ACTION_STATE 给小组件刷新 + 更新进程内 snapshotFlow 供工具即时读取
  */
 class MusicPlaybackService : MediaSessionService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var player: ExoPlayer? = null
     private var mediaSession: MediaSession? = null
-    private var tracks: List<MusicStudioTrack> = emptyList()
+    private var tracks: List<PlaybackTrack> = emptyList()
+
+    /** 待播放意图缓存：当 Service 收到 PLAY_TRACK / PLAY_INDEX 指令时 tracks 尚未加载完毕，
+     *  先把意图存下来，等 loadTracks / reloadLibrary 完成后再自动触发。
+     *  正常情况（tracks 已就绪）不走此缓存，直接查到即播。 */
+    private var pendingTrackId: String? = null
+    private var pendingIndex: Int? = null
+
+    /** 统一运行时播放条目（内部私有，不改动外部数据类） */
+    private data class PlaybackTrack(
+        val id: String,
+        val title: String,
+        val artist: String,
+        val localPath: String,
+        val source: String // "generated" | "uploaded"
+    )
 
     override fun onCreate() {
         super.onCreate()
@@ -53,7 +72,6 @@ class MusicPlaybackService : MediaSessionService() {
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     if (playbackState == Player.STATE_ENDED) {
-                        // 自动下一首（MediaSession 默认 REPEAT_MODE_OFF 会停，这里手动跳）
                         if (player?.hasNextMediaItem() == true) player?.seekToNext()
                         else player?.seekTo(0, 0)
                     }
@@ -75,7 +93,6 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        // 用户从最近任务划掉 App：暂停并停掉服务（避免空转）
         player?.let {
             if (!it.isPlaying) {
                 stopSelf()
@@ -105,23 +122,33 @@ class MusicPlaybackService : MediaSessionService() {
             ACTION_TOGGLE -> if (player?.isPlaying == true) player?.pause() else playCurrent()
             ACTION_NEXT -> next()
             ACTION_PREV -> prev()
-            ACTION_QUERY_STATE -> broadcastState()  // 小组件首次加载时拉取当前状态
+            ACTION_QUERY_STATE -> broadcastState()
             ACTION_PLAY_INDEX -> {
                 val idx = intent.getIntExtra(EXTRA_INDEX, -1)
-                if (idx in tracks.indices) playAt(idx)
+                if (idx in tracks.indices) {
+                    playAt(idx)
+                } else if (tracks.isEmpty()) {
+                    // tracks 尚未加载完毕，缓存意图，等加载完成后自动触发
+                    pendingIndex = idx
+                }
             }
             ACTION_PLAY_TRACK -> {
-                // App 内按 trackId 播放（与小组件单一播放源）
                 val trackId = intent.getStringExtra(EXTRA_TRACK_ID) ?: return START_NOT_STICKY
                 val idx = tracks.indexOfFirst { it.id == trackId }
-                if (idx >= 0) playAt(idx) else playCurrent()
+                if (idx >= 0) {
+                    playAt(idx)
+                } else if (tracks.isEmpty()) {
+                    // tracks 尚未加载完毕，缓存意图，等加载完成后自动触发
+                    pendingTrackId = trackId
+                }
+                // 如果 tracks 已加载且 id 真不存在，静默忽略（不 fallback playCurrent 制造意外播放）
             }
             ACTION_PLAY_PATH -> {
-                // VoiceVersion 等独立音频：单条播放，不进播放列表
                 val path = intent.getStringExtra(EXTRA_PATH) ?: return START_NOT_STICKY
                 val title = intent.getStringExtra(EXTRA_TITLE) ?: "音色版本"
                 playSinglePath(path, title)
             }
+            ACTION_RELOAD_LIBRARY -> reloadLibrary()
         }
         return START_NOT_STICKY
     }
@@ -147,26 +174,157 @@ class MusicPlaybackService : MediaSessionService() {
 
     private fun loadTracks() {
         serviceScope.launch(Dispatchers.IO) {
-            val repo = MusicStudioRepository(this@MusicPlaybackService, providers = emptyList())
-            tracks = repo.loadTracks()
-            // 把列表喂给 ExoPlayer（只有 localPath 有效的）
-            val items = tracks.mapNotNull { t ->
-                val path = t.localPath.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                MediaItem.Builder()
-                    .setUri(path)
-                    .setMediaId(t.id)
-                    .setMediaMetadata(
-                        MediaMetadata.Builder()
-                            .setTitle(t.title.ifBlank { "未命名" })
-                            .setArtist("AI 创作" + if (t.style.isNotBlank()) " · ${t.style}" else "")
-                            .build()
+            try {
+                val generatedRepo = MusicStudioRepository(this@MusicPlaybackService, providers = emptyList())
+                val localRepo = LocalMusicRepository(this@MusicPlaybackService)
+                val generated = generatedRepo.loadTracks()
+                val uploaded = localRepo.loadTracks()
+
+                val merged = mutableListOf<PlaybackTrack>()
+                generated.forEach { t ->
+                    merged.add(
+                        PlaybackTrack(
+                            id = t.id,
+                            title = t.title.ifBlank { "未命名" },
+                            artist = "AI 创作" + if (t.style.isNotBlank()) " · ${t.style}" else "",
+                            localPath = t.localPath,
+                            source = "generated"
+                        )
                     )
-                    .build()
+                }
+                uploaded.forEach { t ->
+                    merged.add(
+                        PlaybackTrack(
+                            id = t.id,
+                            title = t.title.ifBlank { "未命名" },
+                            artist = t.artist.ifBlank { "未知歌手" },
+                            localPath = t.localPath,
+                            source = "uploaded"
+                        )
+                    )
+                }
+                merged.sortByDescending { track ->
+                    when (track.source) {
+                        "generated" -> generated.find { it.id == track.id }?.createdAt ?: 0L
+                        else -> uploaded.find { it.id == track.id }?.addedAt ?: 0L
+                    }
+                }
+                tracks = merged
+
+                val items = tracks.mapNotNull { t ->
+                    val path = t.localPath.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                    MediaItem.Builder()
+                        .setUri(path)
+                        .setMediaId(t.id)
+                        .setMediaMetadata(
+                            MediaMetadata.Builder()
+                                .setTitle(t.title)
+                                .setArtist(t.artist)
+                                .setExtras(Bundle().apply { putString(EXTRA_SOURCE, t.source) })
+                                .build()
+                        )
+                        .build()
+                }
+                serviceScope.launch(Dispatchers.Main) {
+                    player?.setMediaItems(items)
+                    player?.prepare()
+                    checkPendingPlayback()
+                    broadcastState()
+                }
+            } catch (e: Exception) {
+                DebugLog.e(TAG, "loadTracks failed", e)
+                serviceScope.launch(Dispatchers.Main) {
+                    tracks = emptyList()
+                    player?.clearMediaItems()
+                    broadcastState()
+                }
             }
-            serviceScope.launch(Dispatchers.Main) {
-                player?.setMediaItems(items)
-                player?.prepare()
-                broadcastState()
+        }
+    }
+
+    private fun reloadLibrary() {
+        val p = player ?: return
+        val oldMediaId = p.currentMediaItem?.mediaId
+        val oldPosition = p.currentPosition
+        val wasPlaying = p.isPlaying
+
+        serviceScope.launch(Dispatchers.IO) {
+            try {
+                val generatedRepo = MusicStudioRepository(this@MusicPlaybackService, providers = emptyList())
+                val localRepo = LocalMusicRepository(this@MusicPlaybackService)
+                val generated = generatedRepo.loadTracks()
+                val uploaded = localRepo.loadTracks()
+
+                val merged = mutableListOf<PlaybackTrack>()
+                generated.forEach { t ->
+                    merged.add(
+                        PlaybackTrack(
+                            id = t.id,
+                            title = t.title.ifBlank { "未命名" },
+                            artist = "AI 创作" + if (t.style.isNotBlank()) " · ${t.style}" else "",
+                            localPath = t.localPath,
+                            source = "generated"
+                        )
+                    )
+                }
+                uploaded.forEach { t ->
+                    merged.add(
+                        PlaybackTrack(
+                            id = t.id,
+                            title = t.title.ifBlank { "未命名" },
+                            artist = t.artist.ifBlank { "未知歌手" },
+                            localPath = t.localPath,
+                            source = "uploaded"
+                        )
+                    )
+                }
+                merged.sortByDescending { track ->
+                    when (track.source) {
+                        "generated" -> generated.find { it.id == track.id }?.createdAt ?: 0L
+                        else -> uploaded.find { it.id == track.id }?.addedAt ?: 0L
+                    }
+                }
+                tracks = merged
+
+                val items = tracks.mapNotNull { t ->
+                    val path = t.localPath.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                    MediaItem.Builder()
+                        .setUri(path)
+                        .setMediaId(t.id)
+                        .setMediaMetadata(
+                            MediaMetadata.Builder()
+                                .setTitle(t.title)
+                                .setArtist(t.artist)
+                                .setExtras(Bundle().apply { putString(EXTRA_SOURCE, t.source) })
+                                .build()
+                        )
+                        .build()
+                }
+
+                val newIndex = if (oldMediaId != null) tracks.indexOfFirst { it.id == oldMediaId } else -1
+
+                serviceScope.launch(Dispatchers.Main) {
+                    if (newIndex >= 0) {
+                        player?.setMediaItems(items, newIndex, oldPosition)
+                        if (wasPlaying) player?.play()
+                    } else {
+                        player?.setMediaItems(items)
+                        if (items.isNotEmpty()) {
+                            player?.seekToDefaultPosition(0)
+                        }
+                        if (wasPlaying && items.isNotEmpty()) player?.play()
+                    }
+                    player?.prepare()
+                    checkPendingPlayback()
+                    broadcastState()
+                }
+            } catch (e: Exception) {
+                DebugLog.e(TAG, "reloadLibrary failed", e)
+                serviceScope.launch(Dispatchers.Main) {
+                    tracks = emptyList()
+                    player?.clearMediaItems()
+                    broadcastState()
+                }
             }
         }
     }
@@ -197,26 +355,78 @@ class MusicPlaybackService : MediaSessionService() {
         playAt(prevIdx)
     }
 
-    // ── 状态广播 → 小组件刷新 ───────────────────────────────────────────────
+    /** 在 tracks 加载/刷新完成后，检查是否有缓存的待播放意图需要兑现。
+     *  确保在 player.prepare() 之后调用，避免时序问题。
+     *  正常情况（tracks 已就绪时收到指令）此函数不执行任何操作。 */
+    private fun checkPendingPlayback() {
+        val trackId = pendingTrackId
+        if (trackId != null) {
+            val idx = tracks.indexOfFirst { it.id == trackId }
+            if (idx >= 0) {
+                playAt(idx)
+            }
+            pendingTrackId = null
+            pendingIndex = null
+            return
+        }
+        val idx = pendingIndex
+        if (idx != null && idx in tracks.indices) {
+            playAt(idx)
+            pendingIndex = null
+        }
+    }
+
+    // ── 状态广播 → 小组件刷新 + 进程内 StateFlow ───────────────────────────────
 
     private fun broadcastState() {
         val p = player ?: return
         val idx = p.currentMediaItemIndex
         val track = tracks.getOrNull(idx)
+        val source = track?.source ?: ""
+        val artist = track?.artist ?: ""
+        val isPlaying = p.isPlaying
+        val positionMs = p.currentPosition
+        val durationMs = p.duration.coerceAtLeast(0)
+        val total = tracks.size
+
+        val snapshot = PlaybackSnapshot(
+            title = track?.title ?: "",
+            artist = artist,
+            source = source,
+            isPlaying = isPlaying,
+            positionMs = positionMs,
+            durationMs = durationMs,
+            queueIndex = idx,
+            queueTotal = total
+        )
+        _snapshot.value = snapshot
+
         val state = Intent(ACTION_STATE).apply {
             setPackage(packageName)
             putExtra(EXTRA_TITLE, track?.title ?: "")
-            putExtra(EXTRA_ARTIST, track?.let { "AI 创作" + if (it.style.isNotBlank()) " · ${it.style}" else "" } ?: "")
-            putExtra(EXTRA_LYRIC, track?.lyrics ?: "")
-            putExtra(EXTRA_IS_PLAYING, p.isPlaying)
+            putExtra(EXTRA_ARTIST, artist)
+            putExtra(EXTRA_LYRIC, track?.let { "" } ?: "") // lyric 字段保留，实际内容为空（本地音乐无歌词）
+            putExtra(EXTRA_IS_PLAYING, isPlaying)
             putExtra(EXTRA_INDEX, idx)
-            putExtra(EXTRA_TOTAL, tracks.size)
+            putExtra(EXTRA_TOTAL, total)
+            putExtra(EXTRA_SOURCE, source)
+            putExtra(EXTRA_NOW_PLAYING_ID, track?.id ?: "")
         }
-        // 单一信号源：只发 ACTION_STATE 广播。小组件的 onReceive 会用它刷新，
-        // 不要再额外发 APPWIDGET_UPDATE（会触发 onUpdate 走 null 分支，用 library.json 的
-        // 首曲覆盖当前播放状态，导致 ▶/⏸ 永远不切换）。
         sendBroadcast(state)
     }
+
+    // ── 进程内即时状态（供工具层直接读取，不走广播） ─────────────────────────────
+
+    data class PlaybackSnapshot(
+        val title: String = "",
+        val artist: String = "",
+        val source: String = "",
+        val isPlaying: Boolean = false,
+        val positionMs: Long = 0,
+        val durationMs: Long = 0,
+        val queueIndex: Int = -1,
+        val queueTotal: Int = 0
+    )
 
     companion object {
         // 指令 actions（Service 响应）
@@ -229,9 +439,11 @@ class MusicPlaybackService : MediaSessionService() {
         const val ACTION_PLAY_TRACK = "com.orangeisland.app.music.PLAY_TRACK"
         const val ACTION_PLAY_PATH = "com.orangeisland.app.music.PLAY_PATH"
         const val ACTION_QUERY_STATE = "com.orangeisland.app.music.QUERY_STATE"
+        const val ACTION_RELOAD_LIBRARY = "com.orangeisland.app.music.RELOAD_LIBRARY"
         const val EXTRA_INDEX = "index"
         const val EXTRA_TRACK_ID = "track_id"
         const val EXTRA_PATH = "path"
+        const val EXTRA_SOURCE = "source"
 
         // 状态广播 action（小组件接收）
         const val ACTION_STATE = "com.orangeisland.app.music.STATE"
@@ -240,5 +452,11 @@ class MusicPlaybackService : MediaSessionService() {
         const val EXTRA_LYRIC = "lyric"
         const val EXTRA_IS_PLAYING = "is_playing"
         const val EXTRA_TOTAL = "total"
+        const val EXTRA_NOW_PLAYING_ID = "now_playing_id"
+
+        private val _snapshot = MutableStateFlow(PlaybackSnapshot())
+        val snapshotFlow: StateFlow<PlaybackSnapshot> = _snapshot.asStateFlow()
+
+        private const val TAG = "MusicPlaybackService"
     }
 }

@@ -63,13 +63,10 @@ class MusicStudioViewModel(
     private val stateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action != MusicPlaybackService.ACTION_STATE) return
-            val idx = intent.getIntExtra(MusicPlaybackService.EXTRA_INDEX, -1)
-            val total = intent.getIntExtra(MusicPlaybackService.EXTRA_TOTAL, 0)
+            val trackId = intent.getStringExtra(MusicPlaybackService.EXTRA_NOW_PLAYING_ID) ?: ""
             val isPlaying = intent.getBooleanExtra(MusicPlaybackService.EXTRA_IS_PLAYING, false)
-            val title = intent.getStringExtra(MusicPlaybackService.EXTRA_TITLE) ?: ""
-            // title 空说明 Service 没在播放列表里（比如刚启动）→ 清掉高亮
-            val currentId = if (isPlaying && title.isNotBlank() && idx in 0 until total) {
-                _state.value.tracks.getOrNull(idx)?.id
+            val currentId = if (isPlaying && trackId.isNotBlank()) {
+                _state.value.tracks.find { it.id == trackId }?.id
             } else if (!isPlaying) {
                 null
             } else {

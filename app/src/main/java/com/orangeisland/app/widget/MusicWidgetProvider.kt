@@ -11,6 +11,7 @@ import android.os.SystemClock
 import android.widget.RemoteViews
 import com.orangeisland.app.MainActivity
 import com.orangeisland.app.R
+import com.orangeisland.app.data.music.LocalMusicRepository
 import com.orangeisland.app.data.music.MusicStudioRepository
 import com.orangeisland.app.service.MusicPlaybackService
 import kotlinx.coroutines.CoroutineScope
@@ -39,9 +40,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 for (widgetId in appWidgetIds) {
                     updateWidgetInternal(context, appWidgetManager, widgetId, null)
                 }
-                // 首次加载后，主动拉取 Service 的当前播放状态。
-                // 如果 Service 正在播放 → 它会回一个 ACTION_STATE 广播，onReceive 用真实状态刷新。
-                // 如果 Service 没在播放（甚至没启动）→ 不回广播，保持上面 library.json 的默认展示。
                 context.startService(
                     Intent(context, MusicPlaybackService::class.java).apply {
                         action = MusicPlaybackService.ACTION_QUERY_STATE
@@ -58,7 +56,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         when (intent.action) {
-            // Service 推送的状态变化 → 刷新
             MusicPlaybackService.ACTION_STATE -> {
                 val mgr = AppWidgetManager.getInstance(context)
                 val ids = mgr.getAppWidgetIds(ComponentName(context, MusicWidgetProvider::class.java))
@@ -78,7 +75,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 }
             }
             ACTION_CYCLE -> {
-                // 自动轮播（无播放时每 CYCLE_SECONDS 秒切到下一首展示）
                 context.startService(
                     Intent(context, MusicPlaybackService::class.java).apply {
                         action = MusicPlaybackService.ACTION_NEXT
@@ -96,7 +92,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
     ) {
         val views = RemoteViews(context.packageName, R.layout.widget_music)
 
-        // ── 决定显示什么 ──
         var title: String
         var artist: String
         var lyric: String
@@ -104,7 +99,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
         var isPlaying = false
 
         if (stateIntent != null && stateIntent.hasExtra(MusicPlaybackService.EXTRA_TITLE)) {
-            // 用 Service 广播的状态
             title = stateIntent.getStringExtra(MusicPlaybackService.EXTRA_TITLE) ?: ""
             artist = stateIntent.getStringExtra(MusicPlaybackService.EXTRA_ARTIST) ?: ""
             lyric = stateIntent.getStringExtra(MusicPlaybackService.EXTRA_LYRIC) ?: ""
@@ -112,26 +106,50 @@ class MusicWidgetProvider : AppWidgetProvider() {
             val idx = stateIntent.getIntExtra(MusicPlaybackService.EXTRA_INDEX, 0)
             val total = stateIntent.getIntExtra(MusicPlaybackService.EXTRA_TOTAL, 0)
             pager = if (total > 1) "${idx + 1} / $total" else ""
+
+            val source = stateIntent.getStringExtra(MusicPlaybackService.EXTRA_SOURCE) ?: ""
+            if (source == "uploaded" && artist.isBlank()) {
+                artist = "未知歌手"
+            }
+
             if (title.isBlank()) {
                 title = "未在播放"
                 artist = "点击 ▶ 开始"
                 lyric = "♪ ♪ ♪"
             }
         } else {
-            // 首次/无状态：从 library.json 读首曲展示
-            val repo = MusicStudioRepository(context.applicationContext, providers = emptyList())
-            val tracks = try { repo.loadTracks() } catch (_: Exception) { emptyList() }
-            if (tracks.isEmpty()) {
+            val generatedRepo = MusicStudioRepository(context.applicationContext, providers = emptyList())
+            val localRepo = LocalMusicRepository(context.applicationContext)
+            val generatedTracks = try { generatedRepo.loadTracks() } catch (_: Exception) { emptyList() }
+            val localTracks = try { localRepo.loadTracks() } catch (_: Exception) { emptyList() }
+
+            if (generatedTracks.isEmpty() && localTracks.isEmpty()) {
                 title = "还没有创作歌曲"
                 artist = "让 AI 帮你写一首歌吧"
                 lyric = "点击打开音乐工作室"
                 pager = ""
             } else {
-                val t = tracks[0]
-                title = t.title.ifBlank { "未命名" }
-                artist = "AI 创作" + if (t.style.isNotBlank()) " · ${t.style}" else ""
-                lyric = pickLyricPreview(t)
-                pager = if (tracks.size > 1) "1 / ${tracks.size}" else ""
+                val generatedCandidate = generatedTracks.maxByOrNull { it.createdAt }
+                val localCandidate = localTracks.maxByOrNull { it.addedAt }
+                val t = when {
+                    generatedCandidate == null -> localCandidate!!
+                    localCandidate == null -> generatedCandidate
+                    generatedCandidate.createdAt > localCandidate.addedAt -> generatedCandidate
+                    else -> localCandidate
+                }
+
+                if (t is com.orangeisland.app.data.music.MusicStudioTrack) {
+                    title = t.title.ifBlank { "未命名" }
+                    artist = "AI 创作" + if (t.style.isNotBlank()) " · ${t.style}" else ""
+                    lyric = pickLyricPreview(t)
+                } else {
+                    t as com.orangeisland.app.data.music.LocalMusicTrack
+                    title = t.title.ifBlank { "未命名" }
+                    artist = t.artist.ifBlank { "未知歌手" }
+                    lyric = "♪ ♪ ♪"
+                }
+                val total = generatedTracks.size + localTracks.size
+                pager = if (total > 1) "1 / $total" else ""
             }
         }
 
@@ -139,13 +157,11 @@ class MusicWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.music_artist, artist)
         views.setTextViewText(R.id.music_lyric, lyric)
         views.setTextViewText(R.id.music_pager, pager)
-        // 播放/暂停图标用 vector drawable 切换（比 emoji 字符清晰、跨机型一致）
         views.setImageViewResource(
             R.id.music_btn_play,
             if (isPlaying) R.drawable.widget_ic_pause else R.drawable.widget_ic_play
         )
 
-        // ── 点击歌曲区域 → 打开 App ──
         val openIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("destination", "music")
@@ -158,7 +174,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
             )
         )
 
-        // ── 控制按钮 → 发指令给 MusicPlaybackService ──
         views.setOnClickPendingIntent(
             R.id.music_btn_prev,
             serviceControl(context, MusicPlaybackService.ACTION_PREV, REQ_PREV)

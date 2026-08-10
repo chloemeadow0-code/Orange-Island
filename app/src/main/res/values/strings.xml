@@ -822,6 +822,16 @@
     <string name="music_voice_replace_action">替换音色生成</string>
     <string name="music_voice_replace_desc">用 RVC 音色模型把这首歌重新唱一遍，生成一个挂在本歌下的音色版本。原版保留。</string>
     <string name="music_voice_replacing">正在进行音色替换…</string>
+    <string name="music_tab_ai">AI生成</string>
+    <string name="music_tab_local">用户上传</string>
+    <string name="local_music_upload">上传本地音乐</string>
+    <string name="local_music_uploading">上传中…</string>
+    <string name="local_music_empty_title">还没有上传歌曲</string>
+    <string name="local_music_empty_desc">点击上方按钮上传本地音频文件</string>
+    <string name="local_music_upload_now">立即上传</string>
+    <string name="local_music_unknown_artist">未知歌手</string>
+    <string name="settings_musicstudio">音乐工作室</string>
+    <string name="settings_musicstudio_desc">AI 生成音乐、本地上传音乐与播放控制</string>
     <string name="stop">Stop</string>
     <string name="close">Close</string>
     <string name="error">Error</string>

@@ -122,6 +122,8 @@ class ChatViewModel(
     private val pluginMemoryProvider: com.orangeisland.app.plugin.AppPluginMemoryProvider? = null,
     /** Music Studio repository. When present, music generation/list/delete tools are exposed to the LLM. */
     private val musicStudioRepository: com.orangeisland.app.data.music.MusicStudioRepository? = null,
+    /** Local Music repository. When present, local playback control tools are exposed to the LLM. */
+    private val localMusicRepository: com.orangeisland.app.data.music.LocalMusicRepository? = null,
     /** App-wide MCP client pool, injected from [com.orangeisland.app.di.AppContainer]. Shared with
      *  the workflow engine's tool dispatcher — see the property doc further down for why this
      *  moved from a ViewModel-owned lazy to an injected dependency. */
@@ -426,7 +428,8 @@ class ChatViewModel(
             userInteractionGate = userInteractionGate,
             voiceCallGate = voiceCallGate,
             cameraToolGate = cameraToolGate,
-            musicStudioRepository = musicStudioRepository
+            musicStudioRepository = musicStudioRepository,
+            localMusicRepository = localMusicRepository
         ).also { gm ->
             gm.onMessagePersisted = { messageId, text ->
                 if (settings.autoCacheEnabled.value && (settings.modelSearchMethod.value == Constants.SEARCH_METHOD_RAG || settings.manualSearchMethod.value == Constants.SEARCH_METHOD_RAG)) {
@@ -1254,8 +1257,26 @@ class ChatViewModel(
         )
         val renderedRoot = byId[renderedRootTree.id] ?: return
 
+        // Legitimate top-level branches are always USER messages — a conversation's first
+        // message can never legitimately come from the model, so editMessage()/
+        // editAssistantMessage() only ever create a null-parentId SIBLING when editing the
+        // very first (USER) message, which is how a conversation can legitimately end up
+        // with more than one parentId==null entry. A null-parentId MODEL message is a
+        // different signature entirely — it's exactly what the old compressHistory bug
+        // produced when it reparented stray MODEL messages to null. Restricting "legit
+        // root" to USER-participant, null-parentId messages keeps both properties: genuine
+        // parallel user-edit branches stay reachable (fixes editing the first message, then
+        // reopening/switching the conversation, silently merging the two branches and
+        // dropping the branch selector), while the historical MODEL-reparented-to-null
+        // corruption this function exists to clean up still gets caught as an orphan.
+        val legitRoots = visible.filter { it.parentId == null && it.participant == Participant.USER }
+
         val reachable = mutableSetOf<String>()
         val stack = ArrayDeque<String>()
+        legitRoots.forEach { stack.addLast(it.id) }
+        // Always keep the currently-rendered root reachable too, even in the edge case where
+        // it isn't itself a "legit" USER root (e.g. stale corrupted data) — otherwise the walk
+        // below could try to reparent it onto its own tail, a self-loop.
         stack.addLast(renderedRoot.id)
         while (stack.isNotEmpty()) {
             val cur = stack.removeLast()

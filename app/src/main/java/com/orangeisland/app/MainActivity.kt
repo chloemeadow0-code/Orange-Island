@@ -1037,6 +1037,9 @@ fun MainNavigation(
             val musicFactory = remember { musicContainer.musicStudioViewModelFactory() }
             val musicStudioViewModel: com.orangeisland.app.ui.music.MusicStudioViewModel =
                 viewModel(factory = musicFactory)
+            val localMusicFactory = remember { musicContainer.localMusicViewModelFactory() }
+            val localMusicViewModel: com.orangeisland.app.ui.music.LocalMusicViewModel =
+                viewModel(factory = localMusicFactory)
 
             // Music Studio page
             AnimatedVisibility(
@@ -1049,6 +1052,7 @@ fun MainNavigation(
                 }
                 com.orangeisland.app.ui.music.MusicStudioPage(
                     viewModel = musicStudioViewModel,
+                    localMusicViewModel = localMusicViewModel,
                     onBack = { showMusicStudio = false },
                     onOpenTrack = { showMusicTrackDetail = true }
                 )

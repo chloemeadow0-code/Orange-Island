@@ -147,6 +147,7 @@ data class GenerationContext(
     val userInteractionEnabled: Boolean = true,
     val cameraToolEnabled: Boolean = false,
     val musicStudioEnabled: Boolean = false,
+    val localMusicEnabled: Boolean = false,
     /** The project this conversation belongs to (null = ungrouped). Drives memory scoping:
      *  when non-null, memory tools read/write the project-private memory dir on top of the
      *  always-present global dir; RAG/search filters to the same project. */
@@ -232,7 +233,9 @@ class GenerationManager(
     private val cameraToolGate: com.orangeisland.app.tool.CameraToolGate? = null,
     /** Optional Music Studio repository. When present, the music generation/list/delete tools are
      *  exposed to the LLM via the standalone dispatcher. */
-    private val musicStudioRepository: com.orangeisland.app.data.music.MusicStudioRepository? = null
+    private val musicStudioRepository: com.orangeisland.app.data.music.MusicStudioRepository? = null,
+    /** Optional Local Music repository. When present, local playback control tools are exposed to the LLM. */
+    private val localMusicRepository: com.orangeisland.app.data.music.LocalMusicRepository? = null
 ) {
     var onMessagePersisted: ((messageId: String, text: String) -> Unit)? = null
 
@@ -258,7 +261,8 @@ class GenerationManager(
             userInteractionGate = userInteractionGate,
             voiceCallGate = voiceCallGate,
             cameraToolGate = cameraToolGate,
-            musicStudioRepository = musicStudioRepository
+            musicStudioRepository = musicStudioRepository,
+            localMusicRepository = localMusicRepository
         )
 
     init {
@@ -379,6 +383,11 @@ class GenerationManager(
      *  feature is enabled in settings. */
     fun buildMusicStudioTools(ctx: GenerationContext): List<ToolDefinition> =
         tools.musicStudioDefinitions(ctx)
+
+    /** Local Music tools (play_music/pause_music/next_music/previous_music/get_now_playing_music/search_music).
+     *  Exposed when the local music playback control feature is enabled in settings. */
+    fun buildLocalMusicTools(ctx: GenerationContext): List<ToolDefinition> =
+        tools.localMusicDefinitions(ctx)
 
     /** Semantic message search — delegates to the RAG provider via [tools], which owns the
      *  embedding-search logic. Kept here as the entry point used by ChatViewModel's
@@ -604,7 +613,8 @@ class GenerationManager(
         val voiceCallTools = buildVoiceCallTools(ctx)
         val cameraTools = buildCameraTools(ctx)
         val musicStudioTools = buildMusicStudioTools(ctx)
-        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + alarmTools + healthTools + automationTools + workflowTools + userInteractionTools + ttsTools + voiceCallTools + cameraTools + musicStudioTools
+        val localMusicTools = buildLocalMusicTools(ctx)
+        val allTools = memoryTools + webSearchTool + ragTool + imageGenTool + shellTool + fileTool + mcpTools + pluginTools + deviceTools + navigationTools + appLockTools + toastTools + alarmTools + healthTools + automationTools + workflowTools + userInteractionTools + ttsTools + voiceCallTools + cameraTools + musicStudioTools + localMusicTools
         DebugLog.d("ToolList", "allTools=${allTools.size} names=[${allTools.joinToString { it.function.name }}] cameraToolEnabled=${ctx.cameraToolEnabled} musicStudioEnabled=${ctx.musicStudioEnabled}")
         val providerConfig = ProviderConfig(
             apiKey = config.apiKey,

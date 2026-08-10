@@ -281,9 +281,6 @@ class MessageGenerationController(
                         isError = true
                     )
                 }
-                if (settings.autoCompressModel.value != null) {
-                    compressHistory(currentId)
-                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -465,9 +462,6 @@ class MessageGenerationController(
                     details = "生成失败: 消息状态为 ERROR",
                     isError = true
                 )
-            }
-            if (settings.autoCompressModel.value != null) {
-                compressHistory(currentId)
             }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -846,16 +840,6 @@ class MessageGenerationController(
             }
             if (wasNewChat && settings.titleGenerationEnabled.value && !titleGenerated.get() && lastMsg?.status != MessageStatus.ERROR) {
                 generateTitle(currentId)
-            }
-            // Auto-compress: fire-and-forget after EVERY turn, success or failure.
-            // compressHistory() itself re-checks the path length/token usage against the
-            // configured limits and no-ops if still within them, so this is safe to call
-            // unconditionally. Previously this was gated on lastMsg?.status != ERROR,
-            // which meant a turn that failed BECAUSE the context was too long would never
-            // trigger the compression that could have fixed it for the next turn —
-            // exactly the death spiral we're closing here.
-            if (settings.autoCompressModel.value != null) {
-                compressHistory(currentId)
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
@@ -1463,8 +1447,26 @@ class MessageGenerationController(
         )
         val renderedRoot = byId[renderedRootTree.id] ?: return
 
+        // Legitimate top-level branches are always USER messages — a conversation's first
+        // message can never legitimately come from the model, so editMessage()/
+        // editAssistantMessage() only ever create a null-parentId SIBLING when editing the
+        // very first (USER) message, which is how a conversation can legitimately end up
+        // with more than one parentId==null entry. A null-parentId MODEL message is a
+        // different signature entirely — it's exactly what the old compressHistory bug
+        // produced when it reparented stray MODEL messages to null. Restricting "legit
+        // root" to USER-participant, null-parentId messages keeps both properties: genuine
+        // parallel user-edit branches stay reachable (fixes editing the first message, then
+        // reopening/switching the conversation, silently merging the two branches and
+        // dropping the branch selector), while the historical MODEL-reparented-to-null
+        // corruption this function exists to clean up still gets caught as an orphan.
+        val legitRoots = visible.filter { it.parentId == null && it.participant == Participant.USER }
+
         val reachable = mutableSetOf<String>()
         val stack = ArrayDeque<String>()
+        legitRoots.forEach { stack.addLast(it.id) }
+        // Always keep the currently-rendered root reachable too, even in the edge case where
+        // it isn't itself a "legit" USER root (e.g. stale corrupted data) — otherwise the walk
+        // below could try to reparent it onto its own tail, a self-loop.
         stack.addLast(renderedRoot.id)
         while (stack.isNotEmpty()) {
             val cur = stack.removeLast()

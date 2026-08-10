@@ -47,6 +47,8 @@ class ToolDispatcher(
     private val pluginToolProvider: PluginToolProvider? = null,
     /** Optional Music Studio tool provider. When null, music tools are disabled. */
     private val musicStudioRepository: MusicStudioRepository? = null,
+    /** Optional Local Music repository. When null, local music playback control tools are disabled. */
+    private val localMusicRepository: com.orangeisland.app.data.music.LocalMusicRepository? = null,
     /** Permission state for the Device Access tools. Null when device tools should not run
      *  (e.g. title generation). */
     private val permissionController: PermissionController? = null,
@@ -111,6 +113,7 @@ class ToolDispatcher(
     private val mcpToolProvider = mcpPool?.let { com.orangeisland.app.tool.McpToolProvider(it) }
     private val chatContextToolProvider = chatDao?.let { com.orangeisland.app.tool.ChatContextToolProvider(it) }
     private val musicStudioToolProvider = musicStudioRepository?.let { MusicStudioToolProvider(app, it) }
+    private val localMusicToolProvider = localMusicRepository?.let { LocalMusicToolProvider(app, it, musicStudioRepository) }
     private val userInteractionToolProvider = UserInteractionToolProvider(userInteractionGate)
     private val ttsToolProvider = TtsToolProvider(app)
     private val voiceCallToolProvider = VoiceCallToolProvider(voiceCallGate)
@@ -141,6 +144,7 @@ class ToolDispatcher(
         mcpToolProvider?.let { add(it) }
         pluginToolProvider?.let { add(it) }
         musicStudioToolProvider?.let { add(it) }
+        localMusicToolProvider?.let { add(it) }
         workflowToolProvider?.let { add(it) }
         add(ttsToolProvider)
         add(voiceCallToolProvider)
@@ -312,6 +316,9 @@ class ToolDispatcher(
 
     fun musicStudioDefinitions(ctx: GenerationContext): List<ToolDefinition> =
         musicStudioToolProvider?.definitions(ctx) ?: emptyList()
+
+    fun localMusicDefinitions(ctx: GenerationContext): List<ToolDefinition> =
+        localMusicToolProvider?.definitions(ctx) ?: emptyList()
 
     /** Drains audio file paths queued by the most recent speak tool call. Called by the LLM
      *  loop right after a speak call so the audio renders inline. */

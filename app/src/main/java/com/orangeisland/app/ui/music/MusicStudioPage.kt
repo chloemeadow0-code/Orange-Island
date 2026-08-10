@@ -33,6 +33,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -42,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.orangeisland.app.R
 import com.orangeisland.app.data.music.MusicStudioTrack
+import com.orangeisland.app.ui.settings.PillTabSwitcher
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -50,10 +54,13 @@ import java.util.Locale
 @Composable
 fun MusicStudioPage(
     viewModel: MusicStudioViewModel = viewModel(),
+    localMusicViewModel: LocalMusicViewModel,
     onBack: () -> Unit,
     onOpenTrack: (MusicStudioTrack) -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    val tabs = listOf(stringResource(R.string.music_tab_ai), stringResource(R.string.music_tab_local))
 
     Scaffold(
         topBar = {
@@ -77,50 +84,22 @@ fun MusicStudioPage(
                 .padding(padding)
                 .padding(horizontal = 16.dp)
         ) {
-            if (state.isGenerating || state.generationMessage.isNotBlank()) {
-                GenerationProgressCard(
-                    isGenerating = state.isGenerating,
-                    message = state.generationMessage
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-            }
-
-            Text(
-                text = stringResource(R.string.music_library),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(vertical = 12.dp)
+            PillTabSwitcher(
+                tabs = tabs,
+                selectedIndex = selectedTab,
+                onSelect = { selectedTab = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             )
 
-            if (state.tracks.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(R.string.music_library_empty),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(state.tracks, key = { it.id }) { track ->
-                        TrackCard(
-                            track = track,
-                            isPlaying = track.id == state.currentPlayingTrackId,
-                            onPlay = { viewModel.playTrack(track) },
-                            onStop = { viewModel.stopPlayback() },
-                            onDelete = { viewModel.deleteTrack(track) },
-                            onOpenDetail = {
-                                viewModel.openTrackDetail(track)
-                                onOpenTrack(track)
-                            }
-                        )
-                    }
-                }
+            when (selectedTab) {
+                0 -> AiMusicTab(
+                    state = state,
+                    viewModel = viewModel,
+                    onOpenTrack = onOpenTrack
+                )
+                1 -> LocalMusicPage(viewModel = localMusicViewModel)
             }
         }
     }
@@ -136,6 +115,61 @@ fun MusicStudioPage(
             title = { Text(stringResource(R.string.error)) },
             text = { Text(error) }
         )
+    }
+}
+
+@Composable
+private fun AiMusicTab(
+    state: MusicStudioUiState,
+    viewModel: MusicStudioViewModel,
+    onOpenTrack: (MusicStudioTrack) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        if (state.isGenerating || state.generationMessage.isNotBlank()) {
+            GenerationProgressCard(
+                isGenerating = state.isGenerating,
+                message = state.generationMessage
+            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        }
+
+        Text(
+            text = stringResource(R.string.music_library),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(vertical = 12.dp)
+        )
+
+        if (state.tracks.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.music_library_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(state.tracks, key = { it.id }) { track ->
+                    TrackCard(
+                        track = track,
+                        isPlaying = track.id == state.currentPlayingTrackId,
+                        onPlay = { viewModel.playTrack(track) },
+                        onStop = { viewModel.stopPlayback() },
+                        onDelete = { viewModel.deleteTrack(track) },
+                        onOpenDetail = {
+                            viewModel.openTrackDetail(track)
+                            onOpenTrack(track)
+                        }
+                    )
+                }
+            }
+        }
     }
 }
 
