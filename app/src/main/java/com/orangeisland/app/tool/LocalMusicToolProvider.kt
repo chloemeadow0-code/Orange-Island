@@ -171,8 +171,10 @@ class LocalMusicToolProvider(
         }.toString()
     }
 
-    private fun getNowPlaying(): String {
-        val snap = MusicPlaybackService.snapshotFlow.value
+    private suspend fun getNowPlaying(): String {
+        // 优先读 ExoPlayer 实时值，避免 snapshotFlow 只在离散事件刷新导致 positionMs 过期
+        val live = MusicPlaybackService.getLiveSnapshot()
+        val snap = live ?: MusicPlaybackService.snapshotFlow.value
         return if (snap.queueTotal <= 0) {
             buildJsonObject {
                 put("isPlaying", false)

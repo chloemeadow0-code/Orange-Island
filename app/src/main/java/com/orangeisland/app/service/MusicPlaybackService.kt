@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 后台音乐播放服务。
@@ -90,6 +91,8 @@ class MusicPlaybackService : MediaSessionService() {
         mediaSession = MediaSession.Builder(this, exo)
             .setSessionActivity(pendingIntent)
             .build()
+
+        runningInstance = this
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -101,6 +104,7 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        runningInstance = null
         mediaSession?.run {
             player.release()
             release()
@@ -456,6 +460,30 @@ class MusicPlaybackService : MediaSessionService() {
 
         private val _snapshot = MutableStateFlow(PlaybackSnapshot())
         val snapshotFlow: StateFlow<PlaybackSnapshot> = _snapshot.asStateFlow()
+
+        private var runningInstance: MusicPlaybackService? = null
+
+        /** 实时查询当前播放位置和状态，直接读 ExoPlayer 当前值，不依赖离散事件触发的 snapshot 缓存。
+         *  供同进程内工具类即时调用；Service 未运行时返回 null。
+         *  ExoPlayer 必须在主线程访问，因此全部 player 读取逻辑用 withContext(Dispatchers.Main) 包裹。 */
+        suspend fun getLiveSnapshot(): PlaybackSnapshot? {
+            val instance = runningInstance ?: return null
+            val p = instance.player ?: return null
+            return withContext(Dispatchers.Main) {
+                val idx = p.currentMediaItemIndex
+                val track = instance.tracks.getOrNull(idx)
+                PlaybackSnapshot(
+                    title = track?.title ?: "",
+                    artist = track?.artist ?: "",
+                    source = track?.source ?: "",
+                    isPlaying = p.isPlaying,
+                    positionMs = p.currentPosition,
+                    durationMs = p.duration.coerceAtLeast(0),
+                    queueIndex = idx,
+                    queueTotal = instance.tracks.size
+                )
+            }
+        }
 
         private const val TAG = "MusicPlaybackService"
     }
