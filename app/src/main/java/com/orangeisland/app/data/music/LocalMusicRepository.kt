@@ -55,6 +55,33 @@ class LocalMusicRepository(private val context: Context) {
 
     suspend fun importTrack(sourceUri: Uri, appContext: Context): LocalMusicTrack = withContext(Dispatchers.IO) {
         val resolver = appContext.contentResolver
+
+        // ── 查重：复制之前先读元数据 ────────────────────────────────────────
+        val preRetriever = MediaMetadataRetriever()
+        var preTitle = ""
+        var preDurationMs = 0L
+        try {
+            preRetriever.setDataSource(appContext, sourceUri)
+            preTitle = preRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                ?.takeIf { it.isNotBlank() } ?: ""
+            preDurationMs = preRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull() ?: 0L
+        } catch (e: Exception) {
+            DebugLog.e(TAG, "pre-read metadata failed for dedup, will import anyway: $sourceUri", e)
+        } finally {
+            preRetriever.release()
+        }
+
+        if (preTitle.isNotBlank() && preDurationMs > 0L) {
+            val existing = loadTracks()
+            val isDuplicate = existing.any { track ->
+                track.title.equals(preTitle, ignoreCase = true) &&
+                    kotlin.math.abs(track.durationMs - preDurationMs) < 500L
+            }
+            if (isDuplicate) throw DuplicateTrackException("已存在相同歌曲：$preTitle")
+        }
+        // ── 查重结束 ──────────────────────────────────────────────────────────
+
         val inputStream = try {
             resolver.openInputStream(sourceUri)
         } catch (e: Exception) {
@@ -177,3 +204,5 @@ class LocalMusicRepository(private val context: Context) {
         private const val TAG = "LocalMusicRepository"
     }
 }
+
+class DuplicateTrackException(message: String) : Exception(message)

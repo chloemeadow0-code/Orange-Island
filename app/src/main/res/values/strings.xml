@@ -903,6 +903,7 @@
     <string name="custom_color_input_field">Input field color</string>
     <string name="illustrations_title">Illustrations</string>
     <string name="illustration_chat_background">Chat background</string>
+    <string name="illustration_chat_background_alpha">Chat background opacity</string>
     <string name="illustration_input_background">Input field background</string>
     <string name="illustration_drawer_background">Sidebar background</string>
     <string name="illustration_user_bubble_background">User bubble background</string>

@@ -19,7 +19,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -29,6 +34,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -53,9 +59,9 @@ fun LocalMusicPage(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        uri?.let { viewModel.importTrack(it) }
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        if (uris.isNotEmpty()) viewModel.importTracks(uris)
     }
 
     Column(
@@ -75,8 +81,11 @@ fun LocalMusicPage(
                     modifier = Modifier.size(18.dp),
                     strokeWidth = 2.dp
                 )
+                val progressText = state.uploadProgress?.let { (done, total) ->
+                    "正在导入 ($done/$total)"
+                } ?: stringResource(R.string.local_music_uploading)
                 Text(
-                    text = stringResource(R.string.local_music_uploading),
+                    text = progressText,
                     modifier = Modifier.padding(start = 8.dp)
                 )
             } else {
@@ -92,7 +101,9 @@ fun LocalMusicPage(
 
         if (state.tracks.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -122,7 +133,7 @@ fun LocalMusicPage(
             }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(state.tracks, key = { it.id }) { track ->
@@ -134,6 +145,109 @@ fun LocalMusicPage(
                         onDelete = { viewModel.deleteTrack(track) }
                     )
                 }
+            }
+        }
+
+        val hasTracks = state.tracks.isNotEmpty()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = formatDuration(state.currentPositionMs),
+                    style = MaterialTheme.typography.labelSmall
+                )
+                Slider(
+                    value = state.currentPositionMs.toFloat(),
+                    onValueChange = { viewModel.setUserSeeking(true, it.toLong()) },
+                    onValueChangeFinished = { viewModel.seekTo(state.currentPositionMs) },
+                    valueRange = 0f..state.currentDurationMs.toFloat().coerceAtLeast(0f),
+                    enabled = state.currentDurationMs > 0,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = formatDuration(state.currentDurationMs),
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                IconButton(
+                    onClick = { viewModel.setPlayMode((state.playMode + 1) % 4) },
+                    enabled = hasTracks
+                ) {
+                    val modeTint = if (state.playMode == 0)
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    else
+                        MaterialTheme.colorScheme.primary
+                    when (state.playMode) {
+                        2 -> {
+                            Box(
+                                modifier = Modifier.size(24.dp),
+                                contentAlignment = Alignment.BottomEnd
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Repeat,
+                                    contentDescription = "单曲循环",
+                                    modifier = Modifier.fillMaxSize(),
+                                    tint = modeTint
+                                )
+                                Text(
+                                    text = "1",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = modeTint,
+                                    modifier = Modifier.padding(start = 2.dp, bottom = 0.dp)
+                                )
+                            }
+                        }
+                        else -> {
+                            Icon(
+                                imageVector = if (state.playMode == 3) Icons.Default.Shuffle else Icons.Default.Repeat,
+                                contentDescription = when (state.playMode) {
+                                    0 -> "顺序播放"
+                                    1 -> "全部循环"
+                                    else -> "随机播放"
+                                },
+                                tint = modeTint
+                            )
+                        }
+                    }
+                }
+                IconButton(
+                    onClick = { viewModel.playPrevious() },
+                    enabled = hasTracks
+                ) {
+                    Icon(Icons.Default.SkipPrevious, contentDescription = null)
+                }
+                IconButton(
+                    onClick = {
+                        if (state.isPlaying) viewModel.stopPlayback() else viewModel.resumePlayback()
+                    },
+                    enabled = state.currentPlayingTrackId != null || hasTracks,
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (state.isPlaying) stringResource(R.string.stop) else stringResource(R.string.play),
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                IconButton(
+                    onClick = { viewModel.playNext() },
+                    enabled = hasTracks
+                ) {
+                    Icon(Icons.Default.SkipNext, contentDescription = null)
+                }
+                Spacer(modifier = Modifier.size(48.dp))
             }
         }
     }

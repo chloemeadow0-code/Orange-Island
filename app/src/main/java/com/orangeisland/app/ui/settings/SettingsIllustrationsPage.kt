@@ -46,6 +46,7 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val reasoningPath by s.illustrationReasoningBackgroundPath.collectAsState()
     val bubbleRadius by s.illustrationUserBubbleCornerRadius.collectAsState()
     val topBarScale by s.topBarCapsuleScale.collectAsState()
+    val chatBgAlpha by s.transparencyChatBackground.collectAsState()
 
     var pendingSlot by remember { mutableStateOf<IllustrationSlot?>(null) }
 
@@ -116,6 +117,22 @@ fun SettingsIllustrationsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 if (chatPath.isNotBlank()) runCatching { File(chatPath).delete() }
                                 s.setIllustrationChatBackgroundPath("")
                             },
+                        )
+                    },
+                    {
+                        SettingsItem(
+                            headlineContent = { Text(stringResource(R.string.illustration_chat_background_alpha)) },
+                            supportingContent = {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Slider(
+                                        value = chatBgAlpha,
+                                        onValueChange = { s.setTransparencyChatBackground(it) },
+                                        valueRange = 0f..1f,
+                                        modifier = Modifier.fillMaxWidth(1f).padding(end = 8.dp),
+                                    )
+                                    Text("${(chatBgAlpha * 100).toInt()}%")
+                                }
+                            }
                         )
                     },
                     {

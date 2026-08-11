@@ -987,6 +987,7 @@ class ChatViewModel(
             messageBubbleAlpha = settings.transparencyMessageBubble,
             userBubbleMaskAlpha = settings.transparencyUserBubbleMask,
             reasoningPanelAlpha = settings.transparencyReasoningPanel,
+            chatBackgroundAlpha = settings.transparencyChatBackground,
             systemPrompts = settings.systemPrompts,
             activeSystemPromptId = settings.activeSystemPromptId,
             globalSelectedModel = settings.selectedModel

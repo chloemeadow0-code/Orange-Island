@@ -13,6 +13,7 @@ import com.orangeisland.app.data.music.LocalMusicTrack
 import com.orangeisland.app.service.MusicPlaybackService
 import com.orangeisland.app.util.DebugLog
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +23,13 @@ data class LocalMusicUiState(
     val tracks: List<LocalMusicTrack> = emptyList(),
     val currentPlayingTrackId: String? = null,
     val isUploading: Boolean = false,
-    val errorMessage: String? = null
+    val uploadProgress: Pair<Int, Int>? = null,
+    val errorMessage: String? = null,
+    val currentPositionMs: Long = 0,
+    val currentDurationMs: Long = 0,
+    val playMode: Int = 0,
+    val isSeekingByUser: Boolean = false,
+    val isPlaying: Boolean = false
 )
 
 class LocalMusicViewModel(
@@ -38,6 +45,7 @@ class LocalMusicViewModel(
             if (intent.action != MusicPlaybackService.ACTION_STATE) return
             val trackId = intent.getStringExtra(MusicPlaybackService.EXTRA_NOW_PLAYING_ID) ?: ""
             val isPlaying = intent.getBooleanExtra(MusicPlaybackService.EXTRA_IS_PLAYING, false)
+            val mode = intent.getIntExtra(MusicPlaybackService.EXTRA_PLAY_MODE, _state.value.playMode)
             val currentId = if (isPlaying && trackId.isNotBlank()) {
                 _state.value.tracks.find { it.id == trackId }?.id
             } else if (!isPlaying) {
@@ -45,7 +53,11 @@ class LocalMusicViewModel(
             } else {
                 _state.value.currentPlayingTrackId
             }
-            _state.value = _state.value.copy(currentPlayingTrackId = currentId)
+            _state.value = _state.value.copy(
+                currentPlayingTrackId = currentId,
+                playMode = mode,
+                isPlaying = isPlaying
+            )
         }
     }
 
@@ -53,6 +65,24 @@ class LocalMusicViewModel(
         val filter = IntentFilter(MusicPlaybackService.ACTION_STATE)
         getApplication<Application>().registerReceiver(stateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         loadTracks()
+        viewModelScope.launch {
+            while (true) {
+                delay(500)
+                if (_state.value.isSeekingByUser) continue
+                if (_state.value.currentPlayingTrackId == null) continue
+                try {
+                    val snap = MusicPlaybackService.getLiveSnapshot() ?: continue
+                    if (snap.isPlaying || snap.positionMs > 0) {
+                        _state.value = _state.value.copy(
+                            currentPositionMs = snap.positionMs,
+                            currentDurationMs = snap.durationMs.coerceAtLeast(0)
+                        )
+                    }
+                } catch (e: Exception) {
+                    DebugLog.e("LocalMusicViewModel", "position update failed", e)
+                }
+            }
+        }
     }
 
     fun loadTracks() {
@@ -67,46 +97,64 @@ class LocalMusicViewModel(
         }
     }
 
-    fun importTrack(uri: Uri) {
+    fun importTrack(uri: Uri) = importTracks(listOf(uri))
+
+    fun importTracks(uris: List<Uri>) {
         viewModelScope.launch(Dispatchers.IO) {
-            _state.value = _state.value.copy(isUploading = true, errorMessage = null)
-            try {
-                repository.importTrack(uri, getApplication())
-                loadTracks()
+            _state.value = _state.value.copy(isUploading = true, uploadProgress = Pair(0, uris.size), errorMessage = null)
+            val successIds = mutableListOf<String>()
+            var skippedCount = 0
+            var failedCount = 0
+            uris.forEachIndexed { index, uri ->
+                try {
+                    val track = repository.importTrack(uri, getApplication())
+                    successIds.add(track.id)
+                } catch (e: com.orangeisland.app.data.music.DuplicateTrackException) {
+                    DebugLog.d("LocalMusicViewModel", "skipped duplicate: ${e.message}")
+                    skippedCount++
+                } catch (e: Exception) {
+                    DebugLog.e("LocalMusicViewModel", "importTrack failed for $uri", e)
+                    failedCount++
+                }
+                _state.value = _state.value.copy(uploadProgress = Pair(index + 1, uris.size))
+            }
+            loadTracks()
+            if (successIds.isNotEmpty()) {
                 getApplication<Application>().startService(
                     Intent(getApplication(), MusicPlaybackService::class.java).apply {
-                        action = MusicPlaybackService.ACTION_RELOAD_LIBRARY
+                        action = MusicPlaybackService.ACTION_ADD_TRACKS
+                        putExtra(MusicPlaybackService.EXTRA_TRACK_IDS, successIds.toTypedArray())
                     }
                 )
-            } catch (e: Exception) {
-                DebugLog.e("LocalMusicViewModel", "importTrack failed", e)
-                _state.value = _state.value.copy(errorMessage = "上传失败: ${e.message}", isUploading = false)
-                return@launch
             }
-            _state.value = _state.value.copy(isUploading = false)
+            val resultMessage = when {
+                skippedCount > 0 && failedCount > 0 -> "已跳过 $skippedCount 首重复，$failedCount 首导入失败"
+                skippedCount > 0 && failedCount == 0 -> "已跳过 $skippedCount 首重复歌曲"
+                failedCount > 0 -> "部分文件导入失败（$failedCount 首）"
+                else -> null
+            }
+            _state.value = _state.value.copy(
+                isUploading = false,
+                uploadProgress = null,
+                errorMessage = resultMessage
+            )
         }
     }
 
     fun deleteTrack(track: LocalMusicTrack) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                if (_state.value.currentPlayingTrackId == track.id) {
-                    getApplication<Application>().startService(
-                        Intent(getApplication(), MusicPlaybackService::class.java).apply {
-                            action = MusicPlaybackService.ACTION_PAUSE
-                        }
-                    )
-                }
                 repository.deleteTrack(track)
                 loadTracks()
                 getApplication<Application>().startService(
                     Intent(getApplication(), MusicPlaybackService::class.java).apply {
-                        action = MusicPlaybackService.ACTION_RELOAD_LIBRARY
+                        action = MusicPlaybackService.ACTION_REMOVE_TRACK
+                        putExtra(MusicPlaybackService.EXTRA_TRACK_ID, track.id)
                     }
                 )
             } catch (e: Exception) {
                 DebugLog.e("LocalMusicViewModel", "deleteTrack failed", e)
-                _state.value = _state.value.copy(errorMessage = "删除失败: ${e.message}")
+                _state.value = _state.value.copy(errorMessage = "鍒犻櫎澶辫触: ${e.message}")
             }
         }
     }
@@ -129,6 +177,53 @@ class LocalMusicViewModel(
             }
         )
         _state.value = _state.value.copy(currentPlayingTrackId = null)
+    }
+
+    fun resumePlayback() {
+        getApplication<Application>().startService(
+            Intent(getApplication(), MusicPlaybackService::class.java).apply {
+                action = MusicPlaybackService.ACTION_PLAY
+            }
+        )
+    }
+
+    fun playNext() {
+        getApplication<Application>().startService(
+            Intent(getApplication(), MusicPlaybackService::class.java).apply {
+                action = MusicPlaybackService.ACTION_NEXT
+            }
+        )
+    }
+
+    fun playPrevious() {
+        getApplication<Application>().startService(
+            Intent(getApplication(), MusicPlaybackService::class.java).apply {
+                action = MusicPlaybackService.ACTION_PREV
+            }
+        )
+    }
+
+    fun seekTo(positionMs: Long) {
+        _state.value = _state.value.copy(currentPositionMs = positionMs, isSeekingByUser = false)
+        MusicPlaybackService.seekTo(positionMs)
+    }
+
+    fun setUserSeeking(isSeeking: Boolean, dragPositionMs: Long = 0) {
+        _state.value = if (isSeeking) {
+            _state.value.copy(isSeekingByUser = true, currentPositionMs = dragPositionMs)
+        } else {
+            _state.value.copy(isSeekingByUser = false)
+        }
+    }
+
+    fun setPlayMode(mode: Int) {
+        _state.value = _state.value.copy(playMode = mode)
+        getApplication<Application>().startService(
+            Intent(getApplication(), MusicPlaybackService::class.java).apply {
+                action = MusicPlaybackService.ACTION_SET_PLAY_MODE
+                putExtra(MusicPlaybackService.EXTRA_PLAY_MODE, mode)
+            }
+        )
     }
 
     fun clearError() {

@@ -283,6 +283,7 @@ class SettingsManager(private val context: Context) {
         val TRANSPARENCY_USER_BUBBLE_MASK = stringPreferencesKey("transparency_user_bubble_mask")
         val TRANSPARENCY_REASONING_PANEL = stringPreferencesKey("transparency_reasoning_panel")
         val TRANSPARENCY_DRAWER_ITEM = stringPreferencesKey("transparency_drawer_item")
+        val TRANSPARENCY_CHAT_BACKGROUND = stringPreferencesKey("transparency_chat_background")
         // ── Recent custom colors (comma-separated ARGB Long list, most-recent-first) ──
         val RECENT_CUSTOM_COLORS = stringPreferencesKey("recent_custom_colors")
         val FONT_PREFERENCE = stringPreferencesKey("font_preference")
@@ -621,6 +622,7 @@ class SettingsManager(private val context: Context) {
     val transparencyUserBubbleMask: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_USER_BUBBLE_MASK]?.toFloatOrNull() ?: 0.55f }
     val transparencyReasoningPanel: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_REASONING_PANEL]?.toFloatOrNull() ?: 1f }
     val transparencyDrawerItem: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_DRAWER_ITEM]?.toFloatOrNull() ?: 1f }
+    val transparencyChatBackground: Flow<Float> = context.dataStore.data.map { it[TRANSPARENCY_CHAT_BACKGROUND]?.toFloatOrNull() ?: 1f }
     val recentCustomColors: Flow<List<Long>> = context.dataStore.data.map { pref ->
         (pref[RECENT_CUSTOM_COLORS] ?: "").split(",").mapNotNull { it.toLongOrNull() }
     }
@@ -1273,6 +1275,7 @@ class SettingsManager(private val context: Context) {
     suspend fun saveTransparencyUserBubbleMask(value: Float) = context.dataStore.edit { it[TRANSPARENCY_USER_BUBBLE_MASK] = value.coerceIn(0f, 1f).toString() }
     suspend fun saveTransparencyReasoningPanel(value: Float) = context.dataStore.edit { it[TRANSPARENCY_REASONING_PANEL] = value.coerceIn(0f, 1f).toString() }
     suspend fun saveTransparencyDrawerItem(value: Float) = context.dataStore.edit { it[TRANSPARENCY_DRAWER_ITEM] = value.coerceIn(0f, 1f).toString() }
+    suspend fun saveTransparencyChatBackground(value: Float) = context.dataStore.edit { it[TRANSPARENCY_CHAT_BACKGROUND] = value.coerceIn(0f, 1f).toString() }
 
     suspend fun saveRecentCustomColors(colors: List<Long>) = context.dataStore.edit {
         it[RECENT_CUSTOM_COLORS] = colors.take(20).joinToString(",")

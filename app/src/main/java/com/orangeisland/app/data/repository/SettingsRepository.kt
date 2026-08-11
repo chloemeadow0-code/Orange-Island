@@ -183,6 +183,7 @@ class SettingsRepository(
     val transparencyUserBubbleMask: StateFlow<Float> = hot(settingsManager.transparencyUserBubbleMask, 0.55f)
     val transparencyReasoningPanel: StateFlow<Float> = hot(settingsManager.transparencyReasoningPanel, 1f)
     val transparencyDrawerItem: StateFlow<Float> = hot(settingsManager.transparencyDrawerItem, 1f)
+    val transparencyChatBackground: StateFlow<Float> = hot(settingsManager.transparencyChatBackground, 1f)
     val recentCustomColors: StateFlow<List<Long>> = hot(settingsManager.recentCustomColors, emptyList())
     val hapticsEnabled: StateFlow<Boolean> = hot(settingsManager.hapticsEnabled, true)
     val toolCallDisplayMode: StateFlow<String> = hot(settingsManager.toolCallDisplayMode, ToolCallDisplayModes.DEFAULT)
@@ -321,7 +322,8 @@ class SettingsRepository(
             systemPrompts,
             activeSystemPromptId,
             selectedModel,
-            cameraToolEnabled
+            cameraToolEnabled,
+            transparencyChatBackground
         )
     ) { values: Array<Any?> ->
         ChatSettingsSnapshot(
@@ -369,7 +371,8 @@ class SettingsRepository(
             systemPrompts = values[41] as List<SystemPromptEntry>,
             activeSystemPromptId = values[42] as String?,
             selectedModel = values[43] as String,
-            cameraToolEnabled = values[44] as Boolean
+            cameraToolEnabled = values[44] as Boolean,
+            transparencyChatBackground = values[45] as Float
         )
     }.stateIn(scope, SharingStarted.Eagerly, ChatSettingsSnapshot())
 
@@ -730,6 +733,7 @@ class SettingsRepository(
     fun setTransparencyUserBubbleMask(v: Float) = scope.launch { settingsManager.saveTransparencyUserBubbleMask(v) }
     fun setTransparencyReasoningPanel(v: Float) = scope.launch { settingsManager.saveTransparencyReasoningPanel(v) }
     fun setTransparencyDrawerItem(v: Float) = scope.launch { settingsManager.saveTransparencyDrawerItem(v) }
+    fun setTransparencyChatBackground(v: Float) = scope.launch { settingsManager.saveTransparencyChatBackground(v) }
     fun addRecentCustomColor(argb: Long) = scope.launch {
         val updated = (listOf(argb) + recentCustomColors.value.filter { it != argb }).take(20)
         settingsManager.saveRecentCustomColors(updated)

@@ -101,6 +101,7 @@ data class ChatUiState(
     val messageBubbleAlpha: Float = 1f,
     val userBubbleMaskAlpha: Float = 0.55f,
     val reasoningPanelAlpha: Float = 1f,
+    val chatBackgroundAlpha: Float = 1f,
 
     // ── Project-dialog settings (also from SettingsRepository) ─────────
     val systemPrompts: List<SystemPromptEntry> = emptyList(),

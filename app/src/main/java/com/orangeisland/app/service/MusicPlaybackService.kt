@@ -10,7 +10,9 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import androidx.core.app.NotificationCompat
 import com.orangeisland.app.MainActivity
+import com.orangeisland.app.R
 import com.orangeisland.app.data.music.LocalMusicRepository
 import com.orangeisland.app.data.music.MusicStudioRepository
 import com.orangeisland.app.data.music.MusicStudioTrack
@@ -47,6 +49,7 @@ class MusicPlaybackService : MediaSessionService() {
      *  正常情况（tracks 已就绪）不走此缓存，直接查到即播。 */
     private var pendingTrackId: String? = null
     private var pendingIndex: Int? = null
+    private var currentPlayMode: Int = 0
 
     /** 统一运行时播放条目（内部私有，不改动外部数据类） */
     private data class PlaybackTrack(
@@ -59,6 +62,7 @@ class MusicPlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+        ensureForeground()
         loadTracks()
 
         val exo = ExoPlayer.Builder(this).build().apply {
@@ -73,8 +77,10 @@ class MusicPlaybackService : MediaSessionService() {
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     if (playbackState == Player.STATE_ENDED) {
-                        if (player?.hasNextMediaItem() == true) player?.seekToNext()
-                        else player?.seekTo(0, 0)
+                        // REPEAT_MODE_ALL 时 ExoPlayer 自动循环，不会触发 STATE_ENDED
+                        // 顺序模式下播完最后一首才到这里：停在第一首头部
+                        player?.seekTo(0, 0)
+                        broadcastState()
                     }
                     broadcastState()
                 }
@@ -153,6 +159,18 @@ class MusicPlaybackService : MediaSessionService() {
                 playSinglePath(path, title)
             }
             ACTION_RELOAD_LIBRARY -> reloadLibrary()
+            ACTION_SET_PLAY_MODE -> {
+                val mode = intent.getIntExtra(EXTRA_PLAY_MODE, 0)
+                applyPlayMode(mode)
+            }
+            ACTION_REMOVE_TRACK -> {
+                val trackId = intent.getStringExtra(EXTRA_TRACK_ID) ?: return START_NOT_STICKY
+                removeTrackFromQueue(trackId)
+            }
+            ACTION_ADD_TRACKS -> {
+                val ids = intent.getStringArrayExtra(EXTRA_TRACK_IDS) ?: return START_NOT_STICKY
+                addTracksToQueue(ids.toList())
+            }
         }
         return START_NOT_STICKY
     }
@@ -333,6 +351,35 @@ class MusicPlaybackService : MediaSessionService() {
         }
     }
 
+    private fun removeTrackFromQueue(trackId: String) {
+        val idx = tracks.indexOfFirst { it.id == trackId }
+        if (idx < 0) return  // 不在队列里，无需处理
+
+        val p = player ?: return
+        val currentIdx = p.currentMediaItemIndex
+        val isRemovingCurrent = idx == currentIdx
+
+        if (isRemovingCurrent) {
+            // 删的是当前正在播的曲目：先跳到下一首（或停止），再移除
+            if (p.hasNextMediaItem()) {
+                p.seekToNext()
+            } else if (p.hasPreviousMediaItem()) {
+                p.seekToPrevious()
+            } else {
+                // 队列里只有这一首
+                p.stop()
+            }
+        }
+
+        // 不调 prepare()，直接移除 MediaItem，不打断当前播放
+        p.removeMediaItem(idx)
+
+        // 同步内存中的 tracks 列表
+        tracks = tracks.toMutableList().also { it.removeAt(idx) }
+
+        broadcastState()
+    }
+
     private fun playCurrent() {
         if (player?.playbackState == Player.STATE_IDLE) {
             player?.prepare()
@@ -347,16 +394,35 @@ class MusicPlaybackService : MediaSessionService() {
 
     private fun next() {
         if (tracks.isEmpty()) return
-        val cur = player?.currentMediaItemIndex ?: 0
-        val nextIdx = (cur + 1) % tracks.size
-        playAt(nextIdx)
+        if (player?.hasNextMediaItem() == true) {
+            player?.seekToNext()
+        } else {
+            // 顺序模式到最后一首：回到第一首但不自动播
+            player?.seekTo(0, 0)
+        }
+        player?.play()
     }
 
     private fun prev() {
         if (tracks.isEmpty()) return
-        val cur = player?.currentMediaItemIndex ?: 0
-        val prevIdx = (cur - 1 + tracks.size) % tracks.size
-        playAt(prevIdx)
+        if (player?.hasPreviousMediaItem() == true) {
+            player?.seekToPrevious()
+        } else {
+            player?.seekTo(0, 0)
+        }
+        player?.play()
+    }
+
+    private fun applyPlayMode(mode: Int) {
+        val p = player ?: return
+        currentPlayMode = mode
+        when (mode) {
+            0 -> { p.repeatMode = Player.REPEAT_MODE_OFF; p.shuffleModeEnabled = false }
+            1 -> { p.repeatMode = Player.REPEAT_MODE_ALL; p.shuffleModeEnabled = false }
+            2 -> { p.repeatMode = Player.REPEAT_MODE_ONE; p.shuffleModeEnabled = false }
+            3 -> { p.repeatMode = Player.REPEAT_MODE_ALL; p.shuffleModeEnabled = true }
+        }
+        broadcastState()
     }
 
     /** 在 tracks 加载/刷新完成后，检查是否有缓存的待播放意图需要兑现。
@@ -380,6 +446,82 @@ class MusicPlaybackService : MediaSessionService() {
         }
     }
 
+    private fun addTracksToQueue(trackIds: List<String>) {
+        serviceScope.launch(Dispatchers.IO) {
+            try {
+                val localRepo = LocalMusicRepository(this@MusicPlaybackService)
+                val allLocal = localRepo.loadTracks()
+                val toAdd = allLocal.filter { it.id in trackIds }
+
+                val newPlaybackTracks = toAdd.map { t ->
+                    PlaybackTrack(
+                        id = t.id,
+                        title = t.title.ifBlank { "未命名" },
+                        artist = t.artist.ifBlank { "未知歌手" },
+                        localPath = t.localPath,
+                        source = "uploaded"
+                    )
+                }
+                val items = newPlaybackTracks.mapNotNull { t ->
+                    val path = t.localPath.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                    MediaItem.Builder()
+                        .setUri(path)
+                        .setMediaId(t.id)
+                        .setMediaMetadata(
+                            MediaMetadata.Builder()
+                                .setTitle(t.title)
+                                .setArtist(t.artist)
+                                .setExtras(Bundle().apply { putString(EXTRA_SOURCE, t.source) })
+                                .build()
+                        )
+                        .build()
+                }
+
+                serviceScope.launch(Dispatchers.Main) {
+                    // addMediaItem 不打断当前播放，不需要 prepare()
+                    items.forEach { player?.addMediaItem(it) }
+                    tracks = tracks + newPlaybackTracks
+                    broadcastState()
+                }
+            } catch (e: Exception) {
+                DebugLog.e(TAG, "addTracksToQueue failed", e)
+            }
+        }
+    }
+
+    private fun ensureForeground() {
+        val channelId = NOTIFICATION_CHANNEL_ID
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = android.app.NotificationChannel(
+                channelId,
+                "音乐播放",
+                android.app.NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "橘子岛后台音乐播放"
+                setShowBadge(false)
+            }
+            val nm = getSystemService(android.app.NotificationManager::class.java)
+            nm.createNotificationChannel(channel)
+        }
+
+        val notification = androidx.core.app.NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("橘子岛音乐")
+            .setContentText("正在播放")
+            .setSilent(true)
+            .setOngoing(true)
+            .build()
+
+        androidx.core.app.ServiceCompat.startForeground(
+            this,
+            NOTIFICATION_ID,
+            notification,
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q)
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            else 0
+        )
+    }
+
     // ── 状态广播 → 小组件刷新 + 进程内 StateFlow ───────────────────────────────
 
     private fun broadcastState() {
@@ -401,7 +543,9 @@ class MusicPlaybackService : MediaSessionService() {
             positionMs = positionMs,
             durationMs = durationMs,
             queueIndex = idx,
-            queueTotal = total
+            queueTotal = total,
+            repeatMode = currentPlayMode,
+            shuffleEnabled = p.shuffleModeEnabled
         )
         _snapshot.value = snapshot
 
@@ -415,6 +559,7 @@ class MusicPlaybackService : MediaSessionService() {
             putExtra(EXTRA_TOTAL, total)
             putExtra(EXTRA_SOURCE, source)
             putExtra(EXTRA_NOW_PLAYING_ID, track?.id ?: "")
+            putExtra(EXTRA_PLAY_MODE, currentPlayMode)
         }
         sendBroadcast(state)
     }
@@ -429,7 +574,9 @@ class MusicPlaybackService : MediaSessionService() {
         val positionMs: Long = 0,
         val durationMs: Long = 0,
         val queueIndex: Int = -1,
-        val queueTotal: Int = 0
+        val queueTotal: Int = 0,
+        val repeatMode: Int = Player.REPEAT_MODE_OFF,
+        val shuffleEnabled: Boolean = false
     )
 
     companion object {
@@ -443,11 +590,16 @@ class MusicPlaybackService : MediaSessionService() {
         const val ACTION_PLAY_TRACK = "com.orangeisland.app.music.PLAY_TRACK"
         const val ACTION_PLAY_PATH = "com.orangeisland.app.music.PLAY_PATH"
         const val ACTION_QUERY_STATE = "com.orangeisland.app.music.QUERY_STATE"
-        const val ACTION_RELOAD_LIBRARY = "com.orangeisland.app.music.RELOAD_LIBRARY"
-        const val EXTRA_INDEX = "index"
-        const val EXTRA_TRACK_ID = "track_id"
-        const val EXTRA_PATH = "path"
-        const val EXTRA_SOURCE = "source"
+            const val ACTION_RELOAD_LIBRARY = "com.orangeisland.app.music.RELOAD_LIBRARY"
+            const val ACTION_SET_PLAY_MODE = "com.orangeisland.app.music.SET_PLAY_MODE"
+            const val ACTION_REMOVE_TRACK = "com.orangeisland.app.music.REMOVE_TRACK"
+            const val ACTION_ADD_TRACKS = "com.orangeisland.app.music.ADD_TRACKS"
+            const val EXTRA_TRACK_IDS = "track_ids"
+            const val EXTRA_INDEX = "index"
+            const val EXTRA_TRACK_ID = "track_id"
+            const val EXTRA_PATH = "path"
+            const val EXTRA_SOURCE = "source"
+            const val EXTRA_PLAY_MODE = "play_mode"
 
         // 状态广播 action（小组件接收）
         const val ACTION_STATE = "com.orangeisland.app.music.STATE"
@@ -480,10 +632,19 @@ class MusicPlaybackService : MediaSessionService() {
                     positionMs = p.currentPosition,
                     durationMs = p.duration.coerceAtLeast(0),
                     queueIndex = idx,
-                    queueTotal = instance.tracks.size
+                    queueTotal = instance.tracks.size,
+                    repeatMode = instance.currentPlayMode,
+                    shuffleEnabled = p.shuffleModeEnabled
                 )
             }
         }
+
+        fun seekTo(positionMs: Long) {
+            runningInstance?.player?.seekTo(positionMs)
+        }
+
+        const val NOTIFICATION_CHANNEL_ID = "music_playback"
+        const val NOTIFICATION_ID = 1001
 
         private const val TAG = "MusicPlaybackService"
     }

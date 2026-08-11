@@ -52,6 +52,7 @@ data class ChatSettingsSnapshot(
     val transparencyMessageBubble: Float = 1f,
     val transparencyUserBubbleMask: Float = 0.55f,
     val transparencyReasoningPanel: Float = 1f,
+    val transparencyChatBackground: Float = 1f,
     val systemPrompts: List<SystemPromptEntry> = emptyList(),
     val activeSystemPromptId: String? = null,
     val selectedModel: String = "",

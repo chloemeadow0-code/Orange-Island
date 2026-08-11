@@ -89,12 +89,38 @@ class LocalMusicToolProvider(
                     ),
                     required = emptyList()
                 )
+            )),
+            ToolDefinition(function = ToolFunction(
+                name = "set_play_mode",
+                description = "Set the playback repeat/shuffle mode. " +
+                    "Modes: 'sequential' = play through and stop, " +
+                    "'loop' = repeat all tracks, " +
+                    "'single' = repeat current track only, " +
+                    "'shuffle' = random order with repeat.",
+                parameters = ToolParameters(
+                    properties = mapOf(
+                        "mode" to ToolProperty(
+                            "string",
+                            "One of: 'sequential', 'loop', 'single', 'shuffle'. Required."
+                        )
+                    ),
+                    required = listOf("mode")
+                )
+            )),
+            ToolDefinition(function = ToolFunction(
+                name = "get_play_mode",
+                description = "Get the current playback mode and whether shuffle is enabled.",
+                parameters = ToolParameters(properties = emptyMap(), required = emptyList())
             ))
         )
     }
 
     override fun handles(name: String): Boolean =
-        name in setOf("play_music", "pause_music", "next_music", "previous_music", "get_now_playing_music", "search_music", "list_music_library")
+        name in setOf(
+            "play_music", "pause_music", "next_music", "previous_music",
+            "get_now_playing_music", "search_music", "list_music_library",
+            "set_play_mode", "get_play_mode"
+        )
 
     override suspend fun execute(name: String, arguments: String, ctx: GenerationContext): String {
         if (!ctx.localMusicEnabled) return err("disabled", "Local music control is not enabled.")
@@ -110,6 +136,8 @@ class LocalMusicToolProvider(
                 "get_now_playing_music" -> getNowPlaying()
                 "search_music" -> searchMusic(args)
                 "list_music_library" -> listMusicLibrary(args)
+                "set_play_mode" -> setPlayMode(args)
+                "get_play_mode" -> getPlayMode()
                 else -> err("unknown_tool", "Unknown local music tool: $name")
             }
         } catch (e: Exception) {
@@ -284,6 +312,45 @@ class LocalMusicToolProvider(
         uploaded.forEach { all.add(UnifiedTrack(it.id, it.title, it.artist.ifBlank { "未知歌手" }, it.addedAt, "uploaded")) }
         all.sortByDescending { it.timestamp }
         return all
+    }
+
+    private fun setPlayMode(args: Map<String, JsonPrimitive>): String {
+        val modeStr = args["mode"]?.content?.trim()?.lowercase()
+            ?: return err("missing_param", "Missing required parameter 'mode'.")
+
+        val modeInt = when (modeStr) {
+            "sequential" -> 0
+            "loop"       -> 1
+            "single"     -> 2
+            "shuffle"    -> 3
+            else -> return err("invalid_mode",
+                "Invalid mode '$modeStr'. Valid values: sequential, loop, single, shuffle.")
+        }
+
+        app.startService(android.content.Intent(app, MusicPlaybackService::class.java).apply {
+            action = MusicPlaybackService.ACTION_SET_PLAY_MODE
+            putExtra(MusicPlaybackService.EXTRA_PLAY_MODE, modeInt)
+        })
+
+        return buildJsonObject {
+            put("status", "ok")
+            put("mode", modeStr)
+        }.toString()
+    }
+
+    private fun getPlayMode(): String {
+        val snap = MusicPlaybackService.snapshotFlow.value
+        val modeStr = when (snap.repeatMode) {
+            0    -> "sequential"
+            1    -> "loop"
+            2    -> "single"
+            3    -> "shuffle"
+            else -> "sequential"
+        }
+        return buildJsonObject {
+            put("mode", modeStr)
+            put("shuffle_enabled", snap.shuffleEnabled)
+        }.toString()
     }
 
     private data class UnifiedTrack(val id: String, val title: String, val artist: String, val timestamp: Long, val source: String)
