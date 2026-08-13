@@ -232,7 +232,7 @@ class OrangeIslandForegroundService : Service() {
 
     private fun foregroundServiceType(): Int {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
         } else {
             0
         }

@@ -152,8 +152,12 @@
 
         <service
             android:name=".service.OrangeIslandForegroundService"
-            android:foregroundServiceType="dataSync"
-            android:exported="false" />
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="ai_response_generation" />
+        </service>
 
         <service
             android:name=".service.WorkflowKeepAliveService"
@@ -187,14 +191,6 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
-
-        <!-- Override WorkManager's SystemForegroundService so workers that call
-             setForeground() use the dataSync type. WorkManager 2.10.0 does not
-             declare a foregroundServiceType on this service, so we add it here.
-             The manifest merger combines attributes for duplicate service names. -->
-        <service
-            android:name="androidx.work.impl.foreground.SystemForegroundService"
-            android:foregroundServiceType="dataSync" />
 
         <!-- Notification-listener: captures other apps' notifications into a ring buffer the
              NotificationToolProvider reads. Bound by the system only after the user enables it
