@@ -23,7 +23,7 @@ fun buildWorkerForegroundInfo(context: Context, tag: String): ForegroundInfo {
     OrangeIslandForegroundService.createChannel(context)
     val notification = buildWorkerNotification(context, tag)
     val foregroundType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
     } else {
         0
     }

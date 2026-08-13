@@ -237,6 +237,31 @@ internal fun rememberChatMarkdownAssets(textColor: Color, codeBlockWrapEnabled: 
                         )
                     }
                 }
+            },
+            paragraph = { model ->
+                // 检测段落是否只包含单张非 LaTeX 图片
+                // 若是，以块级方式渲染，文字在图片上下正常排列；
+                // 否则走默认段落渲染（defaultComponents.paragraph）
+                val start = model.node.startOffset.coerceIn(0, model.content.length)
+                val end = model.node.endOffset.coerceIn(start, model.content.length)
+                val rawText = model.content.substring(start, end).trim()
+                val imageRegex = Regex("""^\s*!\[([^\]]*)\]\(([^)\s]+)\)\s*$""")
+                val imageUrl = imageRegex.find(rawText)?.groupValues?.get(2)?.trim()
+
+                if (imageUrl != null && !imageUrl.startsWith("latex://")) {
+                    // 块级图片：保持原始比例，宽度填满气泡，文字在上下正常排列
+                    coil.compose.AsyncImage(
+                        model = imageUrl,
+                        contentDescription = null,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                            .padding(vertical = 4.dp)
+                    )
+                } else {
+                    defaultComponents.paragraph(model)
+                }
             }
         )
     }
