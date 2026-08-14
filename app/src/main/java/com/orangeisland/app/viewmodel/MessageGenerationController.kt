@@ -1157,7 +1157,24 @@ class MessageGenerationController(
                     }
                     return@launch
                 }
-                val retainBoundaryMsg = visibleMsgs[retainBoundaryIndex]
+                // Ensure the retain boundary always lands on a USER message.
+                // If the raw boundary index falls on a MODEL message, slide it forward
+                // to the next USER message so the MODEL's own parent USER is included
+                // in the retained window and is never orphaned when the parent pool is trimmed.
+                var adjustedRetainBoundaryIndex = retainBoundaryIndex
+                while (adjustedRetainBoundaryIndex < visibleMsgs.size &&
+                       visibleMsgs[adjustedRetainBoundaryIndex].participant != Participant.USER) {
+                    adjustedRetainBoundaryIndex++
+                }
+                if (adjustedRetainBoundaryIndex >= visibleMsgs.size) {
+                    // No USER message available to retain — nothing safe to compress to.
+                    DebugLog.d("CompressHistory", "no USER boundary available after slide conv=$conversationId")
+                    if (isManual) {
+                        onSnackbarSuspend(appContext.getString(R.string.snackbar_compress_nothing_to_compress))
+                    }
+                    return@launch
+                }
+                val retainBoundaryMsg = visibleMsgs[adjustedRetainBoundaryIndex]
                 val retainFromIndex = path.indexOfFirst { it.id == retainBoundaryMsg.id }
                     .takeIf { it >= 0 } ?: 0
                 DebugLog.d("CompressHistory", "retainBoundaryMsg=${retainBoundaryMsg.id} retainFromIndex=$retainFromIndex")
@@ -1356,17 +1373,19 @@ class MessageGenerationController(
                         // it; otherwise resolvePath()/sendMessage() cannot walk to the
                         // continuation and the chat appears empty after re-entering.
                         //
-                        // INVARIANT: a conversation root must always be a USER message. If the
-                        // boundary is a MODEL message (common — visibleMsgs is USER+MODEL mixed
-                        // and the boundary index can land on either), reparenting it straight to
-                        // null would make that MODEL the new root and render it at the TOP of the
-                        // chat (the "message jumped to first" bug). So:
-                        //  - USER boundary  -> reparent to null (legitimate root), OR to its
+                        // Reparent target:
+                        //  - USER boundary  -> reparent to null (legitimate root), or to its
                         //    nearest surviving USER ancestor if one exists.
-                        //  - MODEL boundary -> NEVER null. Walk up the parentId chain (over
-                        //    surviving rows) to the nearest living USER ancestor and reparent
-                        //    the boundary onto THAT user. If no USER ancestor survives, leave
-                        //    the boundary's parentId untouched rather than create a MODEL root.
+                        //  - MODEL boundary -> reparent onto the nearest surviving USER ancestor
+                        //    found by walking the parentId chain over surviving rows. If no USER
+                        //    ancestor survives, allow parentId = null so the MODEL temporarily
+                        //    becomes the root instead of reusing a (now-deleted) parentId that
+                        //    would create a broken chain and make the whole conversation
+                        //    disappear. A transient MODEL root is preferable to an orphaned link.
+                        //
+                        // In practice the slide-to-USER step above (adjustedRetainBoundaryIndex)
+                        // already guarantees retainBoundaryMsg is a USER message, so the MODEL
+                        // branch here is defensive.
                         val liveById = liveEntities.associateBy { it.id }
                         val retainBoundaryEntity = liveEntities.find { it.id == retainBoundaryMsg.id }
                         val shouldReparentBoundary = retainBoundaryEntity != null &&
@@ -1382,15 +1401,28 @@ class MessageGenerationController(
                                 pid = anc.parentId
                             }
                             val newParentId = when {
-                                // MODEL boundary: must not become a root.
-                                retainBoundaryEntity.participant == Participant.MODEL -> ancestorUser ?: retainBoundaryEntity.parentId
+                                // MODEL boundary: if no USER ancestor survives, allow null (makes MODEL a
+                                // temporary root) rather than reusing a deleted parentId which would create
+                                // a broken chain and make the entire conversation disappear.
+                                retainBoundaryEntity.participant == Participant.MODEL -> ancestorUser
                                 // USER boundary: prefer a surviving USER ancestor, else null (legitimate root).
                                 else -> ancestorUser
                             }
+
+                            // Guard: if reparenting would still produce a non-null parentId that no longer
+                            // exists in the DB (can happen in edge cases with multi-batch compression), fall
+                            // back to null to avoid an orphan link.
+                            val safeNewParentId = if (newParentId != null && newParentId !in liveIds) {
+                                DebugLog.w("CompressHistory", "newParentId $newParentId not in liveIds, fallback to null for ${retainBoundaryMsg.id}")
+                                null
+                            } else {
+                                newParentId
+                            }
+
                             DebugLog.d("CompressHistory", "reparenting retainBoundary ${retainBoundaryMsg.id} " +
                                 "(role=${retainBoundaryEntity.participant}) oldParent=${retainBoundaryEntity.parentId} " +
-                                "newParent=${newParentId ?: "null"} ancestorUser=${ancestorUser ?: "none"}")
-                            convRepo.upsertMessage(retainBoundaryEntity.copy(parentId = newParentId))
+                                "newParent=${safeNewParentId ?: "null"} ancestorUser=${ancestorUser ?: "none"}")
+                            convRepo.upsertMessage(retainBoundaryEntity.copy(parentId = safeNewParentId))
                         }
                         DebugLog.d("CompressHistory", "batch deleted=${idsToDelete.size} orphaned=${orphaned.size} reparentBoundary=$shouldReparentBoundary")
                         totalDeletedCount += idsToDelete.size
