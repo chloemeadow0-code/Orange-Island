@@ -79,12 +79,26 @@ class ConversationRepository(
     suspend fun upsertConversation(entity: ChatEntity) = chatDao.upsertConversation(entity)
 
     suspend fun deleteConversation(id: String) {
+        // 此处读取的是 DB 中的 encoded 指针，Migration 22 保证所有行已 offload，CursorWindow 不会溢出。
         val messages = chatDao.getMessagesForConversation(id).first()
         deleteAttachmentFilesFromEntities(messages)
         deleteOverflowFilesFromEntities(messages)
         chatDao.deleteEmbeddingsByConversation(id)
         chatDao.deleteMessagesByConversation(id)
         chatDao.deleteConversation(id)
+    }
+
+    /**
+     * Atomically replaces the entire conversation/message/project dataset.
+     * Encodes large text fields before writing so the DB never stores oversized rows.
+     */
+    suspend fun replaceAllData(
+        conversations: List<ChatEntity>,
+        messages: List<MessageEntity>,
+        projects: List<ProjectEntity>
+    ) {
+        val encodedMessages = messages.map { it.encodeLargeText(appContext) }
+        chatDao.replaceAllConversationsAndMessages(conversations, encodedMessages, projects)
     }
 
     // ── Projects ─────────────────────────────────────────────

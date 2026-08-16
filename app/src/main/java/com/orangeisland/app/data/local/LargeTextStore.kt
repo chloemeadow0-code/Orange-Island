@@ -15,7 +15,7 @@ import java.util.UUID
 object LargeTextStore {
 
     /** Single-field threshold: anything larger than this gets offloaded to a file. */
-    const val THRESHOLD_CHARS = 200 * 1024 // 200 KB (character count)
+    const val THRESHOLD_CHARS = 50 * 1024 // 50 KB (character count)
 
     private const val POINTER_SCHEME = "oi-overflow://v1/"
     private const val DIR_NAME = "text_overflow"

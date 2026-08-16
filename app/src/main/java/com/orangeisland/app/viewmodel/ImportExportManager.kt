@@ -105,7 +105,7 @@ class ImportExportManager(
     fun previewImport(uri: Uri) {
         scope.launch(Dispatchers.IO) {
             try {
-                val importer = DataImporter(app, chatDao, settingsManager, memoryManager, workflowRepository)
+                val importer = DataImporter(app, chatDao, conversations, settingsManager, memoryManager, workflowRepository)
                 val manifest = importer.readManifest(uri)
                 if (manifest == null) {
                     emitSnackbar(SnackbarEvent(app.getString(R.string.import_invalid_file)))
@@ -375,7 +375,7 @@ class ImportExportManager(
     fun importData(uri: Uri, decisions: Map<DataExporter.ExportCategory, DataImporter.ImportStrategy>) {
         scope.launch(Dispatchers.IO) {
             try {
-                val importer = DataImporter(app, chatDao, settingsManager, memoryManager)
+                val importer = DataImporter(app, chatDao, conversations, settingsManager, memoryManager)
                 val result = importer.import(uri, decisions) { progress ->
                     _importProgress.value = progress
                 }

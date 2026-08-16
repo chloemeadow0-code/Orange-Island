@@ -31,6 +31,7 @@ import java.util.zip.ZipFile
 class DataImporter(
     private val context: Context,
     private val chatDao: ChatDao,
+    private val conversationRepository: com.orangeisland.app.data.repository.ConversationRepository,
     private val settingsManager: SettingsManager,
     private val memoryManager: MemoryManager,
     private val workflowRepository: com.orangeisland.app.data.repository.WorkflowRepository? = null
@@ -312,7 +313,7 @@ class DataImporter(
                             }?.projects?.map { p ->
                                 ProjectEntity(p.id, p.name, p.sortOrder, p.systemPromptId, p.modelId, p.createdAt)
                             } ?: emptyList()
-                            chatDao.replaceAllConversationsAndMessages(
+                            conversationRepository.replaceAllData(
                                 convEntities,
                                 finalMsgEntities,
                                 projectEntities

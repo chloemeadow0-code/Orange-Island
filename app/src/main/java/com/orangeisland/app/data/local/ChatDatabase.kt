@@ -407,7 +407,7 @@ abstract class ChatDatabase : RoomDatabase() {
     abstract fun workflowDao(): WorkflowDao
 
     companion object {
-        const val CURRENT_VERSION = 21
+        const val CURRENT_VERSION = 22
         const val DB_NAME = "orangeisland_db"
 
         private fun buildMigrations(context: Context): List<Migration> {
@@ -698,6 +698,113 @@ abstract class ChatDatabase : RoomDatabase() {
                         // If the whole migration query fails, log it but do NOT throw —
                         // otherwise the user can never open the app again.
                         android.util.Log.e("ChatDatabase", "Migration(20,21) top-level failure", e)
+                    }
+                }
+            },
+            object : Migration(21, 22) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // CursorWindow crash fix v2: re-offload text/thoughts that are still above the lowered 50KB threshold.
+                    // This catches anything between 50KB and 200KB that Migration(20,21) missed because the old threshold was 200KB.
+                    val threshold = LargeTextStore.THRESHOLD_CHARS
+                    val chunkSize = 500 * 1024 // 500KB chars per substr read
+                    val overflowDir = java.io.File(appContext.filesDir, "text_overflow")
+                    overflowDir.mkdirs()
+
+                    try {
+                        // Step 1: find all message ids whose text or thoughts exceed the threshold.
+                        val cursor = db.query(
+                            "SELECT id, length(text) AS tlen, length(thoughts) AS thlen FROM messages WHERE length(text) > $threshold OR length(thoughts) > $threshold",
+                            arrayOf<Any>()
+                        )
+                        val offenders = mutableListOf<Triple<String, Int, Int>>()
+                        while (cursor.moveToNext()) {
+                            val id = cursor.getString(0)
+                            val tlen = cursor.getInt(1)
+                            val thlen = cursor.getInt(2)
+                            offenders.add(Triple(id, tlen, thlen))
+                        }
+                        cursor.close()
+
+                        for ((id, tlen, thlen) in offenders) {
+                            try {
+                                // --- text ---
+                                var textPointer: String? = null
+                                if (tlen > threshold) {
+                                    val sb = StringBuilder(tlen)
+                                    var offset = 1
+                                    while (offset <= tlen) {
+                                        val c = db.query(
+                                            "SELECT substr(text, ?, ?) FROM messages WHERE id = ?",
+                                            arrayOf(offset.toString(), chunkSize.toString(), id)
+                                        )
+                                        if (c.moveToFirst()) {
+                                            val piece = c.getString(0)
+                                            if (piece != null) sb.append(piece)
+                                        }
+                                        c.close()
+                                        offset += chunkSize
+                                    }
+                                    val fullText = sb.toString()
+                                    val textFileName = "${id}_text_${java.util.UUID.randomUUID()}.txt"
+                                    val outFile = java.io.File(overflowDir, textFileName)
+                                    outFile.writeText(fullText, Charsets.UTF_8)
+                                    textPointer = "oi-overflow://v1/$textFileName"
+                                }
+
+                                // --- thoughts ---
+                                var thoughtsPointer: String? = null
+                                if (thlen > threshold) {
+                                    val sb = StringBuilder(thlen)
+                                    var offset = 1
+                                    while (offset <= thlen) {
+                                        val c = db.query(
+                                            "SELECT substr(thoughts, ?, ?) FROM messages WHERE id = ?",
+                                            arrayOf(offset.toString(), chunkSize.toString(), id)
+                                        )
+                                        if (c.moveToFirst()) {
+                                            val piece = c.getString(0)
+                                            if (piece != null) sb.append(piece)
+                                        }
+                                        c.close()
+                                        offset += chunkSize
+                                    }
+                                    val fullThoughts = sb.toString()
+                                    val thFileName = "${id}_thoughts_${java.util.UUID.randomUUID()}.txt"
+                                    val outFile = java.io.File(overflowDir, thFileName)
+                                    outFile.writeText(fullThoughts, Charsets.UTF_8)
+                                    thoughtsPointer = "oi-overflow://v1/$thFileName"
+                                }
+
+                                // Update the row with pointer(s). Only update the columns that actually changed.
+                                if (textPointer != null && thoughtsPointer != null) {
+                                    db.execSQL(
+                                        "UPDATE messages SET text = ?, thoughts = ? WHERE id = ?",
+                                        arrayOf(textPointer, thoughtsPointer, id)
+                                    )
+                                } else if (textPointer != null) {
+                                    db.execSQL(
+                                        "UPDATE messages SET text = ? WHERE id = ?",
+                                        arrayOf(textPointer, id)
+                                    )
+                                } else if (thoughtsPointer != null) {
+                                    db.execSQL(
+                                        "UPDATE messages SET thoughts = ? WHERE id = ?",
+                                        arrayOf(thoughtsPointer, id)
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                // Log and continue — one bad message must not abort the whole migration.
+                                android.util.Log.e(
+                                    "ChatDatabase",
+                                    "Migration(21,22) failed for message id=$id tlen=$tlen thlen=$thlen",
+                                    e
+                                )
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // If the whole migration query fails, log it but do NOT throw —
+                        // otherwise the user can never open the app again.
+                        android.util.Log.e("ChatDatabase", "Migration(21,22) top-level failure", e)
                     }
                 }
             }
