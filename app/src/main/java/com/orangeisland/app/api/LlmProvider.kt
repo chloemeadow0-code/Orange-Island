@@ -179,7 +179,9 @@ data class OpenAiStreamResponse(
 
 @Serializable
 data class OpenAiChoice(
-    val index: Int,
+    // Some minimal OpenAI-compatible proxies omit "index" in SSE chunks; default to 0
+    // so those chunks still parse instead of being dropped with MissingFieldException.
+    val index: Int = 0,
     val delta: OpenAiDelta? = null,
     @SerialName("finish_reason") val finishReason: String? = null
 )
@@ -215,9 +217,10 @@ data class OpenAiFunctionCall(
 
 @Serializable
 data class OpenAiUsage(
-    @SerialName("prompt_tokens") val promptTokens: Int,
-    @SerialName("completion_tokens") val completionTokens: Int,
-    @SerialName("total_tokens") val totalTokens: Int,
+    // Defaults tolerate proxies that return a partial usage object in the final SSE chunk.
+    @SerialName("prompt_tokens") val promptTokens: Int = 0,
+    @SerialName("completion_tokens") val completionTokens: Int = 0,
+    @SerialName("total_tokens") val totalTokens: Int = 0,
     @SerialName("completion_tokens_details") val completionTokensDetails: OpenAiCompletionTokensDetails? = null,
     @SerialName("prompt_tokens_details") val promptTokensDetails: OpenAiPromptTokensDetails? = null
 )

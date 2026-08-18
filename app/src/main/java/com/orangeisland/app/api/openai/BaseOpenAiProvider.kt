@@ -341,6 +341,18 @@ abstract class BaseOpenAiProvider : LlmProvider {
         emit: suspend (StreamEvent) -> Unit
     ) {
         val pendingToolCalls = mutableMapOf<Int, PendingToolCall>()
+        var parseErrorCount = 0
+        var lastParseErrorLine: String? = null
+        var lastParseErrorMessage: String? = null
+        var producedContent = false
+        val emitTracked: suspend (StreamEvent) -> Unit = { event ->
+            if (event is StreamEvent.TextChunk || event is StreamEvent.ThoughtChunk ||
+                event is StreamEvent.ToolCallRequest || event is StreamEvent.ToolCallsRequest
+            ) {
+                producedContent = true
+            }
+            emit(event)
+        }
 
         while (currentCoroutineContext().isActive) {
             val line = try {
@@ -359,7 +371,7 @@ abstract class BaseOpenAiProvider : LlmProvider {
                 val choice = response.choices?.firstOrNull()
 
                 choice?.delta?.let { delta ->
-                    parseDeltaContent(delta, config, thinkParser) { emit(it) }
+                    parseDeltaContent(delta, config, thinkParser) { emitTracked(it) }
 
                     delta.toolCalls?.forEach { tc ->
                         val existing = if (!tc.id.isNullOrBlank()) pendingToolCalls.values.firstOrNull { it.id == tc.id } else null
@@ -380,8 +392,8 @@ abstract class BaseOpenAiProvider : LlmProvider {
                         StreamEvent.ToolCallRequest(it.id, it.name, it.args.toString())
                     }
                     pendingToolCalls.clear()
-                    if (calls.size == 1) emit(calls.first())
-                    else if (calls.size > 1) emit(StreamEvent.ToolCallsRequest(calls))
+                    if (calls.size == 1) emitTracked(calls.first())
+                    else if (calls.size > 1) emitTracked(StreamEvent.ToolCallsRequest(calls))
                 }
 
                 response.usage?.let { usage ->
@@ -394,17 +406,31 @@ abstract class BaseOpenAiProvider : LlmProvider {
                     )
                 }
             } catch (e: Exception) {
+                parseErrorCount++
+                lastParseErrorLine = jsonStr
+                lastParseErrorMessage = e.message
                 DebugLog.e("OrangeIslandAPI", "Parse error: ${e.message}", e)
             }
         }
 
         thinkParser.flush(
-            onText = { emit(StreamEvent.TextChunk(it)) },
-            onThought = { emit(StreamEvent.ThoughtChunk(it)) }
+            onText = { emitTracked(StreamEvent.TextChunk(it)) },
+            onThought = { emitTracked(StreamEvent.ThoughtChunk(it)) }
         )
 
         if (!currentCoroutineContext().isActive) {
             throw CancellationException("Stream cancelled")
+        }
+
+        // Every chunk failed to parse and nothing usable was emitted: attribute the
+        // failure to SSE response-format incompatibility (e.g. a proxy omitting required
+        // fields) instead of letting the caller misreport it as an empty model response.
+        if (parseErrorCount > 0 && !producedContent) {
+            DebugLog.e("OrangeIslandAPI", "[$name] Stream ended with $parseErrorCount unparsed chunk(s) and no content")
+            emit(StreamEvent.Error(GenerationError.SseParse(
+                rawLine = lastParseErrorLine?.take(2000) ?: "",
+                cause = lastParseErrorMessage ?: "unknown"
+            )))
         }
     }
 
