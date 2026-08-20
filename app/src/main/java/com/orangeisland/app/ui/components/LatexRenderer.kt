@@ -664,9 +664,16 @@ class LatexImageTransformer(
         imageSize: Size,
         imageSizeChanged: ((link: String, Size) -> Unit)?,
     ): PlaceholderConfig {
-        val request = decodeLatexLink(link) ?: return super.placeholderConfig(
-            link, density, containerSize, imageWidth, imageSize, imageSizeChanged
-        )
+        val request = decodeLatexLink(link) ?: run {
+            // Non-latex links (network stickers / emoji images): the library
+            // default can reserve a huge InlineTextContent box and let the
+            // image overflow the surrounding text. Reserve a fixed, predictable
+            // square instead so the inline space is always under control.
+            return PlaceholderConfig(
+                size = Size(80f, 80f),   // 单位 dp，80×80 方形，匹配 networkImageData 的 widthIn(120.dp) + 1:1 默认
+                verticalAlign = PlaceholderVerticalAlign.TextCenter
+            )
+        }
         val key = LatexRenderKey(request.latex, textSize, color)
         val resolvedSize = if (imageSize.isUnspecified) {
             LatexBitmapCache.get(key)?.let { bmp ->
@@ -691,33 +698,30 @@ class LatexImageTransformer(
      * `ContentScale.Fit`, sizing it from `painter.intrinsicSize`. Coil's
      * `rememberAsyncImagePainter` reports `Size.Unspecified` while loading, which
      * would measure 0x0 and collapse the layout. We therefore apply a non-zero
-     * placeholder modifier (max 120.dp, 16:9 fallback) during loading, and switch
-     * to the real aspect ratio from the painter's intrinsicSize once the fetch
-     * succeeds. GIF and animated images are supported natively because we return
-     * the Coil painter directly instead of manually extracting a bitmap.
+     * placeholder modifier (max 120.dp, 1:1 fallback — stickers/emoji are usually
+     * square) during loading, and lock in the real aspect ratio from the painter's
+     * intrinsicSize once the fetch succeeds. The ratio is cached per link and
+     * written exactly once, so the size settles after the first success and never
+     * jumps on later recompositions. GIF and animated images are supported
+     * natively because we return the Coil painter directly instead of manually
+     * extracting a bitmap.
      */
     @Composable
     private fun networkImageData(link: String): ImageData {
         val painter = rememberAsyncImagePainter(model = link)
-        val modifier = when (val state = painter.state) {
-            is AsyncImagePainter.State.Success -> {
-                val intrinsicSize = state.painter.intrinsicSize
-                val ratio = if (intrinsicSize.isUnspecified || intrinsicSize.width <= 0 || intrinsicSize.height <= 0) {
-                    16f / 9f
-                } else {
-                    intrinsicSize.width / intrinsicSize.height
-                }
-                Modifier
-                    .widthIn(max = 120.dp)
-                    .aspectRatio(ratio)
-            }
-            else -> {
-                // Loading / Empty / Error — keep a non-zero placeholder so the layout does not collapse.
-                Modifier
-                    .widthIn(max = 120.dp)
-                    .aspectRatio(16f / 9f)
+        // Cache the resolved aspect ratio; write only while null so repeated
+        // Success state reads don't trigger extra recompositions.
+        val cachedRatio = remember(link) { mutableStateOf<Float?>(null) }
+        val state = painter.state
+        if (state is AsyncImagePainter.State.Success && cachedRatio.value == null) {
+            val intrinsicSize = state.painter.intrinsicSize
+            if (!intrinsicSize.isUnspecified && intrinsicSize.width > 0 && intrinsicSize.height > 0) {
+                cachedRatio.value = intrinsicSize.width / intrinsicSize.height
             }
         }
+        val modifier = Modifier
+            .widthIn(max = 120.dp)
+            .aspectRatio(cachedRatio.value ?: 1f)
         return ImageData(
             painter = painter,
             contentDescription = null,
