@@ -1028,7 +1028,7 @@
     <string name="about_developer_name_line2">二改：小橘、猫猫</string>
     <string name="about_licenses">许可</string>
     <string name="about_oss_notice_title">开源许可声明</string>
-    <string name="about_oss_notice_body">本应用基于开源软件二次修改而成，遵循 MIT 许可协议，原始版权声明与许可全文见下方。本二改版本与原作者及原项目不存在隶属关系，如使用中遇到问题，请通过本应用内的反馈渠道联系我们，不要打扰原作者。</string>
+    <string name="about_oss_notice_body">本应用基于原始项目遵循 MIT 许可协议的开源软件二次修改而成，原始版权声明与许可全文见下方。本二改版本与原作者及原项目不存在隶属关系，如使用中遇到问题，请通过本应用内的反馈渠道联系我们，不要打扰原作者。</string>
     <string name="mit_license_full">MIT License\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</string>
     <string name="about_third_party_licenses">第三方开源许可</string>
     <string name="about_third_party_licenses_desc">查看本应用使用的所有第三方库的开源许可</string>
