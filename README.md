@@ -180,3 +180,12 @@ This project is a modified version of open-source software originally released u
 > **Please do not contact the original author about this app.** The original author is not involved in, responsible for, or affiliated with Orange Island in any way. For issues, questions, or feedback, please use this repository's Issue tracker or the in-app feedback channel.
 
 In addition, the application bundles third-party components under their own licenses: llama.cpp (MIT), PRoot (GPL-2.0), talloc (LGPL-3.0), and JLaTeXMath (GPL-2.0 with Classpath Exception). Their complete source code is included in this repository under [`thirdparty/`](thirdparty/), and their copyright notices and full license texts are reproduced in [NOTICE](NOTICE) and inside the app under Settings → About → Open Source License Notice.
+
+## Disclaimer
+
+1. **No warranty.** This application is provided "as is", without warranty of any kind, express or implied, including but not limited to merchantability, fitness for a particular purpose, and non-infringement. Use of this application is at your sole risk.
+2. **Limitation of liability.** In no event shall the maintainers of Orange Island be liable for any direct, indirect, incidental, special, or consequential damages arising out of or in connection with the use of, or inability to use, this application.
+3. **BYOK — you own your keys.** The application ships without any AI service credentials. Users configure their own API keys and connect directly to the AI providers of their choice. Any fees, account security issues, or data matters arising from third-party AI services are solely the user's responsibility.
+4. **AI-generated content.** Output produced by AI models does not represent the position of the maintainers, who make no guarantee as to its accuracy, legality, or suitability. Users are responsible for evaluating such content and for complying with the laws and regulations of their jurisdiction.
+5. **No affiliation.** Orange Island is an independent community project. It is not affiliated with, endorsed by, or sponsored by any AI provider or any other third-party service referenced in the app or documentation. All third-party trademarks and brand names are the property of their respective owners and are used for identification purposes only.
+6. **Third-party components.** Copyrights and licenses of bundled open-source components belong to their respective authors, as set out in [NOTICE](NOTICE). The complete source code of the copyleft components is provided in this repository under [`thirdparty/`](thirdparty/).
