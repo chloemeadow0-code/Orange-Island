@@ -191,11 +191,17 @@
 
 此外，本应用还打包了若干第三方组件，各自遵循其原始许可证：llama.cpp（MIT）、PRoot（GPL-2.0）、talloc（LGPL-3.0）、JLaTeXMath（GPL-2.0 及 Classpath 例外）。它们的完整源码包含在本仓库的 [`thirdparty/`](thirdparty/) 目录中，版权声明与许可全文见 [NOTICE](NOTICE)，以及在应用内"设置 → 关于 → 开源许可声明"中查看。
 
-## 免责声明
+## 开源协议
 
-1. **不提供担保。** 本应用按"现状"提供，不附带任何明示或默示的担保，包括但不限于对适销性、特定用途适用性和不侵权的保证。使用本应用的风险由用户自行承担。
-2. **责任限制。** 在任何情况下，橘子岛的维护者均不对因使用或无法使用本应用而产生的任何直接、间接、附带、特殊或后果性损失承担责任。
-3. **BYOK——密钥自理。** 本应用不内置任何 AI 服务凭证。用户自行配置 API 密钥并直连自己选择的服务商，由此产生的费用、账号安全与数据问题均由用户自行负责。
-4. **AI 生成内容。** AI 模型的输出不代表维护者立场，维护者不对其准确性、合法性或适用性作任何担保。用户应自行甄别相关内容，并遵守所在地区的法律法规。
-5. **无隶属关系。** 橘子岛是独立的社区项目，与任何 AI 服务商或应用、文档中提及的其他第三方服务不存在隶属、背书或赞助关系。所有第三方商标与品牌名称归其各自权利人所有，此处仅作标识之用。
-6. **第三方组件。** 所打包开源组件的版权与许可归属其各自作者，详见 [NOTICE](NOTICE)；遵循 Copyleft 协议的组件，其完整源码已随本仓库 [`thirdparty/`](thirdparty/) 目录提供。
+| 组件 | 协议 | 版权 | 源码位置 |
+|---|---|---|---|
+| 橘子岛（本 fork 全部一手代码） | MIT | (c) 2026 橘子岛贡献者 | 本仓库 |
+| Agora（本 fork 基于的上游项目） | MIT | (c) 2026 newo-ether | 见 [NOTICE](NOTICE) |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) —— 本地大模型推理引擎 | MIT | (c) 2023-2026 The ggml authors | [`thirdparty/llama.cpp`](thirdparty/llama.cpp) |
+| [PRoot](https://github.com/termux/proot)（Termux 补丁版）—— Linux 环境 | GPL-2.0 | (c) STMicroelectronics；补丁由 Termux 维护 | [`thirdparty/proot`](thirdparty/proot) |
+| [talloc](https://www.samba.org/ftp/talloc/)（Samba）—— 内存分配器 | LGPL-3.0-or-later | (c) Andrew Tridgell、Stefan Metzmacher | [`thirdparty/talloc`](thirdparty/talloc) |
+| [JLaTeXMath](https://github.com/opencollab/jlatexmath) —— LaTeX 公式渲染 | GPL-2.0 + Classpath 例外 | (c) Scilab Enterprises / opencollab；Android 移植版 Dimitry Ivanov | 经 `ru.noties:jlatexmath-android` 打包 |
+| Gradle Wrapper | Apache-2.0 | Gradle 贡献者 | `gradlew` |
+| 其余全部依赖（Kotlin/Compose/OkHttp 等） | Apache-2.0、MIT、BSD、EPL、ISC 等 | 各自作者 | 见应用内"设置 → 关于 → 第三方开源许可" |
+
+GPL-2.0、LGPL-3.0、GPL-3.0 的许可全文已随应用内置（设置 → 关于 → 开源许可声明），也可在 [gnu.org](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html)、[LGPL-3.0](https://www.gnu.org/licenses/lgpl-3.0.html)、[GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html) 查看。

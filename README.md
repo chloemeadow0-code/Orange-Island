@@ -181,11 +181,17 @@ This project is a modified version of open-source software originally released u
 
 In addition, the application bundles third-party components under their own licenses: llama.cpp (MIT), PRoot (GPL-2.0), talloc (LGPL-3.0), and JLaTeXMath (GPL-2.0 with Classpath Exception). Their complete source code is included in this repository under [`thirdparty/`](thirdparty/), and their copyright notices and full license texts are reproduced in [NOTICE](NOTICE) and inside the app under Settings → About → Open Source License Notice.
 
-## Disclaimer
+## Open Source Licenses
 
-1. **No warranty.** This application is provided "as is", without warranty of any kind, express or implied, including but not limited to merchantability, fitness for a particular purpose, and non-infringement. Use of this application is at your sole risk.
-2. **Limitation of liability.** In no event shall the maintainers of Orange Island be liable for any direct, indirect, incidental, special, or consequential damages arising out of or in connection with the use of, or inability to use, this application.
-3. **BYOK — you own your keys.** The application ships without any AI service credentials. Users configure their own API keys and connect directly to the AI providers of their choice. Any fees, account security issues, or data matters arising from third-party AI services are solely the user's responsibility.
-4. **AI-generated content.** Output produced by AI models does not represent the position of the maintainers, who make no guarantee as to its accuracy, legality, or suitability. Users are responsible for evaluating such content and for complying with the laws and regulations of their jurisdiction.
-5. **No affiliation.** Orange Island is an independent community project. It is not affiliated with, endorsed by, or sponsored by any AI provider or any other third-party service referenced in the app or documentation. All third-party trademarks and brand names are the property of their respective owners and are used for identification purposes only.
-6. **Third-party components.** Copyrights and licenses of bundled open-source components belong to their respective authors, as set out in [NOTICE](NOTICE). The complete source code of the copyleft components is provided in this repository under [`thirdparty/`](thirdparty/).
+| Component | License | Copyright | Source |
+|---|---|---|---|
+| Orange Island (this fork, all first-party code) | MIT | (c) 2026 Orange Island contributors | this repository |
+| Agora (upstream project this fork is based on) | MIT | (c) 2026 newo-ether | [NOTICE](NOTICE) |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) — on-device LLM inference | MIT | (c) 2023-2026 The ggml authors | [`thirdparty/llama.cpp`](thirdparty/llama.cpp) |
+| [PRoot](https://github.com/termux/proot) (Termux fork) — Linux environment | GPL-2.0 | (c) STMicroelectronics; patches by Termux | [`thirdparty/proot`](thirdparty/proot) |
+| [talloc](https://www.samba.org/ftp/talloc/) (Samba) — memory allocator | LGPL-3.0-or-later | (c) Andrew Tridgell, Stefan Metzmacher | [`thirdparty/talloc`](thirdparty/talloc) |
+| [JLaTeXMath](https://github.com/opencollab/jlatexmath) — LaTeX rendering | GPL-2.0 with Classpath Exception | (c) Scilab Enterprises / opencollab; Android port by Dimitry Ivanov | bundled via `ru.noties:jlatexmath-android` |
+| Gradle Wrapper | Apache-2.0 | Gradle contributors | `gradlew` |
+| All other dependencies (Kotlin/Compose/OkHttp/etc.) | Apache-2.0, MIT, BSD, EPL, ISC, etc. | their respective authors | listed in-app under Settings → About → Third-Party Open Source Licenses |
+
+The full texts of GPL-2.0, LGPL-3.0, and GPL-3.0 are reproduced in the app under Settings → About → Open Source License Notice, and are available at [gnu.org](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html), [lgpl-3.0](https://www.gnu.org/licenses/lgpl-3.0.html), and [gpl-3.0](https://www.gnu.org/licenses/gpl-3.0.html).
