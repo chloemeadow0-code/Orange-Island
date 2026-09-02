@@ -11,5 +11,5 @@
 5. 审核通过后老师会拉你进正式群并发放安装包。
 6. 请勿在群内泄露安装包、截图、功能细节，违者踢出拉黑。
 
-答题入口：【你的官网链接/quiz.html】
-使用规则：【你的官网链接/rules.html】
+答题入口：https://orangeisland.app/quiz.html
+使用规则：https://orangeisland.app/rules.html
