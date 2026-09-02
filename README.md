@@ -113,8 +113,6 @@
 
 📖 **User Manual** — 24 pages covering installation, providers, tools, search, memory, shell, and more. (Documentation site link to be added.)
 
-🏗️ **[Architecture Guide](ARCHITECTURE.md)** — complete codebase walkthrough: data layer, API providers, JNI, UI, and data flows.
-
 ## Getting Started
 
 ### Prerequisites
