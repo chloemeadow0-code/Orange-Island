@@ -10,7 +10,6 @@
   [![Kotlin](https://img.shields.io/badge/Kotlin-Native-blue.svg)](https://kotlinlang.org/)
   <br/>**English** | [中文](README_CN.md)
 
-  <img src="assets/feature_graphic.png" alt="橘子岛 — A BYOK AI App that takes back your data sovereignty." width="100%" />
 </div>
 
 ## Download
