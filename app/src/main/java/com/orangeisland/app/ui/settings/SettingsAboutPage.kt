@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Balance
@@ -203,7 +205,9 @@ fun SettingsAboutPage(viewModel: ChatViewModel, onBack: () -> Unit) {
             onDismissRequest = { showOssNotice = false },
             title = { Text(stringResource(R.string.about_oss_notice_title)) },
             text = {
-                Column {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
                     Text(stringResource(R.string.about_oss_notice_body))
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
@@ -213,6 +217,37 @@ fun SettingsAboutPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.mit_license_full),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(
+                        text = stringResource(R.string.about_bundled_components_heading),
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(stringResource(R.string.about_bundled_components_intro))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(stringResource(R.string.bundled_component_llama))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(stringResource(R.string.bundled_component_proot))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(stringResource(R.string.bundled_component_talloc))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(stringResource(R.string.bundled_component_jlatexmath))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.gpl_2_0_license_full),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.lgpl_3_0_license_full),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.gpl_3_0_license_full),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }

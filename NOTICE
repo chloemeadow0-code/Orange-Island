@@ -49,3 +49,56 @@ distribution are NOT affiliated with, endorsed by, or derived from the upstream
 "Agora" project or its author. All third-party trademarks, service marks, and
 brand names referenced in the source code or documentation are the property of
 their respective owners and are used here for identification purposes only.
+
+------------------------------------------------------------------------------
+Bundled Third-Party Components
+------------------------------------------------------------------------------
+
+In addition to the MIT-licensed code inherited from Agora, this application
+bundles and distributes the following third-party components. The complete
+source code of each component is included in the public repository of this
+project, satisfying the source-availability requirements of the respective
+licenses.
+
+1. llama.cpp — https://github.com/ggml-org/llama.cpp
+   License: MIT License
+   Copyright (c) 2023-2026 The ggml authors
+   Bundled as the on-device LLM inference engine (liborangeisland_llama.so),
+   built from thirdparty/llama.cpp.
+
+2. PRoot (Termux patch fork) — https://github.com/termux/proot
+   License: GNU General Public License, version 2
+   Copyright (C) 2010-2019 STMicroelectronics (Cédric Vincent and others);
+   patches by the Termux project.
+   Bundled as libproot_exec.so and libproot_loader.so, built from
+   thirdparty/proot. The full GPL-2.0 text is included in
+   thirdparty/proot/COPYING and reproduced in the app under
+   Settings → About → Open Source License Notice.
+
+3. talloc (Samba) — https://www.samba.org/ftp/talloc/
+   License: GNU Lesser General Public License, version 3 or later
+   Copyright (C) Andrew Tridgell 2004, Stefan Metzmacher 2006
+   Bundled as libtalloc.so (linked by the proot loader), built from
+   thirdparty/talloc. The full LGPL-3.0 (and its underlying GPL-3.0) text
+   is reproduced in the app under Settings → About → Open Source License
+   Notice.
+
+4. JLaTeXMath — https://github.com/opencollab/jlatexmath
+   License: GNU General Public License, version 2 with the Classpath
+   Exception
+   Copyright (c) 2004-2018 Scilab Enterprises and opencollab contributors;
+   Android port "jlatexmath-android" (ru.noties) by Dimitry Ivanov.
+   Used for LaTeX formula rendering. The GPL-2.0 text applies together with
+   the Classpath Exception, which permits linking with independently
+   licensed code.
+
+The full texts of the GNU General Public License v2.0, the GNU Lesser
+General Public License v3.0, and the GNU General Public License v3.0 are
+available at https://www.gnu.org/licenses/old-licenses/gpl-2.0.html,
+https://www.gnu.org/licenses/lgpl-3.0.html, and
+https://www.gnu.org/licenses/gpl-3.0.html respectively, and are displayed
+in-app under Settings → About → Open Source License Notice.
+
+Also distributed with this project: the Gradle Wrapper (gradlew /
+gradlew.bat), licensed under the Apache License, version 2.0
+(https://gradle.org/license/).
