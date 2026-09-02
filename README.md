@@ -175,4 +175,8 @@
 
 ## License
 
-This project includes code originally licensed under the [MIT License](LICENSE) by newo-ether. See [NOTICE](NOTICE) for details.
+This project is a modified version of open-source software originally released under the [MIT License](LICENSE) by newo-ether (the "Agora" project), heavily modified and rebranded as 橘子岛 / Orange Island. The original copyright notice and details are in [NOTICE](NOTICE).
+
+> **Please do not contact the original author about this app.** The original author is not involved in, responsible for, or affiliated with Orange Island in any way. For issues, questions, or feedback, please use this repository's Issue tracker or the in-app feedback channel.
+
+In addition, the application bundles third-party components under their own licenses: llama.cpp (MIT), PRoot (GPL-2.0), talloc (LGPL-3.0), and JLaTeXMath (GPL-2.0 with Classpath Exception). Their complete source code is included in this repository under [`thirdparty/`](thirdparty/), and their copyright notices and full license texts are reproduced in [NOTICE](NOTICE) and inside the app under Settings → About → Open Source License Notice.

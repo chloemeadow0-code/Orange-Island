@@ -185,4 +185,8 @@
 
 ## 许可证
 
-本项目基于 [MIT License](LICENSE) 开源。
+本项目是基于 newo-ether 的开源项目"Agora"（[MIT License](LICENSE)）二次修改、重塑品牌后的产物"橘子岛 / Orange Island"，原始版权声明与详情见 [NOTICE](NOTICE)。
+
+> **请勿就本应用联系原作者。** 原作者未参与橘子岛的开发，也不对本应用承担任何责任或存在任何隶属关系。如遇问题、疑问或反馈，请通过本仓库的 Issue 或应用内反馈渠道联系我们。
+
+此外，本应用还打包了若干第三方组件，各自遵循其原始许可证：llama.cpp（MIT）、PRoot（GPL-2.0）、talloc（LGPL-3.0）、JLaTeXMath（GPL-2.0 及 Classpath 例外）。它们的完整源码包含在本仓库的 [`thirdparty/`](thirdparty/) 目录中，版权声明与许可全文见 [NOTICE](NOTICE)，以及在应用内"设置 → 关于 → 开源许可声明"中查看。
