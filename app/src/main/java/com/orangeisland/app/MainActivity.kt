@@ -70,8 +70,6 @@ import com.orangeisland.app.service.OrangeIslandForegroundService
 import com.orangeisland.app.service.AppForegroundTracker
 import com.orangeisland.app.data.local.ChatDatabase
 import com.orangeisland.app.di.AppContainer
-import com.orangeisland.app.ui.auth.AuthScreen
-import com.orangeisland.app.ui.auth.AuthViewModel
 import com.orangeisland.app.ui.chat.ChatApp
 import com.orangeisland.app.ui.chat.FullScreenMediaViewer
 import com.orangeisland.app.ui.settings.SettingsScreen
@@ -121,10 +119,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
-        val authRepo = (application as OrangeIslandApplication).container.authRepository
         val settingsRepo = (application as OrangeIslandApplication).container.settingsRepository
         splashScreen.setKeepOnScreenCondition {
-            authRepo.isLoggedIn.value == null || settingsRepo.privacyPolicyAccepted.value == null
+            settingsRepo.privacyPolicyAccepted.value == null
         }
 
         com.orangeisland.app.util.DebugLog.init(this)
@@ -143,22 +140,9 @@ class MainActivity : ComponentActivity() {
         val settingsManager = SettingsManager(applicationContext)
         // 这两步只碰本地 DataStore（attachBaseContext 已把 store 读热，开销在毫秒级），
         // 且是后续逻辑的同步前提，保留同步等待：
-        //  - initializeFirstInstallDefaults：全新安装时播种默认 prompt / 首启时间；
-        //  - runForceLogoutIfNeeded：一次性强制登出。它是登录门禁的正确性前提——若异步
-        //    执行，被踢用户会凭旧会话先闪进主界面再被拉回。修改 SettingsManager 里
-        //    FORCE_LOGOUT_AT_VERSION 的值并发新版即可触发。
+        //  - initializeFirstInstallDefaults：全新安装时播种默认 prompt / 首启时间。
         runBlocking(Dispatchers.IO) {
             settingsManager.initializeFirstInstallDefaults(locale = java.util.Locale.getDefault())
-            settingsManager.runForceLogoutIfNeeded()
-        }
-        // 远程封禁检查（查 Supabase 的 banned_users 表）是真实网络请求，冷启动时可能
-        // 耗数秒，绝不许阻塞 setContent 之前的主线程，挪到异步。命中后 checkBannedAndKick
-        // 内部会 clearAuthSession()：loggedIn flow 翻 false → authRepo.isLoggedIn(StateFlow)
-        // 翻 false → 下面 when 分支自动切回 AuthScreen。这条反应式链路不依赖"检查先于界面
-        // 完成"，即使结果返回时用户已进入主界面也会被当场踢回登录页（与手动 logout 同路径）。
-        // 以后要针对某个 username 封禁，只需在 Dashboard 的 banned_users 表加一行。
-        lifecycleScope.launch(Dispatchers.IO) {
-            authRepo.checkBannedAndKick()
         }
 
         // Parse external intent on cold start
@@ -233,7 +217,6 @@ class MainActivity : ComponentActivity() {
                     }
                     val settingsRepo = container.settingsRepository
                     val privacyAccepted: Boolean? = settingsRepo.privacyPolicyAccepted.collectAsState().value
-                    val isLoggedIn: Boolean? = container.authRepository.isLoggedIn.collectAsState().value
                     val factory = remember { container.chatViewModelFactory() }
                     val viewModel: ChatViewModel = viewModel(factory = factory)
                     val workflowViewModel = remember { container.workflowViewModel() }
@@ -242,8 +225,8 @@ class MainActivity : ComponentActivity() {
                     // 变为非 null 的那一刻触发一次。正常情况下系统 splash screen
                     // 已经把等待时间挡住了，用户几乎感知不到这段动画。
                     var contentReady by remember { mutableStateOf(false) }
-                    LaunchedEffect(isLoggedIn, privacyAccepted) {
-                        if (isLoggedIn != null && privacyAccepted != null && !contentReady) {
+                    LaunchedEffect(privacyAccepted) {
+                        if (privacyAccepted != null && !contentReady) {
                             contentReady = true
                         }
                     }
@@ -268,7 +251,7 @@ class MainActivity : ComponentActivity() {
                             }
                     ) {
                         when {
-                            privacyAccepted == null || isLoggedIn == null -> {
+                            privacyAccepted == null -> {
                                 // 状态未知：理论上不会渲染到这一帧，因为系统启动画面
                                 // 还没放行；留一个安全兜底，不要放任何业务内容。
                             }
@@ -334,14 +317,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-                            isLoggedIn == false -> {
-                                val authViewModel: AuthViewModel = viewModel(
-                                    key = "authViewModel",
-                                    factory = viewModelFactory { initializer { AuthViewModel(container.authRepository) } }
-                                )
-                                AuthScreen(authViewModel)
-                            }
-                            isLoggedIn == true -> {
+                            else -> {
                                 // Onboarding flow disabled — mark it complete (so first-install
                                 // defaults don't re-run on every launch) and go straight to the app.
                                 LaunchedEffect(Unit) {

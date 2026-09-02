@@ -293,13 +293,6 @@ class SettingsManager(private val context: Context) {
         val FIRST_LAUNCH_TIME = longPreferencesKey("first_launch_time")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val PRIVACY_POLICY_ACCEPTED = booleanPreferencesKey("privacy_policy_accepted")
-        // ── Account / Auth (local mirror of the Supabase session) ──────────────
-        // Drives the login gate in MainActivity; persisted so the user stays
-        // logged in across process restarts. Cleared by AuthRepository.logout().
-        val LOGGED_IN = booleanPreferencesKey("logged_in")
-        val USER_NAME = stringPreferencesKey("user_name")
-        val USER_EMAIL = stringPreferencesKey("user_email")
-        val LAST_FORCE_LOGOUT_VERSION = intPreferencesKey("last_force_logout_version")
         val RATING_PROMPT_SUBMITTED = booleanPreferencesKey("rating_prompt_submitted")
         val RATING_PROMPT_DISMISSED = booleanPreferencesKey("rating_prompt_dismissed")
         val SHOW_DOCUMENTATION_FAB = booleanPreferencesKey("show_documentation_fab")
@@ -636,10 +629,6 @@ class SettingsManager(private val context: Context) {
     val firstLaunchTime: Flow<Long?> = context.dataStore.data.map { it[FIRST_LAUNCH_TIME] }
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data.map { it[ONBOARDING_COMPLETED] ?: false }
     val privacyPolicyAccepted: Flow<Boolean> = context.dataStore.data.map { it[PRIVACY_POLICY_ACCEPTED] ?: false }
-    // ── Account / Auth (local session mirror) ───────────────────────────────
-    val loggedIn: Flow<Boolean> = context.dataStore.data.map { it[LOGGED_IN] ?: false }
-    val userName: Flow<String> = context.dataStore.data.map { it[USER_NAME] ?: "" }
-    val userEmail: Flow<String> = context.dataStore.data.map { it[USER_EMAIL] ?: "" }
     val ratingPromptSubmitted: Flow<Boolean> = context.dataStore.data.map { it[RATING_PROMPT_SUBMITTED] ?: false }
     val ratingPromptDismissed: Flow<Boolean> = context.dataStore.data.map { it[RATING_PROMPT_DISMISSED] ?: false }
     val totalMessagesSent: Flow<Int> = context.dataStore.data.map { it[TOTAL_MESSAGES_SENT] ?: 0 }
@@ -1316,41 +1305,6 @@ class SettingsManager(private val context: Context) {
 
     suspend fun savePrivacyPolicyAccepted(accepted: Boolean) {
         context.dataStore.edit { it[PRIVACY_POLICY_ACCEPTED] = accepted }
-    }
-
-    // ── Account / Auth session persistence ───────────────────────────────────
-    suspend fun saveAuthSession(loggedIn: Boolean, userName: String, userEmail: String) {
-        context.dataStore.edit {
-            it[LOGGED_IN] = loggedIn
-            it[USER_NAME] = userName
-            it[USER_EMAIL] = userEmail
-        }
-    }
-
-    /** Wipe the local session mirror (logout). */
-    suspend fun clearAuthSession() {
-        context.dataStore.edit {
-            it.remove(LOGGED_IN)
-            it.remove(USER_NAME)
-            it.remove(USER_EMAIL)
-        }
-    }
-
-    // ── 一次性强制登出（用于踢掉旧版本用户）────────────────────────────────────
-    // 修改 FORCE_LOGOUT_AT_VERSION 的值并发新版，所有 lastForceLogoutVersion
-    // 不等于它的人启动时会被清空登录态、弹回登录页。
-    private val FORCE_LOGOUT_AT_VERSION: Int = 2
-
-    suspend fun runForceLogoutIfNeeded() {
-        val last = context.dataStore.data.map { it[LAST_FORCE_LOGOUT_VERSION] ?: 0 }.first()
-        if (last < FORCE_LOGOUT_AT_VERSION) {
-            context.dataStore.edit {
-                it.remove(LOGGED_IN)
-                it.remove(USER_NAME)
-                it.remove(USER_EMAIL)
-                it[LAST_FORCE_LOGOUT_VERSION] = FORCE_LOGOUT_AT_VERSION
-            }
-        }
     }
 
     suspend fun saveRatingPromptSubmitted(submitted: Boolean) {

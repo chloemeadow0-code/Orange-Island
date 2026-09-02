@@ -63,9 +63,6 @@ class AppContainer(private val appContext: Context) {
     val localMusicRepository: com.orangeisland.app.data.music.LocalMusicRepository by lazy {
         com.orangeisland.app.data.music.LocalMusicRepository(appContext)
     }
-    val authRepository: com.orangeisland.app.data.repository.AuthRepository by lazy {
-        com.orangeisland.app.data.repository.AuthRepository(settingsManager, appScope)
-    }
 
     // ── Sandbox (flavor-specific) ─────────────────────────────
 

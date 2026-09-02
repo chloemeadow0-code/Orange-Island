@@ -222,10 +222,6 @@ class SettingsRepository(
     // ── Plugin device id ──────────────────────────────────────
     // Auto-injected per-install UUID (read-only — no UI, no setter).
     val appUserId: StateFlow<String> = hot(settingsManager.appUserId, "")
-    // ── Account / Auth (local session mirror; drives the login gate) ─────────
-    val loggedIn: StateFlow<Boolean> = hot(settingsManager.loggedIn, false)
-    val userName: StateFlow<String> = hot(settingsManager.userName, "")
-    val userEmail: StateFlow<String> = hot(settingsManager.userEmail, "")
     // ── Plugin configs (per-plugin user-filled values) ────────
     val pluginConfigs: StateFlow<Map<String, Map<String, String>>> = hot(settingsManager.pluginConfigs, emptyMap())
     // ── Text-to-Speech ──────────────────────────────────────────

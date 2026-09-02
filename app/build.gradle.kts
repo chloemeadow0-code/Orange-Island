@@ -31,20 +31,6 @@ android {
         versionCode = 53
         versionName = "2.1.0"
 
-        // Supabase credentials — read from local.properties (gitignored) so they
-        // never enter version control. anon key is public by design (RLS enforces
-        // access); the URL is also non-secret. Both are baked into BuildConfig.
-        buildConfigField(
-            "String",
-            "SUPABASE_URL",
-            "\"${keystoreProperties.getProperty("SUPABASE_URL", "")}\""
-        )
-        buildConfigField(
-            "String",
-            "SUPABASE_ANON_KEY",
-            "\"${keystoreProperties.getProperty("SUPABASE_ANON_KEY", "")}\""
-        )
-
         ndk {
             abiFilters += listOf("arm64-v8a")
         }
@@ -201,9 +187,6 @@ dependencies {
     implementation(libs.ktor.client.sse)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
-    implementation(platform(libs.supabase.bom))
-    implementation(libs.supabase.auth)
-    implementation(libs.supabase.postgrest)
     implementation(libs.quickjs.kt)
     debugImplementation(libs.androidx.compose.ui.tooling)
 

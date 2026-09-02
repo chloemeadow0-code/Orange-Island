@@ -16,7 +16,6 @@
       <nav>
         <a href="index.html" class="active">首页</a>
         <a href="rules.html">使用规则</a>
-        <a href="quiz.html">审核答题</a>
       </nav>
     </div>
   </header>
@@ -29,7 +28,7 @@
       </p>
       <div class="actions">
         <a href="rules.html" class="btn btn-primary">阅读使用规则</a>
-        <a href="quiz.html" class="btn btn-secondary">申请审核答题</a>
+        <a id="github-link-hero" href="#" target="_blank" rel="noopener" class="btn btn-secondary">GitHub 仓库</a>
       </div>
     </section>
 
@@ -62,16 +61,12 @@
       </div>
 
       <div class="card">
-        <h2>如何申请审核</h2>
+        <h2>获取应用</h2>
         <ol>
           <li>完整阅读 <a href="rules.html">使用规则与隐私风险须知</a>。</li>
-          <li>进入 <a href="quiz.html">审核答题</a>，输入 QQ 号并回答所有题目。</li>
-          <li>全部答对即可获取入群方式与使用资格。</li>
-          <li>每个 QQ 号只能提交一次，请认真作答。</li>
+          <li>前往 <a id="github-link-body" href="#" target="_blank" rel="noopener">GitHub 仓库</a> 查看源码与 Releases。</li>
+          <li>入群方式请联系维护者获取。</li>
         </ol>
-        <div class="text-center mt-4">
-          <a href="quiz.html" class="btn btn-primary">开始答题</a>
-        </div>
       </div>
     </section>
   </main>
@@ -89,7 +84,12 @@
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
     const gh = window.ORANGE_ISLAND_CONFIG?.GITHUB_URL;
-    if (gh) document.getElementById('github-link').href = gh;
+    if (gh) {
+      for (const id of ['github-link', 'github-link-hero', 'github-link-body']) {
+        const el = document.getElementById(id);
+        if (el) el.href = gh;
+      }
+    }
   </script>
 </body>
 </html>
