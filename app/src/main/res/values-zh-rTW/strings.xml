@@ -892,6 +892,8 @@ THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMP
     <string name="bundled_component_proot">PRoot（Termux 補丁版）—— GNU 通用公眾授權條款第 2 版\nCopyright (C) 2010-2019 STMicroelectronics（Cédric Vincent 等）；補丁由 Termux 專案維護\n\n用於執行內建 Linux 環境（libproot_exec.so、libproot_loader.so）。原始碼：thirdparty/proot</string>
     <string name="bundled_component_talloc">talloc —— GNU 較寬鬆通用公眾授權條款第 3 版或更新版本\nCopyright (C) Andrew Tridgell 2004、Stefan Metzmacher 2006（Samba 專案）\n\nproot 載入器連結的階層式記憶體配置器（libtalloc.so）。原始碼：thirdparty/talloc</string>
     <string name="bundled_component_jlatexmath">JLaTeXMath —— GNU 通用公眾授權條款第 2 版（含 Classpath 例外）\nCopyright (c) 2004-2018 Scilab Enterprises 及 opencollab 貢獻者；Android 移植版作者 Dimitry Ivanov（noties）\n\nLaTeX 公式渲染函式庫（經 jlatexmath-android 打包）。</string>
+    <string name="about_sandbox_licenses">沙盒元件授權 (GPL/LGPL)</string>
+    <string name="about_sandbox_licenses_desc">檢視內建 Linux 沙盒元件（PRoot、talloc、Alpine Linux）的授權與原始碼資訊</string>
     <string name="about_github">GitHub</string>
     <string name="about_issue_tracker">問題追蹤</string>
     <string name="about_contribute">參與貢獻</string>

@@ -6,20 +6,17 @@
 
 ## Data Collection
 
-- **Conversations** are stored **locally on your device only**. They are never sent to the developer and are never used for training.
-- **API keys and model credentials** are stored **locally on your device** and are only used to authenticate requests to the AI providers you configure.
-- Messages you send are transmitted **directly from your device** to the AI provider's API (e.g., Google Gemini, OpenAI, Anthropic, Ollama). 橘子岛 does not intermediate or log these requests.
+**Conversations and settings are stored locally. Online features send data to the services they use.**
 
-### Crash reporting (optional, opt-in)
-
-橘子岛 has **no analytics, no telemetry, and no automatic data upload**. There is one exception you control:
-
-- If the app crashes, the report is saved **locally on your device**. On the next launch, the app asks whether you want to send it. **Nothing is uploaded unless you explicitly tap "send".**
-- A submitted crash report contains only: the error stack trace, app version, Android version, device manufacturer/model, a timestamp, and short diagnostic breadcrumbs. It contains **no conversation content, no API keys, and no personal identifiers**, and is not shared with third parties.
+- Conversation history is stored **locally on your device**. Model requests include messages, relevant context, and attachments required for the selected feature.
+- API keys and model credentials are stored **locally on your device** and are only used to authenticate requests to the AI providers you configure.
+- Requests go from your device to the provider or proxy you configure. Those services may process or retain data under their own policies; this app cannot guarantee that remote services keep no logs.
+- Search, remote shell, MCP servers, plugins, and other online tools may send queries, files, or tool arguments to their respective endpoints when used.
+- Update checks contact the configured release service. After a crash, a report is stored locally and submitted only if you confirm. It contains diagnostics such as the stack trace, app/Android version, device model, and recent diagnostic events. The configured crash endpoint is `https://crash.orangeisland.app/crash`; this policy does not assert ownership of that domain. Stack traces may include details from an error, so review a report before sharing it.
 
 ### Optional user-configured cloud sync
 
-Some optional features (such as health-data sync, and certain community plugins like Moments or Question Box) let you connect **your own** Supabase project or server by entering your own URL and keys. In that case, data is sent to and stored under **your own** cloud project — the developer never has access to it. These features are off unless you configure them.
+Configured cloud-sync features, including health-data sync and user-installed plugins, can send selected data to the server you choose. Access and retention depend on that service's configuration and policies. These features require configuration before use.
 
 ## Third-Party Services
 
@@ -38,7 +35,7 @@ Please review the privacy policy of the provider you use.
 
 - **Internet**: communicate with AI provider APIs.
 - **Notifications**: keep foreground services (ongoing generations, music playback, workflows) alive.
-- **Storage / file access**: only when you explicitly attach images, videos, or files to a message.
+- **Storage / file access**: attachments, imports, exports, backups, and file or sandbox tools within the access you grant.
 - **Camera**: the "take photo" tool, only when you ask the AI to take a photo.
 - **Microphone**: voice input (speech-to-text), only when you start a voice session.
 - **Location (precise/coarse)**: the location tool and geofence workflow triggers, only when you ask for location features.
@@ -53,7 +50,7 @@ Please review the privacy policy of the provider you use.
 
 ## Data Retention
 
-All chat history is stored locally in an on-device database. You can delete conversations at any time within the app. Clearing the app's data or uninstalling will remove all local data.
+Chat history is stored in the app's local database and can be deleted in the app. Clearing app data or uninstalling removes app-managed local data, but does not erase exported files, backups, or data already sent to remote services. Exports and backups can contain conversations and, if selected, API keys or other credentials; protect these files and choose destinations you trust.
 
 ## Children's Privacy
 
@@ -65,7 +62,7 @@ This policy may be updated from time to time. Changes will be posted on this pag
 
 ## Contact
 
-If you have questions about this policy, open an issue at [github.com/chloemeadow0-code/Orange-Island](https://github.com/chloemeadow0-code/Orange-Island/issues).
+If you have questions about this policy, open an issue in the [Orange Island repository](https://github.com/chloemeadow0-code/Orange-Island/issues). Do not include private conversations or credentials in a public issue.
 
 ---
 
@@ -77,20 +74,17 @@ If you have questions about this policy, open an issue at [github.com/chloemeado
 
 ## 数据收集
 
-- **对话内容仅存储在你的设备本地**，不会发送给开发者，也不会被用于训练。
-- **API 密钥和模型凭证仅存储在你的设备本地**，仅用于向你选择的 AI 提供商认证请求。
-- 你发送的消息从你的设备**直接**传输到 AI 提供商的 API（如 Google Gemini、OpenAI、Anthropic、Ollama）。橘子岛 不会中转或记录这些请求。
+**对话和设置保存在本地。使用在线功能时，会向对应服务发送数据。**
 
-### 崩溃上报（可选、需主动确认）
-
-橘子岛 **没有任何统计分析、遥测或自动上传**。唯一的例外由你掌控：
-
-- 应用崩溃时，报告**先保存在你的设备本地**。下次启动时应用会询问你是否发送，**你不主动点击"发送"就绝不会上传**。
-- 提交的崩溃报告只包含：错误堆栈、应用版本、Android 版本、设备厂商与型号、时间戳和简短的诊断面包屑。**不包含任何聊天内容、API 密钥或个人身份信息**，也不会与第三方共享。
+- 对话历史保存在**设备本地**。模型请求会包含所选功能需要的消息、相关上下文及附件。
+- API 密钥和模型凭证**仅存储在你的设备本地**，仅用于向你选择的 AI 提供商认证请求。
+- 请求由设备发送到你配置的提供商或代理。这些服务可能按各自政策处理或保留数据，本应用无法保证远程服务不记录日志。
+- 联网搜索、远程 Shell、MCP 服务器、插件及其他在线工具在使用时，可能向各自端点发送查询、文件或工具参数。
+- 检查更新会访问配置的发布服务。崩溃报告先保存在本地，仅在你确认后提交，内容包括错误堆栈、应用及 Android 版本、设备型号和近期诊断事件。当前配置的报告端点为 `https://crash.orangeisland.app/crash`；本政策不对该域名的归属作出声明。错误堆栈可能包含报错细节，分享前请检查报告内容。
 
 ### 可选的自定义云同步
 
-部分可选功能（如健康数据同步，以及朋友圈、提问箱等社区插件）允许你填入**自己的** Supabase 项目地址和密钥。此时数据发送并存储在**你自己的**云项目中，开发者无权访问。这些功能默认关闭，只有你主动配置后才会启用。
+配置云同步功能（包括健康数据同步和用户安装的插件）后，选定的数据可能发送到你指定的服务器。访问权限及保留期限取决于该服务的配置和政策；这些功能需要配置后使用。
 
 ## 第三方服务
 
@@ -107,7 +101,7 @@ If you have questions about this policy, open an issue at [github.com/chloemeado
 
 - **网络**：与 AI 提供商 API 通信。
 - **通知**：保持前台服务（生成任务、音乐播放、工作流）运行。
-- **存储/文件访问**：仅在你主动选择图片、视频或文件附件时使用。
+- **存储/文件访问**：用于附件、导入、导出、备份，以及你授予访问范围内的文件或沙盒工具。
 - **相机**："拍照"工具，仅在你要求 AI 拍照时使用。
 - **麦克风**：语音输入（语音转文字），仅在你开启语音会话时使用。
 - **位置信息（精确定位/粗略定位）**：位置工具和地理围栏工作流触发器，仅在你使用位置相关功能时使用。
@@ -122,7 +116,7 @@ If you have questions about this policy, open an issue at [github.com/chloemeado
 
 ## 数据保留
 
-所有聊天记录存储在设备本地数据库中。你可以随时在应用内删除对话。清除应用数据或卸载将删除所有本地数据。
+聊天记录保存在应用本地数据库中，可在应用内删除。清除应用数据或卸载会移除应用管理的本地数据，但不会清除已导出的文件、备份或远程服务已收到的数据。导出与备份可包含对话，以及你选择包含的 API 密钥等凭证；请妥善保护文件并选择可信的保存位置。
 
 ## 儿童隐私
 
@@ -134,4 +128,4 @@ If you have questions about this policy, open an issue at [github.com/chloemeado
 
 ## 联系
 
-如有问题，请在 [github.com/chloemeadow0-code/Orange-Island](https://github.com/chloemeadow0-code/Orange-Island/issues) 提交 issue。
+如有问题，请在[橘子岛仓库](https://github.com/chloemeadow0-code/Orange-Island/issues)提交 issue。不要在公开 issue 中附带私人对话或凭证。

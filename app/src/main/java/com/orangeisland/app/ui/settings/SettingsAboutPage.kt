@@ -58,6 +58,13 @@ fun SettingsAboutPage(viewModel: ChatViewModel, onBack: () -> Unit) {
         return
     }
 
+    var showSandboxLicenses by remember { mutableStateOf(false) }
+
+    if (showSandboxLicenses) {
+        SettingsSandboxLicensesPage(onBack = { showSandboxLicenses = false })
+        return
+    }
+
     val context = LocalContext.current
     val packageInfo = remember {
         try { context.packageManager.getPackageInfo(context.packageName, 0) } catch (_: Exception) { null }
@@ -152,35 +159,56 @@ fun SettingsAboutPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                 })
             )
 
-            SettingsGroup(title = stringResource(R.string.about_licenses), items = listOf({
-                SettingsItem(
-                    modifier = Modifier.clickable { showOssNotice = true },
-                    headlineContent = { Text(stringResource(R.string.about_oss_notice_title)) },
-                    supportingContent = { Text(stringResource(R.string.about_oss_notice_body)) },
-                    leadingContent = { IslandIcon(IslandIcons.Documentation, size = 38.dp) },
-                    trailingContent = {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            SettingsGroup(title = stringResource(R.string.about_licenses), items = buildList {
+                add({
+                    SettingsItem(
+                        modifier = Modifier.clickable { showOssNotice = true },
+                        headlineContent = { Text(stringResource(R.string.about_oss_notice_title)) },
+                        supportingContent = { Text(stringResource(R.string.about_oss_notice_body)) },
+                        leadingContent = { IslandIcon(IslandIcons.Documentation, size = 38.dp) },
+                        trailingContent = {
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                    )
+                })
+                // Only offered by builds that actually bundle the sandbox components.
+                if (hasSandboxLicenseAssets(context)) {
+                    add({
+                        SettingsItem(
+                            modifier = Modifier.clickable { showSandboxLicenses = true },
+                            headlineContent = { Text(stringResource(R.string.about_sandbox_licenses)) },
+                            supportingContent = { Text(stringResource(R.string.about_sandbox_licenses_desc)) },
+                            leadingContent = { IslandIcon(IslandIcons.Documentation, size = 38.dp) },
+                            trailingContent = {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+                            }
                         )
-                    }
-                )
-            }, {
-                SettingsItem(
-                    modifier = Modifier.clickable { showOssLicenses = true },
-                    headlineContent = { Text(stringResource(R.string.about_third_party_licenses)) },
-                    supportingContent = { Text(stringResource(R.string.about_third_party_licenses_desc)) },
-                    leadingContent = { IslandIcon(IslandIcons.Documentation, size = 38.dp) },
-                    trailingContent = {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                    }
-                )
-            }))
+                    })
+                }
+                add({
+                    SettingsItem(
+                        modifier = Modifier.clickable { showOssLicenses = true },
+                        headlineContent = { Text(stringResource(R.string.about_third_party_licenses)) },
+                        supportingContent = { Text(stringResource(R.string.about_third_party_licenses_desc)) },
+                        leadingContent = { IslandIcon(IslandIcons.Documentation, size = 38.dp) },
+                        trailingContent = {
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                    )
+                })
+            })
 
             SettingsGroup(title = stringResource(R.string.settings_group_logs), items = listOf({
                 SettingsItem(

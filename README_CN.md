@@ -1,47 +1,42 @@
 <div align="center">
-  <img src="app/src/main/assets/橘子岛_transparent_large.png" alt="橘子岛 Logo" width="120" />
+  <img src="app/src/main/assets/orangeisland_transparent_large.png" alt="橘子岛 Logo" width="120" />
 
-  # 橘子岛
+  # 橘子岛 (Orange Island)
 
-  **BYOK LLM 客户端 — 多提供商接入、智能代理工作流、远程设备控制**
+  **基于 Agora 独立维护的二改版本 — BYOK LLM 客户端，多提供商接入、智能代理工作流、远程设备控制**
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![Platform: Android](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
   [![Kotlin](https://img.shields.io/badge/Kotlin-Native-blue.svg)](https://kotlinlang.org/)
   <br/>[English](README.md) | **中文**
 
-  <img src="assets/feature_graphic.png" alt="橘子岛 — 夺回数据主权的 BYOK AI 应用" width="100%" />
 </div>
 
 ## 下载
 
 > 应用商店渠道正在筹备中，当前请通过以下方式获取。
 
-[![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-blue?logo=github)](https://github.com/chloemeadow0-code/Orange-Island/releases)
+[![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-blue?logo=github)](https://github.com/chloemeadow0-code/Orange-Island-Releases/releases)
 
-- **GitHub Releases** — 从 [Releases 页面](https://github.com/chloemeadow0-code/Orange-Island/releases) 下载最新 `.apk`。
-- **从源码构建** — 用 Android Studio 克隆并构建（详见[快速开始](#快速开始)）。
+- **GitHub Releases** — 从 [Releases 页面](https://github.com/chloemeadow0-code/Orange-Island-Releases/releases) 下载最新 `.apk`。
+- **从源码构建** — 克隆[橘子岛仓库](https://github.com/chloemeadow0-code/Orange-Island)，用 Android Studio 构建（详见[快速开始](#快速开始)）。
 
 ---
 
-**橘子岛** — 为 AI 重度用户打造的 BYOK Android 客户端。接入 8+ 内置提供商（外加无限自定义端点），使用自己的 API 密钥，支持对话分支树、llama.cpp 本地推理、加密远程 Shell 控制。所有数据存储在本地，无日志泄露。开源，MIT 协议。
+**橘子岛** — 为 AI 重度用户打造的 BYOK Android 客户端。接入内置提供商及自定义端点，使用自己的 API 密钥，支持对话分支树、llama.cpp 本地推理和远程 Shell 工具。对话记录保存在本地；使用在线功能时，会向配置的提供商和工具发送所需数据。
 
-## 截图
+## 项目来源与致谢
 
-<table>
-<tr>
-<td width="33%"><img src="assets/screenshot_1.jpg" alt="聊天" width="100%"/></td>
-<td width="33%"><img src="assets/screenshot_2.jpg" alt="工具" width="100%"/></td>
-<td width="33%"><img src="assets/screenshot_3.jpg" alt="设置" width="100%"/></td>
-</tr>
-</table>
+**橘子岛 (Orange Island)** 是基于 **newo-ether** 开发的 [Agora](https://github.com/newo-ether/Agora) 进行二次修改、独立维护的版本，由 **小橘、猫猫** 更名并继续开发。
+
+本项目不是 Agora 的官方版本，与原项目及原作者不存在隶属或背书关系。原作者版权声明及 MIT 许可证保留在 [LICENSE](LICENSE) 中；来源署名与修改说明见 [NOTICE](NOTICE)。
 
 ## 为什么选择 橘子岛？
 
-- **无中间层：** 直连 API。无遥测、无追踪、无企业服务器记录你的对话。一切存储在本地 Room 数据库中。
+- **连接可配置：** 模型请求发送到你配置的提供商或代理，对话历史保存在本地 Room 数据库中；远程服务按各自政策处理数据。
 - **非线性思维：** 树形消息数据库让你可以编辑任意历史消息、重新生成回复、探索备选分支，不会丢失上下文。
 - **原生智能代理：** 多轮工具调用，支持联网搜索、代码执行、远程文件操作、记忆管理、语义对话搜索。
-- **远程控制：** 通过 [Conch](https://github.com/newo-ether/conch) 协议管理服务器、编辑文件、搜索远程代码 — ECDH + AES-256-GCM 端到端加密。
+- **远程控制：** 通过 [Conch](https://github.com/newo-ether/conch) 管理服务器、编辑文件、搜索远程代码；配置 API 密钥后启用协议层加密，并应使用 HTTPS 保护传输。
 
 ## 功能特性
 
@@ -72,6 +67,8 @@
 - **Ollama** 提供商 — 接入局域网自托管模型
 
 ### 远程设备控制（Conch 协议）
+Conch 的协议层加密需要配置 API 密钥；密钥为空时发送普通 JSON，应使用 HTTPS。
+
 - ECDH 密钥交换 + AES-256-GCM 加密 + HMAC-SHA256 签名
 - 令牌桶速率限制 + 基于 nonce 的防重放保护
 - **多设备支持** — 配置多台远程服务器并切换
@@ -85,7 +82,7 @@
 - 可视化上下文范围指示器，淡化窗口外的消息
 
 ### 数据可移植
-- **.橘子岛 导出/导入：** 对话、记忆、提示词、设置、API 密钥打包为单一可移植文件
+- **.oi 导出/导入：** 对话、记忆、提示词、设置、API 密钥打包为单一可移植文件
 - **合并、替换、跳过** 三种导入策略
 - **自动备份** — 基于 WorkManager 的周期性备份，可配置周期、分类和保留策略
 - **第三方导入：** Claude 和 ChatGPT 导出格式（.zip / .json）
@@ -114,7 +111,7 @@
 
 ## 文档
 
-📖 **[浏览用户手册](https://docs.orangeisland.app/)** — 24 个页面，涵盖安装、提供商、工具、搜索、记忆、Shell 等。
+📖 **[浏览用户手册](docs/zh/index.md)** — 仓库内的使用文档，涵盖安装、提供商、工具、搜索、记忆、Shell 等。
 
 🏗️ **[架构指南](ARCHITECTURE.md)** — 完整的代码库导览：数据层、API 提供商、JNI、UI 及数据流。
 
@@ -177,15 +174,15 @@
 
 ## 隐私
 
-橘子岛 不会收集、存储或传输任何个人数据。所有对话、API 密钥和设置均存储在本地设备上。消息直接从你的设备发送到你配置的 AI 提供商 — 无中间服务器、无遥测、无追踪。详见[隐私政策](PRIVACY.md)。
+对话和设置保存在本地。使用模型、代理及工具时，会向对应服务发送消息、选定的附件和相关上下文；远程服务可能按各自政策保留日志。检查更新会访问配置的发布服务，崩溃报告仅在用户确认后提交。导出文件和备份可能包含对话及凭证。详见[隐私政策](PRIVACY.md)。
 
 ## 许可证
 
-本项目是基于 newo-ether 的开源项目"Agora"（[MIT License](LICENSE)）二次修改、重塑品牌后的产物"橘子岛 / Orange Island"，原始版权声明与详情见 [NOTICE](NOTICE)。
+本项目的应用代码以 [MIT License](LICENSE) 发布，并保留 newo-ether 的原始版权声明。第三方代码及素材继续适用各自许可证；页面上的 MIT 标识不代表这些组件被重新授权为 MIT。
 
-> **请勿就本应用联系原作者。** 原作者未参与橘子岛的开发，也不对本应用承担任何责任或存在任何隶属关系。如遇问题、疑问或反馈，请通过本仓库的 Issue 或应用内反馈渠道联系我们。
+含 Linux 沙盒的构建还包含 PRoot（GPL-2.0-or-later）、talloc（LGPL-3.0-or-later）及采用多种许可证的 Alpine 软件包。来源署名及发布要求见 [NOTICE](NOTICE)、应用内第三方许可页面和[源码分发说明](SOURCE_DISTRIBUTION.md)。下载的模型和用户安装的插件另有各自的使用条款。
 
-此外，本应用还打包了若干第三方组件，各自遵循其原始许可证：llama.cpp（MIT）、PRoot（GPL-2.0）、talloc（LGPL-3.0）、JLaTeXMath（GPL-2.0 及 Classpath 例外）。它们的完整源码包含在本仓库的 [`thirdparty/`](thirdparty/) 目录中，版权声明与许可全文见 [NOTICE](NOTICE)，以及在应用内"设置 → 关于 → 开源许可声明"中查看。
+> **橘子岛的使用问题请反馈至本仓库或应用内反馈渠道，请勿就本二改版本向原作者寻求支持。**
 
 ## 开源协议
 
@@ -194,10 +191,9 @@
 | 橘子岛（本 fork 全部一手代码） | MIT | (c) 2026 橘子岛贡献者 | 本仓库 |
 | Agora（本 fork 基于的上游项目） | MIT | (c) 2026 newo-ether | 见 [NOTICE](NOTICE) |
 | [llama.cpp](https://github.com/ggml-org/llama.cpp) —— 本地大模型推理引擎 | MIT | (c) 2023-2026 The ggml authors | [`thirdparty/llama.cpp`](thirdparty/llama.cpp) |
-| [PRoot](https://github.com/termux/proot)（Termux 补丁版）—— Linux 环境 | GPL-2.0 | (c) STMicroelectronics；补丁由 Termux 维护 | [`thirdparty/proot`](thirdparty/proot) |
+| [PRoot](https://github.com/termux/proot)（Termux 补丁版）—— Linux 环境 | GPL-2.0-or-later | (c) STMicroelectronics；补丁由 Termux 维护 | [`thirdparty/proot`](thirdparty/proot) |
 | [talloc](https://www.samba.org/ftp/talloc/)（Samba）—— 内存分配器 | LGPL-3.0-or-later | (c) Andrew Tridgell、Stefan Metzmacher | [`thirdparty/talloc`](thirdparty/talloc) |
 | [JLaTeXMath](https://github.com/opencollab/jlatexmath) —— LaTeX 公式渲染 | GPL-2.0 + Classpath 例外 | (c) Scilab Enterprises / opencollab；Android 移植版 Dimitry Ivanov | 经 `ru.noties:jlatexmath-android` 打包 |
 | Gradle Wrapper | Apache-2.0 | Gradle 贡献者 | `gradlew` |
 | 其余全部依赖（Kotlin/Compose/OkHttp 等） | Apache-2.0、MIT、BSD、EPL、ISC 等 | 各自作者 | 见应用内"设置 → 关于 → 第三方开源许可" |
-
-GPL-2.0、LGPL-3.0、GPL-3.0 的许可全文已随应用内置（设置 → 关于 → 开源许可声明），也可在 [gnu.org](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html)、[LGPL-3.0](https://www.gnu.org/licenses/lgpl-3.0.html)、[GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html) 查看。
+| Alpine 沙盒软件包 | 各组件分别适用 GPL、MIT、BSD、MPL、Apache、Zlib 等 | 各自作者 | [源码分发说明](SOURCE_DISTRIBUTION.md) |

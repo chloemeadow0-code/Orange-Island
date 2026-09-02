@@ -1038,6 +1038,8 @@
     <string name="bundled_component_proot">PRoot（Termux 补丁版）—— GNU 通用公共许可证第 2 版\nCopyright (C) 2010-2019 STMicroelectronics（Cédric Vincent 等）；补丁由 Termux 项目维护\n\n用于运行内置 Linux 环境（libproot_exec.so、libproot_loader.so）。源码：thirdparty/proot</string>
     <string name="bundled_component_talloc">talloc —— GNU 宽通用公共许可证第 3 版或更高版本\nCopyright (C) Andrew Tridgell 2004、Stefan Metzmacher 2006（Samba 项目）\n\nproot 加载器链接的层级内存分配器（libtalloc.so）。源码：thirdparty/talloc</string>
     <string name="bundled_component_jlatexmath">JLaTeXMath —— GNU 通用公共许可证第 2 版（含 Classpath 例外）\nCopyright (c) 2004-2018 Scilab Enterprises 及 opencollab 贡献者；Android 移植版作者 Dimitry Ivanov（noties）\n\nLaTeX 公式渲染库（经 jlatexmath-android 打包）。</string>
+    <string name="about_sandbox_licenses">沙盒组件许可 (GPL/LGPL)</string>
+    <string name="about_sandbox_licenses_desc">查看内置 Linux 沙盒组件（PRoot、talloc、Alpine Linux）的许可与源码信息</string>
     <string name="about_github">GitHub</string>
     <string name="about_issue_tracker">问题追踪</string>
     <string name="about_contribute">参与贡献</string>

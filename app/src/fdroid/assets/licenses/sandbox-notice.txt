@@ -1,0 +1,66 @@
+LINUX SANDBOX COMPONENTS - LICENSE NOTICE
+==========================================
+
+This build includes separately licensed third-party sandbox components.
+The application's MIT license does not replace their licenses.
+
+Source distribution
+-------------------
+Look for gpl-sources-v<app-version>-corrected.tar.gz beside the matching APK:
+https://github.com/chloemeadow0-code/Orange-Island-Releases/releases
+The archive should include the exact Alpine package recipes, their source
+archives and patches, PRoot/talloc sources, and the Android build script.
+A local source package or an upstream link does not prove that a matching
+release artifact is available. If the source for your version is missing,
+report the version at:
+https://github.com/chloemeadow0-code/Orange-Island-Releases/issues
+
+PRoot
+-----
+Binaries: libproot_exec.so, libproot_loader.so (separate executables).
+License: GPL-2.0-or-later.
+Copyright holder identified by upstream COPYING: STMicroelectronics.
+Original author: Cédric VINCENT; contributor acknowledgments remain in COPYING.
+This build uses the Termux fork: https://github.com/termux/proot
+Original project: https://github.com/proot-me/proot
+
+talloc
+------
+Binary: libtalloc.so.
+License: LGPL-3.0-or-later.
+Copyright (C) Andrew Tridgell 2004-2005
+Copyright (C) Stefan Metzmacher 2006
+Source: https://talloc.samba.org/
+The vendored talloc.c/talloc.h retain their respective original notices.
+LGPLv3 incorporates GPLv3; both full license texts accompany this notice.
+
+Alpine Linux minirootfs 3.21.0 (aarch64)
+--------------------------------------
+Rootfs SHA-256:
+f31202c4070c4ef7de9e157e1bd01cb4da3a2150035d74ea5372c5e86f1efac1
+
+The installed package database records:
+  alpine-baselayout      3.6.8-r0       GPL-2.0-only
+  alpine-baselayout-data 3.6.8-r0       GPL-2.0-only
+  alpine-keys            2.5-r0         MIT
+  alpine-release         3.21.0-r0      MIT
+  apk-tools              2.14.6-r2      GPL-2.0-only
+  busybox                1.37.0-r8      GPL-2.0-only
+  busybox-binsh          1.37.0-r8      GPL-2.0-only
+  ca-certificates-bundle 20241010-r0    MPL-2.0 AND MIT
+  libcrypto3             3.3.2-r4       Apache-2.0
+  libssl3                3.3.2-r4       Apache-2.0
+  musl                   1.2.5-r8       MIT
+  musl-utils             1.2.5-r8       MIT AND BSD-2-Clause AND GPL-2.0-or-later
+  scanelf                1.3.8-r1       GPL-2.0-only
+  ssl_client             1.37.0-r8      GPL-2.0-only
+  zlib                   1.3.1-r2       Zlib
+
+Subpackages share their origin's source: scanelf comes from pax-utils,
+libcrypto3/libssl3 from openssl, and ssl_client from busybox. The source
+collector reads these origins and exact commits from the bundled database,
+rather than assuming the current stable branch matches the binaries.
+
+Additional copyright and license texts are in third-party-notices.txt.
+GPLv2, GPLv3 and LGPLv3 texts are supplied separately in this directory.
+The original notices in each source file remain applicable.

@@ -40,8 +40,11 @@ SYSROOT_LIB="$SYSROOT/lib"
 SYSROOT_INC="$SYSROOT/include"
 BLD_DIR="$BLD/build-proot-arm64-v8a"
 LOADER_OUT="$BLD_DIR/loader-out"
-JNILIBS="$SCRIPT_DIR/app/src/main/jniLibs/arm64-v8a"
-FDROID_JNILIBS="$SCRIPT_DIR/app/src/fdroid/jniLibs/arm64-v8a"
+# Deploy ONLY to the fdroid flavor source set. The play flavor ships no
+# in-app license notice or written source offer, so GPL/LGPL binaries in
+# the main (all-flavor) source set would end up in play APKs as an
+# unlicensed distribution. See app/src/fdroid/assets/licenses/.
+JNILIBS="$SCRIPT_DIR/app/src/fdroid/jniLibs/arm64-v8a"
 
 # ── Ensure readelf is available (GNUmakefile needs it) ─────────
 if ! command -v readelf &>/dev/null; then
@@ -106,11 +109,17 @@ fi
 echo "=== build-proot.sh: Building proot binaries ==="
 
 # ── Create directories ─────────────────────────────────────────
+# Also purge stale copies that older versions of this script deployed into
+# the main (all-flavor) source set — they would silently bundle into play
+# APKs on this machine.
+rm -f "$SCRIPT_DIR/app/src/main/jniLibs/arm64-v8a/libproot_exec.so" \
+      "$SCRIPT_DIR/app/src/main/jniLibs/arm64-v8a/libproot_loader.so" \
+      "$SCRIPT_DIR/app/src/main/jniLibs/arm64-v8a/libtalloc.so"
 mkdir -p "$SYSROOT_LIB" "$SYSROOT_INC" "$LOADER_OUT" \
-         "$JNILIBS" "$FDROID_JNILIBS" "$BLD_DIR/loader"
+         "$JNILIBS" "$BLD_DIR/loader"
 
 # ── Step 1: Build talloc ───────────────────────────────────────
-echo "  [1/4] Building libtalloc.so..."
+echo "  [1/3] Building libtalloc.so..."
 # Build from source directory so __FILE__ expands to relative path (e.g.
 # "talloc.c:N") on both local and CI — avoids embedding the absolute build path.
 (
@@ -123,7 +132,7 @@ echo "  [1/4] Building libtalloc.so..."
         -I.
 )
 cp "$TALLOC_SRC/talloc.h" "$SYSROOT_INC/"
-echo "  [1/4] Done: $(stat -c%s "$SYSROOT_LIB/libtalloc.so") bytes"
+echo "  [1/3] Done: $(stat -c%s "$SYSROOT_LIB/libtalloc.so") bytes"
 
 # ── Step 2: Build proot (in-tree inside the build dir) ─────────
 # The proot GNUmakefile only builds correctly in-tree: its compile
@@ -131,7 +140,7 @@ echo "  [1/4] Done: $(stat -c%s "$SYSROOT_LIB/libtalloc.so") bytes"
 # VPATH resolve $< to an absolute path, so $(SRC) gets prepended twice
 # (e.g. .../proot/src//.../proot/src/cli/cli.c). Copy the sources into
 # the build dir and build there so SRC stays relative.
-echo "  [2/4] Building proot (GNUmakefile)..."
+echo "  [2/3] Building proot (GNUmakefile)..."
 PROOT_BLD="$BLD_DIR/src"
 rm -rf "$PROOT_BLD"
 mkdir -p "$PROOT_BLD"
@@ -192,10 +201,10 @@ ENDAWK
         GIT=/bin/true \
         proot
 )
-echo "  [2/4] Done: $(stat -c%s "$PROOT_BLD/proot") bytes"
+echo "  [2/3] Done: $(stat -c%s "$PROOT_BLD/proot") bytes"
 
-# ── Step 3: Strip and deploy binaries to jniLibs ───────────────
-echo "  [3/4] Stripping and deploying..."
+# ── Step 3: Strip and deploy binaries to fdroid jniLibs ────────
+echo "  [3/3] Stripping and deploying..."
 
 # proot PIE executable -> libproot_exec.so
 "$STRIP" --strip-all \
@@ -215,16 +224,10 @@ cp "$LOADER_SRC" "$JNILIBS/libproot_loader.so"
     "$SYSROOT_LIB/libtalloc.so" \
     -o "$JNILIBS/libtalloc.so"
 
-echo "  [3/4] Binaries deployed:"
+echo "  [3/3] Binaries deployed:"
 echo "    $(stat -c%s "$JNILIBS/libproot_exec.so") bytes  libproot_exec.so"
 echo "    $(stat -c%s "$JNILIBS/libproot_loader.so") bytes  libproot_loader.so"
 echo "    $(stat -c%s "$JNILIBS/libtalloc.so") bytes  libtalloc.so"
-
-# ── Step 4: Sync to fdroid jniLibs flavor ──────────────────────
-echo "  [4/4] Syncing to fdroid jniLibs..."
-cp "$JNILIBS/libproot_exec.so" "$FDROID_JNILIBS/libproot_exec.so"
-cp "$JNILIBS/libproot_loader.so" "$FDROID_JNILIBS/libproot_loader.so"
-cp "$JNILIBS/libtalloc.so" "$FDROID_JNILIBS/libtalloc.so"
 
 # ── Save hash for next incremental check ───────────────────────
 calc_hashes > "$HASH_FILE"

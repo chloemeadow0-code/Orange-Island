@@ -9,12 +9,10 @@ Modifications made in this fork include, but are not limited to:
   - Renaming the application and all related identifiers (package, classes,
     native libraries, resources, themes) from "Agora" to "橘子岛 / Orange Island".
   - Rebranding the user-facing strings, documentation, and metadata.
-  - Replacing upstream telemetry/update endpoints with placeholders.
   - Workflow engine, visual editor, and automation subsystem (stage C–E):
     an independent node-and-edge graph executor with trigger integration
     (manual, schedule, intent, app-open, voice, API), live canvas, and
-    export/import support. Design and implementation are original to this
-    fork and not derived from upstream.
+    export/import support.
   - Workflow v2 — AI-authored linear workflows (stage F1–F6): a trigger →
     conditions → actions model that an LLM generates, a strict parser, a
     cooldown / daily-cap / condition-gated execution engine, a signal-source
@@ -24,18 +22,11 @@ Modifications made in this fork include, but are not limited to:
     notification-listener, boot), an AI-authoring tool surface gated by a
     user-approval card, and an AI-first UI (read-only detail card, list with
     trigger-summary badges, "How do workflows work?" onboarding).
-    The general automation concept (a trigger taxonomy, AI generation of a
-    linear definition, a user-approval step) is a broad idea present in many
-    automation products. The concrete architecture and all code in this fork
-    — the per-signal-source design (each source owns its own Flow
-    subscription, no shared registry/diff loop, no per-family callback
-    interface), the WorkManager-based durable fire paths for boot/time/
-    geofence, the requestId-encoding scheme, the CompletableDeferred approval
-    gate, the package-indexed notification filter, every class/field/file
-    name — are original and written from scratch. No source code, class
-    structure, or file layout was copied from or derived from any
-    third-party project, including but not limited to the open-source
-    projects whose general automation ideas were studied during design.
+
+Fork maintainers: 小橘、猫猫. The list above describes areas modified; it
+does not claim exclusive authorship of all code in them. Repository history
+and notices in individual files record more specific provenance. Separately
+incorporated code retains its applicable copyright notices and licenses.
 
 Original copyright notice (preserved as required by the MIT License):
 
@@ -44,24 +35,30 @@ Original copyright notice (preserved as required by the MIT License):
 The full text of the MIT License is available in the [LICENSE](LICENSE) file
 accompanying this distribution.
 
-The "橘子岛" and "Orange Island" names, logos, and other branding used in this
-distribution are NOT affiliated with, endorsed by, or derived from the upstream
-"Agora" project or its author. All third-party trademarks, service marks, and
-brand names referenced in the source code or documentation are the property of
-their respective owners and are used here for identification purposes only.
+The repository-level MIT license does not replace dependency licenses.
+Builds that include the Linux sandbox distribute PRoot (GPL-2.0-or-later),
+talloc (LGPL-3.0-or-later), and Alpine packages under their own licenses.
+See app/src/fdroid/assets/licenses/ and SOURCE_DISTRIBUTION.md. Other library
+notices are available through the in-app third-party license page and the
+relevant dependency source trees.
+
+Orange Island is not an official Agora release and is not affiliated with or
+endorsed by the upstream project or its author. Third-party names identify
+those products; their appearance does not imply endorsement.
+
+The historical Agora screenshots retained under assets/
+originate from the upstream project. They are not screenshots or branding of
+the current Orange Island release and are not used in the project README.
+This notice does not grant additional rights to third-party names or artwork.
 
 ------------------------------------------------------------------------------
 Bundled Third-Party Components
 ------------------------------------------------------------------------------
 
-In addition to the MIT-licensed code inherited from Agora, this application
-bundles and distributes the following third-party components. The complete
-corresponding source code for each component is available via this project's
-public repository: llama.cpp and PRoot are included as pinned git submodules
-(see the .gitmodules file) referencing exact upstream commits at their
-respective upstream locations, and the talloc source files are included
-directly in the repository. This satisfies the source-availability
-requirements of the respective licenses.
+The following component inventory retains the existing upstream acknowledgments.
+Pinned submodules and vendored files record provenance; matching source archives,
+build patches and release instructions for the sandbox are described in
+SOURCE_DISTRIBUTION.md. A repository link alone does not verify a binary release.
 
 1. llama.cpp — https://github.com/ggml-org/llama.cpp
    License: MIT License
@@ -70,19 +67,19 @@ requirements of the respective licenses.
    built from thirdparty/llama.cpp.
 
 2. PRoot (Termux patch fork) — https://github.com/termux/proot
-   License: GNU General Public License, version 2
+   License: GNU General Public License, version 2 or later
    Copyright (C) 2010-2019 STMicroelectronics (Cédric Vincent and others);
    patches by the Termux project.
    Bundled as libproot_exec.so and libproot_loader.so, built from the
-   thirdparty/proot submodule (pinned upstream commit, no local
-   modifications). The full GPL-2.0 text is included in
+   thirdparty/proot submodule, with Android build-time patches in
+   build-proot.sh. The full GPL-2.0 text is included in
    thirdparty/proot/COPYING and reproduced in the app under
    Settings → About → Open Source License Notice.
 
 3. talloc (Samba) — https://www.samba.org/ftp/talloc/
    License: GNU Lesser General Public License, version 3 or later
    Copyright (C) Andrew Tridgell 2004, Stefan Metzmacher 2006
-   Bundled as libtalloc.so (linked by the proot loader), built from
+   Bundled as libtalloc.so, built from
    thirdparty/talloc. The full LGPL-3.0 (and its underlying GPL-3.0) text
    is reproduced in the app under Settings → About → Open Source License
    Notice.
