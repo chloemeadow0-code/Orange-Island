@@ -14,7 +14,7 @@ This guide walks you through installing 橘子岛, adding your first API key, an
 
 ### From GitHub Releases
 
-1. Visit the [Releases page](https://github.com/orangeisland/app/releases)
+1. Visit the [Releases page](https://github.com/chloemeadow0-code/Orange-Island/releases)
 2. Download the latest `.apk` file
 3. Open the file on your device and confirm installation when prompted
 
@@ -24,7 +24,7 @@ If you prefer building yourself:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/orangeisland/app.git
+   git clone https://github.com/chloemeadow0-code/Orange-Island.git
    ```
 2. Open the project in [Android Studio](https://developer.android.com/studio) (Ladybug or newer)
 3. Sync Gradle and build

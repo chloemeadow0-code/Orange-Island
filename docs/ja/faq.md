@@ -119,4 +119,4 @@
 
 ### バグの報告や機能のリクエストはどうすればいいですか？
 
-[GitHub](https://github.com/orangeisland/app/issues) で Issue を作成してください。貢献については、README の [Contributing](https://github.com/orangeisland/app#contributing) セクションを参照してください。
+[GitHub](https://github.com/chloemeadow0-code/Orange-Island/issues) で Issue を作成してください。貢献については、README の [Contributing](https://github.com/chloemeadow0-code/Orange-Island#contributing) セクションを参照してください。

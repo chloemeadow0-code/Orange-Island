@@ -14,7 +14,7 @@ Ce guide vous accompagne dans l'installation d'橘子岛, l'ajout de votre premi
 
 ### Depuis les Versions GitHub
 
-1. Visitez la [page des Versions](https://github.com/orangeisland/app/releases)
+1. Visitez la [page des Versions](https://github.com/chloemeadow0-code/Orange-Island/releases)
 2. Téléchargez le dernier fichier `.apk`
 3. Ouvrez le fichier sur votre appareil et confirmez l'installation quand demandé
 
@@ -24,7 +24,7 @@ Si vous préférez compiler vous-même :
 
 1. Clonez le dépôt :
    ```
-   git clone https://github.com/orangeisland/app.git
+   git clone https://github.com/chloemeadow0-code/Orange-Island.git
    ```
 2. Ouvrez le projet dans [Android Studio](https://developer.android.com/studio) (Ladybug ou plus récent)
 3. Synchronisez Gradle et compilez

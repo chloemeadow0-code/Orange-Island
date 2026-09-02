@@ -119,4 +119,4 @@ S铆. La interfaz de la aplicaci贸n admite **English**, **涓枃 (Chino)** y **绻
 
 ### 驴C贸mo reporto un error o solicito una funci贸n?
 
-Abre un issue en [GitHub](https://github.com/orangeisland/app/issues). Para contribuciones, consulta la secci贸n [Contributing](https://github.com/orangeisland/app#contributing) del README.
+Abre un issue en [GitHub](https://github.com/chloemeadow0-code/Orange-Island/issues). Para contribuciones, consulta la secci贸n [Contributing](https://github.com/chloemeadow0-code/Orange-Island#contributing) del README.

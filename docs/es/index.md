@@ -53,4 +53,4 @@ Bienvenido al manual de usuario de 橘子岛. 橘子岛 es un cliente LLM BYOK (
 - **Conversaciones no lineales**: Edita cualquier mensaje pasado y explora ramas alternativas
 - **Agentivo por defecto**: Llamadas a herramientas de múltiples rondas con búsqueda web, generación de imágenes, ejecución de código, shell, operaciones de archivos y memoria
 - **Control remoto**: Administra servidores a través del protocolo cifrado Conch
-- **Código abierto**: Licencia MIT, [código fuente en GitHub](https://github.com/orangeisland/app)
+- **Código abierto**: Licencia MIT, [código fuente en GitHub](https://github.com/chloemeadow0-code/Orange-Island)

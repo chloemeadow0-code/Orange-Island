@@ -53,4 +53,4 @@
 - **非線性對話**：編輯任何過往訊息，探索替代分支
 - **預設代理**：多輪工具呼叫，支援網頁搜尋、圖片生成、程式碼執行、Shell、檔案操作與記憶體
 - **遠端控制**：透過加密的 Conch 協定管理伺服器
-- **開放原始碼**：MIT 授權，[原始碼於 GitHub](https://github.com/orangeisland/app)
+- **開放原始碼**：MIT 授權，[原始碼於 GitHub](https://github.com/chloemeadow0-code/Orange-Island)

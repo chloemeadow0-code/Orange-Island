@@ -115,4 +115,4 @@ Sim. A interface do aplicativo suporta **English** e **中文 (Chinês)**. Confi
 
 ### Como relato um bug ou solicito uma funcionalidade?
 
-Abra uma issue no [GitHub](https://github.com/orangeisland/app/issues). Para contribuições, consulte a seção [Contributing](https://github.com/orangeisland/app#contributing) do README.
+Abra uma issue no [GitHub](https://github.com/chloemeadow0-code/Orange-Island/issues). Para contribuições, consulte a seção [Contributing](https://github.com/chloemeadow0-code/Orange-Island#contributing) do README.

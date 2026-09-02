@@ -14,7 +14,7 @@
 
 ### من إصدارات GitHub
 
-1. زر صفحة [الإصدارات](https://github.com/orangeisland/app/releases)
+1. زر صفحة [الإصدارات](https://github.com/chloemeadow0-code/Orange-Island/releases)
 2. حمّل أحدث ملف `.apk`
 3. افتح الملف على جهازك وأكد التثبيت عند الطلب
 
@@ -24,7 +24,7 @@
 
 1. استنسخ المستودع:
    ```
-   git clone https://github.com/orangeisland/app.git
+   git clone https://github.com/chloemeadow0-code/Orange-Island.git
    ```
 2. افتح المشروع في [Android Studio](https://developer.android.com/studio) (Ladybug أو أحدث)
 3. زامن Gradle وابني

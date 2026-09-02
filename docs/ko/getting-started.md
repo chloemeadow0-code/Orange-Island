@@ -14,7 +14,7 @@
 
 ### GitHub 릴리스에서
 
-1. [릴리스 페이지](https://github.com/orangeisland/app/releases) 방문
+1. [릴리스 페이지](https://github.com/chloemeadow0-code/Orange-Island/releases) 방문
 2. 최신 `.apk` 파일 다운로드
 3. 기기에서 파일을 열고 설치 확인
 
@@ -24,7 +24,7 @@
 
 1. 저장소 클론:
    ```
-   git clone https://github.com/orangeisland/app.git
+   git clone https://github.com/chloemeadow0-code/Orange-Island.git
    ```
 2. [Android Studio](https://developer.android.com/studio) (Ladybug 이상)에서 프로젝트 열기
 3. Gradle 동기화 및 빌드

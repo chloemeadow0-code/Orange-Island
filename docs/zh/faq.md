@@ -119,4 +119,4 @@
 
 ### 如何反馈问题或请求功能？
 
-在 [GitHub](https://github.com/orangeisland/app/issues) 上提交 issue。贡献方式见 README 的 [Contributing](https://github.com/orangeisland/app#contributing) 部分。
+在 [GitHub](https://github.com/chloemeadow0-code/Orange-Island/issues) 上提交 issue。贡献方式见 README 的 [Contributing](https://github.com/chloemeadow0-code/Orange-Island#contributing) 部分。

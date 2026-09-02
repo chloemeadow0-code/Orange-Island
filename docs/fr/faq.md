@@ -119,4 +119,4 @@ Oui. L'interface de l'application prend en charge **l'anglais**, **le chinois (‰
 
 ### Comment signaler un bug ou demander une fonctionnalit√© ?
 
-Ouvrez une issue sur [GitHub](https://github.com/orangeisland/app/issues). Pour les contributions, consultez la section [Contributing](https://github.com/orangeisland/app#contributing) du README.
+Ouvrez une issue sur [GitHub](https://github.com/chloemeadow0-code/Orange-Island/issues). Pour les contributions, consultez la section [Contributing](https://github.com/chloemeadow0-code/Orange-Island#contributing) du README.

@@ -119,4 +119,4 @@
 
 ### كيف أبلغ عن خطأ أو أطلب ميزة؟
 
-افتح مشكلة على [GitHub](https://github.com/orangeisland/app/issues). للمساهمات، راجع قسم [المساهمة](https://github.com/orangeisland/app#contributing) في README.
+افتح مشكلة على [GitHub](https://github.com/chloemeadow0-code/Orange-Island/issues). للمساهمات، راجع قسم [المساهمة](https://github.com/chloemeadow0-code/Orange-Island#contributing) في README.

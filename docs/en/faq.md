@@ -119,4 +119,4 @@ Yes. The app UI supports **English**, **中文 (Chinese)**, and **繁體中文 (
 
 ### How do I report a bug or request a feature?
 
-Open an issue on [GitHub](https://github.com/orangeisland/app/issues). For contributions, see the [Contributing](https://github.com/orangeisland/app#contributing) section of the README.
+Open an issue on [GitHub](https://github.com/chloemeadow0-code/Orange-Island/issues). For contributions, see the [Contributing](https://github.com/chloemeadow0-code/Orange-Island#contributing) section of the README.

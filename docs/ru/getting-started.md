@@ -14,7 +14,7 @@
 
 ### Из релизов GitHub
 
-1. Посетите [страницу релизов](https://github.com/orangeisland/app/releases)
+1. Посетите [страницу релизов](https://github.com/chloemeadow0-code/Orange-Island/releases)
 2. Скачайте последний файл `.apk`
 3. Откройте файл на устройстве и подтвердите установку при запросе
 
@@ -24,7 +24,7 @@
 
 1. Клонируйте репозиторий:
    ```
-   git clone https://github.com/orangeisland/app.git
+   git clone https://github.com/chloemeadow0-code/Orange-Island.git
    ```
 2. Откройте проект в [Android Studio](https://developer.android.com/studio) (Ladybug или новее)
 3. Синхронизируйте Gradle и выполните сборку

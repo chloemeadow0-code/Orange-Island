@@ -14,7 +14,7 @@ Diese Anleitung führt Sie durch die Installation von 橘子岛, das Hinzufügen
 
 ### Von GitHub Releases
 
-1. Besuchen Sie die [Releases-Seite](https://github.com/orangeisland/app/releases)
+1. Besuchen Sie die [Releases-Seite](https://github.com/chloemeadow0-code/Orange-Island/releases)
 2. Laden Sie die neueste `.apk`-Datei herunter
 3. Öffnen Sie die Datei auf Ihrem Gerät und bestätigen Sie die Installation bei Aufforderung
 
@@ -24,7 +24,7 @@ Wenn Sie lieber selbst bauen möchten:
 
 1. Klonen Sie das Repository:
    ```
-   git clone https://github.com/orangeisland/app.git
+   git clone https://github.com/chloemeadow0-code/Orange-Island.git
    ```
 2. Öffnen Sie das Projekt in [Android Studio](https://developer.android.com/studio) (Ladybug oder neuer)
 3. Synchronisieren Sie Gradle und bauen Sie

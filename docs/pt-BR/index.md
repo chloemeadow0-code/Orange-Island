@@ -53,4 +53,4 @@ O 橘子岛 é um cliente Android BYOK para usuários avançados de IA:
 - **Conversas não lineares**: Edite qualquer mensagem passada e explore ramificações alternativas
 - **Agêntico por padrão**: Chamada de ferramentas em múltiplas rodadas com busca na web, execução shell, operações de arquivo e memória
 - **Controle remoto**: Gerencie servidores via o protocolo criptografado Conch
-- **Código aberto**: Licenciado sob MIT, [código fonte no GitHub](https://github.com/orangeisland/app)
+- **Código aberto**: Licenciado sob MIT, [código fonte no GitHub](https://github.com/chloemeadow0-code/Orange-Island)

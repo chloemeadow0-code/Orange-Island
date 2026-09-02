@@ -119,4 +119,4 @@ Ja. Die App-Benutzeroberfläche unterstützt **English**, **中文 (Chinesisch)*
 
 ### Wie melde ich einen Fehler oder wünsche eine Funktion?
 
-Eröffnen Sie ein Issue auf [GitHub](https://github.com/orangeisland/app/issues). Für Beiträge siehe den [Contributing](https://github.com/orangeisland/app#contributing)-Abschnitt der README.
+Eröffnen Sie ein Issue auf [GitHub](https://github.com/chloemeadow0-code/Orange-Island/issues). Für Beiträge siehe den [Contributing](https://github.com/chloemeadow0-code/Orange-Island#contributing)-Abschnitt der README.

@@ -53,4 +53,4 @@ Willkommen zum 橘子岛 Benutzerhandbuch. 橘子岛 ist ein BYOK (Bring Your Ow
 - **Nicht-lineare Konversationen**: Jede vergangene Nachricht bearbeiten und alternative Zweige erkunden
 - **Standardmäßig agentisch**: Mehrstufige Tool-Aufrufe mit Websuche, Bildgenerierung, Code-Ausführung, Shell, Dateioperationen und Speicher
 - **Fernsteuerung**: Server über das verschlüsselte Conch-Protokoll verwalten
-- **Open Source**: MIT-lizenziert, [Quellcode auf GitHub](https://github.com/orangeisland/app)
+- **Open Source**: MIT-lizenziert, [Quellcode auf GitHub](https://github.com/chloemeadow0-code/Orange-Island)

@@ -1,7 +1,7 @@
 site_name: 橘子岛 User Manual
 site_description: Guide for configuring and using 橘子岛 (Orange Island)
 site_url: https://example.com/orangeisland/
-repo_url: https://github.com/orangeisland/app
+repo_url: https://github.com/chloemeadow0-code/Orange-Island
 repo_name: orangeisland/app
 
 theme:

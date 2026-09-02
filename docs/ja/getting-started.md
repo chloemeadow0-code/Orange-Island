@@ -14,7 +14,7 @@
 
 ### GitHub リリースから
 
-1. [リリースページ](https://github.com/orangeisland/app/releases) にアクセスします
+1. [リリースページ](https://github.com/chloemeadow0-code/Orange-Island/releases) にアクセスします
 2. 最新の `.apk` ファイルをダウンロードします
 3. デバイスでファイルを開き、表示されるプロンプトでインストールを確認します
 
@@ -24,7 +24,7 @@
 
 1. リポジトリをクローンします：
    ```
-   git clone https://github.com/orangeisland/app.git
+   git clone https://github.com/chloemeadow0-code/Orange-Island.git
    ```
 2. [Android Studio](https://developer.android.com/studio)（Ladybug 以降）でプロジェクトを開きます
 3. Gradle を同期してビルドします

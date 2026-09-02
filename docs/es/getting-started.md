@@ -14,7 +14,7 @@ Esta guía te explica cómo instalar 橘子岛, añadir tu primera clave API y e
 
 ### Desde GitHub Releases
 
-1. Visita la [página de Releases](https://github.com/orangeisland/app/releases)
+1. Visita la [página de Releases](https://github.com/chloemeadow0-code/Orange-Island/releases)
 2. Descarga el archivo `.apk` más reciente
 3. Abre el archivo en tu dispositivo y confirma la instalación cuando se solicite
 
@@ -24,7 +24,7 @@ Si prefieres compilarlo tú mismo:
 
 1. Clona el repositorio:
    ```
-   git clone https://github.com/orangeisland/app.git
+   git clone https://github.com/chloemeadow0-code/Orange-Island.git
    ```
 2. Abre el proyecto en [Android Studio](https://developer.android.com/studio) (Ladybug o más reciente)
 3. Sincroniza Gradle y compila

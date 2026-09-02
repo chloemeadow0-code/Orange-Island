@@ -119,4 +119,4 @@
 
 ### 버그 신고나 기능 요청은 어떻게 하나요?
 
-[GitHub](https://github.com/orangeisland/app/issues)에서 이슈를 열어주세요. 기여에 관해서는 README의 [Contributing](https://github.com/orangeisland/app#contributing) 섹션을 참조하세요.
+[GitHub](https://github.com/chloemeadow0-code/Orange-Island/issues)에서 이슈를 열어주세요. 기여에 관해서는 README의 [Contributing](https://github.com/chloemeadow0-code/Orange-Island#contributing) 섹션을 참조하세요.

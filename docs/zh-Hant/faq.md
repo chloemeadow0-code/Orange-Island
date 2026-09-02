@@ -119,4 +119,4 @@
 
 ### 如何回報錯誤或請求功能？
 
-在 [GitHub](https://github.com/orangeisland/app/issues) 上開啟 Issue。如需貢獻，請參閱 README 的 [Contributing](https://github.com/orangeisland/app#contributing) 章節。
+在 [GitHub](https://github.com/chloemeadow0-code/Orange-Island/issues) 上開啟 Issue。如需貢獻，請參閱 README 的 [Contributing](https://github.com/chloemeadow0-code/Orange-Island#contributing) 章節。

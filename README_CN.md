@@ -19,11 +19,11 @@
 &nbsp;&nbsp;
 [![Google Play](https://img.shields.io/badge/Google_Play-安装-blue?logo=google-play)](https://play.google.com/store/apps/details?id=com.orangeisland.app)
 &nbsp;&nbsp;
-[![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-blue?logo=github)](https://github.com/orangeisland/app/releases)
+[![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-blue?logo=github)](https://github.com/chloemeadow0-code/Orange-Island/releases)
 
 - **F-Droid（推荐）** — 通过 [F-Droid](https://f-droid.org/) 安装，搜索 **橘子岛**。
 - **Google Play** — 从 [Google Play 商店](https://play.google.com/store/apps/details?id=com.orangeisland.app) 安装。
-- **GitHub Releases** — 从 [Releases 页面](https://github.com/orangeisland/app/releases) 下载最新 `.apk`。
+- **GitHub Releases** — 从 [Releases 页面](https://github.com/chloemeadow0-code/Orange-Island/releases) 下载最新 `.apk`。
 - **从源码构建** — 用 Android Studio 克隆并构建（详见[快速开始](#快速开始)）。
 
 ---

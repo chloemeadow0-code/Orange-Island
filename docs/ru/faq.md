@@ -119,4 +119,4 @@
 
 ### Как сообщить об ошибке или запросить функцию?
 
-Создайте issue на [GitHub](https://github.com/orangeisland/app/issues). Для участия в разработке см. раздел [Contributing](https://github.com/orangeisland/app#contributing) в README.
+Создайте issue на [GitHub](https://github.com/chloemeadow0-code/Orange-Island/issues). Для участия в разработке см. раздел [Contributing](https://github.com/chloemeadow0-code/Orange-Island#contributing) в README.

@@ -31,7 +31,7 @@ class OpenRouterProvider : BaseOpenAiProvider() {
     }
 
     override fun getExtraHeaders(config: ProviderConfig): Map<String, String> = mapOf(
-        "HTTP-Referer" to "https://github.com/orangeisland/app",
+        "HTTP-Referer" to "https://github.com/chloemeadow0-code/Orange-Island",
         "X-Title" to "Orange Island"
     ) + config.customHeaders
 

@@ -14,7 +14,7 @@
 
 ### 從 GitHub Releases 安裝
 
-1. 前往 [Releases 頁面](https://github.com/orangeisland/app/releases)
+1. 前往 [Releases 頁面](https://github.com/chloemeadow0-code/Orange-Island/releases)
 2. 下載最新的 `.apk` 檔案
 3. 在您的裝置上開啟該檔案，並在提示時確認安裝
 
@@ -24,7 +24,7 @@
 
 1. 複製儲存庫：
    ```
-   git clone https://github.com/orangeisland/app.git
+   git clone https://github.com/chloemeadow0-code/Orange-Island.git
    ```
 2. 在 [Android Studio](https://developer.android.com/studio)（Ladybug 或更新版本）中開啟專案
 3. 同步 Gradle 並建置
