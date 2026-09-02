@@ -79,7 +79,7 @@ Sí, si habilitas **Acceder a Memorias Guardadas** y/o **Acceder a Memoria Activ
 
 ### ¿Cómo configuro el acceso a shell remoto?
 
-Despliega el servidor [Conch](https://github.com/orangeisland/conch) en tu máquina de destino, luego añade el dispositivo en Configuración → Shell con su URL y clave API. Consulta [Shell Remoto](shell.md).
+Despliega el servidor [Conch](https://github.com/newo-ether/conch) en tu máquina de destino, luego añade el dispositivo en Configuración → Shell con su URL y clave API. Consulta [Shell Remoto](shell.md).
 
 ### ¿Puedo buscar en la web sin una clave API?
 

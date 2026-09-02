@@ -79,7 +79,7 @@ Ja, wenn Sie **Zugriff auf Gespeicherte Erinnerungen** und/oder **Zugriff auf Ak
 
 ### Wie richte ich Remote-Shell-Zugriff ein?
 
-Stellen Sie den [Conch](https://github.com/orangeisland/conch)-Server auf Ihrem Zielrechner bereit und fügen Sie dann das Gerät in Einstellungen → Shell mit URL und API-Key hinzu. Siehe [Remote Shell](shell.md).
+Stellen Sie den [Conch](https://github.com/newo-ether/conch)-Server auf Ihrem Zielrechner bereit und fügen Sie dann das Gerät in Einstellungen → Shell mit URL und API-Key hinzu. Siehe [Remote Shell](shell.md).
 
 ### Kann ich ohne API-Key im Web suchen?
 

@@ -1,6 +1,6 @@
 # Shell Distant (Conch)
 
-橘子岛 peut exécuter des commandes sur des machines distantes via le protocole [Conch](https://github.com/orangeisland/conch) — un shell sécurisé chiffré de bout en bout conçu pour les agents IA.
+橘子岛 peut exécuter des commandes sur des machines distantes via le protocole [Conch](https://github.com/newo-ether/conch) — un shell sécurisé chiffré de bout en bout conçu pour les agents IA.
 
 ## Comment Ça Marche
 
@@ -34,7 +34,7 @@ Conch utilise un chiffrement fort et des protections anti-abus :
 
 ### Étape 1 : Déployer le Serveur Conch
 
-Déployez le serveur Conch sur votre machine cible. Consultez le [dépôt Conch](https://github.com/orangeisland/conch) pour les instructions d'installation.
+Déployez le serveur Conch sur votre machine cible. Consultez le [dépôt Conch](https://github.com/newo-ether/conch) pour les instructions d'installation.
 
 ### Étape 2 : Ajouter un Appareil dans 橘子岛
 
@@ -109,7 +109,7 @@ Toutes les opérations sur fichiers passent par le canal Conch chiffré.
 
 Conch peut également servir de **serveur MCP pour Claude Desktop**. Si vous utilisez Claude Code ou un autre client MCP, vous pouvez configurer Conch comme fournisseur d'outils pour l'accès distant aux fichiers et au shell depuis votre bureau.
 
-Consultez la [documentation Conch](https://github.com/orangeisland/conch) pour les instructions de configuration MCP.
+Consultez la [documentation Conch](https://github.com/newo-ether/conch) pour les instructions de configuration MCP.
 
 ---
 

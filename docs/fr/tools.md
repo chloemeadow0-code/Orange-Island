@@ -40,7 +40,7 @@ Exécutez du code dans un environnement isolé :
 
 ### Shell Distant
 
-Exécutez des commandes sur des machines distantes via le protocole [Conch](https://github.com/orangeisland/conch). Le modèle peut vérifier l'état du serveur, gérer des fichiers ou exécuter des scripts.
+Exécutez des commandes sur des machines distantes via le protocole [Conch](https://github.com/newo-ether/conch). Le modèle peut vérifier l'état du serveur, gérer des fichiers ou exécuter des scripts.
 
 - **Protocole** : Chiffré de bout en bout (ECDH + AES-256-GCM)
 - **Configuration** : Paramètres → Shell

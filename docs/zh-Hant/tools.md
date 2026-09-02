@@ -40,7 +40,7 @@
 
 ### 遠端 Shell
 
-透過 [Conch](https://github.com/orangeisland/conch) 協定在遠端機器上執行指令。模型可以檢查伺服器狀態、管理檔案或執行腳本。
+透過 [Conch](https://github.com/newo-ether/conch) 協定在遠端機器上執行指令。模型可以檢查伺服器狀態、管理檔案或執行腳本。
 
 - **協定**：端對端加密（ECDH + AES-256-GCM）
 - **設定**：設定 → Shell

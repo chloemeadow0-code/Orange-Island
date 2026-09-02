@@ -40,7 +40,7 @@ Execute code in an isolated environment:
 
 ### Remote Shell
 
-Execute commands on remote machines via the [Conch](https://github.com/orangeisland/conch) protocol. The model can check server status, manage files, or run scripts.
+Execute commands on remote machines via the [Conch](https://github.com/newo-ether/conch) protocol. The model can check server status, manage files, or run scripts.
 
 - **Protocol**: End-to-end encrypted (ECDH + AES-256-GCM)
 - **Configuration**: Settings → Shell

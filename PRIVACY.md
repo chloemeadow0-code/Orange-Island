@@ -47,7 +47,8 @@ Please review the privacy policy of the provider you use.
 - **Accessibility services**: only if you enable them for workflow automation (app-foreground triggers) or the optional App Lock feature.
 - **Notification listener**: only if you enable notification-reading tools or notification-based workflow triggers.
 - **Bluetooth**: detecting connected Bluetooth devices (e.g., headphone triggers for workflows, wearable integrations).
-- **Run at startup / alarms / wake lock / foreground services / battery optimization exemption**: infrastructure used to restore schedules after reboot and keep workflows, alarms, and media playback reliable.
+- **Wi-Fi / network state**: connectivity checks and Wi-Fi-based workflow triggers.
+- **Run at startup / alarms / wake lock / vibrate / foreground services / battery optimization exemption**: infrastructure used to restore schedules after reboot and keep workflows, alarms, and media playback reliable.
 - **Install packages / display over other apps**: only used if you explicitly confirm the corresponding action (e.g., in-app package install or the desktop-pet floating window).
 
 ## Data Retention
@@ -115,7 +116,8 @@ If you have questions about this policy, open an issue at [github.com/chloemeado
 - **无障碍服务**：仅在你为工作流自动化（应用前台触发器）或可选的应用锁定功能主动开启时使用。
 - **通知监听**：仅在你开启通知读取工具或基于通知的工作流触发器时使用。
 - **蓝牙**：检测已连接的蓝牙设备（如耳机触发工作流、可穿戴设备集成）。
-- **开机自启 / 闹钟 / 唤醒锁定 / 前台服务 / 电池优化豁免**：用于重启后恢复计划任务，保障工作流、闹钟和媒体播放稳定运行。
+- **Wi-Fi / 网络状态**：网络连通性检查与基于 Wi-Fi 的工作流触发器。
+- **开机自启 / 闹钟 / 唤醒锁定 / 震动 / 前台服务 / 电池优化豁免**：用于重启后恢复计划任务，保障工作流、闹钟和媒体播放稳定运行。
 - **安装软件包 / 显示悬浮窗**：仅在你明确确认对应操作时使用（如应用内安装、桌面宠物悬浮窗）。
 
 ## 数据保留

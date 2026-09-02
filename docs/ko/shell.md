@@ -1,6 +1,6 @@
 # 원격 셸 (Conch)
 
-橘子岛는 [Conch](https://github.com/orangeisland/conch) 프로토콜을 통해 원격 머신에서 명령을 실행할 수 있습니다 — AI 에이전트를 위해 설계된 종단 간 암호화 보안 셸입니다.
+橘子岛는 [Conch](https://github.com/newo-ether/conch) 프로토콜을 통해 원격 머신에서 명령을 실행할 수 있습니다 — AI 에이전트를 위해 설계된 종단 간 암호화 보안 셸입니다.
 
 ## 작동 방식
 
@@ -34,7 +34,7 @@ Conch는 강력한 암호화와 남용 방지 보호를 사용합니다:
 
 ### 1단계: Conch 서버 배포
 
-대상 머신에 Conch 서버를 배포합니다. 설정 지침은 [Conch 저장소](https://github.com/orangeisland/conch)를 참조하세요.
+대상 머신에 Conch 서버를 배포합니다. 설정 지침은 [Conch 저장소](https://github.com/newo-ether/conch)를 참조하세요.
 
 ### 2단계: 橘子岛에 기기 추가
 
@@ -109,7 +109,7 @@ Conch는 강력한 암호화와 남용 방지 보호를 사용합니다:
 
 Conch는 **Claude Desktop MCP 서버**로도 작동할 수 있습니다. Claude Code 또는 다른 MCP 클라이언트를 사용하는 경우, 데스크톱에서 원격 파일 및 셸 접근을 위한 도구 제공자로 Conch를 구성할 수 있습니다.
 
-MCP 설정 지침은 [Conch 문서](https://github.com/orangeisland/conch)를 참조하세요.
+MCP 설정 지침은 [Conch 문서](https://github.com/newo-ether/conch)를 참조하세요.
 
 ---
 

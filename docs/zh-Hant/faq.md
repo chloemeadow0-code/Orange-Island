@@ -79,7 +79,7 @@
 
 ### 如何設定遠端 Shell 存取？
 
-在您的目標機器上部署 [Conch](https://github.com/orangeisland/conch) 伺服器，然後在設定 → Shell 中使用其 URL 和 API 金鑰新增裝置。請參閱 [遠端 Shell](shell.md)。
+在您的目標機器上部署 [Conch](https://github.com/newo-ether/conch) 伺服器，然後在設定 → Shell 中使用其 URL 和 API 金鑰新增裝置。請參閱 [遠端 Shell](shell.md)。
 
 ### 我可以不使用 API 金鑰來搜尋網頁嗎？
 

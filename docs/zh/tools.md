@@ -40,7 +40,7 @@
 
 ### 远程 Shell
 
-通过 [Conch](https://github.com/orangeisland/conch) 协议在远程机器上执行命令。模型可以检查服务器状态、管理文件或运行脚本。
+通过 [Conch](https://github.com/newo-ether/conch) 协议在远程机器上执行命令。模型可以检查服务器状态、管理文件或运行脚本。
 
 - **协议**：端到端加密（ECDH + AES-256-GCM）
 - **配置**：设置 → Shell

@@ -1,6 +1,6 @@
 # リモートシェル（Conch）
 
-橘子岛 は [Conch](https://github.com/orangeisland/conch) プロトコルを通じてリモートマシン上でコマンドを実行できます — AI エージェント向けに設計されたエンドツーエンド暗号化のセキュアシェルです。
+橘子岛 は [Conch](https://github.com/newo-ether/conch) プロトコルを通じてリモートマシン上でコマンドを実行できます — AI エージェント向けに設計されたエンドツーエンド暗号化のセキュアシェルです。
 
 ## 仕組み
 
@@ -34,7 +34,7 @@ Conch は強力な暗号化と悪用防止策を使用しています：
 
 ### ステップ 1: Conch サーバーのデプロイ
 
-ターゲットマシンに Conch サーバーをデプロイします。セットアップ手順については [Conch リポジトリ](https://github.com/orangeisland/conch) を参照してください。
+ターゲットマシンに Conch サーバーをデプロイします。セットアップ手順については [Conch リポジトリ](https://github.com/newo-ether/conch) を参照してください。
 
 ### ステップ 2: 橘子岛 にデバイスを追加
 
@@ -109,7 +109,7 @@ Conch は強力な暗号化と悪用防止策を使用しています：
 
 Conch は **Claude Desktop MCP サーバー** としても機能します。Claude Code や他の MCP クライアントを使用している場合、デスクトップからのリモートファイルおよびシェルアクセス用のツールプロバイダーとして Conch を設定できます。
 
-MCP セットアップ手順については [Conch ドキュメント](https://github.com/orangeisland/conch) を参照してください。
+MCP セットアップ手順については [Conch ドキュメント](https://github.com/newo-ether/conch) を参照してください。
 
 ---
 

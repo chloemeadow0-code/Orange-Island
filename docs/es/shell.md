@@ -1,6 +1,6 @@
 # Shell Remoto (Conch)
 
-橘子岛 puede ejecutar comandos en máquinas remotas a través del protocolo [Conch](https://github.com/orangeisland/conch) — un shell seguro cifrado de extremo a extremo diseñado para agentes de IA.
+橘子岛 puede ejecutar comandos en máquinas remotas a través del protocolo [Conch](https://github.com/newo-ether/conch) — un shell seguro cifrado de extremo a extremo diseñado para agentes de IA.
 
 ## Cómo Funciona
 
@@ -34,7 +34,7 @@ Conch utiliza cifrado fuerte y protecciones anti-abuso:
 
 ### Paso 1: Desplegar el Servidor Conch
 
-Despliega el servidor Conch en tu máquina de destino. Consulta el [repositorio de Conch](https://github.com/orangeisland/conch) para instrucciones de configuración.
+Despliega el servidor Conch en tu máquina de destino. Consulta el [repositorio de Conch](https://github.com/newo-ether/conch) para instrucciones de configuración.
 
 ### Paso 2: Añadir Dispositivo en 橘子岛
 
@@ -109,7 +109,7 @@ Todas las operaciones de archivos pasan por el canal cifrado Conch.
 
 Conch también puede servir como un **servidor MCP de Claude Desktop**. Si usas Claude Code u otro cliente MCP, puedes configurar Conch como proveedor de herramientas para acceso remoto a archivos y shell desde tu escritorio.
 
-Consulta la [documentación de Conch](https://github.com/orangeisland/conch) para instrucciones de configuración MCP.
+Consulta la [documentación de Conch](https://github.com/newo-ether/conch) para instrucciones de configuración MCP.
 
 ---
 

@@ -79,7 +79,7 @@
 
 ### 원격 셸 접근은 어떻게 설정하나요?
 
-대상 머신에 [Conch](https://github.com/orangeisland/conch) 서버를 배포한 후, 설정 → 셸에서 URL과 API 키로 기기를 추가하세요. [원격 셸](shell.ko.md)을 참조하세요.
+대상 머신에 [Conch](https://github.com/newo-ether/conch) 서버를 배포한 후, 설정 → 셸에서 URL과 API 키로 기기를 추가하세요. [원격 셸](shell.ko.md)을 참조하세요.
 
 ### API 키 없이 웹 검색을 할 수 있나요?
 

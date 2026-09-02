@@ -79,7 +79,7 @@ Sim, se você ativar **Acessar Memórias Salvas** e/ou **Acessar Memória Ativa*
 
 ### Como configuro o acesso ao shell remoto?
 
-Implante o servidor [Conch](https://github.com/orangeisland/conch) na máquina de destino e adicione o dispositivo em Configurações → Shell com sua URL e chave de API. Consulte [Shell Remoto](shell.md).
+Implante o servidor [Conch](https://github.com/newo-ether/conch) na máquina de destino e adicione o dispositivo em Configurações → Shell com sua URL e chave de API. Consulte [Shell Remoto](shell.md).
 
 ### A conexão do shell é criptografada?
 

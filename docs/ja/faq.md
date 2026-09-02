@@ -79,7 +79,7 @@
 
 ### リモートシェルアクセスを設定するには？
 
-ターゲットマシンに [Conch](https://github.com/orangeisland/conch) サーバーをデプロイし、設定 → シェルで URL と API キーを使ってデバイスを追加します。[リモートシェル](shell.md) を参照してください。
+ターゲットマシンに [Conch](https://github.com/newo-ether/conch) サーバーをデプロイし、設定 → シェルで URL と API キーを使ってデバイスを追加します。[リモートシェル](shell.md) を参照してください。
 
 ### API キーなしでウェブ検索はできますか？
 

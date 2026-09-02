@@ -79,7 +79,7 @@ Oui, si vous activez **Accéder aux Mémoires Sauvegardées** et/ou **Accéder �
 
 ### Comment configurer l'accès shell distant ?
 
-Déployez le serveur [Conch](https://github.com/orangeisland/conch) sur votre machine cible, puis ajoutez l'appareil dans Paramètres → Shell avec son URL et sa clé API. Voir [Shell Distant](shell.md).
+Déployez le serveur [Conch](https://github.com/newo-ether/conch) sur votre machine cible, puis ajoutez l'appareil dans Paramètres → Shell avec son URL et sa clé API. Voir [Shell Distant](shell.md).
 
 ### Puis-je rechercher sur le web sans clé API ?
 

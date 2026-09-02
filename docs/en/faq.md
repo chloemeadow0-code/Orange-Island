@@ -79,7 +79,7 @@ Yes, if you enable **Access Saved Memories** and/or **Access Active Memory** in 
 
 ### How do I set up remote shell access?
 
-Deploy the [Conch](https://github.com/orangeisland/conch) server on your target machine, then add the device in Settings → Shell with its URL and API key. Both Conch and SSH devices are supported. See [Remote Shell](shell.md).
+Deploy the [Conch](https://github.com/newo-ether/conch) server on your target machine, then add the device in Settings → Shell with its URL and API key. Both Conch and SSH devices are supported. See [Remote Shell](shell.md).
 
 ### Can I search the web without an API key?
 

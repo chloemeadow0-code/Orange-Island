@@ -40,7 +40,7 @@ Ejecuta código en un entorno aislado:
 
 ### Shell Remoto
 
-Ejecuta comandos en máquinas remotas a través del protocolo [Conch](https://github.com/orangeisland/conch). El modelo puede verificar el estado del servidor, gestionar archivos o ejecutar scripts.
+Ejecuta comandos en máquinas remotas a través del protocolo [Conch](https://github.com/newo-ether/conch). El modelo puede verificar el estado del servidor, gestionar archivos o ejecutar scripts.
 
 - **Protocolo**: Cifrado de extremo a extremo (ECDH + AES-256-GCM)
 - **Configuración**: Configuración → Shell

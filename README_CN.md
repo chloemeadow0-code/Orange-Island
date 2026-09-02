@@ -15,14 +15,10 @@
 
 ## 下载
 
-[![F-Droid](https://img.shields.io/badge/F--Droid-安装-blue?logo=fdroid)](https://f-droid.org/packages/com.orangeisland.app/)
-&nbsp;&nbsp;
-[![Google Play](https://img.shields.io/badge/Google_Play-安装-blue?logo=google-play)](https://play.google.com/store/apps/details?id=com.orangeisland.app)
-&nbsp;&nbsp;
+> 应用商店渠道正在筹备中，当前请通过以下方式获取。
+
 [![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-blue?logo=github)](https://github.com/chloemeadow0-code/Orange-Island/releases)
 
-- **F-Droid（推荐）** — 通过 [F-Droid](https://f-droid.org/) 安装，搜索 **橘子岛**。
-- **Google Play** — 从 [Google Play 商店](https://play.google.com/store/apps/details?id=com.orangeisland.app) 安装。
 - **GitHub Releases** — 从 [Releases 页面](https://github.com/chloemeadow0-code/Orange-Island/releases) 下载最新 `.apk`。
 - **从源码构建** — 用 Android Studio 克隆并构建（详见[快速开始](#快速开始)）。
 
@@ -45,7 +41,7 @@
 - **无中间层：** 直连 API。无遥测、无追踪、无企业服务器记录你的对话。一切存储在本地 Room 数据库中。
 - **非线性思维：** 树形消息数据库让你可以编辑任意历史消息、重新生成回复、探索备选分支，不会丢失上下文。
 - **原生智能代理：** 多轮工具调用，支持联网搜索、代码执行、远程文件操作、记忆管理、语义对话搜索。
-- **远程控制：** 通过 [Conch](https://github.com/orangeisland/conch) 协议管理服务器、编辑文件、搜索远程代码 — ECDH + AES-256-GCM 端到端加密。
+- **远程控制：** 通过 [Conch](https://github.com/newo-ether/conch) 协议管理服务器、编辑文件、搜索远程代码 — ECDH + AES-256-GCM 端到端加密。
 
 ## 功能特性
 
@@ -61,7 +57,7 @@
 - **联网搜索** — DuckDuckGo Lite（匿名免密钥）、Brave、Serper、Tavily、SearXNG
 - **代码执行** — Gemini 代码执行、PRoot Alpine Linux 沙盒 + SAF 文件访问
 - **图片生成** — BYOK 文生图，OpenAI 兼容 `/v1/images/generations`，聊天内直接渲染
-- **远程 Shell 与文件 I/O** — 通过 [Conch](https://github.com/orangeisland/conch) 协议执行命令、读写/编辑/搜索远程文件
+- **远程 Shell 与文件 I/O** — 通过 [Conch](https://github.com/newo-ether/conch) 协议执行命令、读写/编辑/搜索远程文件
 - **记忆** — 跨对话的持久活跃记忆和记忆文件存储
 - **对话搜索** — 基于 RAG 的对话历史语义搜索
 
@@ -156,7 +152,7 @@
 
 <table>
 <tr>
-<td width="33%"><b>① 部署</b><br/>在目标机器上部署 <a href="https://github.com/orangeisland/conch">Conch 服务器</a>。</td>
+<td width="33%"><b>① 部署</b><br/>在目标机器上部署 <a href="https://github.com/newo-ether/conch">Conch 服务器</a>。</td>
 <td width="33%"><b>② 添加设备</b><br/>设置 → Shell 设备 → 添加 URL 和 API 密钥。</td>
 <td width="33%"><b>③ 使用</b><br/>模型会自动发现 Shell 设备，用于执行命令、文件操作和搜索。</td>
 </tr>

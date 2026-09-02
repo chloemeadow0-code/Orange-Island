@@ -1,6 +1,6 @@
 # 远程 Shell (Conch)
 
-橘子岛 可以通过 [Conch](https://github.com/orangeisland/conch) 协议在远程机器上执行命令——一个专为 AI 代理设计的端到端加密安全 Shell。
+橘子岛 可以通过 [Conch](https://github.com/newo-ether/conch) 协议在远程机器上执行命令——一个专为 AI 代理设计的端到端加密安全 Shell。
 
 ## 工作原理
 
@@ -34,7 +34,7 @@ Conch 使用强加密和反滥用保护：
 
 ### 第一步：部署 Conch 服务器
 
-在目标机器上部署 Conch 服务器。详见 [Conch 仓库](https://github.com/orangeisland/conch) 的安装说明。
+在目标机器上部署 Conch 服务器。详见 [Conch 仓库](https://github.com/newo-ether/conch) 的安装说明。
 
 ### 第二步：在 橘子岛 中添加设备
 
@@ -109,7 +109,7 @@ Conch 使用强加密和反滥用保护：
 
 Conch 也可以作为 **Claude Desktop MCP 服务器**。如果你使用 Claude Code 或其他 MCP 客户端，可以将 Conch 配置为工具提供者，用于远程文件和 Shell 访问。
 
-详见 [Conch 文档](https://github.com/orangeisland/conch) 的 MCP 设置说明。
+详见 [Conch 文档](https://github.com/newo-ether/conch) 的 MCP 设置说明。
 
 ---
 

@@ -40,7 +40,7 @@ Code in einer isolierten Umgebung ausführen:
 
 ### Remote Shell
 
-Befehle auf entfernten Rechnern über das [Conch](https://github.com/orangeisland/conch)-Protokoll ausführen. Das Modell kann Serverstatus prüfen, Dateien verwalten oder Skripte ausführen.
+Befehle auf entfernten Rechnern über das [Conch](https://github.com/newo-ether/conch)-Protokoll ausführen. Das Modell kann Serverstatus prüfen, Dateien verwalten oder Skripte ausführen.
 
 - **Protokoll**: Ende-zu-Ende-verschlüsselt (ECDH + AES-256-GCM)
 - **Konfiguration**: Einstellungen → Shell
