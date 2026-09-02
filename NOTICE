@@ -56,9 +56,12 @@ Bundled Third-Party Components
 
 In addition to the MIT-licensed code inherited from Agora, this application
 bundles and distributes the following third-party components. The complete
-source code of each component is included in the public repository of this
-project, satisfying the source-availability requirements of the respective
-licenses.
+corresponding source code for each component is available via this project's
+public repository: llama.cpp and PRoot are included as pinned git submodules
+(see the .gitmodules file) referencing exact upstream commits at their
+respective upstream locations, and the talloc source files are included
+directly in the repository. This satisfies the source-availability
+requirements of the respective licenses.
 
 1. llama.cpp — https://github.com/ggml-org/llama.cpp
    License: MIT License
@@ -70,8 +73,9 @@ licenses.
    License: GNU General Public License, version 2
    Copyright (C) 2010-2019 STMicroelectronics (Cédric Vincent and others);
    patches by the Termux project.
-   Bundled as libproot_exec.so and libproot_loader.so, built from
-   thirdparty/proot. The full GPL-2.0 text is included in
+   Bundled as libproot_exec.so and libproot_loader.so, built from the
+   thirdparty/proot submodule (pinned upstream commit, no local
+   modifications). The full GPL-2.0 text is included in
    thirdparty/proot/COPYING and reproduced in the app under
    Settings → About → Open Source License Notice.
 
